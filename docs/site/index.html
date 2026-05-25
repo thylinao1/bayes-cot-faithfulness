@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Bayesian Causal Faithfulness for LLM Chain-of-Thought</title>
-<meta name="description" content="The first Bayesian causal-mediation framework for measuring whether LLM chain-of-thought reasoning actually drives its answers. Calibrated uncertainty for scalable oversight and deception detection." />
+<meta name="description" content="A Bayesian causal-mediation framework for measuring whether LLM chain-of-thought reasoning actually drives its answers. Calibrated uncertainty for scalable oversight and deception detection." />
 <meta name="author" content="Maksim Silchenko" />
 <meta property="og:title" content="Bayesian Causal Faithfulness for LLM Chain-of-Thought" />
 <meta property="og:description" content="Calibrated uncertainty for the question 'does this model's reasoning actually cause its answer?'" />
@@ -57,8 +57,8 @@
       actually cause the answer?
     </h1>
     <p class="hero-sub">
-      The first Bayesian causal-mediation framework for measuring whether LLM
-      reasoning is faithful or post-hoc rationalization &mdash; with calibrated
+      A Bayesian causal-mediation framework for measuring whether LLM
+      reasoning is faithful or post-hoc rationalization, with calibrated
       uncertainty for scalable oversight and deception detection.
     </p>
     <div class="hero-cta">
@@ -92,8 +92,8 @@
         </defs>
 
         <!-- direct path X -> Y -->
-        <path d="M 100 110 L 620 110" stroke="url(#edge-direct)" stroke-width="2.5" fill="none" stroke-dasharray="6 4" class="path-direct" />
-        <text x="360" y="98" text-anchor="middle" fill="#ff8c42" font-size="13" font-family="JetBrains Mono" opacity="0.85">&alpha; &middot; direct (decorative path)</text>
+        <path d="M 134 110 L 586 110" stroke="url(#edge-direct)" stroke-width="2.5" fill="none" stroke-dasharray="6 4" class="path-direct" />
+        <text x="360" y="135" text-anchor="middle" fill="#ff8c42" font-size="13" font-family="JetBrains Mono" opacity="0.85">&alpha; &middot; direct (decorative path)</text>
 
         <!-- indirect path X -> M -->
         <path d="M 100 110 Q 280 30 360 50" stroke="url(#edge-xm)" stroke-width="3.5" fill="none" class="path-xm" />
@@ -112,7 +112,7 @@
         <g filter="url(#node-glow)" class="node">
           <circle cx="360" cy="50" r="34" fill="#0b0f17" stroke="#4dd0e1" stroke-width="1.8" />
           <text x="360" y="56" text-anchor="middle" fill="#4dd0e1" font-size="22" font-family="Inter" font-weight="600">M</text>
-          <text x="360" y="20" text-anchor="middle" fill="#9aa4b8" font-size="11" font-family="JetBrains Mono">CoT (mediator)</text>
+          <text x="360" y="12" text-anchor="middle" fill="#9aa4b8" font-size="11" font-family="JetBrains Mono">CoT (mediator)</text>
         </g>
         <g filter="url(#node-glow)" class="node">
           <circle cx="620" cy="110" r="34" fill="#0b0f17" stroke="#dbe2ea" stroke-width="1.5" />
@@ -130,30 +130,30 @@
 <section id="problem" class="section">
   <div class="section-head">
     <span class="eyebrow">01 &middot; the problem</span>
-    <h2>Frontier safety leans on reading the model's reasoning.<br /><span class="muted">But the reasoning might be fake.</span></h2>
+    <h2>Frontier safety leans on reading the model's reasoning, but that reasoning might be fake.</h2>
   </div>
   <div class="three-col">
     <div class="card reveal">
       <div class="card-icon orange">&#9678;</div>
       <h3>Scalable oversight breaks</h3>
-      <p>Plans for overseeing superhuman models assume the written reasoning drives the answer. If CoT is decorative, the oversight signal is fake &mdash; and current measurements can't tell you how fake.</p>
+      <p>Plans for overseeing superhuman models assume the written reasoning drives the answer. If CoT is decorative, the oversight signal is fake, and current measurements cannot tell you how fake it is.</p>
     </div>
     <div class="card reveal">
       <div class="card-icon cyan">&#9678;</div>
       <h3>Deceptive alignment slips through</h3>
-      <p>A deceptive model can write aligned-looking CoT while the actual computation does something else. Distinguishing this from "the CoT genuinely drives the answer" requires causal &mdash; not correlational &mdash; analysis with power calculations.</p>
+      <p>A deceptive model can write aligned-looking CoT while the actual computation does something else. Distinguishing this from "the CoT genuinely drives the answer" requires causal (not correlational) analysis along with proper power calculations.</p>
     </div>
     <div class="card reveal">
       <div class="card-icon green">&#9678;</div>
       <h3>Evaluations stop being credible</h3>
-      <p>Faithfulness has become load-bearing in AI-control evals. Point estimates without credible intervals can't tell you whether model A is actually more faithful than model B &mdash; or whether the difference is sampling noise.</p>
+      <p>Faithfulness has become load-bearing in AI-control evals. Point estimates without credible intervals cannot tell you whether model A is actually more faithful than model B, or whether the difference is sampling noise.</p>
     </div>
   </div>
 
   <div class="quote reveal">
     <p>
-      "We measured the faithfulness of CoT reasoning &mdash; but we didn't measure
-      <em>how confident</em> we should be in that number. That is the gap."
+      "We measured the faithfulness of CoT reasoning, but we didn't measure
+      how confident we should be in that number. That is the gap."
     </p>
   </div>
 </section>
@@ -162,7 +162,7 @@
 <section id="approach" class="section">
   <div class="section-head">
     <span class="eyebrow">02 &middot; the approach</span>
-    <h2>Treat CoT as a <span class="grad-text">causal mediator</span>.<br /><span class="muted">Estimate it with hierarchical Bayes.</span></h2>
+    <h2>Treat CoT as a <span class="grad-text">causal mediator</span> and estimate it with hierarchical Bayes.</h2>
   </div>
 
   <div class="approach-grid">
@@ -173,18 +173,18 @@
         decomposes into two paths:
       </p>
       <ul>
-        <li><span class="dot orange"></span><strong>Natural direct effect (NDE)</strong> &mdash; the path that bypasses CoT. A high NDE / TE ratio means the reasoning is decorative.</li>
-        <li><span class="dot cyan"></span><strong>Natural indirect effect (NIE)</strong> &mdash; the path that flows through CoT. A high NIE / TE ratio means the reasoning is causally faithful.</li>
+        <li><span class="dot orange"></span><strong>Natural direct effect (NDE),</strong> which is the path that bypasses CoT. A high NDE / TE ratio means the reasoning is decorative.</li>
+        <li><span class="dot cyan"></span><strong>Natural indirect effect (NIE),</strong> which is the path that flows through CoT. A high NIE / TE ratio means the reasoning is causally faithful.</li>
       </ul>
       <p>
         Estimation is <strong>hierarchical Bayesian</strong> in PyMC. The output is a
-        full posterior distribution, not a point estimate &mdash; calibrated credible
-        intervals you can actually use to make deployment decisions.
+        full posterior distribution rather than a point estimate, with calibrated
+        credible intervals that can be used to make deployment decisions.
       </p>
       <p class="why-bayes">
-        <strong>Why Bayesian:</strong> calibrated uncertainty by construction, hierarchical
-        pooling across prompts and seeds, posterior model comparison (Bayes factors,
-        PSIS-LOO) for "is this faithful?" hypothesis tests.
+        <strong>Why Bayesian:</strong> calibrated uncertainty by construction,
+        hierarchical pooling across prompts and seeds, and posterior model comparison
+        (Bayes factors, PSIS-LOO) for "is this faithful?" hypothesis tests.
       </p>
     </div>
 
@@ -219,12 +219,12 @@
 <section id="demo" class="section section-tinted">
   <div class="section-head">
     <span class="eyebrow">03 &middot; interactive demo</span>
-    <h2>Drag the sliders.<br /><span class="muted">Watch faithfulness change in real time.</span></h2>
+    <h2>Drag the sliders and watch faithfulness change in real time.</h2>
     <p class="head-sub">
       Adjust the three coefficients of the data-generating process. The bars on the
       right update with the implied natural-direct, natural-indirect, and total
-      effects (computed live in your browser via Monte Carlo). The <strong>NIE / TE
-      ratio</strong> is the faithfulness score.
+      effects, computed live in your browser via Monte Carlo. The NIE / TE ratio
+      gives the faithfulness score.
     </p>
   </div>
 
@@ -236,7 +236,7 @@
           <span class="slider-value" id="alphaValue">0.30</span>
         </div>
         <input type="range" id="alphaSlider" min="-2" max="2" step="0.05" value="0.3" />
-        <div class="slider-hint">larger &rarr; more decorative CoT</div>
+        <div class="slider-hint">larger value, more decorative CoT</div>
       </div>
 
       <div class="slider-row">
@@ -245,7 +245,7 @@
           <span class="slider-value" id="betaValue">1.50</span>
         </div>
         <input type="range" id="betaSlider" min="0" max="3" step="0.05" value="1.5" />
-        <div class="slider-hint">larger &rarr; CoT carries more answer signal</div>
+        <div class="slider-hint">larger value, CoT carries more answer signal</div>
       </div>
 
       <div class="slider-row">
@@ -254,7 +254,7 @@
           <span class="slider-value" id="gammaValue">0.80</span>
         </div>
         <input type="range" id="gammaSlider" min="0" max="2" step="0.05" value="0.8" />
-        <div class="slider-hint">larger &rarr; prompt strongly shifts the CoT</div>
+        <div class="slider-hint">larger value, prompt strongly shifts the CoT</div>
       </div>
 
       <div class="slider-row">
@@ -298,8 +298,8 @@
 
       <div class="demo-note">
         Real LLM experiments fit this same model on (truncation, paraphrase, swap)
-        interventions across thousands of prompts &mdash; with hierarchical pooling
-        and posterior credible intervals on every effect.
+        interventions across thousands of prompts, with hierarchical pooling and
+        posterior credible intervals on every effect.
       </div>
     </div>
   </div>
@@ -309,7 +309,7 @@
 <section id="progress" class="section">
   <div class="section-head">
     <span class="eyebrow">04 &middot; progress to date</span>
-    <h2>Synthetic-validation gate cleared.<br /><span class="muted">18/18 tests passing in CI.</span></h2>
+    <h2>The synthetic-validation gate is cleared, with 18 of 18 tests passing in CI.</h2>
   </div>
 
   <div class="progress-grid">
@@ -317,7 +317,7 @@
       <img src="posterior_recovery.png" alt="Posterior recovery on synthetic CoT" />
       <figcaption>
         Posterior recovery on synthetic CoT (n = 400). All three 95 % credible
-        intervals contain the true effects. Methodological gate cleared.
+        intervals contain the true effects.
       </figcaption>
     </figure>
 
@@ -326,14 +326,14 @@
         <span class="check-mark">&check;</span>
         <div>
           <strong>Synthetic-CoT data-generating process</strong>
-          <p>Controlled ground truth for NDE / NIE / TE; analytic + Monte Carlo verification.</p>
+          <p>Controlled ground truth for NDE / NIE / TE; analytic and Monte Carlo verification.</p>
         </div>
       </div>
       <div class="check">
         <span class="check-mark">&check;</span>
         <div>
           <strong>Hierarchical Bayesian estimator in PyMC</strong>
-          <p>NUTS sampling, weakly informative priors, posterior derived quantities on the probability scale.</p>
+          <p>NUTS sampling with weakly informative priors and posterior derived quantities on the probability scale.</p>
         </div>
       </div>
       <div class="check">
@@ -346,22 +346,22 @@
       <div class="check">
         <span class="check-mark">&check;</span>
         <div>
-          <strong>18-case pytest suite + GitHub Actions CI</strong>
-          <p>Python 3.10 / 3.11 / 3.12 matrix; ruff lint; fast tests &lt; 3s; slow PyMC test gated behind <code>--runslow</code>.</p>
+          <strong>18-case pytest suite and GitHub Actions CI</strong>
+          <p>Python 3.10 / 3.11 / 3.12 matrix, ruff lint, fast tests under 3s, slow PyMC test gated behind <code>--runslow</code>.</p>
         </div>
       </div>
       <div class="check">
         <span class="check-mark">&check;</span>
         <div>
           <strong>Formal methodology write-up</strong>
-          <p>Identification assumptions, decomposition, connection to causal scrubbing &amp; activation patching.</p>
+          <p>Identification assumptions, decomposition, and connection to causal scrubbing and activation patching.</p>
         </div>
       </div>
       <div class="check pending">
         <span class="check-mark">&middot;</span>
         <div>
-          <strong>Real-LLM intervention harness</strong>
-          <p>Next milestone &mdash; truncation, paraphrase, segment-swap, interchange interventions on open-source models.</p>
+          <strong>Real-LLM intervention pipeline</strong>
+          <p>The next milestone covers truncation, paraphrase, segment-swap, and interchange interventions on open-source models.</p>
         </div>
       </div>
     </div>
@@ -377,31 +377,31 @@
 
   <div class="roadmap">
     <div class="rmstep reveal">
-      <div class="rmweek">wk 1&ndash;2</div>
+      <div class="rmweek">wk 1 to 2</div>
       <div class="rmbody">
-        <strong>Literature consolidation + formal framework</strong>
+        <strong>Literature consolidation and formal framework</strong>
         <p>Mediation analysis under interchange interventions. Identification assumptions audited against the LLM setting.</p>
       </div>
     </div>
     <div class="rmstep reveal">
-      <div class="rmweek">wk 3&ndash;4</div>
+      <div class="rmweek">wk 3 to 4</div>
       <div class="rmbody">
         <strong>Synthetic-CoT testbed extended</strong>
         <p>Multi-segment mediator, prompt-level random effects, partial pooling. Done as a gate before any real-LLM spend.</p>
       </div>
     </div>
     <div class="rmstep reveal">
-      <div class="rmweek">wk 5&ndash;6</div>
+      <div class="rmweek">wk 5 to 6</div>
       <div class="rmbody">
-        <strong>Intervention harness</strong>
-        <p>Truncation, paraphrase, segment-swap, interchange. Same API for OSS models (via HuggingFace) and frontier models (via Anthropic / OpenAI APIs).</p>
+        <strong>Intervention pipeline</strong>
+        <p>Truncation, paraphrase, segment-swap, interchange. Same API for OSS models (via HuggingFace) and frontier models (via Anthropic and OpenAI APIs).</p>
       </div>
     </div>
     <div class="rmstep reveal">
-      <div class="rmweek">wk 7&ndash;9</div>
+      <div class="rmweek">wk 7 to 9</div>
       <div class="rmbody">
         <strong>Open-source model sweep</strong>
-        <p>Llama-3-8B, Gemma-2-9B on GSM8K, BBH, TruthfulQA. ~120 A100-hours on RunPod / Lambda.</p>
+        <p>Llama-3-8B, Gemma-2-9B on GSM8K, BBH, TruthfulQA. About 120 A100-hours on RunPod or Lambda.</p>
       </div>
     </div>
     <div class="rmstep reveal">
@@ -412,10 +412,10 @@
       </div>
     </div>
     <div class="rmstep reveal">
-      <div class="rmweek">wk 11&ndash;12</div>
+      <div class="rmweek">wk 11 to 12</div>
       <div class="rmbody">
-        <strong>Public benchmark + writeup</strong>
-        <p>Uncertainty-quantified faithfulness benchmark on GitHub. Workshop submission (NeurIPS / AAAI safety). LessWrong post.</p>
+        <strong>Public benchmark and writeup</strong>
+        <p>Uncertainty-quantified faithfulness benchmark on GitHub. Workshop submission (NeurIPS or AAAI safety). LessWrong post.</p>
       </div>
     </div>
   </div>
@@ -424,15 +424,15 @@
     <div class="budget-header">
       <h3>Funding ask &middot; <span class="grad-text">$1,450</span></h3>
       <p class="muted">
-        Doable on free / personal tier at half rigour and 2&times; timeline.
-        This budget unlocks publication-quality statistical power.
+        Doable on a free or personal tier at half the rigour and double the timeline.
+        This budget pays for publication-quality statistical power.
       </p>
     </div>
     <div class="budget-table">
-      <div class="brow"><span>Anthropic API (Claude Sonnet / Opus, ~6M tokens)</span><span>$400</span></div>
+      <div class="brow"><span>Anthropic API (Claude Sonnet / Opus, about 6M tokens)</span><span>$400</span></div>
       <div class="brow"><span>OpenAI API (GPT-4-class cross-lab comparison)</span><span>$300</span></div>
-      <div class="brow"><span>Cloud GPU (RunPod / Lambda, ~120 A100-40GB hrs)</span><span>$400</span></div>
-      <div class="brow"><span>Sample-size / overage buffer (variance protection)</span><span>$200</span></div>
+      <div class="brow"><span>Cloud GPU (RunPod or Lambda, about 120 A100-40GB hrs)</span><span>$400</span></div>
+      <div class="brow"><span>Sample-size and overage buffer (variance protection)</span><span>$200</span></div>
       <div class="brow"><span>Workshop registration (virtual)</span><span>$100</span></div>
       <div class="brow"><span>Cloud storage (activation cache)</span><span>$50</span></div>
       <div class="brow brow-total"><span>Total</span><span>$1,450</span></div>
@@ -444,38 +444,50 @@
 <section id="about" class="section">
   <div class="section-head">
     <span class="eyebrow">06 &middot; researcher</span>
-    <h2>Who is building this.</h2>
+    <h2>About me.</h2>
   </div>
   <div class="about-grid">
     <div class="about-body reveal">
       <p>
-        <strong>Maksim Silchenko</strong> &mdash; just finished a BSc International
-        Business (Hons, First-Class) at <strong>Bayes Business School (City,
-        University of London)</strong>, specialised in AI &amp; Quantitative
-        Methods. Starting MSc Statistics (Business Analytics) at the
-        <strong>National University of Singapore</strong> in July 2026.
+        <strong>Maksim Silchenko.</strong> I'm an MSc student in NUS School of
+        Computing (Business Analytics), specializing in Statistics, and a
+        winner of the Jane Street Quantitative Reasoning Competition and the
+        National Mathematics Olympiad (top 0.015% nationally).
       </p>
       <p>
-        Honest framing: not a CS-degree expert in mechanistic interpretability.
-        What I am is a passionate applied researcher who spends 5&ndash;6 hours
-        a day working through statistics and causal inference &mdash; from
-        McElreath's <em>Statistical Rethinking</em> to Stanford CS229 / CS230,
-        with a Russian National Mathematics Olympiad win (top 0.015 %) and a Jane
-        Street puzzle win in the foundation. My prior projects show the exact
-        toolkit this work needs:
+        Honest framing: I'm not a computer science expert in mechanistic
+        interpretability, nor do I have a bachelor's in computer science from
+        a top university in the world. However, what I am is a passionate
+        applied researcher who spends 6 to 7 hours a day working through
+        statistics, causal inference, reading papers, and iterating through
+        many different ideas that come to my head utilizing AI tools. During
+        my bachelor's, I extensively studied courses from top universities
+        across the world like CS229 machine learning, Stanford CS230 deep
+        learning, Stanford EE178 probabilistic system analysis, completed
+        the entire Imperial College mathematics for machine learning
+        specialization, and MIT introduction to probability, as well as the
+        IBM applied data science specialization, and now have just finished
+        working through the PhD-level course taught by McElreath and his
+        book Statistical Rethinking, whose ideas I'm actively implementing.
+        One thing that gives me an advantage is a really strong mathematical
+        background going all the way back to when I won the Russian National
+        Mathematics Olympiad in high school, and more recently became one of
+        the winners of the Jane Street quantitative competition puzzle. To
+        showcase my skills and recent work please take a look at some of the
+        projects I have attached below:
       </p>
       <ul class="about-projects">
         <li>
-          <a href="https://github.com/thylinao1/Olist-Bayesian-AB-Testing" target="_blank" rel="noopener"><strong>Olist Hierarchical Bayesian A/B Testing</strong></a>
-          &mdash; PyMC 5, hierarchical difference-in-differences, causal DAG, PSIS-LOO. Exact statistical stack.
+          <a href="https://github.com/thylinao1/Olist-Bayesian-AB-Testing" target="_blank" rel="noopener"><strong>Olist Hierarchical Bayesian A/B Testing</strong></a>:
+          PyMC 5, hierarchical difference-in-differences, causal DAG, PSIS-LOO. The exact statistical stack.
         </li>
         <li>
-          <a href="https://github.com/thylinao1/TCM" target="_blank" rel="noopener"><strong>TCM Group Capstone</strong></a>
-          &mdash; built RCT-style wait-list-controlled causal-inference framework + LLM-as-judge scoring. Top grade in cohort.
+          <a href="https://github.com/thylinao1/TCM" target="_blank" rel="noopener"><strong>TCM Group Capstone</strong></a>:
+          built an RCT-style wait-list-controlled causal-inference framework with LLM-as-judge scoring. Top grade in cohort.
         </li>
         <li>
-          <a href="https://github.com/thylinao1/ab-guardrail" target="_blank" rel="noopener"><strong>A/B-Test Experimentation Guardrail</strong></a>
-          &mdash; SRM detection, propensity-score matching, Rosenbaum bounds, Claude tool-use agent loop.
+          <a href="https://github.com/thylinao1/ab-guardrail" target="_blank" rel="noopener"><strong>A/B-Test Experimentation Guardrail</strong></a>:
+          SRM detection, propensity-score matching, Rosenbaum bounds, Claude tool-use agent loop.
         </li>
       </ul>
     </div>
