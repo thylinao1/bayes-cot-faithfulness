@@ -1,0 +1,6 @@
+numpy>=1.26
+scipy>=1.11
+pymc>=5.10
+arviz>=0.17
+pandas>=2.1
+matplotlib>=3.8
