@@ -70,9 +70,10 @@ code, pre { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monos
   max-width: 1200px;
   margin: 0 auto;
   padding: 14px 28px;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  gap: 24px;
 }
 .nav-brand {
   display: flex; align-items: center; gap: 10px;
@@ -80,6 +81,7 @@ code, pre { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monos
   font-size: 13px;
   letter-spacing: -0.01em;
   color: var(--text);
+  justify-self: start;
 }
 .brand-dot {
   width: 9px; height: 9px;
@@ -94,19 +96,47 @@ code, pre { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monos
 }
 .brand-name { color: var(--text); }
 .nav-links {
-  display: flex; gap: 26px;
-  font-family: 'JetBrains Mono';
-  font-size: 12.5px;
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--text-2);
+  letter-spacing: -0.005em;
 }
-.nav-links a { transition: color 0.2s ease; }
-.nav-links a:hover { color: var(--text); }
+.nav-links a {
+  transition: color 0.2s ease;
+  position: relative;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -6px;
+  height: 1.5px;
+  background: var(--cyan);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.2s ease;
+  border-radius: 2px;
+}
+.nav-links a:hover {
+  color: var(--text);
+}
+.nav-links a:hover::after {
+  transform: scaleX(1);
+}
 .nav-github {
   color: var(--cyan) !important;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border: 1px solid rgba(77, 208, 225, 0.35);
   border-radius: 100px;
   transition: all 0.2s ease;
+  font-family: 'JetBrains Mono';
+  font-size: 12.5px;
+  font-weight: 500;
+  justify-self: end;
 }
 .nav-github:hover {
   background: rgba(77, 208, 225, 0.1);
@@ -1080,6 +1110,72 @@ input[type=range]::-moz-range-thumb {
   line-height: 1.55;
 }
 
+.assumption-item.violated {
+  border-color: rgba(255, 140, 66, 0.32);
+  background: linear-gradient(180deg, rgba(255, 140, 66, 0.05), var(--bg-tint) 70%);
+}
+.violated-num {
+  background: rgba(255, 140, 66, 0.18) !important;
+  color: var(--orange) !important;
+}
+.violated-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-family: 'JetBrains Mono';
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255, 140, 66, 0.15);
+  color: var(--orange);
+  border-radius: 100px;
+  vertical-align: 2px;
+}
+
+.methodology-subdivider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 36px 0 24px;
+}
+.subdiv-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+.subdiv-text {
+  font-family: 'JetBrains Mono';
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+.strat-list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+}
+.strat-list li {
+  padding: 10px 0;
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+  border-bottom: 1px solid var(--border-soft);
+}
+.strat-list li:last-child { border-bottom: none; }
+.strat-list strong { color: var(--text); }
+.strat-list em { color: var(--cyan); font-style: italic; }
+.math-card code {
+  background: var(--bg-3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: var(--cyan);
+}
+
 .prior-table {
   background: var(--bg);
   border: 1px solid var(--border-soft);
@@ -1260,8 +1356,8 @@ input[type=range]::-moz-range-thumb {
 
 /* ---------- mobile tweaks ---------- */
 @media (max-width: 720px) {
-  .nav-links { gap: 14px; }
-  .nav-links a:not(.nav-github) { display: none; }
+  .nav-inner { grid-template-columns: 1fr auto; gap: 12px; }
+  .nav-links { display: none; }
   .section { padding: 80px 22px; }
   .hero { padding-top: 96px; }
   .hero-diagram { margin-top: 50px; }
