@@ -13,7 +13,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous" />
 <link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous" defer onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
 </head>
 
 <body>
@@ -31,6 +34,7 @@
     <div class="nav-links">
       <a href="#problem">problem</a>
       <a href="#approach">approach</a>
+      <a href="#methodology">methodology</a>
       <a href="#demo">demo</a>
       <a href="#progress">progress</a>
       <a href="#roadmap">roadmap</a>
@@ -66,9 +70,9 @@
       <a href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener" class="btn btn-ghost">view code on github</a>
     </div>
 
-    <!-- Animated causal diagram -->
+    <!-- Animated causal diagram (redesigned with clearance) -->
     <div class="hero-diagram">
-      <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <linearGradient id="edge-direct" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stop-color="#5a5a5a" stop-opacity="0.2" />
@@ -91,34 +95,38 @@
           </filter>
         </defs>
 
-        <!-- direct path X -> Y -->
-        <path d="M 134 110 L 586 110" stroke="url(#edge-direct)" stroke-width="2.5" fill="none" stroke-dasharray="6 4" class="path-direct" />
-        <text x="360" y="135" text-anchor="middle" fill="#ff8c42" font-size="13" font-family="JetBrains Mono" opacity="0.85">&alpha; &middot; direct (decorative path)</text>
+        <!-- direct path X -> Y (stops short of node circles) -->
+        <path d="M 138 195 L 622 195" stroke="url(#edge-direct)" stroke-width="2.5" fill="none" stroke-dasharray="6 4" class="path-direct" />
+        <text x="380" y="223" text-anchor="middle" fill="#ff8c42" font-size="14" font-family="JetBrains Mono" opacity="0.9">&alpha; &middot; direct (decorative path)</text>
 
-        <!-- indirect path X -> M -->
-        <path d="M 100 110 Q 280 30 360 50" stroke="url(#edge-xm)" stroke-width="3.5" fill="none" class="path-xm" />
-        <text x="200" y="60" text-anchor="middle" fill="#4dd0e1" font-size="13" font-family="JetBrains Mono" opacity="0.85">&gamma;</text>
+        <!-- indirect path X -> M (gentle arc, stays below CoT label) -->
+        <path d="M 100 195 Q 220 130 380 90" stroke="url(#edge-xm)" stroke-width="3.5" fill="none" class="path-xm" />
+        <text x="200" y="125" text-anchor="middle" fill="#4dd0e1" font-size="15" font-family="JetBrains Mono" opacity="0.9">&gamma;</text>
 
         <!-- indirect path M -> Y -->
-        <path d="M 360 50 Q 440 30 620 110" stroke="url(#edge-my)" stroke-width="3.5" fill="none" class="path-my" />
-        <text x="520" y="60" text-anchor="middle" fill="#4dd0e1" font-size="13" font-family="JetBrains Mono" opacity="0.85">&beta;</text>
+        <path d="M 380 90 Q 540 130 660 195" stroke="url(#edge-my)" stroke-width="3.5" fill="none" class="path-my" />
+        <text x="560" y="125" text-anchor="middle" fill="#4dd0e1" font-size="15" font-family="JetBrains Mono" opacity="0.9">&beta;</text>
+
+        <!-- M node label (well above the node, well above curve apex) -->
+        <text x="380" y="26" text-anchor="middle" fill="#9aa4b8" font-size="12" font-family="JetBrains Mono" letter-spacing="0.5">CoT (mediator)</text>
 
         <!-- nodes -->
         <g filter="url(#node-glow)" class="node">
-          <circle cx="100" cy="110" r="34" fill="#0b0f17" stroke="#dbe2ea" stroke-width="1.5" />
-          <text x="100" y="116" text-anchor="middle" fill="#dbe2ea" font-size="22" font-family="Inter" font-weight="600">X</text>
-          <text x="100" y="175" text-anchor="middle" fill="#9aa4b8" font-size="11" font-family="JetBrains Mono">prompt</text>
+          <circle cx="100" cy="195" r="38" fill="#0b0f17" stroke="#dbe2ea" stroke-width="1.5" />
+          <text x="100" y="203" text-anchor="middle" fill="#dbe2ea" font-size="24" font-family="Inter" font-weight="600">X</text>
         </g>
         <g filter="url(#node-glow)" class="node">
-          <circle cx="360" cy="50" r="34" fill="#0b0f17" stroke="#4dd0e1" stroke-width="1.8" />
-          <text x="360" y="56" text-anchor="middle" fill="#4dd0e1" font-size="22" font-family="Inter" font-weight="600">M</text>
-          <text x="360" y="12" text-anchor="middle" fill="#9aa4b8" font-size="11" font-family="JetBrains Mono">CoT (mediator)</text>
+          <circle cx="380" cy="90" r="40" fill="#0b0f17" stroke="#4dd0e1" stroke-width="2" />
+          <text x="380" y="98" text-anchor="middle" fill="#4dd0e1" font-size="24" font-family="Inter" font-weight="600">M</text>
         </g>
         <g filter="url(#node-glow)" class="node">
-          <circle cx="620" cy="110" r="34" fill="#0b0f17" stroke="#dbe2ea" stroke-width="1.5" />
-          <text x="620" y="116" text-anchor="middle" fill="#dbe2ea" font-size="22" font-family="Inter" font-weight="600">Y</text>
-          <text x="620" y="175" text-anchor="middle" fill="#9aa4b8" font-size="11" font-family="JetBrains Mono">answer</text>
+          <circle cx="660" cy="195" r="38" fill="#0b0f17" stroke="#dbe2ea" stroke-width="1.5" />
+          <text x="660" y="203" text-anchor="middle" fill="#dbe2ea" font-size="24" font-family="Inter" font-weight="600">Y</text>
         </g>
+
+        <!-- bottom labels for X and Y -->
+        <text x="100" y="260" text-anchor="middle" fill="#9aa4b8" font-size="12" font-family="JetBrains Mono" letter-spacing="0.5">prompt</text>
+        <text x="660" y="260" text-anchor="middle" fill="#9aa4b8" font-size="12" font-family="JetBrains Mono" letter-spacing="0.5">answer</text>
       </svg>
     </div>
   </div>
@@ -215,10 +223,122 @@
   </div>
 </section>
 
-<!-- Interactive Demo -->
-<section id="demo" class="section section-tinted">
+<!-- Formal Methodology -->
+<section id="methodology" class="section section-tinted">
   <div class="section-head">
-    <span class="eyebrow">03 &middot; interactive demo</span>
+    <span class="eyebrow">03 &middot; formal methodology</span>
+    <h2>Structural equations, natural effects, identification.</h2>
+    <p class="head-sub">
+      The methodological contribution is bringing the Robins-Greenland-Pearl natural-effects
+      decomposition, with proper Bayesian uncertainty, to LLM chain-of-thought. Below are
+      the formal pieces that the synthetic-validation pilot already implements end to end.
+    </p>
+  </div>
+
+  <div class="math-grid">
+    <div class="math-card reveal">
+      <h3>Structural equations</h3>
+      <div class="math-block">
+$$X \sim \text{Bernoulli}(0.5)$$
+$$M \mid X \sim \mathcal{N}(\gamma X,\, \sigma_M^2)$$
+$$Y \mid X, M \sim \text{Bernoulli}\!\left(\sigma(\alpha X + \beta M)\right)$$
+      </div>
+      <p>
+        Three coefficients describe the entire data-generating process. &gamma; governs how
+        strongly the prompt shifts the CoT, &beta; governs how strongly the CoT drives the
+        answer, and &alpha; captures any direct prompt-to-answer path that bypasses CoT.
+        Setting &alpha; = 0 corresponds to a fully-faithful world.
+      </p>
+    </div>
+
+    <div class="math-card reveal">
+      <h3>Natural effects on the probability scale</h3>
+      <div class="math-block">
+$$\text{NDE} = \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=0}\right] - \mathbb{E}\!\left[Y \mid \text{do}(X{=}0), M_{X=0}\right]$$
+$$\text{NIE} = \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=1}\right] - \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=0}\right]$$
+$$\text{TE} = \text{NDE} + \text{NIE}$$
+      </div>
+      <p>
+        Faithfulness is operationalised as NIE / TE. A faithful CoT carries almost all
+        of the prompt's effect on the answer through the mediator path; a decorative
+        CoT carries almost none.
+      </p>
+    </div>
+  </div>
+
+  <div class="assumptions reveal">
+    <div class="assumption-header">
+      <h3>Identification assumptions, audited for the LLM setting</h3>
+      <p>
+        Mediation analysis requires sequential ignorability. In the standard
+        observational setting these assumptions are strong; in the LLM setting most
+        of them are weakened by construction, and the one that isn't is handled with
+        interchange interventions.
+      </p>
+    </div>
+    <div class="assumption-grid">
+      <div class="assumption-item">
+        <span class="assumption-num">A1</span>
+        <div>
+          <strong>X is exogenous</strong>
+          <p>Holds by construction. The prompt is chosen by the researcher.</p>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <span class="assumption-num">A2</span>
+        <div>
+          <strong>No unobserved X &rarr; M confounders</strong>
+          <p>Holds by construction. The CoT is generated only by the model conditional on X.</p>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <span class="assumption-num">A3</span>
+        <div>
+          <strong>No unobserved M &rarr; Y confounders</strong>
+          <p>The load-bearing assumption. Hidden activations affect both M and Y. Interchange interventions (paraphrase, swap) break this dependence and convert the observational mediation problem into an interventional one.</p>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <span class="assumption-num">A4</span>
+        <div>
+          <strong>No M &rarr; Y confounder is itself caused by X</strong>
+          <p>Tested empirically via random-seed ablation. If reseeds produce the same Y for the same M, the assumption is consistent with the data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="prior-table reveal">
+    <h3>Priors and sampler settings</h3>
+    <div class="prior-rows">
+      <div class="prior-row">
+        <span class="prior-name">&alpha;, &gamma;</span>
+        <span class="prior-formula">$\mathcal{N}(0, 1.5^2)$</span>
+        <span class="prior-desc">weakly informative; centred at no effect</span>
+      </div>
+      <div class="prior-row">
+        <span class="prior-name">&beta;</span>
+        <span class="prior-formula">$\mathcal{N}(0, 2.0^2)$</span>
+        <span class="prior-desc">slightly wider; mediator effect can be large</span>
+      </div>
+      <div class="prior-row">
+        <span class="prior-name">&sigma;<sub>M</sub></span>
+        <span class="prior-formula">$\text{HalfNormal}(1)$</span>
+        <span class="prior-desc">positive-only, weakly informative</span>
+      </div>
+      <div class="prior-row">
+        <span class="prior-name">sampler</span>
+        <span class="prior-formula">NUTS, 4 chains</span>
+        <span class="prior-desc">1500 tune + 1500 draw, target accept 0.95</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Interactive Demo -->
+<section id="demo" class="section">
+  <div class="section-head">
+    <span class="eyebrow">04 &middot; interactive demo</span>
     <h2>Drag the sliders and watch faithfulness change in real time.</h2>
     <p class="head-sub">
       Adjust the three coefficients of the data-generating process. The bars on the
@@ -305,64 +425,154 @@
   </div>
 </section>
 
+<!-- Why Uncertainty Matters -->
+<section id="uncertainty" class="section section-tinted">
+  <div class="section-head">
+    <span class="eyebrow">05 &middot; why uncertainty matters</span>
+    <h2>The same numbers, two different conclusions.</h2>
+    <p class="head-sub">
+      A worked example of the failure mode this project prevents. The point-estimate
+      version of faithfulness measurement would have us conclude that Model B is more
+      faithful and deploy it for high-stakes oversight. The Bayesian version says we
+      do not yet have evidence to support that conclusion.
+    </p>
+  </div>
+
+  <div class="compare-grid">
+    <div class="compare-card compare-bad reveal">
+      <div class="compare-header">
+        <span class="compare-tag bad-tag">current practice</span>
+        <h3>Point estimates only</h3>
+      </div>
+      <div class="compare-distros">
+        <div class="distro">
+          <span class="distro-label">Model A</span>
+          <div class="distro-bar">
+            <div class="distro-point orange-point" style="left: 62%"></div>
+          </div>
+          <span class="distro-value">62 %</span>
+        </div>
+        <div class="distro">
+          <span class="distro-label">Model B</span>
+          <div class="distro-bar">
+            <div class="distro-point orange-point" style="left: 71%"></div>
+          </div>
+          <span class="distro-value">71 %</span>
+        </div>
+      </div>
+      <div class="compare-verdict bad">
+        <div class="verdict-label">conclusion</div>
+        <p>Model B is more faithful by 9 points. Difference reported without an error bar.</p>
+      </div>
+      <div class="compare-decision bad">
+        decision &middot; <strong>deploy Model B for high-stakes oversight</strong>
+      </div>
+    </div>
+
+    <div class="compare-card compare-good reveal">
+      <div class="compare-header">
+        <span class="compare-tag good-tag">this project</span>
+        <h3>Bayesian credible intervals</h3>
+      </div>
+      <div class="compare-distros">
+        <div class="distro">
+          <span class="distro-label">Model A</span>
+          <div class="distro-bar">
+            <div class="distro-interval cyan-interval" style="left: 45%; right: 22%"></div>
+            <div class="distro-point cyan-point" style="left: 62%"></div>
+          </div>
+          <span class="distro-value">62 % <span class="ci-small">[45, 78]</span></span>
+        </div>
+        <div class="distro">
+          <span class="distro-label">Model B</span>
+          <div class="distro-bar">
+            <div class="distro-interval cyan-interval" style="left: 55%; right: 16%"></div>
+            <div class="distro-point cyan-point" style="left: 71%"></div>
+          </div>
+          <span class="distro-value">71 % <span class="ci-small">[55, 84]</span></span>
+        </div>
+      </div>
+      <div class="compare-verdict good">
+        <div class="verdict-label">conclusion</div>
+        <p>The 95 % credible intervals overlap by 23 points. The difference is not significant at this sample size.</p>
+      </div>
+      <div class="compare-decision good">
+        decision &middot; <strong>collect more data before any deployment claim</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="uncertainty-note reveal">
+    <p>
+      This is not a hypothetical concern. Every public faithfulness number in
+      Lanham et al. (2023), Turpin et al. (2023), and the recent Anthropic
+      CoT-monitorability line is reported as a point estimate without a credible
+      interval on the faithfulness statistic itself. Importing 25 years of
+      well-validated Bayesian mediation analysis closes that gap with very little
+      methodological risk.
+    </p>
+  </div>
+</section>
+
 <!-- Progress / Results -->
 <section id="progress" class="section">
   <div class="section-head">
-    <span class="eyebrow">04 &middot; progress to date</span>
+    <span class="eyebrow">06 &middot; progress to date</span>
     <h2>The synthetic-validation gate is cleared, with 18 of 18 tests passing in CI.</h2>
   </div>
 
-  <div class="progress-grid">
-    <figure class="figure reveal">
-      <img src="posterior_recovery.png" alt="Posterior recovery on synthetic CoT" />
-      <figcaption>
-        Posterior recovery on synthetic CoT (n = 400). All three 95 % credible
-        intervals contain the true effects.
-      </figcaption>
-    </figure>
+  <figure class="figure figure-wide reveal">
+    <img src="posterior_recovery.png" alt="Posterior recovery on synthetic CoT" />
+    <figcaption>
+      Posterior recovery on synthetic CoT, n = 400. Coloured histograms are the
+      posterior distributions over the three natural effects on the probability
+      scale; white vertical lines are the ground-truth values; dashed coloured
+      lines are the 95 % credible-interval bounds. All three intervals contain
+      the truth.
+    </figcaption>
+  </figure>
 
-    <div class="checklist reveal">
-      <div class="check">
-        <span class="check-mark">&check;</span>
-        <div>
-          <strong>Synthetic-CoT data-generating process</strong>
-          <p>Controlled ground truth for NDE / NIE / TE; analytic and Monte Carlo verification.</p>
-        </div>
+  <div class="checklist-grid reveal">
+    <div class="check">
+      <span class="check-mark">&check;</span>
+      <div>
+        <strong>Synthetic-CoT data-generating process</strong>
+        <p>Controlled ground truth for NDE / NIE / TE, with analytic and Monte Carlo verification.</p>
       </div>
-      <div class="check">
-        <span class="check-mark">&check;</span>
-        <div>
-          <strong>Hierarchical Bayesian estimator in PyMC</strong>
-          <p>NUTS sampling with weakly informative priors and posterior derived quantities on the probability scale.</p>
-        </div>
+    </div>
+    <div class="check">
+      <span class="check-mark">&check;</span>
+      <div>
+        <strong>Hierarchical Bayesian estimator in PyMC</strong>
+        <p>NUTS sampling with weakly informative priors and posterior derived quantities on the probability scale.</p>
       </div>
-      <div class="check">
-        <span class="check-mark">&check;</span>
-        <div>
-          <strong>End-to-end recovery test</strong>
-          <p>PyMC posterior recovers true coefficients within 3 posterior-sd of the truth on every run.</p>
-        </div>
+    </div>
+    <div class="check">
+      <span class="check-mark">&check;</span>
+      <div>
+        <strong>End-to-end recovery test</strong>
+        <p>PyMC posterior recovers true coefficients within 3 posterior-sd of the truth on every run.</p>
       </div>
-      <div class="check">
-        <span class="check-mark">&check;</span>
-        <div>
-          <strong>18-case pytest suite and GitHub Actions CI</strong>
-          <p>Python 3.10 / 3.11 / 3.12 matrix, ruff lint, fast tests under 3s, slow PyMC test gated behind <code>--runslow</code>.</p>
-        </div>
+    </div>
+    <div class="check">
+      <span class="check-mark">&check;</span>
+      <div>
+        <strong>18-case pytest suite and GitHub Actions CI</strong>
+        <p>Python 3.10 / 3.11 / 3.12 matrix, ruff lint, fast tests under 3s, slow PyMC test gated behind <code>--runslow</code>.</p>
       </div>
-      <div class="check">
-        <span class="check-mark">&check;</span>
-        <div>
-          <strong>Formal methodology write-up</strong>
-          <p>Identification assumptions, decomposition, and connection to causal scrubbing and activation patching.</p>
-        </div>
+    </div>
+    <div class="check">
+      <span class="check-mark">&check;</span>
+      <div>
+        <strong>Formal methodology write-up</strong>
+        <p>Identification assumptions, decomposition, and connection to causal scrubbing and activation patching.</p>
       </div>
-      <div class="check pending">
-        <span class="check-mark">&middot;</span>
-        <div>
-          <strong>Real-LLM intervention pipeline</strong>
-          <p>The next milestone covers truncation, paraphrase, segment-swap, and interchange interventions on open-source models.</p>
-        </div>
+    </div>
+    <div class="check pending">
+      <span class="check-mark">&middot;</span>
+      <div>
+        <strong>Real-LLM intervention pipeline</strong>
+        <p>The next milestone covers truncation, paraphrase, segment-swap, and interchange interventions on open-source models.</p>
       </div>
     </div>
   </div>
@@ -371,7 +581,7 @@
 <!-- Roadmap & Funding -->
 <section id="roadmap" class="section section-tinted">
   <div class="section-head">
-    <span class="eyebrow">05 &middot; roadmap &middot; 12 weeks</span>
+    <span class="eyebrow">07 &middot; roadmap &middot; 12 weeks</span>
     <h2>What the grant funds.</h2>
   </div>
 
@@ -401,41 +611,41 @@
       <div class="rmweek">wk 7 to 9</div>
       <div class="rmbody">
         <strong>Open-source model sweep</strong>
-        <p>Llama-3-8B, Gemma-2-9B on GSM8K, BBH, TruthfulQA. About 120 A100-hours on RunPod or Lambda.</p>
+        <p>Llama-3-8B, Gemma-2-9B on GSM8K, BBH, TruthfulQA. About 60 A100-hours on RunPod or Lambda.</p>
       </div>
     </div>
     <div class="rmstep reveal">
       <div class="rmweek">wk 10</div>
       <div class="rmbody">
-        <strong>Frontier-model sweep</strong>
-        <p>Claude Sonnet, GPT-4-class via API. Cross-lab comparison with posterior credible intervals.</p>
+        <strong>Frontier-model sanity check</strong>
+        <p>Small Claude Sonnet sweep via API. Cross-lab consistency check on the headline result.</p>
       </div>
     </div>
     <div class="rmstep reveal">
       <div class="rmweek">wk 11 to 12</div>
       <div class="rmbody">
         <strong>Public benchmark and writeup</strong>
-        <p>Uncertainty-quantified faithfulness benchmark on GitHub. Workshop submission (NeurIPS or AAAI safety). LessWrong post.</p>
+        <p>Uncertainty-quantified faithfulness numbers on GitHub. Short technical report. LessWrong post.</p>
       </div>
     </div>
   </div>
 
   <div class="budget reveal">
     <div class="budget-header">
-      <h3>Funding ask &middot; <span class="grad-text">$1,450</span></h3>
+      <h3>Funding ask &middot; <span class="grad-text">$650</span></h3>
       <p class="muted">
-        Doable on a free or personal tier at half the rigour and double the timeline.
-        This budget pays for publication-quality statistical power.
+        A deliberately modest phase-1 ask. It covers the work needed to run the full
+        pipeline on real open-source models and produce a first set of uncertainty-quantified
+        faithfulness numbers, with a small frontier-API sanity check. If initial results
+        land, I plan to come back for follow-on funding to cover a broader benchmark sweep.
       </p>
     </div>
     <div class="budget-table">
-      <div class="brow"><span>Anthropic API (Claude Sonnet / Opus, about 6M tokens)</span><span>$400</span></div>
-      <div class="brow"><span>OpenAI API (GPT-4-class cross-lab comparison)</span><span>$300</span></div>
-      <div class="brow"><span>Cloud GPU (RunPod or Lambda, about 120 A100-40GB hrs)</span><span>$400</span></div>
-      <div class="brow"><span>Sample-size and overage buffer (variance protection)</span><span>$200</span></div>
-      <div class="brow"><span>Workshop registration (virtual)</span><span>$100</span></div>
-      <div class="brow"><span>Cloud storage (activation cache)</span><span>$50</span></div>
-      <div class="brow brow-total"><span>Total</span><span>$1,450</span></div>
+      <div class="brow"><span>Cloud GPU (RunPod or Lambda, about 60 A100-40GB hrs)</span><span>$200</span></div>
+      <div class="brow"><span>Anthropic API (Claude Sonnet, initial interventions)</span><span>$200</span></div>
+      <div class="brow"><span>OpenAI API (small cross-lab sanity check)</span><span>$100</span></div>
+      <div class="brow"><span>Sample-size buffer and cloud storage</span><span>$150</span></div>
+      <div class="brow brow-total"><span>Total</span><span>$650</span></div>
     </div>
   </div>
 </section>
@@ -443,7 +653,7 @@
 <!-- About / contact -->
 <section id="about" class="section">
   <div class="section-head">
-    <span class="eyebrow">06 &middot; researcher</span>
+    <span class="eyebrow">08 &middot; researcher</span>
     <h2>About me.</h2>
   </div>
   <div class="about-grid">
@@ -456,8 +666,8 @@
       </p>
       <p>
         Honest framing: I'm not a computer science expert in mechanistic
-        interpretability, nor do I have a bachelor's in computer science from
-        a top university in the world. However, what I am is a passionate
+        interpretability, nor do I have famous published research papers on
+        AI safety and causal inference. However, what I am is a passionate
         applied researcher who spends 6 to 7 hours a day working through
         statistics, causal inference, reading papers, and iterating through
         many different ideas that come to my head utilizing AI tools. During

@@ -714,22 +714,16 @@ input[type=range]::-moz-range-thumb {
 }
 
 /* ---------- progress ---------- */
-.progress-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 40px;
-  align-items: start;
-}
-@media (max-width: 880px) {
-  .progress-grid { grid-template-columns: 1fr; }
-}
 .figure {
-  margin: 0;
+  margin: 0 auto 48px;
   background: var(--bg-2);
   border: 1px solid var(--border-soft);
   border-radius: var(--rad);
-  padding: 16px;
+  padding: 24px;
   box-shadow: var(--shadow);
+}
+.figure-wide {
+  max-width: 1100px;
 }
 .figure img {
   width: 100%;
@@ -737,11 +731,22 @@ input[type=range]::-moz-range-thumb {
   border-radius: 8px;
 }
 .figure figcaption {
-  margin-top: 14px;
-  padding: 4px 6px;
-  font-size: 13px;
+  margin-top: 16px;
+  padding: 6px 10px;
+  font-size: 13.5px;
   color: var(--text-3);
-  line-height: 1.55;
+  line-height: 1.6;
+  text-align: center;
+}
+.checklist-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+@media (max-width: 880px) {
+  .checklist-grid { grid-template-columns: 1fr; }
 }
 
 .checklist { display: flex; flex-direction: column; gap: 18px; }
@@ -967,6 +972,290 @@ input[type=range]::-moz-range-thumb {
 .reveal.in {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ============================================================
+ *  Formal Methodology section
+ * ============================================================ */
+.math-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin-bottom: 32px;
+}
+@media (max-width: 880px) { .math-grid { grid-template-columns: 1fr; } }
+.math-card {
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--rad);
+  padding: 28px 28px 26px;
+  transition: border-color 0.25s ease;
+}
+.math-card:hover { border-color: var(--border); }
+.math-card h3 {
+  margin: 0 0 18px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.math-card p {
+  margin: 20px 0 0;
+  font-size: 14.5px;
+  color: var(--text-2);
+  line-height: 1.65;
+}
+.math-block {
+  padding: 18px 18px 14px;
+  border-radius: 10px;
+  background: var(--bg-tint);
+  border: 1px solid var(--border-soft);
+  overflow-x: auto;
+  font-size: 14.5px;
+}
+.math-block .katex { color: var(--text); }
+.math-block .katex-display { margin: 8px 0; }
+.math-block .katex-display > .katex { font-size: 1.04em; }
+
+.assumptions {
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--rad);
+  padding: 32px 32px 30px;
+  margin-bottom: 32px;
+}
+.assumption-header { margin-bottom: 26px; }
+.assumption-header h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+.assumption-header p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-3);
+  line-height: 1.6;
+  max-width: 720px;
+}
+.assumption-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 720px) { .assumption-grid { grid-template-columns: 1fr; } }
+.assumption-item {
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--bg-tint);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  align-items: flex-start;
+}
+.assumption-num {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  background: rgba(184, 141, 255, 0.13);
+  color: var(--violet);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono';
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.assumption-item strong {
+  display: block;
+  font-size: 14.5px;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.assumption-item p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.prior-table {
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--rad);
+  padding: 24px 28px 20px;
+}
+.prior-table h3 {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.prior-rows { display: flex; flex-direction: column; }
+.prior-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 1.4fr;
+  gap: 18px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-soft);
+  align-items: center;
+  font-size: 13.5px;
+}
+.prior-row:last-child { border-bottom: none; }
+.prior-name {
+  font-family: 'JetBrains Mono';
+  color: var(--cyan);
+  font-size: 13px;
+}
+.prior-formula { color: var(--text); font-size: 13px; }
+.prior-formula .katex { font-size: 1.02em; }
+.prior-desc { color: var(--text-3); font-size: 13px; }
+
+/* ============================================================
+ *  Why Uncertainty Matters section
+ * ============================================================ */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin-bottom: 28px;
+}
+@media (max-width: 880px) { .compare-grid { grid-template-columns: 1fr; } }
+.compare-card {
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--rad);
+  padding: 28px 28px 24px;
+  transition: transform 0.3s ease;
+}
+.compare-card:hover { transform: translateY(-3px); }
+.compare-bad {
+  border-color: rgba(255, 140, 66, 0.22);
+  background: linear-gradient(180deg, rgba(255, 140, 66, 0.05), var(--bg) 45%);
+}
+.compare-good {
+  border-color: rgba(77, 208, 225, 0.22);
+  background: linear-gradient(180deg, rgba(77, 208, 225, 0.05), var(--bg) 45%);
+}
+
+.compare-header { margin-bottom: 26px; }
+.compare-tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono';
+  font-size: 10.5px;
+  padding: 4px 11px;
+  border-radius: 100px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.bad-tag { background: rgba(255, 140, 66, 0.15); color: var(--orange); }
+.good-tag { background: rgba(77, 208, 225, 0.15); color: var(--cyan); }
+.compare-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.compare-distros { margin-bottom: 22px; }
+.distro {
+  display: grid;
+  grid-template-columns: 64px 1fr 130px;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.distro-label {
+  font-family: 'JetBrains Mono';
+  font-size: 12px;
+  color: var(--text-2);
+}
+.distro-bar {
+  position: relative;
+  height: 10px;
+  background: var(--bg-3);
+  border-radius: 5px;
+}
+.distro-point {
+  position: absolute;
+  top: -4px;
+  width: 3px; height: 18px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 12px currentColor;
+}
+.orange-point { background: var(--orange); color: var(--orange); }
+.cyan-point { background: var(--cyan); color: var(--cyan); }
+.distro-interval {
+  position: absolute;
+  top: 0; bottom: 0;
+  border-radius: 5px;
+}
+.cyan-interval {
+  background: rgba(77, 208, 225, 0.28);
+  border: 1px solid rgba(77, 208, 225, 0.55);
+}
+.distro-value {
+  font-family: 'JetBrains Mono';
+  font-size: 12.5px;
+  text-align: right;
+  color: var(--text);
+  line-height: 1.4;
+}
+.ci-small {
+  display: block;
+  font-size: 10.5px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.compare-verdict {
+  padding: 14px 16px;
+  border-radius: 9px;
+  margin-bottom: 14px;
+}
+.verdict-label {
+  font-family: 'JetBrains Mono';
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+  color: var(--text-3);
+}
+.compare-verdict p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.compare-verdict.bad { background: rgba(255, 140, 66, 0.07); }
+.compare-verdict.good { background: rgba(77, 208, 225, 0.07); }
+
+.compare-decision {
+  padding: 12px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  border: 1px dashed;
+}
+.compare-decision.bad { color: var(--orange); border-color: rgba(255, 140, 66, 0.35); }
+.compare-decision.good { color: var(--cyan); border-color: rgba(77, 208, 225, 0.35); }
+
+.uncertainty-note {
+  margin: 32px auto 0;
+  max-width: 880px;
+  padding: 20px 24px;
+  border-left: 2px solid var(--violet);
+  background: linear-gradient(90deg, rgba(184, 141, 255, 0.05), transparent);
+  border-radius: 0 8px 8px 0;
+}
+.uncertainty-note p {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--text-2);
+  line-height: 1.65;
 }
 
 /* ---------- mobile tweaks ---------- */
