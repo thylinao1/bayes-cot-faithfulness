@@ -42,6 +42,44 @@ html { scroll-behavior: smooth; }
 a { color: inherit; text-decoration: none; }
 code, pre { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace; }
 
+/* ---------- floating home FAB ---------- */
+.home-fab {
+  position: fixed;
+  top: 72px;
+  left: 28px;
+  z-index: 49;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px 8px 12px;
+  background: rgba(11, 15, 23, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  color: var(--text-2);
+  font-family: 'JetBrains Mono';
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: all 0.22s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+.home-fab svg {
+  color: var(--cyan);
+  flex-shrink: 0;
+}
+.home-fab:hover {
+  border-color: var(--cyan);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+@media (max-width: 720px) {
+  .home-fab { top: 68px; left: 16px; padding: 7px 11px 7px 10px; font-size: 11px; }
+  .home-fab svg { width: 12px; height: 12px; }
+}
+
 /* ---------- cursor glow ---------- */
 .cursor-glow {
   position: fixed;

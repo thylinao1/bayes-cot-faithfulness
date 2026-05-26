@@ -10,7 +10,7 @@
 
 ## The problem
 
-Frontier LLMs increasingly produce chain-of-thought (CoT) reasoning that humans rely on to oversee them. But existing work has shown CoT can be *unfaithful* — decorative rather than causally connected to the answer:
+Frontier LLMs increasingly produce chain-of-thought (CoT) reasoning that humans rely on to oversee them. But existing work has shown CoT can be unfaithful, decorative rather than causally connected to the answer:
 
 - **Lanham et al. (2023):** truncating CoT often doesn't change the answer
 - **Turpin et al. (2023):** biased CoT prompts produce biased answers without the bias appearing in the CoT
@@ -22,10 +22,10 @@ Current measurements give noisy point estimates. **We cannot say with calibrated
 
 Imports 25 years of causal-mediation analysis from epidemiology and econometrics into LLM interpretability. CoT is treated formally as a mediator between the prompt and the answer, and we decompose the prompt's effect on the answer into:
 
-- **Natural direct effect (NDE)** — the path that bypasses CoT
-- **Natural indirect effect (NIE)** — the path that flows through CoT
+- **Natural direct effect (NDE)**: the path that bypasses CoT
+- **Natural indirect effect (NIE)**: the path that flows through CoT
 
-Estimation is hierarchical Bayesian (PyMC), pooling information across prompts and seeds. Output is a posterior distribution — not a point estimate — over how much each CoT segment causally drives the final answer.
+Estimation is hierarchical Bayesian (PyMC), pooling information across prompts and seeds. Output is a posterior distribution (not a point estimate) over how much each CoT segment causally drives the final answer.
 
 ```
 Prompt X  ─────────[α: direct]─────────►  Answer Y

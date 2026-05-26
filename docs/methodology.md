@@ -52,7 +52,7 @@ Standard mediation analysis identifies natural effects under the **sequential ig
 In the LLM setting:
 
 - (A1)–(A2) hold by design: we control the prompt, so `X` is *exogenous*.
-- (A3) is the interesting one. The natural CoT depends on hidden activations that also affect `Y` directly. We handle this with interventions (paraphrase, swap, interchange) that break dependence between `M` and the latent confounders — exactly the move from observational to interventional mediation analysis.
+- (A3) is the interesting one. The natural CoT depends on hidden activations that also affect `Y` directly. We handle this with interventions (paraphrase, swap, interchange) that break dependence between `M` and the latent confounders. This is the move from observational to interventional mediation analysis.
 - (A4) is checked empirically by ablation: if we randomize the seed used to generate CoT and the answer, do we see leakage?
 
 ## 3 · Hierarchical Bayesian estimator
@@ -76,7 +76,7 @@ Sampling: 4 chains, 1500 tuning + 1500 posterior draws, NUTS with `target_accept
 Posterior samples over $(\alpha, \beta, \gamma, \sigma_M)$ are converted into a posterior over $(\text{NDE}, \text{NIE}, \text{TE})$ on the probability scale by Monte Carlo integration over the mediator distribution (see [`effects.posterior_natural_effects`](../src/bayes_cot_faithfulness/effects.py)).
 
 **Why Bayesian.**
-- Calibrated uncertainty intervals out of the box — no asymptotic normality assumption.
+- Calibrated uncertainty intervals out of the box, with no asymptotic normality assumption.
 - Hierarchical pooling across prompts and seeds for the real-LLM experiments (extending the simple model above).
 - Posterior model comparison (Bayes factors / WAIC / PSIS-LOO) for "is this CoT faithful or not?" hypothesis tests.
 
@@ -98,7 +98,7 @@ The synthetic gate uses a single binary `X` and a scalar `M`. The full benchmark
 | Direction | Mechanism |
 |---|---|
 | **Multi-token CoT** | Token-segment-level mediator (truncate CoT at varying positions, treat the truncation depth as the manipulated mediator state) |
-| **Counterfactual mediation** | Paraphrase or swap CoT segments using a separate model — interchange interventions, analogous to Geiger et al. |
+| **Counterfactual mediation** | Paraphrase or swap CoT segments using a separate model. Interchange interventions, analogous to Geiger et al. |
 | **Hierarchical pooling** | Random effects for prompt difficulty and seed variance; partial pooling across prompts |
 
 The CoT intervention toolkit is borrowed from **Lanham et al. (2023)** ("Measuring Faithfulness in Chain-of-Thought Reasoning") and **Turpin et al. (2023)** ("Language Models Don't Always Say What They Think"). The Bayesian layer on top is the novel methodological contribution.
