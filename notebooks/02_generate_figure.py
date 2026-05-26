@@ -55,7 +55,7 @@ def main() -> None:
         "font.size": 11,
     })
 
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4.8), constrained_layout=True)
+    fig, axes = plt.subplots(1, 3, figsize=(13, 5.4), constrained_layout=True)
     pairs = [
         ("Natural Direct Effect", pe.nde_samples, true_nde, "#ff8c42"),
         ("Natural Indirect Effect", pe.nie_samples, true_nie, "#4dd0e1"),
@@ -70,7 +70,7 @@ def main() -> None:
         ax.axvline(truth, color="#ffffff", linewidth=1.6, label=f"truth = {truth:+.3f}")
         ax.axvline(lo, color=color, linewidth=1.2, linestyle="--", alpha=0.85)
         ax.axvline(hi, color=color, linewidth=1.2, linestyle="--", alpha=0.85)
-        ax.set_title(title, pad=28, fontsize=13)
+        ax.set_title(title, pad=44, fontsize=13)
         ax.set_xlabel("effect on P(Y=1)")
         ax.set_ylabel("posterior density")
         ax.spines["top"].set_visible(False)
@@ -81,7 +81,7 @@ def main() -> None:
     fig.suptitle(
         "Bayesian posterior recovers true natural effects   "
         "(synthetic CoT, n = 400, all 95% CrIs contain truth)",
-        fontsize=14, y=1.02, color="#dbe2ea",
+        fontsize=14, color="#dbe2ea",
     )
 
     out_dir = Path(__file__).parent.parent / "figures"
