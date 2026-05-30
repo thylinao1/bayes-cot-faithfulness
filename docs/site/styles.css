@@ -1042,6 +1042,57 @@ input[type=range]::-moz-range-thumb {
   transform: translateY(0);
 }
 
+/* ---------- audit CTA ---------- */
+.audit-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 44px;
+  text-align: center;
+}
+.audit-cta-note {
+  font-family: 'JetBrains Mono';
+  font-size: 12px;
+  color: var(--text-3);
+  max-width: 560px;
+  line-height: 1.55;
+}
+
+/* ---------- methodology page header ---------- */
+.method-hero {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 140px 28px 20px;
+  position: relative;
+  z-index: 1;
+}
+.method-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'JetBrains Mono';
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 22px;
+  transition: color 0.2s ease;
+}
+.method-back:hover { color: var(--cyan); }
+.method-hero h1 {
+  font-size: clamp(30px, 4.4vw, 46px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  margin: 0 0 18px;
+}
+.method-hero .method-lede {
+  font-size: 16.5px;
+  color: var(--text-2);
+  line-height: 1.65;
+  max-width: 720px;
+  margin: 0;
+}
+
 /* ============================================================
  *  Formal Methodology section
  * ============================================================ */

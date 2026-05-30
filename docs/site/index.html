@@ -43,7 +43,8 @@
     <div class="nav-links">
       <a href="#problem">Problem</a>
       <a href="#approach">Approach</a>
-      <a href="#methodology">Methodology</a>
+      <a href="#audit">Audit</a>
+      <a href="methodology.html">Methodology &nearr;</a>
       <a href="#demo">Demo</a>
       <a href="#progress">Progress</a>
       <a href="#roadmap">Roadmap</a>
@@ -232,200 +233,62 @@
   </div>
 </section>
 
-<!-- Formal Methodology -->
-<section id="methodology" class="section section-tinted">
+<!-- Auditing the hard assumption (intuitive) -->
+<section id="audit" class="section section-tinted">
   <div class="section-head">
-    <span class="eyebrow">03 &middot; formal methodology</span>
-    <h2>Structural equations, natural effects, identification.</h2>
+    <span class="eyebrow">03 &middot; the hard assumption</span>
+    <h2>Every faithfulness number rests on an assumption you cannot check. We turn it into a <span class="grad-text">dial</span>.</h2>
     <p class="head-sub">
-      The methodological contribution is bringing the Robins-Greenland-Pearl natural-effects
-      decomposition, with proper Bayesian uncertainty, to LLM chain-of-thought. Below are
-      the formal pieces that the synthetic-validation pilot already implements end to end.
+      Causal mediation needs one thing it can never verify from data: that nothing
+      unmeasured sits between the CoT and the answer once the prompt is fixed. In a
+      language model that is almost never true, because the CoT and the answer read from
+      the same hidden activations. Instead of assuming the problem away, we add a single
+      sensitivity knob, &rho;, and watch what the faithfulness verdict does as we turn it.
     </p>
   </div>
 
-  <div class="math-grid">
-    <div class="math-card reveal">
-      <h3>Structural causal model</h3>
-      <div class="math-block">
-$$M = f_M(X,\, U_M)$$
-$$Y = f_Y(X,\, M,\, U_Y)$$
-$$\text{instantiated as}$$
-$$X \sim \text{Bernoulli}(0.5)$$
-$$M \mid X \sim \mathcal{N}(\gamma X,\, \sigma_M^2)$$
-$$Y \mid X, M \sim \text{Bernoulli}\!\left(\sigma(\alpha X + \beta M)\right)$$
-      </div>
-      <p>
-        Pearl-style structural equations. $U_M$ and $U_Y$ are background unobserved
-        variables (hidden activations, sampling seeds when temperature is non-zero).
-        &gamma; governs how strongly the prompt shifts the CoT, &beta; governs how
-        strongly the CoT drives the answer, and &alpha; captures any direct
-        prompt-to-answer path that bypasses CoT. Setting &alpha; = 0 corresponds
-        to a fully-faithful world.
-      </p>
-    </div>
-
-    <div class="math-card reveal">
-      <h3>Causal estimands on the probability scale</h3>
-      <div class="math-block">
-$$\text{CDE}(m^*) = \mathbb{E}\!\left[Y \mid \text{do}(X{=}1, M{=}m^*)\right] - \mathbb{E}\!\left[Y \mid \text{do}(X{=}0, M{=}m^*)\right]$$
-$$\text{NDE} = \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=0}\right] - \mathbb{E}\!\left[Y \mid \text{do}(X{=}0), M_{X=0}\right]$$
-$$\text{NIE} = \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=1}\right] - \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=0}\right]$$
-$$\text{TE} = \text{NDE} + \text{NIE}$$
-      </div>
-      <p>
-        CDE measures the direct path with the mediator forced to a specific
-        counterfactual CoT $m^*$. NDE and NIE decompose the total effect into
-        decorative and causal parts. Faithfulness is operationalised as NIE / TE.
-      </p>
-    </div>
-  </div>
-
-  <div class="assumptions reveal">
-    <div class="assumption-header">
-      <h3>Identification assumptions, audited for the LLM setting</h3>
-      <p>
-        Mediation analysis requires sequential ignorability. In the standard
-        observational setting these assumptions are strong; in the LLM setting most
-        of them are weakened by construction, and the one that isn't is handled with
-        interchange interventions.
-      </p>
-    </div>
-    <div class="assumption-grid">
-      <div class="assumption-item">
-        <span class="assumption-num">A1</span>
-        <div>
-          <strong>X is exogenous</strong>
-          <p>Holds by construction. The prompt is chosen by the researcher.</p>
-        </div>
-      </div>
-      <div class="assumption-item">
-        <span class="assumption-num">A2</span>
-        <div>
-          <strong>No unobserved X &rarr; M confounders</strong>
-          <p>Holds by construction. The CoT is generated only by the model conditional on X.</p>
-        </div>
-      </div>
-      <div class="assumption-item violated">
-        <span class="assumption-num violated-num">A3</span>
-        <div>
-          <strong>No unobserved M &rarr; Y confounders <span class="violated-tag">structurally violated</span></strong>
-          <p>The load-bearing assumption, and it does not hold in autoregressive LLMs. The same weight matrix $\theta$ generates both M and Y, so hidden activations act as latent confounders ($U_M$ and $U_Y$ are correlated). Rather than pretend the correlation is zero, the framework treats it as a sensitivity parameter $\rho$ and reports robustness bounds. See the next card for the full treatment.</p>
-        </div>
-      </div>
-      <div class="assumption-item">
-        <span class="assumption-num">A4</span>
-        <div>
-          <strong>No M &rarr; Y confounder is itself caused by X</strong>
-          <p>Tested empirically via random-seed ablation. If reseeds produce the same Y for the same M, the assumption is consistent with the data.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="methodology-subdivider reveal">
-    <span class="subdiv-line"></span>
-    <span class="subdiv-text">Advanced &middot; addressing the LLM-specific gotchas</span>
-    <span class="subdiv-line"></span>
-  </div>
+  <figure class="figure figure-wide reveal">
+    <img src="sensitivity_curve.png" alt="Sensitivity of the faithful path to unmeasured confounding between the CoT and the answer" />
+    <figcaption>
+      The blue line is the faithful path: how much the CoT actually drives the answer.
+      &rho; on the x-axis is how much hidden confounding you allow, none in the middle and
+      a lot at the edges. On synthetic data with a known amount of confounding built in, an
+      analyst who assumes none reads off 0.43 when the truth is 0.21, so ignoring the
+      problem makes the reasoning look more faithful than it is. Turn the dial to the real
+      confounding level and the estimate lands back on the truth (green circle). The
+      faithful path stays positive across a wide band, so here the verdict survives a lot of
+      confounding, and the analysis says exactly how much.
+    </figcaption>
+  </figure>
 
   <div class="math-grid">
     <div class="math-card reveal">
-      <h3>Sensitivity analysis for A3 violation</h3>
+      <h3>A naive audit can over-trust the reasoning</h3>
       <p>
-        Because the autoregressive model generates both $M$ and $Y$ from the same weight
-        matrix $\theta$, hidden activations act as latent confounders, and the errors
-        $U_M$ and $U_Y$ are not independent. Rather than pretending this confounding is
-        zero, the framework introduces a sensitivity parameter:
-      </p>
-      <div class="math-block">
-$$\rho = \mathrm{Corr}(U_M,\, U_Y) \in (-1, 1)$$
-      </div>
-      <p>
-        The synthetic testbed places an informative hierarchical prior on $\rho$ (calibrated
-        from interchange-intervention residuals) and reports posterior NIE estimates across
-        the full $\rho$ spectrum. The headline faithfulness number is paired with its
-        robustness curve to confounding strength, following the mediation sensitivity bound
-        of Imai, Keele, and Tingley (2010).
+        Prior causal-CoT work sets &rho; to zero and stops. That is the black vertical line
+        in the middle of the plot. When the real confounding is positive, the natural case
+        for a model whose CoT and answer share hidden state, sitting at &rho; = 0 reports a
+        faithful path that is too high. The gap does not shrink with more data, because it
+        is confounding and not noise. The sweep makes that gap visible and bounded instead
+        of invisible.
       </p>
     </div>
-
     <div class="math-card reveal">
-      <h3>Hierarchical GLMM specification</h3>
+      <h3>One number per model is the wrong unit</h3>
       <p>
-        For pooled estimation across prompts ($j$) and trials ($i$), the outcome model is
-        a generalized linear mixed model. The target token $Y$ is a Bernoulli on
-        correct/incorrect, and the coefficients vary by prompt template:
+        Faithfulness is not a single property of a model. It varies by prompt and by task,
+        and some prompts have far fewer usable traces than others. The hierarchical model
+        gives each prompt its own faithfulness slope drawn from a shared population, so a
+        prompt with five traces borrows strength from the rest instead of swinging wildly on
+        its own. The output is a population slope with calibrated uncertainty, plus a direct
+        read on how much prompts disagree.
       </p>
-      <div class="math-block">
-$$Y_{ij} \sim \text{Bernoulli}(p_{ij})$$
-$$\mathrm{logit}(p_{ij}) = \alpha_{j[i]} + \beta_{1,j[i]} X_i + \beta_{2,j[i]} M_i$$
-$$\begin{bmatrix} \alpha_j \\ \beta_{1,j} \\ \beta_{2,j} \end{bmatrix} \sim \mathcal{N}\!\left(\mu,\, \Sigma\right)$$
-      </div>
-      <p>
-        The covariance $\Sigma$ is sampled with <code>pm.LKJCholeskyCov</code>, so
-        information flows across prompts through the global hyperpriors $\mu$. Even a
-        prompt with only 5 seeds gets a disciplined credible interval, pulled toward the
-        global mean by partial pooling.
-      </p>
-    </div>
-
-    <div class="math-card reveal">
-      <h3>Computational strategy</h3>
-      <p>
-        Standard NUTS on CPU does not scale to thousands of intervention samples across
-        hundreds of prompts. The package uses a decoupled architecture:
-      </p>
-      <ul class="strat-list">
-        <li><strong>PyMC</strong> for model prototyping and the synthetic-validation pilot. Readable, fast to iterate.</li>
-        <li><strong>NumPyro</strong> with a <strong>JAX</strong> backend for production sampling. Compiles HMC kernels into XLA operations on A100 instances. Roughly 10x to 20x faster than CPU NUTS on this workload.</li>
-        <li><strong>ADVI</strong> (Automatic Differentiation Variational Inference) as a fallback for high-dimensional posteriors where MCMC convergence becomes intractable.</li>
-      </ul>
-    </div>
-
-    <div class="math-card reveal">
-      <h3>Intervention mechanics</h3>
-      <p>
-        Naive text edits on black-box APIs cause distribution shifts that destroy the
-        causal estimate. The framework uses two intervention regimes matched to model
-        access:
-      </p>
-      <ul class="strat-list">
-        <li><strong>Black-box APIs</strong> (Claude, GPT-4): coarse <em>behavioral</em> interventions only. Truncation, paraphrase, and counterfactual segment-swap at the text level, used as a sanity check on the headline result.</li>
-        <li><strong>Open-source models</strong> (Llama-3, Gemma-2): <em>logit-level</em> counterfactual forcing. The counterfactual mediator $M^*$ is injected directly into the KV-cache, the model is frozen, and the precise change in log-probability of the target tokens is recorded. This isolates the causal effect cleanly without letting the model derail into off-distribution text.</li>
-      </ul>
     </div>
   </div>
 
-  <div class="prior-table reveal">
-    <h3>Priors and sampler settings (synthetic-validation pilot)</h3>
-    <div class="prior-rows">
-      <div class="prior-row">
-        <span class="prior-name">&alpha;, &gamma;</span>
-        <span class="prior-formula">$\mathcal{N}(0, 1.5^2)$</span>
-        <span class="prior-desc">weakly informative, centred at no effect</span>
-      </div>
-      <div class="prior-row">
-        <span class="prior-name">&beta;</span>
-        <span class="prior-formula">$\mathcal{N}(0, 2.0^2)$</span>
-        <span class="prior-desc">slightly wider, mediator effect can be large</span>
-      </div>
-      <div class="prior-row">
-        <span class="prior-name">&sigma;<sub>M</sub></span>
-        <span class="prior-formula">$\text{HalfNormal}(1)$</span>
-        <span class="prior-desc">positive-only, weakly informative</span>
-      </div>
-      <div class="prior-row">
-        <span class="prior-name">&rho;</span>
-        <span class="prior-formula">$\text{Beta-shifted on }(-1, 1)$</span>
-        <span class="prior-desc">sensitivity parameter for A3 violation</span>
-      </div>
-      <div class="prior-row">
-        <span class="prior-name">sampler</span>
-        <span class="prior-formula">NUTS, 4 chains</span>
-        <span class="prior-desc">1500 tune + 1500 draw, target accept 0.95</span>
-      </div>
-    </div>
+  <div class="audit-cta reveal">
+    <a href="methodology.html" class="btn btn-ghost">Read the full methodology &rarr;</a>
+    <span class="audit-cta-note">structural equations, the natural-effects decomposition, the &rho; likelihood, and the hierarchical model</span>
   </div>
 </section>
 
@@ -612,7 +475,7 @@ $$\begin{bmatrix} \alpha_j \\ \beta_{1,j} \\ \beta_{2,j} \end{bmatrix} \sim \mat
 <section id="progress" class="section">
   <div class="section-head">
     <span class="eyebrow">06 &middot; progress to date</span>
-    <h2>The synthetic-validation gate is cleared, with 18 of 18 tests passing in CI.</h2>
+    <h2>The synthetic-validation gate is cleared, with 34 of 34 tests passing in CI.</h2>
   </div>
 
   <figure class="figure figure-wide reveal">
@@ -637,7 +500,7 @@ $$\begin{bmatrix} \alpha_j \\ \beta_{1,j} \\ \beta_{2,j} \end{bmatrix} \sim \mat
     <div class="check">
       <span class="check-mark">&check;</span>
       <div>
-        <strong>Hierarchical Bayesian estimator in PyMC</strong>
+        <strong>Bayesian mediation estimator in PyMC</strong>
         <p>NUTS sampling with weakly informative priors and posterior derived quantities on the probability scale.</p>
       </div>
     </div>
@@ -651,8 +514,22 @@ $$\begin{bmatrix} \alpha_j \\ \beta_{1,j} \\ \beta_{2,j} \end{bmatrix} \sim \mat
     <div class="check">
       <span class="check-mark">&check;</span>
       <div>
-        <strong>18-case pytest suite and GitHub Actions CI</strong>
-        <p>Python 3.10 / 3.11 / 3.12 matrix, ruff lint, fast tests under 3s, slow PyMC test gated behind <code>--runslow</code>.</p>
+        <strong>Sensitivity analysis for unmeasured confounding</strong>
+        <p>The &rho; sweep recovers the truth at the real confounding level and bounds how far the faithfulness verdict can bend. Ten tests pin the estimator.</p>
+      </div>
+    </div>
+    <div class="check">
+      <span class="check-mark">&check;</span>
+      <div>
+        <strong>Partial pooling across prompts</strong>
+        <p>A non-centred hierarchical model recovers the population faithfulness slope and beats per-prompt no-pooling on small prompts.</p>
+      </div>
+    </div>
+    <div class="check">
+      <span class="check-mark">&check;</span>
+      <div>
+        <strong>34-case pytest suite and GitHub Actions CI</strong>
+        <p>Python 3.10 / 3.11 / 3.12 matrix, ruff lint, fast tests under 3s, slow PyMC tests gated behind <code>--runslow</code>.</p>
       </div>
     </div>
     <div class="check">

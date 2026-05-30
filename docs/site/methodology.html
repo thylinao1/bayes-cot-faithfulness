@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Methodology &middot; Bayesian Causal Faithfulness for LLM Chain-of-Thought</title>
+<meta name="description" content="The formal methodology behind the project: structural equations, the natural-effects decomposition, the rho sensitivity likelihood, and the hierarchical model." />
+<meta name="author" content="Maksim Silchenko" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous" />
+<link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous" defer onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
+</head>
+
+<body>
+
+<!-- Cursor-following glow -->
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<!-- Floating Home button -->
+<a href="https://thylinao1.github.io/index.html" target="_blank" rel="noopener" class="home-fab" aria-label="Go to portfolio home">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 12L12 3l9 9"></path>
+    <path d="M5 10v10h14V10"></path>
+  </svg>
+  <span>Home</span>
+</a>
+
+<!-- Top nav -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html#top" class="nav-brand">
+      <span class="brand-dot"></span>
+      <span class="brand-name">bayes-cot-faithfulness</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#problem">Problem</a>
+      <a href="index.html#approach">Approach</a>
+      <a href="index.html#audit">Audit</a>
+      <a href="index.html#demo">Demo</a>
+      <a href="index.html#progress">Progress</a>
+      <a href="index.html#roadmap">Roadmap</a>
+    </div>
+    <a href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener" class="nav-github">GitHub &rarr;</a>
+  </div>
+</nav>
+
+<!-- Method hero -->
+<header class="method-hero">
+  <a href="index.html#audit" class="method-back">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path>
+    </svg>
+    Back to the overview
+  </a>
+  <h1>The formal methodology.</h1>
+  <p class="method-lede">
+    This is the math kept off the landing page, one click from the intuition. It brings
+    the Robins-Greenland-Pearl natural-effects decomposition, with proper Bayesian
+    uncertainty, to LLM chain-of-thought, and it states exactly where the identification
+    assumptions hold and where they do not. The plain-language reading of the sensitivity
+    result, with the figure, is on the <a href="index.html#audit" style="color:var(--cyan)">overview</a>.
+  </p>
+</header>
+
+<!-- Core structural model + estimands -->
+<section class="section">
+  <div class="section-head">
+    <span class="eyebrow">a &middot; structural model and estimands</span>
+    <h2>CoT as a causal mediator.</h2>
+  </div>
+
+  <div class="math-grid">
+    <div class="math-card reveal">
+      <h3>Structural causal model</h3>
+      <div class="math-block">
+$$M = f_M(X,\, U_M)$$
+$$Y = f_Y(X,\, M,\, U_Y)$$
+$$\text{instantiated as}$$
+$$X \sim \text{Bernoulli}(0.5)$$
+$$M \mid X \sim \mathcal{N}(\gamma X,\, \sigma_M^2)$$
+$$Y \mid X, M \sim \text{Bernoulli}\!\left(\sigma(\alpha X + \beta M)\right)$$
+      </div>
+      <p>
+        Pearl-style structural equations. $U_M$ and $U_Y$ are background unobserved
+        variables (hidden activations, sampling seeds when temperature is non-zero).
+        &gamma; governs how strongly the prompt shifts the CoT, &beta; governs how
+        strongly the CoT drives the answer, and &alpha; captures any direct
+        prompt-to-answer path that bypasses CoT. Setting &alpha; = 0 corresponds
+        to a fully-faithful world.
+      </p>
+    </div>
+
+    <div class="math-card reveal">
+      <h3>Causal estimands on the probability scale</h3>
+      <div class="math-block">
+$$\text{CDE}(m^*) = \mathbb{E}\!\left[Y \mid \text{do}(X{=}1, M{=}m^*)\right] - \mathbb{E}\!\left[Y \mid \text{do}(X{=}0, M{=}m^*)\right]$$
+$$\text{NDE} = \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=0}\right] - \mathbb{E}\!\left[Y \mid \text{do}(X{=}0), M_{X=0}\right]$$
+$$\text{NIE} = \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=1}\right] - \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=0}\right]$$
+$$\text{TE} = \text{NDE} + \text{NIE}$$
+      </div>
+      <p>
+        CDE measures the direct path with the mediator forced to a specific
+        counterfactual CoT $m^*$. NDE and NIE decompose the total effect into
+        decorative and causal parts. Faithfulness is operationalised as NIE / TE.
+      </p>
+    </div>
+  </div>
+
+  <div class="assumptions reveal">
+    <div class="assumption-header">
+      <h3>Identification assumptions, audited for the LLM setting</h3>
+      <p>
+        Mediation analysis requires sequential ignorability. In the standard
+        observational setting these assumptions are strong; in the LLM setting most
+        of them are weakened by construction, and the one that is not is handled with
+        a sensitivity analysis.
+      </p>
+    </div>
+    <div class="assumption-grid">
+      <div class="assumption-item">
+        <span class="assumption-num">A1</span>
+        <div>
+          <strong>X is exogenous</strong>
+          <p>Holds by construction. The prompt is chosen by the researcher.</p>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <span class="assumption-num">A2</span>
+        <div>
+          <strong>No unobserved X &rarr; M confounders</strong>
+          <p>Holds by construction. The CoT is generated only by the model conditional on X.</p>
+        </div>
+      </div>
+      <div class="assumption-item violated">
+        <span class="assumption-num violated-num">A3</span>
+        <div>
+          <strong>No unobserved M &rarr; Y confounders <span class="violated-tag">structurally violated</span></strong>
+          <p>The load-bearing assumption, and it does not hold in autoregressive LLMs. The same weights generate both M and Y, so hidden activations act as latent confounders ($U_M$ and $U_Y$ are correlated). Rather than pretend the correlation is zero, the framework treats it as a sensitivity parameter $\rho$ and reports the range of confounding the verdict survives. The next card has the full treatment.</p>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <span class="assumption-num">A4</span>
+        <div>
+          <strong>No M &rarr; Y confounder is itself caused by X</strong>
+          <p>Tested empirically via random-seed ablation. If reseeds produce the same Y for the same M, the assumption is consistent with the data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Sensitivity + hierarchical -->
+<section class="section section-tinted">
+  <div class="section-head">
+    <span class="eyebrow">b &middot; the parts with no prior work for CoT</span>
+    <h2>Sensitivity to A3, and pooling across prompts.</h2>
+  </div>
+
+  <div class="math-grid">
+    <div class="math-card reveal">
+      <h3>Sensitivity analysis for the A3 violation</h3>
+      <p>
+        Because the CoT and the answer read from the same hidden state, the errors $U_M$
+        and $U_Y$ are correlated. We make that correlation a single parameter and use a
+        probit (latent-Gaussian) outcome so it enters cleanly, the standard move in the
+        Imai, Keele, and Tingley (2010) framework:
+      </p>
+      <div class="math-block">
+$$\rho = \mathrm{Corr}(U_M,\, U_Y), \qquad \rho = 0 \;\text{is sequential ignorability}$$
+$$P(Y{=}1 \mid X, M) = \Phi\!\left(\frac{\alpha X + \beta M + (\rho/\sigma_M)(M - \gamma X)}{\sqrt{1 - \rho^2}}\right)$$
+      </div>
+      <p>
+        Conditioning on the observed $M$ makes $U_M = M - \gamma X$ known, which gives an
+        exact observed-data likelihood at any fixed $\rho$. The sweep fits the
+        de-confounded coefficients on a grid of assumed $\rho$ and reads off the natural
+        effects. On synthetic data with true $\rho = 0.5$, assuming ignorability reports a
+        faithful path of 0.43 against a truth of 0.21 (an overstatement of 0.22 that does
+        not shrink with $n$), the sweep recovers the truth at the true $\rho$, and the
+        faithful path stays positive for every $\rho$ in $[-0.6, +0.7]$.
+      </p>
+    </div>
+
+    <div class="math-card reveal">
+      <h3>Hierarchical (partially pooled) model</h3>
+      <p>
+        One faithfulness number per model is the wrong unit. Faithfulness varies by prompt
+        ($j$), and some prompts have far fewer usable traces than others. Each prompt gets
+        its own coefficients drawn from a population, with a non-centred parameterisation
+        for friendly NUTS geometry:
+      </p>
+      <div class="math-block">
+$$\mathrm{logit}\, P(Y_{ij}{=}1) = \alpha_j X_{ij} + \beta_j M_{ij}$$
+$$\alpha_j \sim \mathcal{N}(\mu_\alpha, \tau_\alpha), \quad \beta_j \sim \mathcal{N}(\mu_\beta, \tau_\beta), \quad \gamma_j \sim \mathcal{N}(\mu_\gamma, \tau_\gamma)$$
+      </div>
+      <p>
+        The population mean $\mu_\beta$ is the model-level faithfulness slope with the right
+        uncertainty; $\tau_\beta$ says how much prompts disagree. A prompt with five traces
+        is pulled toward the global mean instead of swinging wildly on its own. On synthetic
+        data the model recovers $\mu_\beta$ inside its 95% credible interval and beats
+        no-pooling on per-prompt error. A full <code>pm.LKJCholeskyCov</code> covariance over
+        $(\alpha_j, \beta_j, \gamma_j)$ is the natural extension; the independent-scale
+        version here is the validated v1.
+      </p>
+    </div>
+
+    <div class="math-card reveal">
+      <h3>Computational strategy</h3>
+      <p>
+        Everything in this repo runs on a laptop CPU in under a minute. Scaling to thousands
+        of intervention samples across hundreds of prompts is the planned next step, with a
+        decoupled architecture:
+      </p>
+      <ul class="strat-list">
+        <li><strong>PyMC</strong> for model prototyping and the synthetic-validation suite. Readable, fast to iterate, what the current code uses.</li>
+        <li><strong>NumPyro</strong> with a <strong>JAX</strong> backend for the production sweep, compiling HMC kernels into XLA. Planned for the real-LLM stage.</li>
+        <li><strong>ADVI</strong> (variational inference) as a fallback for high-dimensional posteriors where MCMC convergence becomes slow.</li>
+      </ul>
+    </div>
+
+    <div class="math-card reveal">
+      <h3>Intervention mechanics</h3>
+      <p>
+        Naive text edits on black-box APIs cause distribution shifts that destroy the
+        causal estimate. The plan uses two intervention regimes matched to model access:
+      </p>
+      <ul class="strat-list">
+        <li><strong>Black-box APIs</strong> (Claude, GPT-4): coarse <em>behavioral</em> interventions only. Truncation, paraphrase, and counterfactual segment-swap at the text level, used as a sanity check on the headline result.</li>
+        <li><strong>Open-source models</strong> (Llama-3, Gemma-2): <em>logit-level</em> counterfactual forcing. The counterfactual mediator $M^*$ is injected into the KV-cache, the model is frozen, and the change in log-probability of the target tokens is recorded. This isolates the causal effect without letting the model derail into off-distribution text.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="prior-table reveal">
+    <h3>Priors and sampler settings (synthetic-validation suite)</h3>
+    <div class="prior-rows">
+      <div class="prior-row">
+        <span class="prior-name">&alpha;, &gamma;</span>
+        <span class="prior-formula">$\mathcal{N}(0, 1.5^2)$</span>
+        <span class="prior-desc">weakly informative, centred at no effect</span>
+      </div>
+      <div class="prior-row">
+        <span class="prior-name">&beta;</span>
+        <span class="prior-formula">$\mathcal{N}(0, 2.0^2)$</span>
+        <span class="prior-desc">slightly wider, mediator effect can be large</span>
+      </div>
+      <div class="prior-row">
+        <span class="prior-name">&sigma;<sub>M</sub>, &tau;</span>
+        <span class="prior-formula">$\text{HalfNormal}(1)$</span>
+        <span class="prior-desc">positive-only scales for noise and pooling</span>
+      </div>
+      <div class="prior-row">
+        <span class="prior-name">&rho;</span>
+        <span class="prior-formula">grid on $(-0.95,\, 0.95)$</span>
+        <span class="prior-desc">swept, not sampled: one exact fit per value</span>
+      </div>
+      <div class="prior-row">
+        <span class="prior-name">sampler</span>
+        <span class="prior-formula">NUTS, 4 chains</span>
+        <span class="prior-desc">1500 tune + 1500 draw, target accept 0.95</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="audit-cta reveal">
+    <a href="index.html#audit" class="btn btn-ghost">&larr; Back to the intuition and the figure</a>
+    <span class="audit-cta-note">the sensitivity sweep, in plain language, with the curve</span>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <span>&copy; 2026 Maksim Silchenko &middot; MIT-licensed code &middot; CC BY 4.0 prose</span>
+    <span><a href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener">source &rarr;</a></span>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>
