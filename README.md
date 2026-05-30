@@ -14,7 +14,7 @@ Frontier LLMs increasingly produce chain-of-thought (CoT) reasoning that humans 
 
 - **Lanham et al. (2023):** truncating CoT often doesn't change the answer
 - **Turpin et al. (2023):** biased CoT prompts produce biased answers without the bias appearing in the CoT
-- **Anthropic CoT-monitorability research (2024–2025):** faithfulness depends sensitively on prompting and task type
+- **Anthropic CoT-monitorability research (2024 to 2025):** faithfulness depends sensitively on prompting and task type
 
 Current measurements give noisy point estimates. **We cannot say with calibrated confidence whether one model is more faithful than another, or how much weight to give a faithfulness claim before deploying a model in a high-stakes setting.**
 
@@ -38,14 +38,29 @@ Prompt X  ─────────[α: direct]─────────► 
    TE  = NDE + NIE   (under no-confounding assumptions)
 ```
 
+## Auditing the assumption no one can check
+
+Every causal-mediation estimate rests on one assumption you cannot verify from data: that nothing unmeasured sits between the CoT and the answer once the prompt is fixed. In a language model that is almost never true, because the CoT and the answer both read from the same hidden activations. Prior causal-CoT work assumes the problem away. This project measures how much it matters.
+
+We add one sensitivity parameter, `rho`: the residual correlation between the CoT and the answer that the model leaves unexplained. `rho = 0` is the standard assumption. The sweep re-estimates the faithful path across a range of `rho` and reports where the conclusion holds.
+
+![Sensitivity of CoT faithfulness to the no-hidden-confounder assumption](figures/sensitivity_curve.png)
+
+**What this shows.** The blue curve is the faithful path (how much the CoT drives the answer) as a function of how much hidden confounding you allow. On synthetic data with a known amount of confounding built in, an analyst who assumes none reads off a faithful path of 0.43 when the truth is 0.21: assuming the problem away overstates faithfulness by about 0.22, and that gap does not shrink with more data. The sweep recovers the truth at the real confounding level, and the faithful path stays positive across a wide band of `rho` ([-0.6, +0.7] here). So the analysis does two things at once: it shows that a naive audit can over-trust the reasoning, and it states exactly how much hidden confounding the verdict can absorb before it breaks. Derivation in the [methodology](docs/methodology.md).
+
+## One number per model is the wrong unit
+
+Faithfulness is not a single property of a model. It varies by prompt and by task, and some prompts have far fewer usable traces than others. The hierarchical model gives each prompt its own faithfulness slope drawn from a shared population, so sparse prompts borrow strength from the rest instead of overfitting in isolation. The output is a population-level faithfulness slope with calibrated uncertainty, plus a direct read on how much prompts disagree. Implemented in [`hierarchical.py`](src/bayes_cot_faithfulness/hierarchical.py), validated against known ground truth on synthetic data.
+
 ## Current status
 
-This repo contains a **synthetic-CoT validation pilot** that:
+This repo contains a **synthetic-validation suite** that:
 
 1. Generates synthetic traces with known ground-truth NDE and NIE
-2. Fits a hierarchical Bayesian mediation model in PyMC
-3. Recovers the true effects within 95% credible intervals
-4. All runs on a laptop CPU in under a minute — no API calls, no GPU
+2. Fits a Bayesian mediation model in PyMC and recovers the true effects within 95% credible intervals
+3. Runs a sensitivity sweep that quantifies how the verdict moves under unmeasured confounding, and recovers the truth at the real confounding level
+4. Fits a hierarchical (partially pooled) model across prompts and recovers the population faithfulness slope
+5. Runs end-to-end on a laptop CPU in under a minute, with no API calls and no GPU
 
 This is the **methodological gate** before scaling to real LLM experiments. If the estimator can't recover known effects on controlled data, it won't recover them on real CoT.
 
@@ -60,8 +75,10 @@ The full project (Rapid Grant scope) extends this to:
 git clone https://github.com/thylinao1/bayes-cot-faithfulness
 cd bayes-cot-faithfulness
 pip install -e ".[dev]"
-pytest                                          # 20 tests, ~10s
-python notebooks/01_synthetic_validation.py     # runs the pilot end-to-end
+pytest                                          # 31 fast tests (--runslow adds 3 sampling tests, 34 total)
+python notebooks/01_synthetic_validation.py     # posterior recovery on synthetic CoT
+python notebooks/03_sensitivity_analysis.py     # the rho sensitivity sweep
+python notebooks/04_generate_sensitivity_figure.py  # writes figures/sensitivity_curve.png
 ```
 
 ![Posterior recovery on synthetic CoT](figures/posterior_recovery.png)
@@ -105,7 +122,9 @@ See [`docs/methodology.md`](docs/methodology.md) for the formal write-up:
 ## Roadmap (Rapid Grant scope)
 
 - [x] Synthetic-CoT validation pilot (this repo)
-- [ ] Real-LLM intervention harness (truncation, paraphrase, swap)
+- [x] Sensitivity analysis for unmeasured M-Y confounding (rho sweep)
+- [x] Hierarchical partial pooling across prompts
+- [ ] Real-LLM intervention toolkit (truncation, paraphrase, swap)
 - [ ] Open-source-model sweep (Llama-3-8B, Gemma-2-9B)
 - [ ] Frontier-model sweep (Claude Sonnet, GPT-4-class) via API
 - [ ] Public uncertainty-quantified faithfulness benchmark
@@ -126,7 +145,7 @@ If you build on this work, please cite:
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT. See [`LICENSE`](LICENSE).
 
 ## Contact
 
