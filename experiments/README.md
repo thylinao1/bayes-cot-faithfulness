@@ -53,6 +53,27 @@ is not a hardware fault and not a code bug. Fixes, in order:
   single slow generation can no longer hang the machine. If the very first call times
   out it stops early with guidance instead of grinding.
 
+## Free capable model: Groq (recommended, $0, no GPU)
+
+A small local model is fast but noisy: on hard items it gives different answers to a
+trivially reworded prompt, which fails the negative control. A capable model is far
+more consistent. You do not need to rent a GPU or wait for a budget: Groq's free tier
+serves a fast 70B (llama-3.3-70b-versatile) at no cost (free key, no card).
+
+```bash
+export GROQ_API_KEY=...   # free key: https://console.groq.com/keys
+PYTHONPATH=src python experiments/05_realmodel_control.py --backend groq --data experiments/data/arc_challenge.json --hint-strength strong --n-items 60 --require-stable
+```
+
+The key is read from the environment and never written to disk. No charge on the free
+tier; if you add a payment method to Groq, usage could bill. If `GROQ_API_KEY` is unset
+the script prints setup steps and exits without making a request.
+
+`--require-stable` measures the positive control only on items the model answers
+consistently (the neutral edit did not move the answer), so a hinted-arm change is
+attributable to the hint and not to model noise. The full-set instability is reported
+as a model caveat.
+
 ## Harder data: ARC-Challenge (free, local)
 
 The toy arithmetic set is too easy: the model knows the answer and ignores any hint
