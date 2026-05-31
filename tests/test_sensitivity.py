@@ -9,6 +9,7 @@ from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
     breakdown_frontier,
     fit_probit_mediation_map,
+    partial_identification_bounds,
     probit_natural_effects,
     robustness_interval,
     sensitivity_sweep,
@@ -127,6 +128,35 @@ def test_breakdown_frontier_finds_positive_rho_star() -> None:
     a, b, g, s = fit_probit_mediation_map(X, M, Y, bf.rho_star_pos)
     _, nie_star, _ = probit_natural_effects(a, b, g, s, bf.rho_star_pos, n_mc=80_000, rng_seed=0)
     assert abs(nie_star) < 0.01
+
+
+def test_partial_id_bounds_invalid_key_raises() -> None:
+    cfg = ConfoundedCoTConfig(n_prompts=300, rng_seed=1)
+    X, M, Y = simulate_confounded_cot(cfg)
+    with pytest.raises(ValueError):
+        partial_identification_bounds(X, M, Y, key="bogus")
+
+
+def test_partial_id_bounds_bracket_and_sign_identify() -> None:
+    """The bounds straddle the rho=0 estimate; a tight rho_bar keeps the faithful path
+    sign-identified (interval excludes zero), a loose one does not (the breakdown is
+    near rho ~0.74 for this process)."""
+    cfg = ConfoundedCoTConfig(
+        n_prompts=2500, alpha_direct=0.3, beta_mediated=1.0,
+        gamma_xm=0.8, sigma_m=0.5, rho_confound=0.5, rng_seed=7,
+    )
+    X, M, Y = simulate_confounded_cot(cfg)
+    a0, b0, g0, s0 = fit_probit_mediation_map(X, M, Y, 0.0)
+    _, nie0, _ = probit_natural_effects(a0, b0, g0, s0, 0.0, n_mc=80_000, rng_seed=0)
+
+    tight = partial_identification_bounds(X, M, Y, rho_bar=0.5, n_mc=80_000, n_grid=21)
+    assert tight.lower <= nie0 <= tight.upper
+    assert tight.lower < tight.upper
+    assert tight.sign_identified  # whole interval positive: verdict robust to |rho|<=0.5
+
+    loose = partial_identification_bounds(X, M, Y, rho_bar=0.9, n_mc=80_000, n_grid=31)
+    assert loose.lower < 0.0 < loose.upper  # spans zero: sign no longer identified
+    assert not loose.sign_identified
 
 
 @pytest.mark.slow

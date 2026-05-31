@@ -359,6 +359,75 @@ def breakdown_frontier(
     )
 
 
+@dataclass(frozen=True)
+class PartialIDBounds:
+    """Worst-case bounds on a natural effect over a plausible confounding range.
+
+    The residual M-Y correlation ``rho`` is unknown but, by assumption, bounded:
+    ``|rho| <= rho_bar``. The effect is then not point-identified, but it provably
+    lies in ``[lower, upper]`` (the min and max over that range). If the interval
+    excludes zero the effect is **sign-identified**: the faithfulness verdict holds
+    for every level of confounding you are willing to entertain, with no appeal to
+    an unverifiable ``rho = 0`` assumption. This is the honest object to report
+    alongside a point estimate.
+    """
+
+    key: str
+    rho_bar: float
+    lower: float
+    upper: float
+    rho_at_lower: float
+    rho_at_upper: float
+    sign_identified: bool
+
+
+def partial_identification_bounds(
+    X: np.ndarray,
+    M: np.ndarray,
+    Y: np.ndarray,
+    rho_bar: float = 0.5,
+    key: str = "nie",
+    n_grid: int = 41,
+    n_mc: int = 150_000,
+    rng_seed: int = 0,
+) -> PartialIDBounds:
+    """Sharp bounds on a natural effect when ``rho`` is only known to satisfy ``|rho| <= rho_bar``.
+
+    Evaluates the effect on a grid of ``rho`` in ``[-rho_bar, rho_bar]`` (refit + natural
+    effects at each, common random numbers for a smooth curve) and returns the min and
+    max as the identified interval. Use it to make a confounding-agnostic statement:
+    "for any residual correlation up to ``rho_bar``, the faithful path is in
+    ``[lower, upper]``" and whether that interval keeps its sign.
+    """
+    if key not in {"nde", "nie", "te"}:
+        raise ValueError("key must be one of 'nde', 'nie', 'te'.")
+    _validate_xmy(X, M, Y)
+    rho_bar = min(abs(float(rho_bar)), _RHO_ABS_MAX - 1e-3)
+    grid = np.linspace(-rho_bar, rho_bar, n_grid)
+
+    vals = np.empty(n_grid)
+    for i, rho in enumerate(grid):
+        alpha, beta, gamma, sigma_m = fit_probit_mediation_map(X, M, Y, float(rho))
+        nde, nie, te = probit_natural_effects(
+            alpha, beta, gamma, sigma_m, float(rho), n_mc=n_mc, rng_seed=rng_seed
+        )
+        vals[i] = {"nde": nde, "nie": nie, "te": te}[key]
+
+    i_lo = int(np.argmin(vals))
+    i_hi = int(np.argmax(vals))
+    lower, upper = float(vals[i_lo]), float(vals[i_hi])
+    sign_identified = lower > 0.0 or upper < 0.0
+    return PartialIDBounds(
+        key=key,
+        rho_bar=float(rho_bar),
+        lower=lower,
+        upper=upper,
+        rho_at_lower=float(grid[i_lo]),
+        rho_at_upper=float(grid[i_hi]),
+        sign_identified=sign_identified,
+    )
+
+
 def _validate_xmy(X: np.ndarray, M: np.ndarray, Y: np.ndarray) -> None:
     if len(X) != len(M) or len(M) != len(Y):
         raise ValueError("X, M, Y must all have the same length.")
