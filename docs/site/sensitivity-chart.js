@@ -60,11 +60,12 @@
       ['Decorative path', C.orange, false],
       ['Total effect', C.muted, true],
     ];
-    let s = `<rect x="${padL - 2}" y="${padT - 6}" width="160" height="68" rx="9" fill="${C.bg}" opacity="0.66"/>`;
+    const lx = W - padR - 150;
+    let s = `<rect x="${lx - 4}" y="${padT - 6}" width="154" height="68" rx="9" fill="${C.bg}" opacity="0.82"/>`;
     rows.forEach(([label, color, dotted], i) => {
       const y = padT + 8 + i * 20;
-      s += `<line x1="${padL + 8}" y1="${y}" x2="${padL + 32}" y2="${y}" stroke="${color}" stroke-width="2.4" ${dotted ? 'stroke-dasharray="2 4"' : ''} stroke-linecap="round"/>`;
-      s += `<text x="${padL + 40}" y="${y + 4}" fill="${C.text2}" font-size="12">${label}</text>`;
+      s += `<line x1="${lx + 4}" y1="${y}" x2="${lx + 28}" y2="${y}" stroke="${color}" stroke-width="2.4" ${dotted ? 'stroke-dasharray="2 4"' : ''} stroke-linecap="round"/>`;
+      s += `<text x="${lx + 36}" y="${y + 4}" fill="${C.text2}" font-size="12">${label}</text>`;
     });
     return s;
   }
@@ -80,8 +81,8 @@
 
         <!-- ignorability line -->
         <line x1="${sx(0)}" y1="${padT}" x2="${sx(0)}" y2="${H - padB}" stroke="${C.text2}" stroke-width="1" opacity="0.7"/>
-        <text x="${sx(0) - 8}" y="${padT + 46}" text-anchor="end" fill="${C.text2}" font-size="11" style="${mono}">Assumes</text>
-        <text x="${sx(0) - 8}" y="${padT + 60}" text-anchor="end" fill="${C.text2}" font-size="11" style="${mono}">ignorability</text>
+        <text x="${sx(0) - 8}" y="${sy(0.66)}" text-anchor="end" fill="${C.text2}" font-size="11" style="${mono}">Assumes</text>
+        <text x="${sx(0) - 8}" y="${sy(0.60)}" text-anchor="end" fill="${C.text2}" font-size="11" style="${mono}">ignorability</text>
 
         <!-- ground-truth guides -->
         <line x1="${padL}" y1="${sy(DATA.true_nie)}" x2="${W - padR}" y2="${sy(DATA.true_nie)}" stroke="${C.cyan}" stroke-width="1" stroke-dasharray="4 4" opacity="0.45"/>
@@ -97,10 +98,11 @@
         <path class="sc-curve sc-draw" d="${line(DATA.nie)}" fill="none" stroke="${C.cyan}" stroke-width="2.4" stroke-linecap="round"/>
         ${dots(DATA.nde, C.orange)}${dots(DATA.nie, C.cyan)}
 
-        <!-- recovers-truth marker -->
+        <!-- recovers-truth marker (label below, with a leader, so it clears the curves) -->
         <circle cx="${sx(DATA.rho_true)}" cy="${sy(DATA.nie[iTrue])}" r="9" fill="none" stroke="${C.green}" stroke-width="2.4"/>
-        <text x="${sx(DATA.rho_true) + 16}" y="${sy(DATA.nie[iTrue]) - 14}" fill="${C.green}" font-size="11.5" style="${mono}">True confounding</text>
-        <text x="${sx(DATA.rho_true) + 16}" y="${sy(DATA.nie[iTrue]) - 1}" fill="${C.green}" font-size="11.5" style="${mono}">recovers the truth</text>
+        <line x1="${sx(DATA.rho_true)}" y1="${sy(DATA.nie[iTrue]) + 11}" x2="${sx(DATA.rho_true)}" y2="${sy(0.01)}" stroke="${C.green}" stroke-width="1" stroke-dasharray="2 3" opacity="0.55"/>
+        <text x="${sx(DATA.rho_true)}" y="${sy(-0.06)}" text-anchor="middle" fill="${C.green}" font-size="11.5" style="${mono}">True confounding</text>
+        <text x="${sx(DATA.rho_true)}" y="${sy(-0.13)}" text-anchor="middle" fill="${C.green}" font-size="11.5" style="${mono}">recovers the truth</text>
 
         ${legend()}
 
