@@ -16,8 +16,10 @@ from bayes_cot_faithfulness.mediation import (
     fit_mediation_model,
 )
 from bayes_cot_faithfulness.sensitivity import (
+    BreakdownFrontier,
     ConfoundedCoTConfig,
     SensitivityPoint,
+    breakdown_frontier,
     fit_probit_mediation_map,
     probit_natural_effects,
     robustness_interval,
@@ -29,11 +31,13 @@ from bayes_cot_faithfulness.synthetic import SyntheticCoTConfig, simulate_cot_tr
 __version__ = "0.2.0"
 
 __all__ = [
+    "BreakdownFrontier",
     "ConfoundedCoTConfig",
     "HierarchicalCoTConfig",
     "PosteriorEffects",
     "SensitivityPoint",
     "SyntheticCoTConfig",
+    "breakdown_frontier",
     "extract_parameter_samples",
     "fit_hierarchical_mediation",
     "fit_mediation_model",

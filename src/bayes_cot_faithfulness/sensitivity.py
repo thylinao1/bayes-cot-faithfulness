@@ -42,7 +42,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import brentq, minimize
 from scipy.stats import norm
 
 # Outside this band the latent-Gaussian reparameterisation 1/sqrt(1-rho^2)
@@ -272,6 +272,91 @@ def robustness_interval(
     while hi + 1 < len(vals) and np.sign(vals[hi + 1]) == sign:
         hi += 1
     return float(rhos[lo]), float(rhos[hi])
+
+
+@dataclass(frozen=True)
+class BreakdownFrontier:
+    """How much unmeasured M-Y confounding it takes to overturn an effect's sign.
+
+    This is the sensitivity-analysis analogue of VanderWeele's E-value for a
+    mediation effect: starting from the sequential-ignorability estimate at
+    ``rho = 0``, it reports the residual correlation ``rho`` at which the chosen
+    natural effect (by default the NIE, the faithful path) crosses zero. The
+    headline number is ``robustness``: the smallest ``|rho|`` that flips the
+    verdict. Larger means the conclusion survives more confounding.
+    """
+
+    key: str
+    effect_at_zero: float
+    rho_star_pos: float | None
+    rho_star_neg: float | None
+    robustness: float
+    rho_max: float
+    survives_full_range: bool
+
+
+def breakdown_frontier(
+    X: np.ndarray,
+    M: np.ndarray,
+    Y: np.ndarray,
+    key: str = "nie",
+    n_mc: int = 200_000,
+    rng_seed: int = 0,
+    rho_max: float = 0.95,
+) -> BreakdownFrontier:
+    """Smallest residual confounding ``|rho|`` that overturns the sign of an effect.
+
+    Starting from the sequential-ignorability estimate (``rho = 0``), find the
+    nearest ``rho`` on each side at which the chosen natural effect (``"nde"``,
+    ``"nie"`` or ``"te"``) crosses zero, by refitting the probit model at each
+    candidate ``rho`` and converting to natural effects. Monte Carlo uses a fixed
+    seed so the effect is a deterministic, smooth function of ``rho`` (common random
+    numbers), which keeps the root-find stable.
+
+    The headline output is ``robustness``: the minimum ``|rho|`` that flips the
+    verdict, an E-value-style sensitivity scalar a faithfulness claim can be
+    reported with. ``rho_star_pos`` / ``rho_star_neg`` are the signed crossings (or
+    ``None`` when the sign never flips on that side within the searched range).
+    """
+    if key not in {"nde", "nie", "te"}:
+        raise ValueError("key must be one of 'nde', 'nie', 'te'.")
+    _validate_xmy(X, M, Y)
+    rho_max = min(float(rho_max), _RHO_ABS_MAX - 1e-3)
+
+    def effect_at(rho: float) -> float:
+        alpha, beta, gamma, sigma_m = fit_probit_mediation_map(X, M, Y, float(rho))
+        nde, nie, te = probit_natural_effects(
+            alpha, beta, gamma, sigma_m, float(rho), n_mc=n_mc, rng_seed=rng_seed
+        )
+        return {"nde": nde, "nie": nie, "te": te}[key]
+
+    e0 = effect_at(0.0)
+    sign0 = np.sign(e0)
+
+    def crossing(bound: float) -> float | None:
+        if sign0 == 0:
+            return None
+        if np.sign(effect_at(bound)) == sign0:
+            return None  # sign holds across this side; no breakdown in range
+        lo, hi = (0.0, bound) if bound > 0 else (bound, 0.0)
+        return float(brentq(effect_at, lo, hi, xtol=1e-4, rtol=1e-6, maxiter=100))
+
+    rho_star_pos = crossing(rho_max)
+    rho_star_neg = crossing(-rho_max)
+
+    magnitudes = [abs(r) for r in (rho_star_pos, rho_star_neg) if r is not None]
+    survives_full_range = not magnitudes
+    robustness = min(magnitudes) if magnitudes else rho_max
+
+    return BreakdownFrontier(
+        key=key,
+        effect_at_zero=float(e0),
+        rho_star_pos=rho_star_pos,
+        rho_star_neg=rho_star_neg,
+        robustness=float(robustness),
+        rho_max=float(rho_max),
+        survives_full_range=survives_full_range,
+    )
 
 
 def _validate_xmy(X: np.ndarray, M: np.ndarray, Y: np.ndarray) -> None:

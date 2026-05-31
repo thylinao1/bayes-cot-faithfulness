@@ -24,6 +24,7 @@ from figstyle import PALETTE, glow_line, style_legend, use_house_style
 
 from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
+    breakdown_frontier,
     fit_probit_mediation_map,
     probit_natural_effects,
     robustness_interval,
@@ -85,6 +86,7 @@ def main() -> None:
     assert ignorability_bias > 0.05, "expected upward bias under ignorability"
 
     band = robustness_interval(sweep, key="nie")
+    bf = breakdown_frontier(X, M, Y, key="nie", n_mc=N_MC, rng_seed=SWEEP_SEED)
 
     # --- figure (dark house style, matches the project site) --------------
     use_house_style()
@@ -113,6 +115,12 @@ def main() -> None:
                 xytext=(RHO_TRUE + 0.02, nie[i_true] + 0.05),
                 fontsize=9, color=PALETTE["green"])
 
+    if bf.rho_star_pos is not None:
+        ax.axvline(bf.rho_star_pos, color=PALETTE["cyan"], lw=1.0, ls=":", alpha=0.6)
+        ax.annotate(rf"breakdown $\rho^*\!=\!{bf.rho_star_pos:.2f}$",
+                    xy=(bf.rho_star_pos, 0.07), xytext=(bf.rho_star_pos + 0.015, 0.07),
+                    fontsize=8.5, color=PALETTE["cyan"], ha="left", va="center")
+
     ax.set_xlabel(r"assumed sensitivity parameter  $\rho = \mathrm{Corr}(\varepsilon_M, \varepsilon_Y)$", labelpad=10)
     ax.set_ylabel("effect on P(answer) scale")
     ax.set_title(
@@ -120,9 +128,12 @@ def main() -> None:
         fontsize=12.5, pad=10,
     )
     subtitle = "dashed lines: ground truth   |   vertical line: the assumption every prior causal-CoT estimate makes"
-    if band is not None:
-        subtitle += f"\nindirect (faithful) path stays positive for rho in [{band[0]:+.1f}, {band[1]:+.1f}]"
-    ax.text(0.5, -0.24, subtitle, transform=ax.transAxes, ha="center", fontsize=9, color=PALETTE["text_3"])
+    if bf.rho_star_pos is not None:
+        subtitle += (
+            f"\nthe faithful path survives confounding up to rho* = {bf.rho_star_pos:.2f}: "
+            "how much hidden confounding it takes to overturn the verdict"
+        )
+    ax.text(0.5, -0.26, subtitle, transform=ax.transAxes, ha="center", fontsize=9, color=PALETTE["text_3"])
     style_legend(ax, loc="upper left", fontsize=9)
 
     out_dir = Path(__file__).resolve().parents[1] / "figures"
@@ -132,6 +143,8 @@ def main() -> None:
     print(f"OK wrote {out_path}")
     print(f"OK all correctness checks passed (recovery err {recovery_err:.4f}, "
           f"ignorability overstates NIE by {ignorability_bias:+.4f})")
+    print(f"OK breakdown frontier rho* = {bf.rho_star_pos:.3f} "
+          f"(faithful path survives confounding up to this level)")
 
 
 if __name__ == "__main__":

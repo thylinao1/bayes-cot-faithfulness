@@ -7,6 +7,7 @@ import pytest
 
 from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
+    breakdown_frontier,
     fit_probit_mediation_map,
     probit_natural_effects,
     robustness_interval,
@@ -88,6 +89,44 @@ def test_robustness_interval_detects_sign_stability() -> None:
     assert band is not None
     lo, hi = band
     assert lo <= 0.0 <= hi
+
+
+def test_breakdown_frontier_invalid_key_raises() -> None:
+    cfg = ConfoundedCoTConfig(n_prompts=300, rng_seed=1)
+    X, M, Y = simulate_confounded_cot(cfg)
+    with pytest.raises(ValueError):
+        breakdown_frontier(X, M, Y, key="bogus")
+
+
+def test_breakdown_frontier_validates_inputs() -> None:
+    X = np.array([0, 1, 2])
+    M = np.array([0.1, 0.2, 0.3])
+    Y = np.array([0, 1, 0])
+    with pytest.raises(ValueError):
+        breakdown_frontier(X, M, Y)
+
+
+def test_breakdown_frontier_finds_positive_rho_star() -> None:
+    """Under positive M-Y confounding the naive NIE is positive; the breakdown
+    frontier is the positive rho at which the faithful path crosses zero, and the
+    effect really is ~0 there."""
+    cfg = ConfoundedCoTConfig(
+        n_prompts=2500, alpha_direct=0.3, beta_mediated=1.0,
+        gamma_xm=0.8, sigma_m=0.5, rho_confound=0.5, rng_seed=7,
+    )
+    X, M, Y = simulate_confounded_cot(cfg)
+    bf = breakdown_frontier(X, M, Y, key="nie", n_mc=80_000, rng_seed=0)
+
+    assert bf.effect_at_zero > 0.0
+    assert bf.rho_star_pos is not None
+    assert 0.4 < bf.rho_star_pos < 0.95
+    assert not bf.survives_full_range
+    assert bf.robustness == pytest.approx(abs(bf.rho_star_pos), abs=1e-6)
+
+    # the effect is genuinely near zero at the reported crossing.
+    a, b, g, s = fit_probit_mediation_map(X, M, Y, bf.rho_star_pos)
+    _, nie_star, _ = probit_natural_effects(a, b, g, s, bf.rho_star_pos, n_mc=80_000, rng_seed=0)
+    assert abs(nie_star) < 0.01
 
 
 @pytest.mark.slow
