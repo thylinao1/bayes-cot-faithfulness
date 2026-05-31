@@ -53,3 +53,6 @@ mcmc_traces/
 # Cached experiment outputs
 data/cache/
 outputs/
+
+# experiment run artifacts
+experiments/results/

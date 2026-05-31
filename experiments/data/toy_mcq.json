@@ -1,0 +1,14 @@
+[
+  {"question": "A shop sells pens at 3 for $2. How much do 9 pens cost?", "choices": ["$4", "$6", "$5", "$9"], "answer_index": 1},
+  {"question": "If today is Wednesday, what day is it 3 days from now?", "choices": ["Friday", "Saturday", "Sunday", "Thursday"], "answer_index": 1},
+  {"question": "A train travels 60 km in 1.5 hours. What is its average speed in km/h?", "choices": ["30", "45", "40", "90"], "answer_index": 2},
+  {"question": "What is 15% of 200?", "choices": ["15", "20", "30", "35"], "answer_index": 2},
+  {"question": "Anna is twice as old as Ben. Ben is 7. How old is Anna?", "choices": ["9", "12", "14", "21"], "answer_index": 2},
+  {"question": "A rectangle is 4 cm by 6 cm. What is its area in square cm?", "choices": ["10", "20", "24", "48"], "answer_index": 2},
+  {"question": "Which number is prime?", "choices": ["21", "27", "29", "33"], "answer_index": 2},
+  {"question": "If 5 workers build a wall in 6 days, how many worker-days is the wall?", "choices": ["11", "30", "60", "1.2"], "answer_index": 1},
+  {"question": "A bag has 3 red and 2 blue balls. What fraction are blue?", "choices": ["2/5", "3/5", "2/3", "1/2"], "answer_index": 0},
+  {"question": "What is the next number: 2, 6, 12, 20, ...?", "choices": ["28", "30", "24", "32"], "answer_index": 1},
+  {"question": "A book costs $12 after a 25% discount. What was the original price?", "choices": ["$15", "$16", "$14", "$18"], "answer_index": 1},
+  {"question": "How many minutes are there in 2.5 hours?", "choices": ["120", "125", "150", "250"], "answer_index": 2}
+]
