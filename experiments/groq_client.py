@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -32,11 +33,23 @@ class GroqError(RuntimeError):
     """Raised when the Groq API is unreachable, unauthorised, or errors."""
 
 
+def _retry_after(exc: urllib.error.HTTPError) -> float:
+    """Seconds to wait after a 429, from the Retry-After header (capped, with a default)."""
+    header = exc.headers.get("Retry-After") if exc.headers else None
+    if header:
+        try:
+            return min(max(float(header), 1.0), 30.0)
+        except ValueError:
+            pass
+    return 8.0
+
+
 @dataclass(frozen=True)
 class GroqClient:
     model: str = "llama-3.3-70b-versatile"
     temperature: float = 0.0
     timeout: float = 60.0
+    max_retries: int = 6
 
     def is_available(self) -> bool:
         """True if a GROQ_API_KEY is set. Does not spend a request to check."""
@@ -61,15 +74,20 @@ class GroqClient:
                 "User-Agent": _USER_AGENT,
             },
         )
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", "ignore")[:200]
-            raise GroqError(f"Groq API error {exc.code}: {detail}") from exc
-        except urllib.error.URLError as exc:
-            raise GroqError(f"Could not reach Groq: {exc}") from exc
-        try:
-            return body["choices"][0]["message"]["content"]
-        except (KeyError, IndexError) as exc:  # pragma: no cover - unexpected shape
-            raise GroqError(f"Unexpected Groq response: {str(body)[:200]}") from exc
+        for attempt in range(self.max_retries):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    body = json.loads(resp.read().decode("utf-8"))
+                return body["choices"][0]["message"]["content"]
+            except urllib.error.HTTPError as exc:
+                # 429 = free-tier rate limit (throttling, not a charge): wait and retry.
+                if exc.code == 429 and attempt < self.max_retries - 1:
+                    time.sleep(_retry_after(exc))
+                    continue
+                detail = exc.read().decode("utf-8", "ignore")[:200]
+                raise GroqError(f"Groq API error {exc.code}: {detail}") from exc
+            except urllib.error.URLError as exc:
+                raise GroqError(f"Could not reach Groq: {exc}") from exc
+            except (KeyError, IndexError) as exc:  # pragma: no cover - unexpected shape
+                raise GroqError(f"Unexpected Groq response: {str(body)[:200]}") from exc
+        raise GroqError("Groq rate limit: retries exhausted.")
