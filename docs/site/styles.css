@@ -798,6 +798,8 @@ input[type=range]::-moz-range-thumb {
   display: block;
   border-radius: 8px;
 }
+.svg-chart { width: 100%; }
+.svg-chart svg { width: 100%; height: auto; display: block; }
 .figure figcaption {
   margin-top: 16px;
   padding: 6px 10px;

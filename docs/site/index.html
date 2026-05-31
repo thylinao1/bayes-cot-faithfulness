@@ -107,7 +107,7 @@
 
         <!-- direct path X -> Y (stops short of node circles) -->
         <path d="M 138 195 L 622 195" stroke="url(#edge-direct)" stroke-width="2.5" fill="none" stroke-dasharray="6 4" class="path-direct" />
-        <text x="380" y="223" text-anchor="middle" fill="#ff8c42" font-size="14" font-family="JetBrains Mono" opacity="0.9">&alpha; &middot; direct (decorative path)</text>
+        <text x="380" y="223" text-anchor="middle" fill="#ff8c42" font-size="14" font-family="JetBrains Mono" opacity="0.9">&alpha; &middot; Direct (Decorative Path)</text>
 
         <!-- indirect path X -> M (gentle arc, stays below CoT label) -->
         <path d="M 100 195 Q 220 130 380 90" stroke="url(#edge-xm)" stroke-width="3.5" fill="none" class="path-xm" />
@@ -118,7 +118,7 @@
         <text x="560" y="125" text-anchor="middle" fill="#4dd0e1" font-size="15" font-family="JetBrains Mono" opacity="0.9">&beta;</text>
 
         <!-- M node label (well above the node, well above curve apex) -->
-        <text x="380" y="26" text-anchor="middle" fill="#9aa4b8" font-size="12" font-family="JetBrains Mono" letter-spacing="0.5">CoT (mediator)</text>
+        <text x="380" y="26" text-anchor="middle" fill="#9aa4b8" font-size="12" font-family="JetBrains Mono" letter-spacing="0.5">CoT (Mediator)</text>
 
         <!-- nodes -->
         <g filter="url(#node-glow)" class="node">
@@ -135,8 +135,8 @@
         </g>
 
         <!-- bottom labels for X and Y -->
-        <text x="100" y="260" text-anchor="middle" fill="#9aa4b8" font-size="12" font-family="JetBrains Mono" letter-spacing="0.5">prompt</text>
-        <text x="660" y="260" text-anchor="middle" fill="#9aa4b8" font-size="12" font-family="JetBrains Mono" letter-spacing="0.5">answer</text>
+        <text x="100" y="260" text-anchor="middle" fill="#9aa4b8" font-size="12" font-family="JetBrains Mono" letter-spacing="0.5">Prompt</text>
+        <text x="660" y="260" text-anchor="middle" fill="#9aa4b8" font-size="12" font-family="JetBrains Mono" letter-spacing="0.5">Answer</text>
       </svg>
     </div>
   </div>
@@ -248,7 +248,7 @@
   </div>
 
   <figure class="figure figure-wide reveal">
-    <img src="sensitivity_curve.png" alt="Sensitivity of the faithful path to unmeasured confounding between the CoT and the answer" />
+    <div id="sensitivity-chart" class="svg-chart"></div>
     <figcaption>
       The blue line is the faithful path: how much the CoT actually drives the answer.
       &rho; on the x-axis is how much hidden confounding you allow, none in the middle and
@@ -644,6 +644,7 @@
   </div>
 </footer>
 
+<script src="sensitivity-chart.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
