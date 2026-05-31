@@ -88,6 +88,8 @@ At $\rho = 0$ this is ordinary probit mediation. At the true $\rho$ it recovers 
 
 The direction matters for how the result reads: under positive M-Y confounding (the natural case when a shared hidden factor lifts both the CoT content and the answer), assuming ignorability makes the reasoning look more faithful than it is. A naive faithfulness audit can over-trust the CoT. See [`sensitivity.py`](../src/bayes_cot_faithfulness/sensitivity.py); the sweep figure is in the project README.
 
+**Reporting: a breakdown scalar and a confounding-agnostic interval.** Two summaries make the assumption auditable without committing to a value of $\rho$. The first is the **breakdown frontier** $\rho^\*$: the smallest $|\rho|$ at which the faithful path crosses zero (on the synthetic process, $\rho^\* \approx 0.74$). It is the sensitivity-analysis analogue of VanderWeele's E-value, a single comparable number a faithfulness claim ships with. The second is the **partial-identification interval**: if one is only willing to assume $|\rho| \le \bar\rho$, the effect is not point-identified but provably lies in $[\,\underline{b}, \overline{b}\,]$, the range of the natural effect over that set of $\rho$. When the interval excludes zero the verdict is *sign-identified* (it holds for every confounding level entertained); the interval excludes zero exactly when $\bar\rho < \rho^\*$, so the two summaries are duals. See `breakdown_frontier` and `partial_identification_bounds`.
+
 ## 4 · Hierarchical Bayesian estimator
 
 We fit a joint model:

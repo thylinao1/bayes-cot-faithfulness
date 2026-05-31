@@ -23,6 +23,7 @@ import numpy as np
 from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
     fit_probit_mediation_map,
+    partial_identification_bounds,
     probit_natural_effects,
     robustness_interval,
     sensitivity_sweep,
@@ -76,6 +77,15 @@ def main() -> None:
         print(
             f"\n        Robustness: the indirect (faithful) path stays positive "
             f"for all assumed rho in [{lo:+.2f}, {hi:+.2f}]."
+        )
+
+    print("\n        Partial-identification bounds (rho unknown, only bounded):")
+    for rho_bar in (0.3, 0.5):
+        b = partial_identification_bounds(X, M, Y, rho_bar=rho_bar, key="nie")
+        verdict = "stays positive" if b.sign_identified else "could be zero or negative"
+        print(
+            f"        If |rho| <= {rho_bar}: faithful path in "
+            f"[{b.lower:+.3f}, {b.upper:+.3f}]   ({verdict})"
         )
 
     nearest = min(sweep, key=lambda p: abs(p.rho - RHO_TRUE))
