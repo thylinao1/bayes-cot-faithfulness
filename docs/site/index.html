@@ -45,7 +45,7 @@
       <a href="#approach">Approach</a>
       <a href="#audit">Audit</a>
       <a href="methodology.html">Methodology &nearr;</a>
-      <a href="#demo">Demo</a>
+      <a href="demo.html">Demo &nearr;</a>
       <a href="#progress">Progress</a>
       <a href="#roadmap">Roadmap</a>
     </div>
@@ -76,7 +76,7 @@
       uncertainty for scalable oversight and deception detection.
     </p>
     <div class="hero-cta">
-      <a href="#demo" class="btn btn-primary">Try the Live Demo</a>
+      <a href="demo.html" class="btn btn-primary">Try the Live Demo</a>
       <a href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener" class="btn btn-ghost">View Code on GitHub</a>
     </div>
 
@@ -292,94 +292,39 @@
   </div>
 </section>
 
-<!-- Interactive Demo -->
+<!-- Interactive demo teaser -->
 <section id="demo" class="section">
   <div class="section-head">
     <span class="eyebrow">04 &middot; interactive demo</span>
-    <h2>Drag the sliders and watch faithfulness change in real time.</h2>
+    <h2>Watch the answer flow through the reasoning, or around it.</h2>
     <p class="head-sub">
-      Adjust the three coefficients of the data-generating process. The bars on the
-      right update with the implied natural-direct, natural-indirect, and total
-      effects, computed live in your browser via Monte Carlo. The NIE / TE ratio
-      gives the faithfulness score.
+      A live, animated view of the whole idea: move three plain-language controls and watch the
+      prompt's influence reach the answer either through the written reasoning (the faithful path)
+      or by a shortcut that skips it. No notation required.
     </p>
   </div>
 
-  <div class="demo">
-    <div class="demo-controls reveal">
-      <div class="slider-row">
-        <div class="slider-label">
-          <span><span class="dot orange"></span> &alpha; &middot; direct effect (X &rarr; Y)</span>
-          <span class="slider-value" id="alphaValue">0.30</span>
-        </div>
-        <input type="range" id="alphaSlider" min="-2" max="2" step="0.05" value="0.3" />
-        <div class="slider-hint">larger value, more decorative CoT</div>
-      </div>
-
-      <div class="slider-row">
-        <div class="slider-label">
-          <span><span class="dot cyan"></span> &beta; &middot; mediator effect (M &rarr; Y)</span>
-          <span class="slider-value" id="betaValue">1.50</span>
-        </div>
-        <input type="range" id="betaSlider" min="0" max="3" step="0.05" value="1.5" />
-        <div class="slider-hint">larger value, CoT carries more answer signal</div>
-      </div>
-
-      <div class="slider-row">
-        <div class="slider-label">
-          <span><span class="dot cyan"></span> &gamma; &middot; prompt &rarr; CoT (X &rarr; M)</span>
-          <span class="slider-value" id="gammaValue">0.80</span>
-        </div>
-        <input type="range" id="gammaSlider" min="0" max="2" step="0.05" value="0.8" />
-        <div class="slider-hint">larger value, prompt strongly shifts the CoT</div>
-      </div>
-
-      <div class="slider-row">
-        <div class="slider-label">
-          <span>&sigma;<sub>M</sub> &middot; mediator noise</span>
-          <span class="slider-value" id="sigmaValue">0.50</span>
-        </div>
-        <input type="range" id="sigmaSlider" min="0.1" max="1.5" step="0.05" value="0.5" />
-      </div>
-
-      <button id="presetFaithful" class="preset">preset: faithful CoT</button>
-      <button id="presetDecorative" class="preset">preset: decorative CoT</button>
-      <button id="presetMixed" class="preset">preset: mixed</button>
+  <a class="demo-teaser reveal" href="demo.html">
+    <div class="demo-teaser-copy">
+      <span class="demo-teaser-tag">live &middot; runs in your browser</span>
+      <h3>Open the interactive demo</h3>
+      <p>
+        Three sliders, an animated flow diagram, and a faithfulness score that updates as you drag.
+        Presets for faithful, decorative, and mixed reasoning.
+      </p>
+      <span class="demo-teaser-cta">Open the demo &rarr;</span>
     </div>
-
-    <div class="demo-results reveal">
-      <div class="result-row">
-        <div class="result-label"><span class="dot orange"></span>NDE</div>
-        <div class="result-bar"><div class="bar bar-orange" id="ndeBar"></div></div>
-        <div class="result-value" id="ndeValue">+0.07</div>
-      </div>
-      <div class="result-row">
-        <div class="result-label"><span class="dot cyan"></span>NIE</div>
-        <div class="result-bar"><div class="bar bar-cyan" id="nieBar"></div></div>
-        <div class="result-value" id="nieValue">+0.23</div>
-      </div>
-      <div class="result-row">
-        <div class="result-label"><span class="dot green"></span>TE</div>
-        <div class="result-bar"><div class="bar bar-green" id="teBar"></div></div>
-        <div class="result-value" id="teValue">+0.30</div>
-      </div>
-
-      <div class="faithfulness-meter">
-        <div class="meter-label">faithfulness score <span class="muted-small">(NIE / TE)</span></div>
-        <div class="meter-bar"><div id="meterFill"></div></div>
-        <div class="meter-readout">
-          <span id="meterValue">77 %</span>
-          <span id="meterVerdict" class="verdict cyan-text">faithful reasoning</span>
-        </div>
-      </div>
-
-      <div class="demo-note">
-        Real LLM experiments fit this same model on (truncation, paraphrase, swap)
-        interventions across thousands of prompts, with hierarchical pooling and
-        posterior credible intervals on every effect.
-      </div>
+    <div class="demo-teaser-art" aria-hidden="true">
+      <svg viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+        <path d="M48,140 C95,55 135,46 170,46 C205,46 245,55 292,140" fill="none" stroke="#4dd0e1" stroke-width="3" stroke-linecap="round" opacity="0.95" />
+        <path d="M48,150 Q170,210 292,150" fill="none" stroke="#ff8c42" stroke-width="2" stroke-dasharray="7 7" stroke-linecap="round" opacity="0.85" />
+        <circle cx="120" cy="70" r="3.2" fill="#4dd0e1" /><circle cx="170" cy="46" r="3.2" fill="#4dd0e1" /><circle cx="225" cy="72" r="3.2" fill="#4dd0e1" />
+        <g><circle cx="48" cy="146" r="22" fill="#0b0f17" stroke="#dbe2ea" stroke-width="1.4" /><text x="48" y="151" text-anchor="middle" fill="#dbe2ea" font-size="13" font-family="Inter" font-weight="600">P</text></g>
+        <g><circle cx="170" cy="46" r="21" fill="#0b0f17" stroke="#4dd0e1" stroke-width="1.8" /><text x="170" y="51" text-anchor="middle" fill="#4dd0e1" font-size="13" font-family="Inter" font-weight="600">R</text></g>
+        <g><circle cx="292" cy="146" r="22" fill="#0b0f17" stroke="#dbe2ea" stroke-width="1.4" /><text x="292" y="151" text-anchor="middle" fill="#dbe2ea" font-size="13" font-family="Inter" font-weight="600">A</text></g>
+      </svg>
     </div>
-  </div>
+  </a>
 </section>
 
 <!-- Why Uncertainty Matters -->
