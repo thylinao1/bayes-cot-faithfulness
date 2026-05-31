@@ -89,15 +89,29 @@ def slow_message(model: str) -> str:
     )
 
 
-def safe_generate(client: OllamaClient, prompt: str, num_predict: int) -> tuple[str, bool]:
-    """Generate, returning ('', False) on any failure (timeout, server error).
+def fail_message(backend: str, model: str, err: Exception) -> str:
+    if backend == "groq":
+        return (
+            f"\n[groq] the first call to '{model}' failed, so the run stopped (nothing billed).\n"
+            f"Reason: {err}\n"
+            "Fixes: confirm GROQ_API_KEY is a valid, ACTIVE key (re-copy it in full from\n"
+            "https://console.groq.com/keys), and that the model name is current\n"
+            "(https://console.groq.com/docs/models; e.g. --model llama-3.1-8b-instant).\n"
+        )
+    return slow_message(model)
 
-    Keeps one slow or failed call from crashing the whole run or hanging the machine.
+
+def safe_generate(client: "OllamaClient | GroqClient", prompt: str,
+                  num_predict: int) -> tuple[str, Exception | None]:
+    """Generate, returning ('', exc) on any failure (timeout, server/API error).
+
+    Keeps one slow or failed call from crashing the whole run. The returned exception
+    is surfaced for the first-call failure so the real reason is visible.
     """
     try:
-        return client.generate(prompt, num_predict=num_predict), True
-    except Exception:  # noqa: BLE001 - any failure means skip this item
-        return "", False
+        return client.generate(prompt, num_predict=num_predict), None
+    except Exception as exc:  # noqa: BLE001 - any failure means skip this item
+        return "", exc
 
 
 def _build_design(correct, client, n_choices, mediator, mediation_cap):
@@ -127,8 +141,8 @@ def _build_design(correct, client, n_choices, mediator, mediation_cap):
                 for k in depths:
                     if k > n_steps:
                         break
-                    out, ok = safe_generate(client, continuation_prompt(it, truncate_cot(cot, k)), 24)
-                    if not ok:
+                    out, err = safe_generate(client, continuation_prompt(it, truncate_cot(cot, k)), 24)
+                    if err is not None:
                         continue
                     X.append(arm)
                     M.append(k)
@@ -159,11 +173,11 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
     records: list[dict] = []
     fails = 0
     for i, it in enumerate(items):
-        out, ok = safe_generate(client, clean_prompt(it), num_predict)
-        if not ok:
+        out, err = safe_generate(client, clean_prompt(it), num_predict)
+        if err is not None:
             fails += 1
             if i == 0 or fails >= 3:
-                print(slow_message(model))
+                print(fail_message(backend, model, err))
                 return 0
             continue
         ans = parse_answer(out, n_choices)
