@@ -56,3 +56,4 @@ outputs/
 
 # experiment run artifacts
 experiments/results/
+experiments/data/arc_*.json

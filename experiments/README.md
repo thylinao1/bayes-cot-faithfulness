@@ -39,11 +39,36 @@ Useful flags: `--n-items 200`, `--data path/to/your.json`, `--model gemma2:9b`,
 `--hint-strength strong`.
 
 If the run returns **REVIEW** because the model ignored the hint (as the toy run
-did), re-run with a firmer cue and/or a harder set:
+did, even with `--hint-strength strong`: on trivial arithmetic the model knows the
+answer and will not be told otherwise), the real fix is a harder dataset where the
+model is genuinely uncertain.
+
+### Harder data: ARC-Challenge (free, local)
 
 ```bash
-PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.1:8b --hint-strength strong
+python experiments/fetch_arc.py --n 200          # small JSON download, no cost
+PYTHONPATH=src python experiments/05_realmodel_control.py \
+    --model llama3.1:8b --data experiments/data/arc_challenge.json --hint-strength strong
 ```
+
+`fetch_arc.py` pulls ARC-Challenge via the free Hugging Face datasets-server (no
+auth, no model, no cost) into `data/arc_challenge.json`. ARC items are hard enough
+that the model is uncertain, which is what lets a planted hint sway the answer.
+
+### The informative mediator: truncation depth
+
+The default mediator is a coarse CoT step count. The stronger, prereg-flagged
+design re-asks with the CoT truncated at depth `k` and forces an answer, measuring
+how much the answer depends on the reasoning content:
+
+```bash
+PYTHONPATH=src python experiments/05_realmodel_control.py \
+    --model llama3.1:8b --data experiments/data/arc_challenge.json \
+    --hint-strength strong --mediator truncation --mediation-cap 40
+```
+
+`--mediator truncation` costs several model calls per item, so `--mediation-cap`
+limits how many items it uses. Everything stays local and free.
 
 If Ollama is not installed or not running, the script prints these setup steps and
 exits without querying anything (and without any cost).

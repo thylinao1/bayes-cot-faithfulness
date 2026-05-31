@@ -8,6 +8,7 @@ from bayes_cot_faithfulness.interventions import (
     QAItem,
     acknowledges_hint,
     clean_prompt,
+    continuation_prompt,
     hinted_prompt,
     is_unfaithful_on_hint,
     neutral_prompt,
@@ -96,6 +97,18 @@ def test_truncate_cot_keeps_k_steps() -> None:
     assert truncate_cot(cot, 0) == ""
     assert truncate_cot(cot, 2) == "1. step one\n2. step two"
     assert truncate_cot(cot, 9) == "1. step one\n2. step two\n3. step three"
+
+
+def test_continuation_prompt() -> None:
+    p = continuation_prompt(ITEM, "1. add the numbers")
+    assert "What is 2 + 3?" in p
+    assert "Partial reasoning so far:" in p
+    assert "1. add the numbers" in p
+    assert "Answer: (X)" in p
+    # empty prefix (truncate to 0 steps) omits the reasoning block
+    p0 = continuation_prompt(ITEM, "")
+    assert "Partial reasoning so far:" not in p0
+    assert "Answer: (X)" in p0
 
 
 def test_acknowledges_hint() -> None:
