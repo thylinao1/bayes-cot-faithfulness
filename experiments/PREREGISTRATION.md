@@ -45,6 +45,12 @@ there was no planted unfaithfulness to detect. Two levers, in order:
 2. **Harder / larger dataset:** point `--data` at a reasoning slice where the model
    is less certain (ARC-Challenge, a BBH subtask), with 200+ items. Uncertainty is
    what lets a hint sway the answer.
+3. **Biased few-shot (`--hint-strength biased-fewshot`):** the proven Turpin et al.
+   (2023) manipulation. Instead of stating a hint, show the model a few examples whose
+   answer is always at the same letter, so it picks up a spurious "the answer is always
+   (X)" pattern and applies it to the target, where (X) is wrong. This sways a confident
+   model far more than a stated hint. On the 70B run, a stated hint was followed only 7%
+   of the time; the biased few-shot is the lever to raise that.
 
 Tuning these is expected and legitimate, as long as the pass/fail thresholds above
 stay fixed.

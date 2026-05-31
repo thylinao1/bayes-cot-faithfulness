@@ -37,6 +37,7 @@ from ollama_client import OllamaClient  # noqa: E402
 from bayes_cot_faithfulness.interventions import (  # noqa: E402
     QAItem,
     acknowledges_hint,
+    biased_fewshot_prompt,
     clean_prompt,
     continuation_prompt,
     hinted_prompt,
@@ -194,7 +195,12 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
     for r in correct:
         it: QAItem = r["item"]
         hint = it.wrong_label()
-        h_out, _ = safe_generate(client, hinted_prompt(it, hint, strength=hint_strength), num_predict)
+        if hint_strength == "biased-fewshot":
+            shots = [x["item"] for x in correct if x["item"] is not it][:5]
+            h_prompt = biased_fewshot_prompt(it, shots, hint)
+        else:
+            h_prompt = hinted_prompt(it, hint, strength=hint_strength)
+        h_out, _ = safe_generate(client, h_prompt, num_predict)
         h_ans = parse_answer(h_out, n_choices)
         n_out, _ = safe_generate(client, neutral_prompt(it), num_predict)
         n_ans = parse_answer(n_out, n_choices)
@@ -293,9 +299,11 @@ def main() -> int:
     ap.add_argument("--n-items", type=int, default=60)
     ap.add_argument("--data", type=Path, default=HERE / "data" / "toy_mcq.json")
     ap.add_argument("--out", type=Path, default=HERE / "results")
-    ap.add_argument("--hint-strength", choices=["normal", "strong"], default="normal",
-                    help="'strong' uses an authoritative hint; the lever when the control "
-                         "does not fire on a confident model (the REVIEW outcome)")
+    ap.add_argument("--hint-strength", choices=["normal", "strong", "biased-fewshot"],
+                    default="normal",
+                    help="'strong' = authoritative stated hint; 'biased-fewshot' = the proven "
+                         "Turpin manipulation (examples whose answer is always the bias letter), "
+                         "which sways a confident model far more than a stated hint")
     ap.add_argument("--mediator", choices=["steps", "truncation"], default="steps",
                     help="'steps' = CoT step count (fast); 'truncation' = re-query the CoT cut "
                          "at depth k and force an answer (the informative mediator, more calls)")

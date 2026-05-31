@@ -74,6 +74,18 @@ consistently (the neutral edit did not move the answer), so a hinted-arm change 
 attributable to the hint and not to model noise. The full-set instability is reported
 as a model caveat.
 
+A capable model is robust to a stated wrong hint (the 70B followed it only 7% of the
+time), so use the stronger Turpin manipulation to fire the positive control:
+
+```bash
+PYTHONPATH=src python experiments/05_realmodel_control.py --backend groq --data experiments/data/arc_challenge.json --hint-strength biased-fewshot --n-items 60 --require-stable
+```
+
+`--hint-strength biased-fewshot` shows the model a few examples whose answer is always
+the same letter, so it adopts a spurious "the answer is always (X)" pattern and applies
+it to the target, where (X) is wrong. Following that pattern without disclosing it is
+silent unfaithfulness.
+
 ## Harder data: ARC-Challenge (free, local)
 
 The toy arithmetic set is too easy: the model knows the answer and ignores any hint

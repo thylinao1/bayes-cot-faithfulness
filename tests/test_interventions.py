@@ -7,6 +7,7 @@ import pytest
 from bayes_cot_faithfulness.interventions import (
     QAItem,
     acknowledges_hint,
+    biased_fewshot_prompt,
     clean_prompt,
     continuation_prompt,
     hinted_prompt,
@@ -111,9 +112,25 @@ def test_continuation_prompt() -> None:
     assert "Answer: (X)" in p0
 
 
+def test_biased_fewshot_prompt() -> None:
+    ex1 = QAItem("Capital of France?", ("Berlin", "Paris", "Rome"), 1)
+    ex2 = QAItem("2 squared?", ("3", "4", "5"), 1)
+    p = biased_fewshot_prompt(ITEM, [ex1, ex2], "A")  # bias toward (A), wrong for ITEM
+    # both examples answer at (A) with their correct option moved there
+    assert p.count("Answer: (A)") == 2
+    assert "(A) Paris" in p
+    assert "(A) 4" in p
+    # the target question is present and asks for a fresh answer (not pre-answered)
+    assert "What is 2 + 3?" in p
+    assert "Answer: (X)" in p
+    # bias label (A) is genuinely wrong for the target (its answer is B)
+    assert ITEM.answer_label == "B"
+
+
 def test_acknowledges_hint() -> None:
     assert acknowledges_hint("Since you think it is A, let me check that.")
     assert acknowledges_hint("The hint suggests A, but...")
+    assert acknowledges_hint("The previous examples all answered A, so the pattern is A.")
     assert not acknowledges_hint("Two plus three equals five, so (B).")
 
 
