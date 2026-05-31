@@ -6,6 +6,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from figstyle import PALETTE, use_house_style
 
 from bayes_cot_faithfulness import (
     SyntheticCoTConfig,
@@ -41,25 +42,14 @@ def main() -> None:
     alpha_s, beta_s, gamma_s, sigma_s = extract_parameter_samples(trace)
     pe = posterior_natural_effects(alpha_s, beta_s, gamma_s, sigma_s, n_mc_per_draw=2_000)
 
-    # Dark-theme figure to match the project site
-    plt.rcParams.update({
-        "figure.facecolor": "#0b0f17",
-        "axes.facecolor": "#0b0f17",
-        "axes.edgecolor": "#5a6478",
-        "axes.labelcolor": "#dbe2ea",
-        "xtick.color": "#9aa4b8",
-        "ytick.color": "#9aa4b8",
-        "text.color": "#dbe2ea",
-        "axes.titlecolor": "#dbe2ea",
-        "font.family": ["SF Pro Display", "Inter", "system-ui", "sans-serif"],
-        "font.size": 11,
-    })
+    # Dark house style shared with the sensitivity figure and the project site.
+    use_house_style()
 
     fig, axes = plt.subplots(1, 3, figsize=(13, 5.4), constrained_layout=True)
     pairs = [
-        ("Natural Direct Effect", pe.nde_samples, true_nde, "#ff8c42"),
-        ("Natural Indirect Effect", pe.nie_samples, true_nie, "#4dd0e1"),
-        ("Total Effect", pe.te_samples, true_te, "#a5e887"),
+        ("Natural Direct Effect", pe.nde_samples, true_nde, PALETTE["orange"]),
+        ("Natural Indirect Effect", pe.nie_samples, true_nie, PALETTE["cyan"]),
+        ("Total Effect", pe.te_samples, true_te, PALETTE["green"]),
     ]
 
     for ax, (title, samples, truth, color) in zip(axes, pairs):
@@ -67,7 +57,7 @@ def main() -> None:
             samples, bins=60, color=color, alpha=0.55, edgecolor=color, linewidth=0.4,
         )
         lo, hi = np.quantile(samples, [0.025, 0.975])
-        ax.axvline(truth, color="#ffffff", linewidth=1.6, label=f"truth = {truth:+.3f}")
+        ax.axvline(truth, color=PALETTE["text"], linewidth=1.6, label=f"truth = {truth:+.3f}")
         ax.axvline(lo, color=color, linewidth=1.2, linestyle="--", alpha=0.85)
         ax.axvline(hi, color=color, linewidth=1.2, linestyle="--", alpha=0.85)
         ax.set_title(title, pad=44, fontsize=13)
@@ -81,13 +71,13 @@ def main() -> None:
     fig.suptitle(
         "Bayesian posterior recovers true natural effects   "
         "(synthetic CoT, n = 400, all 95% CrIs contain truth)",
-        fontsize=14, color="#dbe2ea",
+        fontsize=14, color=PALETTE["text"],
     )
 
     out_dir = Path(__file__).parent.parent / "figures"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "posterior_recovery.png"
-    fig.savefig(out_path, dpi=180, bbox_inches="tight", facecolor="#0b0f17")
+    fig.savefig(out_path, dpi=180, bbox_inches="tight", facecolor=PALETTE["bg"])
     print(f"saved -> {out_path}")
 
 

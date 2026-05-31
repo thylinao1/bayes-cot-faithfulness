@@ -20,6 +20,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from figstyle import PALETTE, glow_line, style_legend, use_house_style
 
 from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
@@ -85,28 +86,32 @@ def main() -> None:
 
     band = robustness_interval(sweep, key="nie")
 
-    # --- figure -----------------------------------------------------------
-    plt.rcParams.update({"font.size": 11, "axes.spines.top": False, "axes.spines.right": False})
+    # --- figure (dark house style, matches the project site) --------------
+    use_house_style()
     fig, ax = plt.subplots(figsize=(8.5, 5.2), constrained_layout=True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    ax.grid(True, color=PALETTE["border"], lw=0.7, alpha=0.55)
+    ax.set_axisbelow(True)
 
-    ax.axhline(0.0, color="#999", lw=0.8, zorder=1)
-    ax.plot(rhos, te, color="#94a3b8", lw=1.6, ls=":", label="Total effect", zorder=2)
-    ax.plot(rhos, nde, color="#ef4444", lw=2.2, marker="o", ms=4,
-            label="Natural direct effect (decorative path)", zorder=3)
-    ax.plot(rhos, nie, color="#2563eb", lw=2.2, marker="o", ms=4,
-            label="Natural indirect effect (faithful path)", zorder=4)
+    ax.axhline(0.0, color=PALETTE["edge"], lw=0.9, zorder=1)
+    ax.plot(rhos, te, color=PALETTE["muted"], lw=1.6, ls=":", label="Total effect", zorder=2)
+    glow_line(ax, rhos, nde, PALETTE["orange"], lw=2.4, zorder=3, marker="o", ms=4,
+              label="Natural direct effect (decorative path)")
+    glow_line(ax, rhos, nie, PALETTE["cyan"], lw=2.4, zorder=4, marker="o", ms=4,
+              label="Natural indirect effect (faithful path)")
 
-    ax.axhline(true_nie, color="#2563eb", lw=1.0, ls="--", alpha=0.5)
-    ax.axhline(true_nde, color="#ef4444", lw=1.0, ls="--", alpha=0.5)
+    ax.axhline(true_nie, color=PALETTE["cyan"], lw=1.0, ls="--", alpha=0.45)
+    ax.axhline(true_nde, color=PALETTE["orange"], lw=1.0, ls="--", alpha=0.45)
 
-    ax.axvline(0.0, color="#111", lw=1.0, alpha=0.7)
+    ax.axvline(0.0, color=PALETTE["text_2"], lw=1.0, alpha=0.65)
     ax.annotate("assumes\nignorability", xy=(0.0, nie[i0]), xytext=(-0.02, nie[i0] - 0.085),
-                ha="right", fontsize=9, color="#111")
-    ax.scatter([RHO_TRUE], [nie[i_true]], s=120, facecolor="none",
-               edgecolor="#16a34a", lw=2.2, zorder=6)
+                ha="right", fontsize=9, color=PALETTE["text_2"])
+    ax.scatter([RHO_TRUE], [nie[i_true]], s=140, facecolor="none",
+               edgecolor=PALETTE["green"], lw=2.4, zorder=6)
     ax.annotate("true confounding\nrecovers truth", xy=(RHO_TRUE, nie[i_true]),
                 xytext=(RHO_TRUE + 0.02, nie[i_true] + 0.05),
-                fontsize=9, color="#16a34a")
+                fontsize=9, color=PALETTE["green"])
 
     ax.set_xlabel(r"assumed sensitivity parameter  $\rho = \mathrm{Corr}(\varepsilon_M, \varepsilon_Y)$", labelpad=10)
     ax.set_ylabel("effect on P(answer) scale")
@@ -114,16 +119,16 @@ def main() -> None:
         "Sensitivity of CoT faithfulness to the sequential-ignorability assumption",
         fontsize=12.5, pad=10,
     )
-    subtitle = "dashed lines: ground truth   |   black line: the assumption every prior causal-CoT estimate makes"
+    subtitle = "dashed lines: ground truth   |   vertical line: the assumption every prior causal-CoT estimate makes"
     if band is not None:
         subtitle += f"\nindirect (faithful) path stays positive for rho in [{band[0]:+.1f}, {band[1]:+.1f}]"
-    ax.text(0.5, -0.24, subtitle, transform=ax.transAxes, ha="center", fontsize=9, color="#555")
-    ax.legend(loc="upper left", fontsize=9, framealpha=0.9)
+    ax.text(0.5, -0.24, subtitle, transform=ax.transAxes, ha="center", fontsize=9, color=PALETTE["text_3"])
+    style_legend(ax, loc="upper left", fontsize=9)
 
     out_dir = Path(__file__).resolve().parents[1] / "figures"
     out_dir.mkdir(exist_ok=True)
     out_path = out_dir / "sensitivity_curve.png"
-    fig.savefig(out_path, dpi=180, bbox_inches="tight")
+    fig.savefig(out_path, dpi=180, bbox_inches="tight", facecolor=PALETTE["bg"])
     print(f"OK wrote {out_path}")
     print(f"OK all correctness checks passed (recovery err {recovery_err:.4f}, "
           f"ignorability overstates NIE by {ignorability_bias:+.4f})")
