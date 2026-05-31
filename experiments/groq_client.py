@@ -20,6 +20,12 @@ import urllib.request
 from dataclasses import dataclass
 
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
+# Groq sits behind Cloudflare, which blocks the default urllib User-Agent with a 1010
+# error. A normal browser UA gets the request through to the API.
+_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
+)
 
 
 class GroqError(RuntimeError):
@@ -49,7 +55,11 @@ class GroqClient:
         req = urllib.request.Request(
             API_URL,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {key}",
+                "User-Agent": _USER_AGENT,
+            },
         )
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
