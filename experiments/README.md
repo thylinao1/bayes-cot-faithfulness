@@ -22,49 +22,61 @@ truncation, unfaithfulness detection) live in
 ## One-time setup (your machine, free)
 
 1. Install Ollama: https://ollama.com
-2. Pull a small open model (a few GB download, runs on-device):
+2. Pull a SMALL open model (fast, light, about 2 GB):
    ```bash
-   ollama pull llama3.1:8b      # or: ollama pull gemma2:9b
+   ollama pull llama3.2:3b
    ```
+   `llama3.2:1b` is faster still. Avoid 8B+ models on a laptop (see Performance below).
 
 ## Run
 
 From the repository root:
 
 ```bash
-PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.1:8b
+PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.2:3b
 ```
 
-Useful flags: `--n-items 200`, `--data path/to/your.json`, `--model gemma2:9b`,
-`--hint-strength strong`.
+Useful flags: `--n-items 40`, `--data path/to/your.json`, `--hint-strength strong`,
+`--num-predict 256`, `--timeout 90`. Paste commands as single lines (zsh does not treat
+a trailing `# comment` as a comment, so an inline comment becomes a bad argument).
 
-If the run returns **REVIEW** because the model ignored the hint (as the toy run
-did, even with `--hint-strength strong`: on trivial arithmetic the model knows the
-answer and will not be told otherwise), the real fix is a harder dataset where the
-model is genuinely uncertain.
+## Performance: use a small model (important)
 
-### Harder data: ARC-Challenge (free, local)
+An 8B model (llama3.1:8b, gemma2:9b) is heavy for a laptop. It loads several GB into
+memory and pegs the CPU/GPU, so the whole machine slows down and calls time out. That
+is not a hardware fault and not a code bug. Fixes, in order:
+
+- Use a small model: `--model llama3.2:3b` (or `llama3.2:1b`). Small models are faster
+  AND less confident, so a planted hint sways them more easily (the control fires more).
+- Keep the workload small: `--n-items 40 --num-predict 256`.
+- The runner caps each call at `--timeout` seconds and skips one that overruns, so a
+  single slow generation can no longer hang the machine. If the very first call times
+  out it stops early with guidance instead of grinding.
+
+## Harder data: ARC-Challenge (free, local)
+
+The toy arithmetic set is too easy: the model knows the answer and ignores any hint
+(the REVIEW outcome). ARC-Challenge items are hard enough that the model is uncertain,
+which is what lets a hint sway it. Fetch it (small JSON download, no auth, no cost):
 
 ```bash
-python experiments/fetch_arc.py --n 200          # small JSON download, no cost
-PYTHONPATH=src python experiments/05_realmodel_control.py \
-    --model llama3.1:8b --data experiments/data/arc_challenge.json --hint-strength strong
+python experiments/fetch_arc.py --n 200
 ```
 
-`fetch_arc.py` pulls ARC-Challenge via the free Hugging Face datasets-server (no
-auth, no model, no cost) into `data/arc_challenge.json`. ARC items are hard enough
-that the model is uncertain, which is what lets a planted hint sway the answer.
-
-### The informative mediator: truncation depth
-
-The default mediator is a coarse CoT step count. The stronger, prereg-flagged
-design re-asks with the CoT truncated at depth `k` and forces an answer, measuring
-how much the answer depends on the reasoning content:
+Then run on it (single line):
 
 ```bash
-PYTHONPATH=src python experiments/05_realmodel_control.py \
-    --model llama3.1:8b --data experiments/data/arc_challenge.json \
-    --hint-strength strong --mediator truncation --mediation-cap 40
+PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.2:3b --data experiments/data/arc_challenge.json --hint-strength strong --n-items 60
+```
+
+## The informative mediator: truncation depth
+
+The default mediator is a coarse CoT step count. The stronger, prereg-flagged design
+re-asks with the CoT truncated at depth `k` and forces an answer, measuring how much
+the answer depends on the reasoning content. It costs several calls per item:
+
+```bash
+PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.2:3b --data experiments/data/arc_challenge.json --hint-strength strong --mediator truncation --mediation-cap 30
 ```
 
 `--mediator truncation` costs several model calls per item, so `--mediation-cap`

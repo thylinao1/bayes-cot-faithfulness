@@ -24,7 +24,7 @@ class OllamaClient:
     model: str
     host: str = DEFAULT_HOST
     temperature: float = 0.0
-    timeout: float = 180.0
+    timeout: float = 120.0
 
     def is_available(self) -> bool:
         """True if a local Ollama server answers (does not check the model is pulled)."""

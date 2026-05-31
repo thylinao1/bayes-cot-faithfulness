@@ -6,9 +6,12 @@ PREREGISTRATION.md (read and freeze it BEFORE looking at results).
 
 Run (from the repo root):
 
-    PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.1:8b
+    PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.2:3b
 
-If Ollama is not installed/running, the script prints setup steps and exits.
+Use a SMALL model (llama3.2:3b or 1b). An 8B model is heavy for a laptop: it loads
+several GB and pegs the CPU/GPU, which slows the whole machine and times out. Small
+models are faster and easier to sway with a hint. If Ollama is not running, the
+script prints setup steps and exits.
 """
 
 from __future__ import annotations
@@ -56,6 +59,29 @@ def setup_message(client: OllamaClient) -> str:
     )
 
 
+def slow_message(model: str) -> str:
+    return (
+        f"\n[slow] '{model}' did not respond in time, so the run stopped before it could bog\n"
+        "your machine down. This is NOT a hardware fault: an 8B model is heavy for a laptop\n"
+        "(it loads several GB into memory and pegs the CPU/GPU). Use a small model instead:\n\n"
+        "  ollama pull llama3.2:3b\n"
+        "  PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.2:3b --n-items 40\n\n"
+        "Small models are far faster AND easier to sway with a hint, so the control fires more\n"
+        "readily. llama3.2:1b is faster still if 3b is sluggish.\n"
+    )
+
+
+def safe_generate(client: OllamaClient, prompt: str, num_predict: int) -> tuple[str, bool]:
+    """Generate, returning ('', False) on any failure (timeout, server error).
+
+    Keeps one slow or failed call from crashing the whole run or hanging the machine.
+    """
+    try:
+        return client.generate(prompt, num_predict=num_predict), True
+    except Exception:  # noqa: BLE001 - any failure means skip this item
+        return "", False
+
+
 def _build_design(correct, client, n_choices, mediator, mediation_cap):
     """Build the (X, M, Y) mediation design. Returns arrays and a label.
 
@@ -83,8 +109,9 @@ def _build_design(correct, client, n_choices, mediator, mediation_cap):
                 for k in depths:
                     if k > n_steps:
                         break
-                    out = client.generate(continuation_prompt(it, truncate_cot(cot, k)),
-                                          num_predict=24)
+                    out, ok = safe_generate(client, continuation_prompt(it, truncate_cot(cot, k)), 24)
+                    if not ok:
+                        continue
                     X.append(arm)
                     M.append(k)
                     Y.append(int(parse_answer(out, n_choices) == it.answer_label))
@@ -93,8 +120,9 @@ def _build_design(correct, client, n_choices, mediator, mediation_cap):
 
 
 def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
-        hint_strength: str = "normal", mediator: str = "steps", mediation_cap: int = 40) -> int:
-    client = OllamaClient(model=model, host=host, temperature=0.0)
+        hint_strength: str = "normal", mediator: str = "steps", mediation_cap: int = 40,
+        num_predict: int = 320, timeout: float = 120.0) -> int:
+    client = OllamaClient(model=model, host=host, temperature=0.0, timeout=timeout)
     if not client.is_available():
         print(setup_message(client))
         return 0
@@ -104,8 +132,15 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
     print(f"[1/3] Clean arm: {len(items)} items on {model} (filtering to clean-correct)")
 
     records: list[dict] = []
-    for it in items:
-        out = client.generate(clean_prompt(it))
+    fails = 0
+    for i, it in enumerate(items):
+        out, ok = safe_generate(client, clean_prompt(it), num_predict)
+        if not ok:
+            fails += 1
+            if i == 0 or fails >= 3:
+                print(slow_message(model))
+                return 0
+            continue
         ans = parse_answer(out, n_choices)
         records.append({"item": it, "clean_cot": out, "clean_answer": ans,
                         "clean_correct": ans == it.answer_label})
@@ -120,9 +155,9 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
     for r in correct:
         it: QAItem = r["item"]
         hint = it.wrong_label()
-        h_out = client.generate(hinted_prompt(it, hint, strength=hint_strength))
+        h_out, _ = safe_generate(client, hinted_prompt(it, hint, strength=hint_strength), num_predict)
         h_ans = parse_answer(h_out, n_choices)
-        n_out = client.generate(neutral_prompt(it))
+        n_out, _ = safe_generate(client, neutral_prompt(it), num_predict)
         n_ans = parse_answer(n_out, n_choices)
         r.update({
             "hint_label": hint,
@@ -191,9 +226,10 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--model", default="llama3.1:8b", help="local Ollama model tag")
+    ap.add_argument("--model", default="llama3.2:3b",
+                    help="local Ollama model tag (small = faster on a laptop AND easier to sway)")
     ap.add_argument("--host", default="http://localhost:11434")
-    ap.add_argument("--n-items", type=int, default=200)
+    ap.add_argument("--n-items", type=int, default=60)
     ap.add_argument("--data", type=Path, default=HERE / "data" / "toy_mcq.json")
     ap.add_argument("--out", type=Path, default=HERE / "results")
     ap.add_argument("--hint-strength", choices=["normal", "strong"], default="normal",
@@ -204,9 +240,13 @@ def main() -> int:
                          "at depth k and force an answer (the informative mediator, more calls)")
     ap.add_argument("--mediation-cap", type=int, default=40,
                     help="max items used for the truncation mediator (each costs several calls)")
+    ap.add_argument("--num-predict", type=int, default=320,
+                    help="max tokens per generation (lower = faster, less load)")
+    ap.add_argument("--timeout", type=float, default=120.0,
+                    help="seconds to wait per model call before skipping it")
     a = ap.parse_args()
     return run(a.model, a.host, a.n_items, a.data, a.out, a.hint_strength,
-               a.mediator, a.mediation_cap)
+               a.mediator, a.mediation_cap, a.num_predict, a.timeout)
 
 
 if __name__ == "__main__":
