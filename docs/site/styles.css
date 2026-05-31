@@ -800,6 +800,8 @@ input[type=range]::-moz-range-thumb {
 }
 .svg-chart { width: 100%; }
 .svg-chart svg { width: 100%; height: auto; display: block; }
+.svg-chart .hbar { transition: fill-opacity 0.12s ease; cursor: crosshair; }
+.svg-chart .hbar:hover { fill-opacity: 0.95; }
 .figure figcaption {
   margin-top: 16px;
   padding: 6px 10px;

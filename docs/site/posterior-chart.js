@@ -37,7 +37,8 @@
       const bx = x(d.edges[i]);
       const bw = Math.max(0.5, x(d.edges[i + 1]) - bx - 0.5);
       const by = y(d.counts[i]);
-      bars += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${(baseY - by).toFixed(1)}" fill="${color}" fill-opacity="0.5" stroke="${color}" stroke-width="0.5"/>`;
+      const center = ((d.edges[i] + d.edges[i + 1]) / 2).toFixed(3);
+      bars += `<rect class="hbar hbar-${key}" data-v="${center}" data-c="${d.counts[i]}" x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${(baseY - by).toFixed(1)}" fill="${color}" fill-opacity="0.5" stroke="${color}" stroke-width="0.5"/>`;
     }
 
     // x ticks (4, rounded to 2dp)
@@ -59,6 +60,7 @@
         ${xticks}
         <text x="${padL}" y="22" fill="${WHITE}" font-size="13" font-weight="600" font-family="Inter">${title}</text>
         <text x="${padL}" y="38" fill="${color}" font-size="11" style="${mono}">truth = ${d.truth >= 0 ? '+' : ''}${d.truth.toFixed(3)} &middot; ${subtitle}</text>
+        <text id="readout-${key}" x="${W - padR}" y="22" text-anchor="end" fill="${color}" font-size="11" style="${mono}"></text>
       </svg>`;
   }
 
@@ -69,7 +71,19 @@
     el.innerHTML =
       `<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end">${panels}</div>` +
       `<div style="text-align:center;margin-top:6px;font-size:11px;color:${TEXT3};${mono}">` +
-      'white line: ground truth &middot; dashed: 95% credible interval &middot; all three contain the truth</div>';
+      'hover a bar &middot; white line: ground truth &middot; dashed: 95% credible interval</div>';
+
+    // tasteful hover: bars brighten (CSS) and the panel shows the bin value + draw count
+    PANELS.forEach(([key]) => {
+      const readout = el.querySelector('#readout-' + key);
+      if (!readout) return;
+      el.querySelectorAll('.hbar-' + key).forEach((bar) => {
+        bar.addEventListener('mouseenter', () => {
+          readout.textContent = '≈ ' + bar.dataset.v + ' · ' + bar.dataset.c + ' draws';
+        });
+        bar.addEventListener('mouseleave', () => { readout.textContent = ''; });
+      });
+    });
   }
 
   function init() {
