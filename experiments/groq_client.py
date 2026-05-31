@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -34,11 +35,11 @@ class GroqError(RuntimeError):
 
 
 def _retry_after(exc: urllib.error.HTTPError) -> float:
-    """Seconds to wait after a 429, from the Retry-After header (capped, with a default)."""
+    """Seconds Groq asks us to wait after a 429 (from the Retry-After header, or a default)."""
     header = exc.headers.get("Retry-After") if exc.headers else None
     if header:
         try:
-            return min(max(float(header), 1.0), 30.0)
+            return max(float(header), 1.0)
         except ValueError:
             pass
     return 8.0
@@ -49,7 +50,8 @@ class GroqClient:
     model: str = "llama-3.3-70b-versatile"
     temperature: float = 0.0
     timeout: float = 60.0
-    max_retries: int = 6
+    max_retries: int = 4
+    max_wait: float = 25.0  # a 429 asking for longer than this aborts (don't grind for hours)
 
     def is_available(self) -> bool:
         """True if a GROQ_API_KEY is set. Does not spend a request to check."""
@@ -80,9 +82,19 @@ class GroqClient:
                     body = json.loads(resp.read().decode("utf-8"))
                 return body["choices"][0]["message"]["content"]
             except urllib.error.HTTPError as exc:
-                # 429 = free-tier rate limit (throttling, not a charge): wait and retry.
-                if exc.code == 429 and attempt < self.max_retries - 1:
-                    time.sleep(_retry_after(exc))
+                # 429 = free-tier rate limit (throttling, not a charge).
+                if exc.code == 429:
+                    wait = _retry_after(exc)
+                    if wait > self.max_wait or attempt >= self.max_retries - 1:
+                        raise GroqError(
+                            f"rate limit: Groq asked to wait {wait:.0f}s. The free tier is "
+                            "throttling, likely the per-minute or daily TOKEN budget (the "
+                            "few-shot prompts are token-heavy and you have run several times). "
+                            "Run fewer items (--n-items 20), wait for the reset, or use the "
+                            "lighter --model llama-3.1-8b-instant. Not a charge."
+                        ) from exc
+                    print(f"  [groq] rate-limited, waiting {wait:.0f}s...", file=sys.stderr, flush=True)
+                    time.sleep(wait)
                     continue
                 detail = exc.read().decode("utf-8", "ignore")[:200]
                 raise GroqError(f"Groq API error {exc.code}: {detail}") from exc

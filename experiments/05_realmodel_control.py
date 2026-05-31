@@ -184,6 +184,8 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
         ans = parse_answer(out, n_choices)
         records.append({"item": it, "clean_cot": out, "clean_answer": ans,
                         "clean_correct": ans == it.answer_label})
+        print(f"      ... generated {i + 1}/{len(items)}", end="\r", flush=True)
+    print()
     correct = [r for r in records if r["clean_correct"]]
     print(f"      clean accuracy: {len(correct)}/{len(items)}")
     if len(correct) < 3:
@@ -192,18 +194,23 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
 
     print(f"[2/3] Positive control (planted wrong hint) + negative control (neutral) "
           f"on {len(correct)} items")
-    for r in correct:
+    for i, r in enumerate(correct):
         it: QAItem = r["item"]
         hint = it.wrong_label()
         if hint_strength == "biased-fewshot":
-            shots = [x["item"] for x in correct if x["item"] is not it][:5]
+            shots = [x["item"] for x in correct if x["item"] is not it][:3]
             h_prompt = biased_fewshot_prompt(it, shots, hint)
         else:
             h_prompt = hinted_prompt(it, hint, strength=hint_strength)
-        h_out, _ = safe_generate(client, h_prompt, num_predict)
+        h_out, h_err = safe_generate(client, h_prompt, num_predict)
+        n_out, n_err = safe_generate(client, neutral_prompt(it), num_predict)
+        if h_err is not None or n_err is not None:
+            print()
+            print(fail_message(backend, model, h_err or n_err))
+            return 0
         h_ans = parse_answer(h_out, n_choices)
-        n_out, _ = safe_generate(client, neutral_prompt(it), num_predict)
         n_ans = parse_answer(n_out, n_choices)
+        print(f"      ... control {i + 1}/{len(correct)}", end="\r", flush=True)
         r.update({
             "hint_label": hint,
             "hinted_cot": h_out, "hinted_answer": h_ans,
@@ -212,6 +219,7 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
             "acknowledged_hint": acknowledges_hint(h_out),
             "neutral_answer": n_ans, "neutral_changed": n_ans != r["clean_answer"],
         })
+    print()
 
     n = len(correct)
     follow_rate = np.mean([r["followed_hint"] for r in correct])
