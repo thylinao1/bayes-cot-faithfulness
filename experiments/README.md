@@ -35,7 +35,15 @@ From the repository root:
 PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.1:8b
 ```
 
-Useful flags: `--n-items 200`, `--data path/to/your.json`, `--model gemma2:9b`.
+Useful flags: `--n-items 200`, `--data path/to/your.json`, `--model gemma2:9b`,
+`--hint-strength strong`.
+
+If the run returns **REVIEW** because the model ignored the hint (as the toy run
+did), re-run with a firmer cue and/or a harder set:
+
+```bash
+PYTHONPATH=src python experiments/05_realmodel_control.py --model llama3.1:8b --hint-strength strong
+```
 
 If Ollama is not installed or not running, the script prints these setup steps and
 exits without querying anything (and without any cost).

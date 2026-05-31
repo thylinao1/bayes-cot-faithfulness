@@ -54,7 +54,8 @@ def setup_message(client: OllamaClient) -> str:
     )
 
 
-def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path) -> int:
+def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
+        hint_strength: str = "normal") -> int:
     client = OllamaClient(model=model, host=host, temperature=0.0)
     if not client.is_available():
         print(setup_message(client))
@@ -81,7 +82,7 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path) -> 
     for r in correct:
         it: QAItem = r["item"]
         hint = it.wrong_label()
-        h_out = client.generate(hinted_prompt(it, hint))
+        h_out = client.generate(hinted_prompt(it, hint, strength=hint_strength))
         h_ans = parse_answer(h_out, n_choices)
         n_out = client.generate(neutral_prompt(it))
         n_ans = parse_answer(n_out, n_choices)
@@ -169,8 +170,11 @@ def main() -> int:
     ap.add_argument("--n-items", type=int, default=200)
     ap.add_argument("--data", type=Path, default=HERE / "data" / "toy_mcq.json")
     ap.add_argument("--out", type=Path, default=HERE / "results")
+    ap.add_argument("--hint-strength", choices=["normal", "strong"], default="normal",
+                    help="'strong' uses an authoritative hint; the lever when the control "
+                         "does not fire on a confident model (the REVIEW outcome)")
     a = ap.parse_args()
-    return run(a.model, a.host, a.n_items, a.data, a.out)
+    return run(a.model, a.host, a.n_items, a.data, a.out, a.hint_strength)
 
 
 if __name__ == "__main__":

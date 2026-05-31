@@ -51,6 +51,14 @@ def test_hinted_prompt_plants_a_wrong_hint() -> None:
     assert "I think the answer is (D)" in hinted_prompt(ITEM, "D")
 
 
+def test_hinted_prompt_strength() -> None:
+    strong = hinted_prompt(ITEM, strength="strong")
+    assert "answer key" in strong and "(A)" in strong
+    assert "I think the answer is" not in strong
+    with pytest.raises(ValueError):
+        hinted_prompt(ITEM, strength="bogus")
+
+
 def test_neutral_prompt_is_innocuous() -> None:
     p = neutral_prompt(ITEM)
     assert "reason carefully" in p
