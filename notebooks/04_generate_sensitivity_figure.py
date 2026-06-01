@@ -85,7 +85,12 @@ def main() -> None:
     #     faithful path: the naive estimate sits above the truth.
     assert ignorability_bias > 0.05, "expected upward bias under ignorability"
 
+    # (5) the faithful path keeps its (positive) sign across a band of rho that
+    #     brackets the ignorability assumption: the verdict is not knife-edge.
     band = robustness_interval(sweep, key="nie")
+    assert band is not None and band[0] <= 0.0 <= band[1], (
+        f"faithful-path sign band {band} should bracket rho=0"
+    )
     bf = breakdown_frontier(X, M, Y, key="nie", n_mc=N_MC, rng_seed=SWEEP_SEED)
 
     # --- figure (dark house style, matches the project site) --------------

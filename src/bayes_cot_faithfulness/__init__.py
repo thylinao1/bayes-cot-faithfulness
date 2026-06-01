@@ -15,6 +15,16 @@ from bayes_cot_faithfulness.mediation import (
     extract_parameter_samples,
     fit_mediation_model,
 )
+from bayes_cot_faithfulness.positive_control import (
+    DECORATIVE_CONFIG,
+    DEFAULT_RHO_BAR,
+    FAITHFUL_CONFIG,
+    LabeledCase,
+    audit_case,
+    demonstration_cases,
+    nie_sensitivity_curve,
+    smoke_test,
+)
 from bayes_cot_faithfulness.sensitivity import (
     BreakdownFrontier,
     ConfoundedCoTConfig,
@@ -35,18 +45,25 @@ __version__ = "0.2.0"
 __all__ = [
     "BreakdownFrontier",
     "ConfoundedCoTConfig",
+    "DECORATIVE_CONFIG",
+    "DEFAULT_RHO_BAR",
+    "FAITHFUL_CONFIG",
     "HierarchicalCoTConfig",
+    "LabeledCase",
     "PartialIDBounds",
     "PosteriorEffects",
     "SensitivityPoint",
     "SyntheticCoTConfig",
+    "audit_case",
     "breakdown_frontier",
+    "demonstration_cases",
     "partial_identification_bounds",
     "extract_parameter_samples",
     "fit_hierarchical_mediation",
     "fit_mediation_model",
     "fit_probit_mediation_map",
     "monte_carlo_true_effects",
+    "nie_sensitivity_curve",
     "no_pool_beta",
     "posterior_natural_effects",
     "probit_natural_effects",
@@ -55,4 +72,5 @@ __all__ = [
     "simulate_confounded_cot",
     "simulate_cot_trace",
     "simulate_hierarchical_cot",
+    "smoke_test",
 ]

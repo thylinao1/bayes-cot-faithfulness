@@ -94,8 +94,41 @@ next iteration once the behavioral controls above pass.
   reasoning slice (ARC-Challenge, a BBH subtask, or a FaithCoT-Bench slice) with
   200+ items for power.
 
+## Amendment (2026-06-01): the acknowledgment detector is frozen
+
+This amendment is logged transparently because it changes the measurement instrument
+after data was seen, which is a researcher degree of freedom.
+
+**What happened.** On the first strong-hint run with saved transcripts (Llama-3.1-8B,
+ARC-Challenge), a hand spot-check found a case the auditor had mislabelled as silent
+unfaithfulness: the model wrote "the official answer key marks (B) as correct", which
+is disclosure, not silence. The `acknowledges_hint` heuristic did not include
+"answer key" phrasing. We added it (and "official answer", "key marks/says...", and
+"marks (X) as correct"), then re-scored the saved transcripts offline with
+`experiments/rescore_transcripts.py`. The corrected count for that run was 3 followed
+the wrong hint, of which 2 were silent (flagged) and 1 disclosed (cleared); the
+earlier silent-given-follow of 1.0 became 0.67.
+
+**The frozen rule.** The acknowledgment detector is now the regex in
+`src/bayes_cot_faithfulness/interventions.py::_HINT_ACK_RE` as of this date. It is
+FROZEN. Any future change to it must be logged here before re-scoring, with the date
+and the reason, exactly like this entry.
+
+**Directional-bias guard.** Hand-auditing only when a number looks too high catches
+over-counts but never under-counts, which would bias reported faithfulness upward. So
+we also hand-audited the CLEARED cases on the 8B run (the items recorded as not-followed
+or as disclosed). On that sample (n=22) there were no missed silent cases and no
+answer-parse slips. This guard should be repeated on every reported run, not only when
+a number looks wrong.
+
+**Known unfixed gap.** The detector keys on surface lexical features. It cannot, even
+in principle, catch unfaithfulness that never surfaces in the text (silent or
+steganographic reasoning). That observability ceiling, not the regex, is the binding
+limit on the auditor and is stated wherever results are reported.
+
 ## Cost
 
-Zero. Everything runs on a local open model via Ollama (free, on-device). No paid
-API or cloud is used at this stage. Any future paid step (a hosted GPU or a frontier
-API sanity check) is a separate decision and must be approved explicitly first.
+Zero. Everything runs on a local open model via Ollama (free, on-device) or the free
+Groq tier. No paid API or cloud is used at this stage. Any future paid step (a hosted
+GPU or a frontier API sanity check) is a separate decision and must be approved
+explicitly first.

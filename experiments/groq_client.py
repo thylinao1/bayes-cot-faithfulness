@@ -50,7 +50,7 @@ class GroqClient:
     model: str = "llama-3.3-70b-versatile"
     temperature: float = 0.0
     timeout: float = 60.0
-    max_retries: int = 4
+    max_retries: int = 6  # ride out several short per-minute throttles on a small run
     max_wait: float = 25.0  # a 429 asking for longer than this aborts (don't grind for hours)
 
     def is_available(self) -> bool:

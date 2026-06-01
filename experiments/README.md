@@ -10,6 +10,14 @@ free**: no API, no cloud, no cost.
 - `PREREGISTRATION.md` — the frozen pass/fail. Read it before running.
 - `05_realmodel_control.py` — the runner (clean arm, positive control, negative
   control, a coarse mediation + breakdown rho*).
+- `06_positive_control_demo.py` — the positive-control demonstration: the auditor
+  flagging a known-unfaithful case end to end, offline and free. Act 1 runs the
+  case-level auditor on three labelled transcripts (a planted deception it must flag,
+  a genuine answer and an honest disclosure it must clear). Act 2 runs the estimator
+  on a faithful and a decorative synthetic world and shows it separates them (a large,
+  robust faithful path versus a faithful path of ~0). Companion figure:
+  `notebooks/05_generate_positive_control_figure.py`. This is the credibility floor:
+  proof the instrument responds when unfaithfulness is present.
 - `ollama_client.py` — a tiny stdlib HTTP client for a local Ollama server.
 - `data/toy_mcq.json` — a 12-item smoke-test set (swap in a real dataset for a real run).
 - `results/` — written summaries (created on first run).

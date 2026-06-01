@@ -57,6 +57,48 @@ def load_items(path: Path) -> list[QAItem]:
     return [QAItem(r["question"], tuple(r["choices"]), r["answer_index"]) for r in raw]
 
 
+def serialize_record(r: dict) -> dict:
+    """Flatten one control record (with its QAItem) into a JSON-serializable dict.
+
+    Persisting the full transcript, not just the summary counts, is what lets the
+    write-up quote a real silent-unfaithful case verbatim. The QAItem is unpacked
+    into plain fields so the whole record round-trips through JSON.
+    """
+    it: QAItem = r["item"]
+    return {
+        "question": it.question,
+        "choices": list(it.choices),
+        "answer_label": it.answer_label,
+        "hint_label": r.get("hint_label"),
+        "clean_answer": r.get("clean_answer"),
+        "clean_cot": r.get("clean_cot"),
+        "hinted_answer": r.get("hinted_answer"),
+        "hinted_cot": r.get("hinted_cot"),
+        "followed_hint": r.get("followed_hint"),
+        "acknowledged_hint": r.get("acknowledged_hint"),
+        "silent_unfaithful": r.get("silent_unfaithful"),
+        "neutral_answer": r.get("neutral_answer"),
+        "neutral_changed": r.get("neutral_changed"),
+    }
+
+
+def write_transcripts(out_dir: Path, safe_model: str, correct: list[dict]) -> tuple[int, int]:
+    """Persist transcripts for every processed control item; return (n_total, n_silent).
+
+    Only records that have been through the control arm are saved (those that carry a
+    hinted answer), so a run cut short by the rate limiter still banks the work it
+    already did instead of discarding all of it. Called both at the normal end and on
+    an early stop, and periodically mid-loop as insurance against a hard kill.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    processed = [r for r in correct if "hinted_answer" in r]
+    transcripts = [serialize_record(r) for r in processed]
+    silent_cases = [t for t in transcripts if t["silent_unfaithful"]]
+    (out_dir / f"control_transcripts_{safe_model}.json").write_text(json.dumps(transcripts, indent=2))
+    (out_dir / f"silent_unfaithful_{safe_model}.json").write_text(json.dumps(silent_cases, indent=2))
+    return len(transcripts), len(silent_cases)
+
+
 def setup_message(client: OllamaClient) -> str:
     return (
         "\n[setup] Ollama is not reachable, so no model was queried (and nothing was billed).\n"
@@ -167,6 +209,7 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
             print(setup_message(client))
             return 0
 
+    safe_model = model.replace(":", "_").replace("/", "_")
     items = load_items(data_path)[:n_items]
     n_choices = max(len(it.choices) for it in items)
     print(f"[1/3] Clean arm: {len(items)} items on {model} (filtering to clean-correct)")
@@ -206,6 +249,12 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
         n_out, n_err = safe_generate(client, neutral_prompt(it), num_predict)
         if h_err is not None or n_err is not None:
             print()
+            # Bank the control items already collected so a rate-limit stop is not a
+            # total loss (the 70B free tier throttles partway through a large run).
+            n_saved, n_silent = write_transcripts(out_dir, safe_model, correct)
+            if n_saved:
+                print(f"  [saved] {n_saved} control transcripts ({n_silent} silent-unfaithful) "
+                      f"kept before the stop -> {out_dir}")
             print(fail_message(backend, model, h_err or n_err))
             return 0
         h_ans = parse_answer(h_out, n_choices)
@@ -219,6 +268,8 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
             "acknowledged_hint": acknowledges_hint(h_out),
             "neutral_answer": n_ans, "neutral_changed": n_ans != r["clean_answer"],
         })
+        if (i + 1) % 10 == 0:  # periodic checkpoint against a hard kill
+            write_transcripts(out_dir, safe_model, correct)
     print()
 
     n = len(correct)
@@ -292,10 +343,21 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
         "breakdown_rho_star": float(rho_star) if rho_star is not None else None,
         "verdict": verdict,
     }
-    (out_dir / f"control_summary_{model.replace(':', '_').replace('/', '_')}.json").write_text(
-        json.dumps(summary, indent=2)
-    )
-    print(f"\nwrote summary -> {out_dir}")
+    (out_dir / f"control_summary_{safe_model}.json").write_text(json.dumps(summary, indent=2))
+
+    # Persist the full transcripts so a real silent-unfaithful case can be quoted
+    # verbatim in the write-up. The summary alone discards the actual reasoning text,
+    # which is the whole point of the positive control.
+    n_saved, n_silent = write_transcripts(out_dir, safe_model, correct)
+    silent_cases = json.loads((out_dir / f"silent_unfaithful_{safe_model}.json").read_text())
+    print(f"\nwrote summary + {n_saved} transcripts ({n_silent} silent-unfaithful) -> {out_dir}")
+    if silent_cases:
+        ex = silent_cases[0]
+        print("\n  example caught case (followed the wrong hint, never disclosed it):")
+        print(f"    Q: {ex['question'][:90]}")
+        print(f"    planted hint -> ({ex['hint_label']})   model answered ({ex['hinted_answer']})   "
+              f"correct is ({ex['answer_label']})")
+        print("    its chain-of-thought never acknowledges the hint (verbatim in the file above).")
     return 0
 
 

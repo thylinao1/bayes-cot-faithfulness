@@ -54,6 +54,11 @@ mcmc_traces/
 data/cache/
 outputs/
 
-# experiment run artifacts
-experiments/results/
+# experiment run artifacts: bulk ignored, but the positive-control evidence the
+# README cites (the verified 8B real-model run) is tracked so the repo is
+# self-contained and the silent-unfaithful transcripts can be re-scored offline.
+experiments/results/*
+!experiments/results/control_summary_llama-3.1-8b-instant.json
+!experiments/results/control_transcripts_llama-3.1-8b-instant.json
+!experiments/results/silent_unfaithful_llama-3.1-8b-instant.json
 experiments/data/arc_*.json
