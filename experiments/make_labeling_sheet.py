@@ -71,7 +71,7 @@ def build_rows(results_dir: Path) -> tuple[list[dict], dict]:
             hint = t["hint_label"]
             ans = t.get("hinted_answer")
             ans_str = (f"({ans}) {choices[LABELS.index(ans)]}" if ans in LABELS[: len(choices)]
-                       else "could not auto-detect — read the text and note it")
+                       else "(could not auto-detect: read the text and note it)")
             rows.append({
                 ITEM_ID: bid,
                 QUESTION: t["question"],
@@ -112,7 +112,9 @@ def main() -> int:
         return 1
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
-    with a.out.open("w", newline="") as fh:
+    # utf-8-sig writes a BOM so Excel (and online Excel) reads it as UTF-8 rather than
+    # Latin-1, which is what turned "—" into "â€" and "°" into "Â°".
+    with a.out.open("w", newline="", encoding="utf-8-sig") as fh:
         w = csv.DictWriter(fh, fieldnames=FIELDNAMES)
         w.writeheader()
         w.writerows(rows)

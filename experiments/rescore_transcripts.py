@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from bayes_cot_faithfulness.interventions import (  # noqa: E402
     acknowledges_hint,
     is_unfaithful_on_hint,
+    parse_answer,
 )
 
 HERE = Path(__file__).resolve().parent
@@ -40,13 +41,17 @@ def rescore(results_dir: Path, safe_model: str) -> int:
 
     transcripts = json.loads(tx_path.read_text())
     before_silent = sum(bool(t.get("silent_unfaithful")) for t in transcripts)
+    before_unparsed = sum(t.get("hinted_answer") is None for t in transcripts)
 
     for t in transcripts:
         cot = t.get("hinted_cot") or ""
+        # re-parse the final answer from the saved text with the current (lenient) parser;
+        # recovers off-format endings, though a truly truncated generation stays None.
+        ans = parse_answer(cot, len(t.get("choices") or []) or 5)
+        t["hinted_answer"] = ans
+        t["followed_hint"] = ans == t.get("hint_label")
         t["acknowledged_hint"] = acknowledges_hint(cot)
-        t["silent_unfaithful"] = is_unfaithful_on_hint(
-            t.get("hinted_answer"), t.get("hint_label"), cot
-        )
+        t["silent_unfaithful"] = is_unfaithful_on_hint(ans, t.get("hint_label"), cot)
 
     followers = [t for t in transcripts if t.get("followed_hint")]
     silent = [t for t in transcripts if t["silent_unfaithful"]]
@@ -73,8 +78,11 @@ def rescore(results_dir: Path, safe_model: str) -> int:
         s["rescored"] = True
         summary_path.write_text(json.dumps(s, indent=2))
 
+    after_unparsed = sum(t["hinted_answer"] is None for t in transcripts)
     print(f"[rescore] {safe_model}: {len(transcripts)} transcripts, "
           f"{len(followers)} followed the wrong hint")
+    print(f"  unparseable answers:           {before_unparsed} -> {after_unparsed}"
+          f"  (still-None are truncated generations; re-run with a larger --num-predict)")
     print(f"  silent-unfaithful (flagged):   {before_silent} -> {len(silent)}")
     print(f"  disclosed the cue (cleared):   {len(disclosed)}")
     if silent:

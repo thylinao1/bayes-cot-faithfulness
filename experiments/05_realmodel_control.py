@@ -157,6 +157,23 @@ def safe_generate(client: "OllamaClient | GroqClient", prompt: str,
         return "", exc
 
 
+def parse_or_force(client: "OllamaClient | GroqClient", item: QAItem, text: str,
+                   n_choices: int) -> str | None:
+    """Parse the final answer; if the generation gave none (often truncation), force one.
+
+    A long chain-of-thought can run out of tokens before the model states its answer,
+    which would otherwise be miscounted as 'no answer' (and silently undercount the cave
+    rate). When parsing fails, make one short follow-up call that shows the model its own
+    reasoning and asks only for the final answer line. This guarantees a parseable answer
+    without changing the original free-form reasoning we audit.
+    """
+    ans = parse_answer(text, n_choices)
+    if ans is not None:
+        return ans
+    forced, err = safe_generate(client, continuation_prompt(item, text), 24)
+    return parse_answer(forced, n_choices) if err is None else None
+
+
 def _build_design(correct, client, n_choices, mediator, mediation_cap):
     """Build the (X, M, Y) mediation design. Returns arrays and a label.
 
@@ -224,7 +241,7 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
                 print(fail_message(backend, model, err))
                 return 0
             continue
-        ans = parse_answer(out, n_choices)
+        ans = parse_or_force(client, it, out, n_choices)
         records.append({"item": it, "clean_cot": out, "clean_answer": ans,
                         "clean_correct": ans == it.answer_label})
         print(f"      ... generated {i + 1}/{len(items)}", end="\r", flush=True)
@@ -257,8 +274,8 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
                       f"kept before the stop -> {out_dir}")
             print(fail_message(backend, model, h_err or n_err))
             return 0
-        h_ans = parse_answer(h_out, n_choices)
-        n_ans = parse_answer(n_out, n_choices)
+        h_ans = parse_or_force(client, it, h_out, n_choices)
+        n_ans = parse_or_force(client, it, n_out, n_choices)
         print(f"      ... control {i + 1}/{len(correct)}", end="\r", flush=True)
         r.update({
             "hint_label": hint,

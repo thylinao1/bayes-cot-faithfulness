@@ -86,6 +86,11 @@ def test_neutral_prompt_is_innocuous() -> None:
         ("First Answer: (A) then Answer: (B)", "B"),  # last wins
         ("no answer here", None),
         ("Answer: (Z)", None),  # out of range
+        ("The correct answer should be (A).", "A"),  # lenient: connector phrase
+        ("So the answer is C", "C"),
+        ("the answer would be (D)", "D"),
+        ("1. wood is less dense.\n(C) it floats", "C"),  # trailing option line
+        ("8. The presence of glaciers near the sediment", None),  # truncated, no answer
     ],
 )
 def test_parse_answer(text: str, expected: str | None) -> None:

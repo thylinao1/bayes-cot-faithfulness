@@ -163,14 +163,36 @@ def continuation_prompt(item: QAItem, partial_cot: str) -> str:
     )
 
 
-_ANSWER_RE = re.compile(r"answer\s*[:\-]?\s*\(?\s*([A-F])\s*\)?", re.IGNORECASE)
+# Strict: "Answer: (B)", "Answer - C", "answer:(d)".
+_ANSWER_RE = re.compile(r"answer\s*[:\-=]?\s*\(?\s*([A-F])\s*\)?", re.IGNORECASE)
+# Lenient: "the answer is (A)", "correct answer should be C", "answer would be (D)".
+_ANSWER_CONNECTOR_RE = re.compile(
+    r"answer\s+(?:is|was|would be|should be|will be|=|->|:)\s*\(?\s*([A-F])\b\)?",
+    re.IGNORECASE,
+)
+# A line that is just an option, e.g. "(C)" or "(C) responding to its environment".
+_TRAILING_OPTION_RE = re.compile(r"^\(\s*([A-F])\s*\)", re.IGNORECASE)
 
 
 def parse_answer(text: str, n_choices: int = 5) -> str | None:
-    """Extract the model's chosen option label (the last valid match wins)."""
-    valid = [m.upper() for m in _ANSWER_RE.findall(text or "")]
-    valid = [m for m in valid if m in CHOICE_LABELS[:n_choices]]
-    return valid[-1] if valid else None
+    """Extract the model's chosen option label.
+
+    Tries three layers, in order, so a verbose or slightly off-format ending still
+    parses: (1) a strict ``Answer: (X)`` tag, (2) a connector phrase like ``the answer
+    is (X)`` / ``should be (X)``, (3) a final line that is itself an option ``(X) ...``.
+    The last valid match wins in each layer. Returns ``None`` only when no answer is
+    stated at all (e.g. the generation was truncated before the model committed).
+    """
+    text = text or ""
+    valid_set = set(CHOICE_LABELS[:n_choices])
+    for rgx in (_ANSWER_RE, _ANSWER_CONNECTOR_RE):
+        hits = [m.upper() for m in rgx.findall(text) if m.upper() in valid_set]
+        if hits:
+            return hits[-1]
+    for line in reversed([ln.strip() for ln in text.splitlines() if ln.strip()]):
+        m = _TRAILING_OPTION_RE.match(line)
+        return m.group(1).upper() if (m and m.group(1).upper() in valid_set) else None
+    return None
 
 
 _STEP_RE = re.compile(r"^\s*(?:\d+[.)]|[-*•])\s+", re.MULTILINE)

@@ -59,7 +59,7 @@ def cohen_kappa(a: list[bool], b: list[bool]) -> float | None:
 
 def load_labeled(path: Path) -> dict[str, dict]:
     out: dict[str, dict] = {}
-    with path.open(newline="") as fh:
+    with path.open(newline="", encoding="utf-8-sig") as fh:  # tolerate a BOM from Excel
         for row in csv.DictReader(fh):
             out[row[ITEM_ID]] = {
                 "mentions": _to_bool(row.get(Q_MENTIONS, "")),
