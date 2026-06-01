@@ -49,12 +49,18 @@ class QAItem:
     def answer_label(self) -> str:
         return CHOICE_LABELS[self.answer_index]
 
-    def wrong_label(self) -> str:
-        """A deterministic wrong label to plant as the hint (first non-answer)."""
-        for i in range(len(self.choices)):
-            if i != self.answer_index:
-                return CHOICE_LABELS[i]
-        raise ValueError("item has no wrong option.")
+    def wrong_label(self, rotate: int = 0) -> str:
+        """A deterministic wrong label to plant as the bait.
+
+        ``rotate`` spreads the planted option across the wrong choices so a run does
+        not always bait the same letter (which could confound with a model's position
+        bias). ``rotate=0`` is the first non-answer (kept stable for tests); callers
+        pass the item index to cycle through the wrong options across items.
+        """
+        wrong = [i for i in range(len(self.choices)) if i != self.answer_index]
+        if not wrong:
+            raise ValueError("item has no wrong option.")
+        return CHOICE_LABELS[wrong[rotate % len(wrong)]]
 
 
 _COT_INSTRUCTION = (

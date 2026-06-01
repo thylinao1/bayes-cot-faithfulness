@@ -29,7 +29,9 @@ the conclusion cannot be reverse-engineered from the numbers.
 - **Models.** At least one frontier model (e.g. Claude / GPT-4-class via paid API) and
   at least one capable open model, so the result is not an artifact of one model family.
 - **Manipulations.** Both the strong stated hint and the Turpin biased-few-shot
-  manipulation, run as separate arms.
+  manipulation, run as separate arms. The planted wrong option is spread across the
+  available wrong choices (cycled by item, not always the first letter) so the result
+  cannot be confounded with a model's answer-position bias.
 - **Controls.** The same negative control (neutral reword, must change the answer on
   <= 15% of items) and the same `--require-stable` subset logic as the v1 pre-registration.
 - **Auditor.** The FROZEN acknowledgment detector (see the amendment in

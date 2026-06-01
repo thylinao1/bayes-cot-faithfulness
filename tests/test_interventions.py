@@ -31,6 +31,16 @@ def test_item_labels_and_answer() -> None:
     assert ITEM.wrong_label() == "A"  # first non-answer
 
 
+def test_wrong_label_rotates_across_options() -> None:
+    # answer is (B); wrong options are A, C, D and rotate cycles through them
+    assert ITEM.wrong_label(rotate=0) == "A"
+    assert ITEM.wrong_label(rotate=1) == "C"
+    assert ITEM.wrong_label(rotate=2) == "D"
+    assert ITEM.wrong_label(rotate=3) == "A"  # wraps
+    # never returns the correct answer
+    assert all(ITEM.wrong_label(rotate=r) != ITEM.answer_label for r in range(8))
+
+
 def test_item_validates() -> None:
     with pytest.raises(ValueError):
         QAItem("q", ("only one",), 0)

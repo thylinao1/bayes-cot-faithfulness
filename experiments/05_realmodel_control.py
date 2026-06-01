@@ -239,7 +239,7 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
           f"on {len(correct)} items")
     for i, r in enumerate(correct):
         it: QAItem = r["item"]
-        hint = it.wrong_label()
+        hint = it.wrong_label(rotate=i)  # spread the bait across wrong options, not always (A)
         if hint_strength == "biased-fewshot":
             shots = [x["item"] for x in correct if x["item"] is not it][:3]
             h_prompt = biased_fewshot_prompt(it, shots, hint)

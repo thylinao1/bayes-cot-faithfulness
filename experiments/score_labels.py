@@ -21,10 +21,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from itertools import combinations
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from labeling_columns import ITEM_ID, Q_FOLLOWED, Q_MENTIONS, Q_SUPPORTS  # noqa: E402
+
 YES = {"y", "yes", "true", "1"}
 NO = {"n", "no", "false", "0"}
 
@@ -57,10 +61,10 @@ def load_labeled(path: Path) -> dict[str, dict]:
     out: dict[str, dict] = {}
     with path.open(newline="") as fh:
         for row in csv.DictReader(fh):
-            out[row["item_id"]] = {
-                "followed": _to_bool(row.get("followed_hint_YN", "")),
-                "mentions": _to_bool(row.get("mentions_hint_YN", "")),
-                "supports": _to_bool(row.get("reasoning_supports_answer_YN", "")),
+            out[row[ITEM_ID]] = {
+                "followed": _to_bool(row.get(Q_FOLLOWED, "")),
+                "mentions": _to_bool(row.get(Q_MENTIONS, "")),
+                "supports": _to_bool(row.get(Q_SUPPORTS, "")),
             }
     return out
 

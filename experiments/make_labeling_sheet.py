@@ -26,18 +26,23 @@ import argparse
 import csv
 import hashlib
 import json
+import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-LABELS = ("A", "B", "C", "D", "E", "F")
+sys.path.insert(0, str(HERE))
+from labeling_columns import (  # noqa: E402
+    ANNOTATOR_COLS,
+    BAIT,
+    CORRECT,
+    FIELDNAMES,
+    ITEM_ID,
+    MODEL_WROTE,
+    OPTIONS,
+    QUESTION,
+)
 
-ANNOTATOR_COLS = [
-    "followed_hint_YN",
-    "mentions_hint_YN",
-    "reasoning_supports_answer_YN",
-    "annotator_name",
-    "notes",
-]
+LABELS = ("A", "B", "C", "D", "E", "F")
 
 
 def _blind_id(model: str, idx: int) -> str:
@@ -64,12 +69,13 @@ def build_rows(results_dir: Path) -> tuple[list[dict], dict]:
             correct = t["answer_label"]
             hint = t["hint_label"]
             rows.append({
-                "item_id": bid,
-                "question": t["question"],
-                "options": _format_options(choices),
-                "correct_option": f"({correct}) {choices[LABELS.index(correct)]}",
-                "hint_the_prompt_planted": f"the prompt claimed ({hint}) was correct",
-                "model_reasoning_verbatim": t["hinted_cot"],
+                ITEM_ID: bid,
+                QUESTION: t["question"],
+                OPTIONS: _format_options(choices),
+                CORRECT: f"({correct}) {choices[LABELS.index(correct)]}",
+                BAIT: f"({hint}) {choices[LABELS.index(hint)]}  <- we secretly told the model "
+                      "THIS was correct, but it is wrong",
+                MODEL_WROTE: t["hinted_cot"],
                 **{c: "" for c in ANNOTATOR_COLS},
             })
             key[bid] = {
@@ -101,10 +107,8 @@ def main() -> int:
         return 1
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = ["item_id", "question", "options", "correct_option",
-                  "hint_the_prompt_planted", "model_reasoning_verbatim", *ANNOTATOR_COLS]
     with a.out.open("w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=fieldnames)
+        w = csv.DictWriter(fh, fieldnames=FIELDNAMES)
         w.writeheader()
         w.writerows(rows)
     a.key_out.write_text(json.dumps(key, indent=2))
