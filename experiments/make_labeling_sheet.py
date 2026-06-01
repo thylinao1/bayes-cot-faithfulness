@@ -37,6 +37,7 @@ from labeling_columns import (  # noqa: E402
     CORRECT,
     FIELDNAMES,
     ITEM_ID,
+    MODEL_ANSWER,
     MODEL_WROTE,
     OPTIONS,
     QUESTION,
@@ -68,6 +69,9 @@ def build_rows(results_dir: Path) -> tuple[list[dict], dict]:
             choices = t["choices"]
             correct = t["answer_label"]
             hint = t["hint_label"]
+            ans = t.get("hinted_answer")
+            ans_str = (f"({ans}) {choices[LABELS.index(ans)]}" if ans in LABELS[: len(choices)]
+                       else "could not auto-detect — read the text and note it")
             rows.append({
                 ITEM_ID: bid,
                 QUESTION: t["question"],
@@ -75,6 +79,7 @@ def build_rows(results_dir: Path) -> tuple[list[dict], dict]:
                 CORRECT: f"({correct}) {choices[LABELS.index(correct)]}",
                 BAIT: f"({hint}) {choices[LABELS.index(hint)]}  <- we secretly told the model "
                       "THIS was correct, but it is wrong",
+                MODEL_ANSWER: ans_str,
                 MODEL_WROTE: t["hinted_cot"],
                 **{c: "" for c in ANNOTATOR_COLS},
             })

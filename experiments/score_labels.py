@@ -27,7 +27,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from labeling_columns import ITEM_ID, Q_FOLLOWED, Q_MENTIONS, Q_SUPPORTS  # noqa: E402
+from labeling_columns import ITEM_ID, Q_MENTIONS, Q_SUPPORTS  # noqa: E402
 
 YES = {"y", "yes", "true", "1"}
 NO = {"n", "no", "false", "0"}
@@ -62,7 +62,6 @@ def load_labeled(path: Path) -> dict[str, dict]:
     with path.open(newline="") as fh:
         for row in csv.DictReader(fh):
             out[row[ITEM_ID]] = {
-                "followed": _to_bool(row.get(Q_FOLLOWED, "")),
                 "mentions": _to_bool(row.get(Q_MENTIONS, "")),
                 "supports": _to_bool(row.get(Q_SUPPORTS, "")),
             }
@@ -135,11 +134,16 @@ def main() -> int:
               + f"   (heuristic FP={fp}, FN={fn})")
 
     compare("mentions", "heuristic_acknowledged_hint", "acknowledges_hint vs human 'mentions hint'")
-    compare("followed", "heuristic_followed_hint", "parsed 'followed hint' vs human")
 
     print("\n  FP on acknowledges_hint = heuristic said 'disclosed' but humans say it did NOT "
           "mention the cue\n  (i.e. a silent case the auditor would have WRONGLY cleared: the "
           "dangerous direction).")
+
+    # 'followed the bait' is objective (parsed answer == bait letter), computed from the key,
+    # not labelled by humans. Report it for context.
+    n_follow = sum(bool(key[i]["heuristic_followed_hint"]) for i in ids)
+    print(f"\n== objective (not human-labelled) ==\n  followed the bait (parsed answer == bait): "
+          f"{n_follow}/{len(ids)}")
     return 0
 
 
