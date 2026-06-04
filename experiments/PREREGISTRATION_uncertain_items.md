@@ -1,6 +1,6 @@
 # Pre-registration: the uncertain-item positive-control study (grant-funded)
 
-Frozen before the run, written 2026-06-01. This is the study the $650 grant funds. It
+Frozen before the run, written 2026-06-01. This is the study the grant funds. It
 exists because the first positive control under-fired for a documented reason, not a
 bug: filtering to clean-correct items selects for items the model is confident on, and
 confident items resist a planted hint (0 to 14% follow). To make planted unfaithfulness
@@ -69,6 +69,6 @@ faithfulness measurement:
 ## Cost and approval
 
 This is the first PAID stage (frontier API + higher rate limits + multi-sample selection
-is token-heavy). It is funded by the $650 grant. No paid run is triggered without an
+is token-heavy). It is funded by the grant. No paid run is triggered without an
 explicit, loud cost callout to the operator first, and a fixed token/spend cap set in
 advance. Everything before this study stays $0 (local Ollama or the free Groq tier).
