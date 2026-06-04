@@ -52,7 +52,7 @@
       `<line x1="${x(v).toFixed(1)}" y1="${padT}" x2="${x(v).toFixed(1)}" y2="${baseY}" stroke="${stroke}" stroke-width="${dash ? 1.1 : 1.6}" ${dash ? 'stroke-dasharray="4 3"' : ''} opacity="${dash ? 0.85 : 1}"/>`;
 
     return `
-      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Posterior recovery of the three natural effects on synthetic data; all three 95% credible intervals contain the truth" style="width:100%;height:auto;display:block">
         <line x1="${padL}" y1="${baseY}" x2="${W - padR}" y2="${baseY}" stroke="${GRID}" stroke-width="1"/>
         ${bars}
         ${guide(d.lo, color, true)}${guide(d.hi, color, true)}
