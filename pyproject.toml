@@ -24,7 +24,9 @@ dependencies = [
     "numpy>=1.26",
     "scipy>=1.11",
     "pymc>=5.10",
-    "arviz>=0.17",
+    # Pin below arviz 1.0: PyMC 5.x targets the classic arviz line, and arviz 1.0
+    # changed from_dict and the summary API. Unpinned, CI resolved to 1.0 and broke.
+    "arviz>=0.17,<1.0",
     "pandas>=2.1",
 ]
 

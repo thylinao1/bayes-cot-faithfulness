@@ -5,6 +5,9 @@ from bayes_cot_faithfulness.diagnostics import (
     assert_sampler_healthy,
     raise_if_unhealthy,
 )
+from bayes_cot_faithfulness.closed_form import (
+    probit_natural_effects_closed_form,
+)
 from bayes_cot_faithfulness.effects import (
     PosteriorEffects,
     monte_carlo_true_effects,
@@ -39,6 +42,14 @@ from bayes_cot_faithfulness.positive_control import (
     nie_sensitivity_curve,
     smoke_test,
 )
+from bayes_cot_faithfulness.prior_sensitivity import (
+    PriorSensitivityResult,
+    PriorSensitivityRow,
+    PriorSpec,
+    default_prior_specs,
+    pooling_family_specs,
+    prior_sensitivity_sweep,
+)
 from bayes_cot_faithfulness.sensitivity import (
     BreakdownFrontier,
     ConfoundedCoTConfig,
@@ -67,6 +78,9 @@ __all__ = [
     "LabeledCase",
     "PartialIDBounds",
     "PosteriorEffects",
+    "PriorSensitivityResult",
+    "PriorSensitivityRow",
+    "PriorSpec",
     "SamplerHealth",
     "SensitivityPoint",
     "SrmResult",
@@ -75,8 +89,10 @@ __all__ = [
     "attrition_balance",
     "audit_case",
     "breakdown_frontier",
+    "default_prior_specs",
     "demonstration_cases",
     "partial_identification_bounds",
+    "pooling_family_specs",
     "extract_parameter_samples",
     "fit_hierarchical_mediation",
     "fit_mediation_model",
@@ -86,7 +102,9 @@ __all__ = [
     "nie_sensitivity_curve",
     "no_pool_beta",
     "posterior_natural_effects",
+    "prior_sensitivity_sweep",
     "probit_natural_effects",
+    "probit_natural_effects_closed_form",
     "proportion_ci_upper",
     "raise_if_unhealthy",
     "robustness_interval",
