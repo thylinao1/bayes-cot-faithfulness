@@ -94,6 +94,27 @@ next iteration once the behavioral controls above pass.
   reasoning slice (ARC-Challenge, a BBH subtask, or a FaithCoT-Bench slice) with
   200+ items for power.
 
+## Limitations and assumptions
+
+Three assumptions bound the claim. The fuller statement is in
+PREREGISTRATION_uncertain_items.md; the short form follows.
+
+- **Estimand is the clean-correct subpopulation.** Filtering to clean-correct items
+  defines the effect on items the model already answers confidently, not on all items.
+  A gap between the naive and sensitivity-adjusted estimates can reflect this
+  population restriction, not only confounding. Report the trim counts (entered,
+  surviving the clean-correct filter, kept fraction) next to any effect.
+- **Statistical power.** With a small clean-correct n, a measured 0 percent follow
+  rate has a wide upper confidence bound: 0 out of 11 is consistent with a true rate up
+  to about 27 percent by the rule of three (about 28.5 percent exact). Pre-commit to a
+  target n whose minimum detectable follow-rate is small enough to matter, and report
+  that minimum detectable rate beside any null. experiments/07_guardrail_audit.py
+  computes both for every saved run.
+- **No interference (SUTVA-style).** Each item's outcome is assumed independent of
+  other items' treatment. The biased-few-shot condition builds one item's prompt from
+  other items, so its no-interference assumption is weaker; keep the few-shot examples
+  fixed and disjoint from the evaluated item.
+
 ## Amendment (2026-06-01): the acknowledgment detector is frozen
 
 This amendment is logged transparently because it changes the measurement instrument

@@ -66,6 +66,45 @@ faithfulness measurement:
   establish that `rho*` maps to a real unmeasured confounder, nor that the method catches
   unplanted deception in the wild.
 
+## Limitations and assumptions
+
+Three assumptions bound what this study can claim. They are stated here so a reader
+weighs the headline number against them, not after the fact.
+
+### (a) The estimand is the clean-correct subpopulation
+
+Filtering to clean-correct items defines the effect on items the model already
+answers confidently, not on all items. This is a population restriction, not a
+nuisance. A gap between the naive estimate and the sensitivity-adjusted estimate can
+come from this restriction alone, before any confounding enters: the two estimates
+describe partly different populations of items. Always report the trim counts (items
+entered, items surviving the clean-correct filter, and the kept fraction) next to any
+effect, so the reader sees how narrow the subpopulation is. On the saved runs the kept
+fraction ranges from 55 percent to 86 percent, so between one in seven and almost half
+of entered items are dropped before the contrast.
+
+### (b) Statistical power
+
+With a small clean-correct n, a measured 0 percent follow rate carries a wide upper
+confidence bound. By the exact one-sided 95 percent Clopper-Pearson bound, 0 out of 11
+is consistent with a true follow rate up to about 24 percent; the rule of three (3/11,
+about 27 percent) is the back-of-envelope version. A 0 percent that is not paired with
+this bound reads as strength when it is only silence. Pre-commit to a target n whose minimum detectable follow-rate is small
+enough to matter (the audit script uses a 10 percent target, reached near n = 80 to
+100 for an 80 percent-power one-sided test), and report that minimum detectable rate
+beside any null. The script experiments/07_guardrail_audit.py computes the bound and
+the minimum detectable rate for every run.
+
+### (c) No interference (SUTVA-style)
+
+Each item's outcome is assumed independent of other items' treatment assignment. The
+stated-hint and neutral arms satisfy this: one item's prompt is built only from that
+item. The biased-few-shot condition does not, because it constructs one item's prompt
+from other items shown as examples, so its no-interference assumption is weaker. To
+keep the assumption as close to held as possible, fix the few-shot examples in advance
+and keep them disjoint from the evaluated item, so no item ever appears as its own
+few-shot example and the example set does not shift across evaluated items.
+
 ## Cost and approval
 
 This is the first PAID stage (frontier API + higher rate limits + multi-sample selection

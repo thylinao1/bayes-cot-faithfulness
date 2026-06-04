@@ -1,9 +1,23 @@
 """Bayesian causal mediation analysis for LLM chain-of-thought faithfulness."""
 
+from bayes_cot_faithfulness.diagnostics import (
+    SamplerHealth,
+    assert_sampler_healthy,
+    raise_if_unhealthy,
+)
 from bayes_cot_faithfulness.effects import (
     PosteriorEffects,
     monte_carlo_true_effects,
     posterior_natural_effects,
+)
+from bayes_cot_faithfulness.guardrails import (
+    AttritionResult,
+    SrmResult,
+    attrition_balance,
+    minimum_detectable_rate,
+    proportion_ci_upper,
+    rule_of_three_upper,
+    srm_test,
 )
 from bayes_cot_faithfulness.hierarchical import (
     HierarchicalCoTConfig,
@@ -43,6 +57,7 @@ from bayes_cot_faithfulness.synthetic import SyntheticCoTConfig, simulate_cot_tr
 __version__ = "0.2.0"
 
 __all__ = [
+    "AttritionResult",
     "BreakdownFrontier",
     "ConfoundedCoTConfig",
     "DECORATIVE_CONFIG",
@@ -52,8 +67,12 @@ __all__ = [
     "LabeledCase",
     "PartialIDBounds",
     "PosteriorEffects",
+    "SamplerHealth",
     "SensitivityPoint",
+    "SrmResult",
     "SyntheticCoTConfig",
+    "assert_sampler_healthy",
+    "attrition_balance",
     "audit_case",
     "breakdown_frontier",
     "demonstration_cases",
@@ -62,15 +81,20 @@ __all__ = [
     "fit_hierarchical_mediation",
     "fit_mediation_model",
     "fit_probit_mediation_map",
+    "minimum_detectable_rate",
     "monte_carlo_true_effects",
     "nie_sensitivity_curve",
     "no_pool_beta",
     "posterior_natural_effects",
     "probit_natural_effects",
+    "proportion_ci_upper",
+    "raise_if_unhealthy",
     "robustness_interval",
+    "rule_of_three_upper",
     "sensitivity_sweep",
     "simulate_confounded_cot",
     "simulate_cot_trace",
     "simulate_hierarchical_cot",
     "smoke_test",
+    "srm_test",
 ]
