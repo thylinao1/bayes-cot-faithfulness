@@ -5,6 +5,7 @@
 [![CI](https://github.com/thylinao1/bayes-cot-faithfulness/actions/workflows/ci.yml/badge.svg)](https://github.com/thylinao1/bayes-cot-faithfulness/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Funded by BlueDot Impact](https://img.shields.io/badge/funded%20by-BlueDot%20Impact%20Rapid%20Grant-4dd0e1.svg)](https://bluedot.org/programs/rapid-grants)
 
 **[Live project site, methodology, and interactive demo](https://thylinao1.github.io/bayes-cot-faithfulness/site/)**
 
