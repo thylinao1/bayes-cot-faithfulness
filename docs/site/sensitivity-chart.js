@@ -3,6 +3,8 @@
  *   Native in-page SVG of the rho sensitivity sweep, styled to the
  *   site (no matplotlib). Data is precomputed from the Python package
  *   (notebook 04 config), so the curve is the real validated result.
+ *   Interactive: a slider turns the confounding dial over the real
+ *   sweep arrays and reads off the faithful / decorative paths live.
  * ============================================================ */
 
 (function () {
@@ -21,7 +23,7 @@
 
   const C = {
     cyan: '#4dd0e1', orange: '#ff8c42', green: '#a5e887',
-    muted: '#8a93a4', text2: '#a4adbd', text3: '#6a7384',
+    muted: '#8a93a4', text: '#e6ebf2', text2: '#a4adbd', text3: '#6a7384',
     grid: '#1f2632', edge: '#5a6478', bg: '#0b0f17',
   };
 
@@ -39,6 +41,18 @@
     .join('');
   const mono = "font-family:'JetBrains Mono',monospace";
 
+  // Linear interpolation over the real sweep grid (no extrapolation past ends).
+  function interp(ys, rho) {
+    const rs = DATA.rho;
+    if (rho <= rs[0]) return ys[0];
+    if (rho >= rs[rs.length - 1]) return ys[ys.length - 1];
+    let i = 0;
+    while (i < rs.length - 1 && rs[i + 1] < rho) i++;
+    const t = (rho - rs[i]) / (rs[i + 1] - rs[i]);
+    return ys[i] + t * (ys[i + 1] - ys[i]);
+  }
+  const fmt = (x) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2);
+
   function gridlines() {
     const yt = [-0.4, -0.2, 0, 0.2, 0.4, 0.6];
     const xt = [-0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8];
@@ -46,10 +60,10 @@
     for (const t of yt) {
       const zero = t === 0;
       s += `<line x1="${padL}" y1="${sy(t)}" x2="${W - padR}" y2="${sy(t)}" stroke="${zero ? C.edge : C.grid}" stroke-width="${zero ? 1 : 0.7}" ${zero ? '' : 'stroke-dasharray="2 5"'}/>`;
-      s += `<text x="${padL - 10}" y="${sy(t) + 4}" text-anchor="end" fill="${C.text3}" font-size="11" style="${mono}">${t.toFixed(1)}</text>`;
+      s += `<text x="${padL - 10}" y="${sy(t) + 4}" text-anchor="end" fill="${C.text3}" font-size="12" style="${mono}">${t.toFixed(1)}</text>`;
     }
     for (const t of xt) {
-      s += `<text x="${sx(t)}" y="${H - padB + 22}" text-anchor="middle" fill="${C.text3}" font-size="11" style="${mono}">${t.toFixed(1)}</text>`;
+      s += `<text x="${sx(t)}" y="${H - padB + 22}" text-anchor="middle" fill="${C.text3}" font-size="12" style="${mono}">${t.toFixed(1)}</text>`;
     }
     return s;
   }
@@ -70,11 +84,10 @@
     return s;
   }
 
-  function render(el) {
+  function svgMarkup() {
     const xStar = sx(DATA.rho_star);
-    const yStarTrue = sy(DATA.true_nie);
     const iTrue = DATA.rho.indexOf(DATA.rho_true);
-    const svg = `
+    return `
       <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img"
            aria-label="Sensitivity of the faithful path to hidden confounding rho">
         ${gridlines()}
@@ -98,11 +111,18 @@
         <path class="sc-curve sc-draw" d="${line(DATA.nie)}" fill="none" stroke="${C.cyan}" stroke-width="2.4" stroke-linecap="round"/>
         ${dots(DATA.nde, C.orange)}${dots(DATA.nie, C.cyan)}
 
-        <!-- recovers-truth marker (label below, with a leader, so it clears the curves) -->
+        <!-- recovers-truth marker -->
         <circle cx="${sx(DATA.rho_true)}" cy="${sy(DATA.nie[iTrue])}" r="9" fill="none" stroke="${C.green}" stroke-width="2.4"/>
         <line x1="${sx(DATA.rho_true)}" y1="${sy(DATA.nie[iTrue]) + 11}" x2="${sx(DATA.rho_true)}" y2="${sy(0.01)}" stroke="${C.green}" stroke-width="1" stroke-dasharray="2 3" opacity="0.55"/>
         <text x="${sx(DATA.rho_true)}" y="${sy(-0.06)}" text-anchor="middle" fill="${C.green}" font-size="11.5" style="${mono}">True confounding</text>
         <text x="${sx(DATA.rho_true)}" y="${sy(-0.13)}" text-anchor="middle" fill="${C.green}" font-size="11.5" style="${mono}">recovers the truth</text>
+
+        <!-- interactive cursor (moved by the slider) -->
+        <g id="sc-cursor" style="pointer-events:none">
+          <line id="sc-cursor-line" x1="${sx(0)}" y1="${padT}" x2="${sx(0)}" y2="${H - padB}" stroke="${C.text}" stroke-width="1.4" opacity="0.85"/>
+          <circle id="sc-cursor-nie" cx="${sx(0)}" cy="${sy(DATA.nie[6])}" r="6" fill="${C.bg}" stroke="${C.cyan}" stroke-width="2.4"/>
+          <circle id="sc-cursor-nde" cx="${sx(0)}" cy="${sy(DATA.nde[6])}" r="6" fill="${C.bg}" stroke="${C.orange}" stroke-width="2.4"/>
+        </g>
 
         ${legend()}
 
@@ -110,7 +130,38 @@
         <text x="${padL + innerW / 2}" y="${H - 8}" text-anchor="middle" fill="${C.text2}" font-size="12.5">Assumed hidden confounding &#961; between the reasoning and the answer</text>
         <text transform="translate(15,${padT + innerH / 2}) rotate(-90)" text-anchor="middle" fill="${C.text2}" font-size="12.5">Effect on the answer</text>
       </svg>`;
-    el.innerHTML = svg;
+  }
+
+  function controlMarkup() {
+    return `
+      <div class="rho-panel">
+        <div class="rho-slider-row">
+          <span class="rho-slider-label">Turn the dial: assumed hidden confounding &rho;</span>
+          <input type="range" id="rho-slider" min="-0.6" max="0.8" step="0.01" value="0"
+                 aria-label="Assumed hidden confounding rho" />
+          <output id="rho-val" for="rho-slider">&rho; = +0.00</output>
+        </div>
+        <div class="rho-readout">
+          <div class="rho-metric">
+            <span class="rho-k"><span class="rho-swatch cyan"></span>faithful path (NIE)</span>
+            <span class="rho-v" id="rho-nie">+0.43</span>
+          </div>
+          <div class="rho-metric">
+            <span class="rho-k"><span class="rho-swatch orange"></span>decorative path (NDE)</span>
+            <span class="rho-v" id="rho-nde">&#8722;0.12</span>
+          </div>
+          <span class="chip chip-clear" id="rho-chip">faithful path holds</span>
+        </div>
+        <div class="rho-presets">
+          <button type="button" class="rho-preset" data-rho="0">assume none (&rho; = 0)</button>
+          <button type="button" class="rho-preset" data-rho="0.5">true confounding (&rho; = 0.5)</button>
+          <button type="button" class="rho-preset" data-rho="0.7364">breakdown (&rho;* = 0.74)</button>
+        </div>
+      </div>`;
+  }
+
+  function render(el) {
+    el.innerHTML = `<div class="sc-figure">${svgMarkup()}</div>${controlMarkup()}`;
 
     // gentle draw-in (respects reduced motion)
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -122,6 +173,44 @@
         requestAnimationFrame(() => requestAnimationFrame(() => { p.style.strokeDashoffset = '0'; }));
       });
     }
+
+    // ---- interactivity ----
+    const slider = el.querySelector('#rho-slider');
+    const cLine = el.querySelector('#sc-cursor-line');
+    const cNie = el.querySelector('#sc-cursor-nie');
+    const cNde = el.querySelector('#sc-cursor-nde');
+    const valEl = el.querySelector('#rho-val');
+    const nieEl = el.querySelector('#rho-nie');
+    const ndeEl = el.querySelector('#rho-nde');
+    const chip = el.querySelector('#rho-chip');
+
+    function update(rho) {
+      const x = sx(rho);
+      const nie = interp(DATA.nie, rho);
+      const nde = interp(DATA.nde, rho);
+      cLine.setAttribute('x1', x); cLine.setAttribute('x2', x);
+      cNie.setAttribute('cx', x); cNie.setAttribute('cy', sy(nie));
+      cNde.setAttribute('cx', x); cNde.setAttribute('cy', sy(nde));
+      valEl.innerHTML = '&rho; = ' + fmt(rho);
+      nieEl.textContent = fmt(nie);
+      ndeEl.textContent = fmt(nde);
+      if (nie > 0) {
+        chip.textContent = 'faithful path holds';
+        chip.className = 'chip chip-clear';
+      } else {
+        chip.textContent = 'verdict overturned';
+        chip.className = 'chip chip-flag';
+      }
+    }
+
+    slider.addEventListener('input', () => update(parseFloat(slider.value)));
+    el.querySelectorAll('.rho-preset').forEach((b) => {
+      b.addEventListener('click', () => {
+        slider.value = b.dataset.rho;
+        update(parseFloat(slider.value));
+      });
+    });
+    update(0);
   }
 
   function init() {

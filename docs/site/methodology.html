@@ -43,7 +43,7 @@
       <a href="index.html#problem">Problem</a>
       <a href="index.html#approach">Approach</a>
       <a href="index.html#audit">Audit</a>
-      <a href="index.html#demo">Demo</a>
+      <a href="demo.html">Demo</a>
       <a href="index.html#progress">Progress</a>
       <a href="index.html#roadmap">Roadmap</a>
     </div>
@@ -149,7 +149,7 @@ $$\text{TE} = \text{NDE} + \text{NIE}$$
         <span class="assumption-num">A4</span>
         <div>
           <strong>No M &rarr; Y confounder is itself caused by X</strong>
-          <p>Tested empirically via random-seed ablation. If reseeds produce the same Y for the same M, the assumption is consistent with the data.</p>
+          <p>Testable via random-seed ablation, planned for the real-model stage. If reseeds produce the same Y for the same M, the assumption is consistent with the data.</p>
         </div>
       </div>
     </div>
@@ -235,6 +235,30 @@ $$\alpha_j \sim \mathcal{N}(\mu_\alpha, \tau_\alpha), \quad \beta_j \sim \mathca
         <li><strong>Open-source models</strong> (Llama-3, Gemma-2): <em>logit-level</em> counterfactual forcing. The counterfactual mediator $M^*$ is injected into the KV-cache, the model is frozen, and the change in log-probability of the target tokens is recorded. This isolates the causal effect without letting the model derail into off-distribution text.</li>
       </ul>
     </div>
+
+    <div class="math-card reveal">
+      <h3>Breakdown frontier and partial identification</h3>
+      <p>
+        Two summaries make the A3 violation auditable without committing to a value of $\rho$.
+        The breakdown frontier $\rho^*$ is the smallest confounding at which the faithful path
+        crosses zero. The partial-identification interval is the range of the natural effect
+        over every $\rho$ you are willing to entertain.
+      </p>
+      <div class="math-block">
+$$\rho^* = \min\{\, |\rho| : \mathrm{NIE}(\rho) = 0 \,\}$$
+$$\mathrm{NIE} \in [\,\underline{b},\, \overline{b}\,] \quad \text{over} \quad |\rho| \le \bar\rho$$
+$$\text{sign-identified} \iff \bar\rho < \rho^*$$
+      </div>
+      <p>
+        $\rho^*$ is the sensitivity-analysis cousin of VanderWeele's E-value, a single number a
+        faithfulness claim ships with. When the partial-identification interval excludes zero the
+        verdict is sign-identified, meaning it holds for every confounding level entertained, and
+        that happens exactly when the confounding budget $\bar\rho$ is below $\rho^*$. The two
+        summaries are duals. On the single-world sweep here $\rho^* \approx 0.74$; the two-world
+        positive control on the overview is a separate synthetic process and gives the 0.69 vs
+        0.05 separation. See <code>breakdown_frontier</code> and <code>partial_identification_bounds</code>.
+      </p>
+    </div>
   </div>
 
   <div class="prior-table reveal">
@@ -257,7 +281,7 @@ $$\alpha_j \sim \mathcal{N}(\mu_\alpha, \tau_\alpha), \quad \beta_j \sim \mathca
       </div>
       <div class="prior-row">
         <span class="prior-name">&rho;</span>
-        <span class="prior-formula">grid on $(-0.95,\, 0.95)$</span>
+        <span class="prior-formula">grid on $[-0.6,\, 0.8]$</span>
         <span class="prior-desc">swept, not sampled: one exact fit per value</span>
       </div>
       <div class="prior-row">

@@ -31,6 +31,9 @@ jobs:
       - name: Lint with ruff
         run: ruff check src tests
 
+      - name: Check public prose tone
+        run: python scripts/check_prose_tone.py
+
       - name: Run fast tests
         run: pytest -v --cov=bayes_cot_faithfulness --cov-report=term
 
