@@ -1542,17 +1542,23 @@ input[type=range]::-moz-range-thumb {
   padding: 14px 16px 12px;
   display: flex;
   flex-direction: column-reverse;
-  gap: 4px;
+  /* numbers share a top line, labels share the bottom edge, no floating dead space */
+  justify-content: space-between;
+  min-height: 92px;
+  gap: 8px;
   text-align: left;
   backdrop-filter: blur(6px);
 }
 .hero-stats dd {
   margin: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.35rem;
+  /* fluid size so "rho* 0.69 vs 0.05" never wraps inside a quarter-width card */
+  font-size: clamp(1.05rem, 0.8rem + 0.55vw, 1.2rem);
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .hero-stats dd .stat-vs {
   font-size: 0.8rem;
@@ -1569,6 +1575,10 @@ input[type=range]::-moz-range-thumb {
 }
 @media (max-width: 880px) {
   .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .hero-stats { grid-template-columns: 1fr; gap: 10px; }
+  .hero-stats .stat { min-height: 0; }
 }
 
 /* ----- evidence section ----- */
