@@ -37,7 +37,20 @@ summaries print exactly as before):
 
 It also writes experiments/results/guardrail_power_artifacts.json (one row per run:
 label, n, mde, ci_upper_on_observed, and the Newcombe interval or null) and supports
-an optional --strict flag that changes the process exit code:
+an optional --strict flag that changes the process exit code.
+
+The same artifact additionally ingests the exploratory Phase-2 arm summaries written
+by experiments/08_additive_arms.py as results/**/arms_summary_*.json. Each rate-bearing
+sub-block those summarizers emit -- replay clean/hinted drift, transplant forward/reverse
+carry-over, direct accuracy and with/without-CoT agreement, placebo would-be-hint follow,
+two-step follow, and filler match -- becomes one power row, distinguished from the control
+rows by a "kind" field ("control" vs "arms"). An arm row carries the sub-block's n, its
+observed rate, the exact one-sided 95% Clopper-Pearson upper bound on the observed count,
+the minimum detectable rate at that n, a "powered" flag, and -- so the pre-registration's
+10-percent unscorable rule is enforced by this tool rather than by hand -- the sub-block's
+n_unscorable and an "unscorable_flag" (n_unscorable above 10% of scorable + unscorable).
+Sub-blocks with n == 0 or a None rate are skipped. Under --strict an underpowered arm row
+fails the process exactly like an underpowered control run:
 
     0 - no hard guardrail violation, and (without --strict) any underpowered runs
         do not fail the process (matches all pre-existing invocations).
@@ -253,12 +266,145 @@ def build_power_artifact(facts: RunFacts) -> dict:
         nc = newcombe_diff_ci(k, n, facts.n_neutral_changed, n)
         newcombe = {"diff": nc.diff, "lower": nc.lower, "upper": nc.upper, "conf": nc.conf}
     return {
+        "kind": "control",
         "label": facts.label,
         "n": n,
         "mde": mde,
         "ci_upper_on_observed": ci_upper,
         "newcombe": newcombe,
     }
+
+
+# --------------------------------------------------------------------------- #
+# Phase-2 arm summaries (08) -> additional power rows in the same artifact
+# --------------------------------------------------------------------------- #
+def find_arms_summaries() -> list[Path]:
+    """Every arms_summary_*.json under results/, including subdirectories.
+
+    Same rglob convention as ``find_summaries``; the exploratory Phase-2 arm runner
+    (08) writes these as ``arms_summary_<safe_model>.json`` beside the control summaries.
+    """
+    return sorted(RESULTS.rglob("arms_summary_*.json"))
+
+
+def _arms_candidates(arms: dict) -> list[tuple[str, object, object, object]]:
+    """(sublabel, n, rate, n_unscorable) for each rate-bearing sub-block present.
+
+    One tuple per measurement 08's summarizers expose a rate for: the two replay drift
+    sides, the two transplant carry-over directions, the direct arm's accuracy and its
+    with/without-CoT agreement (each nested with its own scorable n), and the single
+    follow-style rate of the placebo, two-step, and filler arms. The curves arm exposes
+    no rate and is intentionally absent. Missing arms simply contribute nothing.
+    """
+    candidates: list[tuple[str, object, object, object]] = []
+
+    replay = arms.get("replay")
+    if isinstance(replay, dict):
+        for side in ("clean", "hinted"):
+            block = replay.get(side)
+            if isinstance(block, dict):
+                candidates.append(
+                    (f"replay.{side}", block.get("n"),
+                     block.get("drift_rate"), block.get("n_unscorable"))
+                )
+
+    transplant = arms.get("transplant")
+    if isinstance(transplant, dict):
+        for direction in ("forward", "reverse"):
+            block = transplant.get(direction)
+            if isinstance(block, dict):
+                candidates.append(
+                    (f"transplant.{direction}", block.get("n"),
+                     block.get("carryover_rate"), block.get("n_unscorable"))
+                )
+
+    direct = arms.get("direct")
+    if isinstance(direct, dict):
+        n_unscorable = direct.get("n_unscorable")
+        for sublabel, key in (("direct.accuracy", "direct_accuracy"),
+                              ("direct.agreement", "with_without_cot_agreement")):
+            block = direct.get(key)
+            if isinstance(block, dict):
+                candidates.append(
+                    (sublabel, block.get("n"), block.get("rate"), n_unscorable)
+                )
+
+    placebo = arms.get("placebo")
+    if isinstance(placebo, dict):
+        candidates.append(
+            ("placebo", placebo.get("n"),
+             placebo.get("placebo_follow_rate"), placebo.get("n_unscorable"))
+        )
+
+    twostep = arms.get("twostep")
+    if isinstance(twostep, dict):
+        candidates.append(
+            ("twostep", twostep.get("n"),
+             twostep.get("twostep_follow_rate"), twostep.get("n_unscorable"))
+        )
+
+    filler = arms.get("filler")
+    if isinstance(filler, dict):
+        candidates.append(
+            ("filler", filler.get("n"),
+             filler.get("filler_match_rate"), filler.get("n_unscorable"))
+        )
+
+    return candidates
+
+
+def _arms_power_row(base_label: str, sublabel: str, n, rate, n_unscorable) -> dict | None:
+    """One arm power row, or ``None`` for a sub-block with n == 0 or a None rate.
+
+    The observed success count is recovered as ``round(rate * n)`` (rate is stored as the
+    exact integer fraction ``count / n``, so the round is lossless at these small n) and
+    fed to the same ``proportion_ci_upper`` / ``minimum_detectable_rate`` the control rows
+    use -- the guardrail math is never reimplemented here. ``unscorable_flag`` applies the
+    pre-registration's 10-percent rule (unscorable above a tenth of the entered pairs).
+    """
+    if n is None or n == 0 or rate is None:
+        return None
+    k = int(round(float(rate) * n))
+    mde = minimum_detectable_rate(n)
+    row = {
+        "kind": "arms",
+        "label": f"{base_label}:{sublabel}",
+        "n": n,
+        "rate": float(rate),
+        "mde": mde,
+        "ci_upper_on_observed": proportion_ci_upper(k, n),
+        "powered": mde <= MDE_TARGET,
+    }
+    if n_unscorable is not None:
+        row["n_unscorable"] = n_unscorable
+        row["unscorable_flag"] = n_unscorable > 0.10 * (n + n_unscorable)
+    return row
+
+
+def arms_rows_from_summary(summary: dict, base_label: str) -> list[dict]:
+    """Power rows for one arms summary dict (pure; unit-tested on synthetic dicts).
+
+    Walks ``summary["arms"]`` and emits one row per rate-bearing sub-block, skipping the
+    empty (n == 0) and unscored (None-rate) ones. ``base_label`` is the file's path
+    relative to results/, matching the control rows' label convention; each row's label
+    is ``<base_label>:<sublabel>``.
+    """
+    arms = summary.get("arms")
+    if not isinstance(arms, dict):
+        return []
+    rows: list[dict] = []
+    for sublabel, n, rate, n_unscorable in _arms_candidates(arms):
+        row = _arms_power_row(base_label, sublabel, n, rate, n_unscorable)
+        if row is not None:
+            rows.append(row)
+    return rows
+
+
+def load_arms_rows(path: Path) -> list[dict]:
+    """Parse one arms_summary_*.json into its power rows."""
+    summary = json.loads(path.read_text())
+    base_label = str(path.relative_to(RESULTS))
+    return arms_rows_from_summary(summary, base_label)
 
 
 def is_hard_violation(facts: RunFacts) -> bool:
@@ -316,9 +462,20 @@ def main(argv: list[str] | None = None) -> int:
         if facts.n_clean_correct and minimum_detectable_rate(facts.n_clean_correct) > MDE_TARGET:
             underpowered.append(f"{facts.label} (n={facts.n_clean_correct})")
 
+    # Additive: ingest the exploratory Phase-2 arm summaries (08) into the same artifact.
+    # One power row per rate-bearing sub-block; an underpowered arm row joins the control
+    # underpowered list so --strict fails on it exactly like an underpowered control run.
+    arms_rows: list[dict] = []
+    for path in find_arms_summaries():
+        arms_rows.extend(load_arms_rows(path))
+    for row in arms_rows:
+        if not row["powered"]:
+            underpowered.append(f"{row['label']} (n={row['n']})")
+
     print("\n" + "=" * 70)
     print("SUMMARY")
     print(f"  runs audited:     {len(summaries)}")
+    print(f"  arm power rows:   {len(arms_rows)}")
     print(f"  underpowered (MDE > {MDE_TARGET:.0%}): {len(underpowered)}")
     for label in underpowered:
         print(f"    - {label}")
@@ -326,10 +483,11 @@ def main(argv: list[str] | None = None) -> int:
     print("  not a finding. Pre-commit to an n whose minimum detectable rate is small")
     print("  enough to be meaningful, and report that MDE alongside any null.")
 
-    artifacts = [build_power_artifact(f) for f in facts_list]
+    artifacts = [build_power_artifact(f) for f in facts_list] + arms_rows
     artifact_path = RESULTS / "guardrail_power_artifacts.json"
     artifact_path.write_text(json.dumps(artifacts, indent=2))
-    print(f"\nwrote power artifact ({len(artifacts)} run(s)) -> {artifact_path}")
+    print(f"\nwrote power artifact ({len(facts_list)} control run(s) + "
+          f"{len(arms_rows)} arm row(s)) -> {artifact_path}")
 
     hard_violations = [f.label for f in facts_list if is_hard_violation(f)]
     if hard_violations:

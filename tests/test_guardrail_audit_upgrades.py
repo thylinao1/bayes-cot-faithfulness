@@ -71,6 +71,57 @@ OLD_SCHEMA_SUMMARY = {
 }
 
 
+# A synthetic arms summary in the shape experiments/08_additive_arms.py writes, with
+# every rate-bearing block plus an n == 0 block (placebo), a None-rate block (twostep),
+# a rateless block (curves), and an n_unscorable > 10% block (replay.hinted).
+ARMS_SUMMARY = {
+    "backend": "ollama",
+    "model": "arms-model",
+    "n_items": 40,
+    "n_clean_correct": 30,
+    "cue_kind": "stated-hint:strong",
+    "enabled_arms": ["replay", "transplant", "direct", "placebo", "twostep", "filler",
+                     "curves"],
+    "attrition": {"n_entered": 40},
+    "arms": {
+        "replay": {
+            "clean": {"n": 20, "n_drifted": 2, "drift_rate": 0.1, "n_unscorable": 1},
+            # 3 unscorable of 15 entered = 20% > 10% -> unscorable_flag True
+            "hinted": {"n": 12, "n_drifted": 6, "drift_rate": 0.5, "n_unscorable": 3},
+        },
+        "transplant": {
+            "forward": {"n": 18, "n_carryover": 9, "carryover_rate": 0.5, "n_unscorable": 0},
+            # exactly 2 of 20 = 10% -> NOT strictly above -> unscorable_flag False
+            "reverse": {"n": 18, "n_carryover": 3, "carryover_rate": 1 / 6, "n_unscorable": 2},
+            "note": "read against the replay floor",
+        },
+        "direct": {
+            "n": 25, "n_unscorable": 5, "clean_accuracy": 1.0,
+            "direct_accuracy": {"n": 25, "n_correct": 20, "rate": 0.8},
+            "with_without_cot_agreement": {"n": 25, "n_agree": 22, "rate": 0.88},
+            "commitment_split": {},
+        },
+        "placebo": {  # n == 0 -> row skipped
+            "n": 0, "n_unscorable": 0, "n_changed": 0, "change_rate": None,
+            "n_follow_would_be_hint": 0, "placebo_follow_rate": None,
+        },
+        "twostep": {  # None rate -> row skipped
+            "n": 10, "n_unscorable": 0, "n_twostep_follow": 0, "twostep_follow_rate": None,
+            "n_singleshot_follow": 0, "singleshot_follow_rate": None,
+        },
+        "filler": {
+            "n": 4, "n_unscorable": 0, "n_filler_match": 1, "filler_match_rate": 0.25,
+            "replay_floor": None,
+        },
+        "curves": {  # bears no rate -> never emits a row
+            "clean": {"n": 5, "mean_curve_area": 0.5},
+            "hinted": {"n": 5, "mean_curve_area": 0.4},
+        },
+    },
+    "status": "exploratory Phase-2 arms; no verdict",
+}
+
+
 def _write_summary(dir_path: Path, name: str, payload: dict) -> Path:
     path = dir_path / f"control_summary_{name}.json"
     path.write_text(json.dumps(payload, indent=2))
@@ -166,7 +217,8 @@ def test_power_artifact_written_with_expected_keys(
         "control_summary_old.json",
     }
     for row in rows:
-        assert set(row) == {"label", "n", "mde", "ci_upper_on_observed", "newcombe"}
+        assert set(row) == {"kind", "label", "n", "mde", "ci_upper_on_observed", "newcombe"}
+        assert row["kind"] == "control"  # control rows carry the distinguishing kind field
     by_label = {r["label"]: r for r in rows}
     assert by_label["control_summary_new.json"]["newcombe"] is not None
     assert set(by_label["control_summary_new.json"]["newcombe"]) == {
@@ -211,3 +263,111 @@ def test_decide_exit_code_default_ignores_underpowered() -> None:
     assert audit.decide_exit_code(False, True, False) == 0
     assert audit.decide_exit_code(False, False, False) == 0
     assert audit.decide_exit_code(False, False, True) == 0
+
+
+# --------------------------------------------------------------------------- #
+# arms loader (pure, on a synthetic arms-summary dict)
+# --------------------------------------------------------------------------- #
+def test_arms_rows_from_summary_emits_one_row_per_rate_bearing_subblock() -> None:
+    rows = audit.arms_rows_from_summary(ARMS_SUMMARY, "arms_summary_arms-model.json")
+    labels = {r["label"] for r in rows}
+    base = "arms_summary_arms-model.json"
+    assert labels == {
+        f"{base}:replay.clean",
+        f"{base}:replay.hinted",
+        f"{base}:transplant.forward",
+        f"{base}:transplant.reverse",
+        f"{base}:direct.accuracy",
+        f"{base}:direct.agreement",
+        f"{base}:filler",
+    }
+    for r in rows:
+        assert r["kind"] == "arms"  # distinguishing field vs control rows
+        assert set(r) >= {
+            "kind", "label", "n", "rate", "mde", "ci_upper_on_observed",
+            "powered", "n_unscorable", "unscorable_flag",
+        }
+
+
+def test_arms_rows_skip_zero_n_none_rate_and_rateless_blocks() -> None:
+    labels = {r["label"] for r in audit.arms_rows_from_summary(ARMS_SUMMARY, "f.json")}
+    assert "f.json:placebo" not in labels   # n == 0
+    assert "f.json:twostep" not in labels    # None rate
+    assert not any("curves" in lb for lb in labels)  # curves bears no rate
+
+
+def test_arms_rows_unscorable_flag_applies_ten_percent_rule() -> None:
+    rows = {r["label"]: r for r in audit.arms_rows_from_summary(ARMS_SUMMARY, "f.json")}
+    # hinted replay: 3 unscorable of 15 entered (20%) -> flagged
+    assert rows["f.json:replay.hinted"]["unscorable_flag"] is True
+    # reverse transplant: exactly 2 of 20 (10%) -> NOT strictly above -> not flagged
+    assert rows["f.json:transplant.reverse"]["unscorable_flag"] is False
+    # clean replay: 1 of 21 -> well under 10%
+    assert rows["f.json:replay.clean"]["unscorable_flag"] is False
+
+
+def test_arms_rows_ci_and_mde_reuse_guardrail_functions() -> None:
+    from bayes_cot_faithfulness.guardrails import (
+        minimum_detectable_rate,
+        proportion_ci_upper,
+    )
+
+    rows = {r["label"]: r for r in audit.arms_rows_from_summary(ARMS_SUMMARY, "f.json")}
+    r = rows["f.json:replay.clean"]  # n = 20, rate = 0.1 -> observed count k = 2
+    assert r["n"] == 20
+    assert r["rate"] == 0.1
+    assert r["ci_upper_on_observed"] == proportion_ci_upper(2, 20)
+    assert r["mde"] == minimum_detectable_rate(20)
+    assert r["powered"] == (minimum_detectable_rate(20) <= audit.MDE_TARGET)
+
+
+def test_arms_rows_from_summary_tolerates_missing_arms_key() -> None:
+    assert audit.arms_rows_from_summary({}, "f.json") == []
+    assert audit.arms_rows_from_summary({"arms": {}}, "f.json") == []
+
+
+# --------------------------------------------------------------------------- #
+# main() ingests arms summaries into the same artifact and exit-code contract
+# --------------------------------------------------------------------------- #
+def test_main_ingests_arms_summary_alongside_control_rows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    monkeypatch.setattr(audit, "RESULTS", tmp_path)
+    # A control summary must be present or main() reports "nothing found" and exits early.
+    _write_summary(tmp_path, "ctrl", NEW_SCHEMA_SUMMARY)
+    (tmp_path / "arms_summary_arms-model.json").write_text(json.dumps(ARMS_SUMMARY, indent=2))
+
+    exit_code = audit.main([])  # default invocation ignores underpowered rows
+    capsys.readouterr()
+    assert exit_code == 0
+
+    rows = json.loads((tmp_path / "guardrail_power_artifacts.json").read_text())
+    assert {r["kind"] for r in rows} == {"control", "arms"}
+    arms_labels = {r["label"] for r in rows if r["kind"] == "arms"}
+    assert "arms_summary_arms-model.json:replay.hinted" in arms_labels
+    # control rows keep their exact payload shape (plus the additive kind field)
+    control = [r for r in rows if r["kind"] == "control"]
+    assert control
+    for r in control:
+        assert set(r) == {"kind", "label", "n", "mde", "ci_upper_on_observed", "newcombe"}
+
+
+def test_main_strict_fails_on_underpowered_arm_row(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    monkeypatch.setattr(audit, "RESULTS", tmp_path)
+    # A control run large enough to be well-powered on its own, so only the arm row can
+    # trip --strict.
+    powered_ctrl = dict(NEW_SCHEMA_SUMMARY)
+    powered_ctrl["n_clean_correct"] = 400
+    powered_ctrl["n_followed_hint"] = 4
+    _write_summary(tmp_path, "big", powered_ctrl)
+    # An arms summary whose one emitted row is a tiny-n (underpowered) filler match.
+    tiny_arms = {"arms": {"filler": {"n": 3, "n_unscorable": 0, "n_filler_match": 1,
+                                     "filler_match_rate": 1 / 3, "replay_floor": None}}}
+    (tmp_path / "arms_summary_tiny.json").write_text(json.dumps(tiny_arms))
+
+    assert audit.main([]) == 0            # default ignores underpowered rows
+    capsys.readouterr()
+    assert audit.main(["--strict"]) == 1  # the underpowered arm row fails loud
+    capsys.readouterr()

@@ -248,6 +248,46 @@ def test_summarize_curves_empty_arm_is_safe():
     assert out["clean"]["n"] == 0
     assert out["clean"]["mean_curve_area"] is None
     assert out["clean"]["covariates"] == []
+    assert out["clean"]["n_unscorable"] == 0
+    assert out["clean"]["n_unparsed_depths"] == 0
+
+
+def test_summarize_curves_counts_unscorable_and_unparsed_depths():
+    # wholly unscorable (final answer None): no scorable depth, but every depth answer parsed
+    c_whole = summarize_curve([0, 1, 2], ["A", "B", "C"], None)
+    # one None-answer depth, still scorable elsewhere
+    c_partial = summarize_curve([0, 1, 2], ["B", None, "B"], "B")
+    # fully scorable
+    c_ok = summarize_curve([0, 1, 2], ["B", "B", "B"], "B")
+    assert c_whole.curve_area is None
+    assert c_partial.n_unscorable_depths == 1
+
+    records = [
+        {"clean_curve": c_whole, "hinted_curve": c_ok},
+        {"clean_curve": c_partial, "hinted_curve": c_ok},
+    ]
+    out = mod.summarize_curves(records)
+    # clean: only c_whole is wholly unscorable (no scorable depth)
+    assert out["clean"]["n_unscorable"] == 1
+    # summed per-curve None-answer depths: c_whole 0 + c_partial 1
+    assert out["clean"]["n_unparsed_depths"] == 1
+    # the wholly-unscorable curve is dropped from mean_curve_area (c_partial alone -> 1.0)
+    assert out["clean"]["mean_curve_area"] == 1.0
+    # hinted: two fully-scorable curves, nothing unscorable
+    assert out["hinted"]["n_unscorable"] == 0
+    assert out["hinted"]["n_unparsed_depths"] == 0
+
+
+def test_curve_to_dict_serializes_unscorable_depths_and_none_area():
+    c = summarize_curve([0, 1, 2], ["B", None, "B"], "B")
+    d = mod._curve_to_dict(c)
+    assert d["n_unscorable_depths"] == 1
+    assert d["match"] == [True, None, True]
+    assert d["curve_area"] == 1.0
+    # a wholly-unscorable curve serializes curve_area as None (JSON null), not 0.0
+    d_none = mod._curve_to_dict(summarize_curve([0, 1], ["A", "B"], None))
+    assert d_none["curve_area"] is None
+    assert d_none["n_unscorable_depths"] == 0
 
 
 # --------------------------------------------------------------------------- #

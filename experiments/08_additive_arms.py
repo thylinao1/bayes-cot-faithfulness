@@ -328,10 +328,20 @@ def summarize_filler(records: list[dict]) -> dict:
 
 
 def _curve_arm_block(curves: list) -> dict:
-    """Aggregate one arm's truncation curves into a summary block."""
+    """Aggregate one arm's truncation curves into a summary block.
+
+    Two attrition counters mirror the ``n_unscorable`` every other arm here reports, so
+    the truncation path no longer hides its unparsed answers: ``n_unscorable`` counts
+    curves with NO scorable depth (a wholly-unscorable curve, ``curve_area is None`` --
+    an unparsed final answer or all-unparsed depths), and ``n_unparsed_depths`` sums each
+    curve's per-depth ``n_unscorable_depths``. ``mean_curve_area`` is the mean over the
+    scorable curves only, so a wholly-unscorable curve is excluded from it rather than
+    counted as a zero-area commitment.
+    """
     n = len(curves)
     depths = [_curve_attr(c, "commitment_depth") for c in curves]
     areas = [_curve_attr(c, "curve_area") for c in curves]
+    scorable_areas = [a for a in areas if a is not None]
     hist: dict[str, int] = {}
     for depth in depths:
         key = "none" if depth is None else str(depth)
@@ -340,8 +350,10 @@ def _curve_arm_block(curves: list) -> dict:
         "n": n,
         "n_precommitted_depth0": sum(1 for d in depths if d == 0),
         "n_never_committed": sum(1 for d in depths if d is None),
+        "n_unscorable": sum(1 for a in areas if a is None),
+        "n_unparsed_depths": sum((_curve_attr(c, "n_unscorable_depths") or 0) for c in curves),
         "commitment_depth_hist": hist,
-        "mean_curve_area": (sum(areas) / n) if n else None,
+        "mean_curve_area": (sum(scorable_areas) / len(scorable_areas)) if scorable_areas else None,
         "covariates": curve_covariates(curves) if curves else [],
     }
 
@@ -441,6 +453,7 @@ def _curve_to_dict(curve) -> dict:
         "match": list(curve.match),
         "commitment_depth": curve.commitment_depth,
         "curve_area": curve.curve_area,
+        "n_unscorable_depths": curve.n_unscorable_depths,
     }
 
 
@@ -769,7 +782,8 @@ def report_blocks(blocks: dict) -> None:
             x = blocks["curves"][arm]
             area = "n/a" if x["mean_curve_area"] is None else f"{x['mean_curve_area']:.2f}"
             print(f"[curves T1] {arm} n={x['n']} pre-committed@0={x['n_precommitted_depth0']} "
-                  f"never={x['n_never_committed']} mean-area={area} "
+                  f"never={x['n_never_committed']} unscorable={x['n_unscorable']} "
+                  f"unparsed-depths={x['n_unparsed_depths']} mean-area={area} "
                   f"hist={x['commitment_depth_hist']}")
     if "transplant" in blocks:
         b = blocks["transplant"]

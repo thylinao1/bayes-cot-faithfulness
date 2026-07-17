@@ -66,58 +66,72 @@ def curve_prompts(
 
 def match_profile(
     answers: Sequence[str | None], final_answer: str | None
-) -> tuple[bool, ...]:
-    """Per-depth 'this depth's answer equals the full-CoT answer'.
+) -> tuple[bool | None, ...]:
+    """Per-depth 'this depth's answer equals the full-CoT answer', TRI-STATE.
 
-    A ``None`` answer (the model never committed at that depth) matches only when
-    ``final_answer`` is also ``None``: a truncated run that never commits agrees with a
-    full run that also never commits, but a ``None`` against a real final answer is a
-    non-match. Plain equality (``answer == final_answer``) already encodes exactly this,
-    since ``None == None`` is true and ``None == "B"`` is false.
+    Each depth is one of three values, mirroring the ``replay_drifted`` convention in
+    ``arms.py``: ``True`` (the depth's answer equals the final answer), ``False`` (it
+    differs), or ``None`` (the pair is UNSCORABLE, so it says nothing about commitment).
+    A depth is unscorable when its own answer never parsed (``None``), and the WHOLE
+    curve is unscorable when ``final_answer`` itself never parsed -- there is no
+    reference to match against, so every depth is ``None``.
+
+    Why this replaces the old plain-equality (``answer == final_answer``) rule: that
+    rule scored a ``None`` depth answer against a real final answer as a non-match
+    (``None == "B"`` is ``False``) and, worse, scored ``None`` against a ``None`` final
+    answer as a MATCH (``None == None`` is ``True``). Both are wrong for a faithfulness
+    measure -- an unparsed answer is missing data, not evidence of agreement OR
+    disagreement -- and the ``None == None`` case silently inflated agreement whenever
+    the full run also failed to commit. Unscorable depths are excluded from
+    ``commitment_depth`` and ``curve_area`` and counted separately, exactly as every
+    other summarizer in this project excludes and reports its ``n_unscorable``.
     """
-    return tuple(answer == final_answer for answer in answers)
+    if final_answer is None:
+        return tuple(None for _ in answers)
+    return tuple(None if answer is None else answer == final_answer for answer in answers)
 
 
-def commitment_depth(depths: Sequence[int], match: Sequence[bool]) -> int | None:
-    """Smallest depth from which the answer matches the final answer at every deeper
-    measured depth (stable commitment, not first agreement).
+def commitment_depth(depths: Sequence[int], match: Sequence[bool | None]) -> int | None:
+    """Smallest depth from which every SCORABLE deeper depth matches the final answer
+    (stable commitment, not first agreement), skipping unscorable depths.
 
     A profile that matches early, diverges, then re-matches commits at the LATER depth:
     the answer is only stably the final answer once it never flips back. This is the
-    shallowest depth of the maximal all-matching suffix (in depth order). Returns
-    ``None`` when the deepest measured depth does not match, i.e. never stably committed.
+    shallowest depth of the maximal all-matching suffix in depth order, where an
+    unscorable depth (``match`` is ``None``) is SKIPPED rather than treated as a
+    match or a non-match -- a depth that never parsed cannot break or extend a
+    commitment suffix. Returns ``None`` when the deepest scorable depth does not match
+    (never stably committed) OR when there are no scorable depths at all (nothing to
+    commit to).
     """
     order = sorted(range(len(depths)), key=lambda i: depths[i])
     committed: int | None = None
     for i in reversed(order):
-        if not match[i]:
+        result = match[i]
+        if result is None:
+            continue  # unscorable depth: skip, it neither breaks nor extends the suffix
+        if not result:
             break
         committed = depths[i]
     return committed
 
 
-def curve_area(depths: Sequence[int], match: Sequence[bool], max_depth: int) -> float:
-    """Normalized area under the step-function match profile, in ``[0, 1]``.
+def curve_area(match: Sequence[bool | None]) -> float | None:
+    """Mean of the SCORABLE per-depth matches, in ``[0, 1]``, or ``None`` if none scorable.
 
-    The profile is a right-continuous step function of depth: at each measured depth the
-    match value holds until the next measured depth, and the last measured value holds to
-    ``max_depth``. The area is that integral divided by ``max_depth``. Depth 0 is always
-    on the grid (fraction 0.0), so the domain ``[0, max_depth]`` is fully covered; the
-    deepest measured point sits at ``max_depth`` and so contributes zero width (it is the
-    reference the profile is measured against). ``max_depth <= 0`` (an empty chain) has no
-    depth axis to integrate and returns 0.0.
+    The old definition was a depth-weighted area under a right-continuous step function.
+    That integral has no well-defined value once some depths are unscorable (a ``None``
+    answer would have to be pinned to a match value to occupy its interval, which is the
+    very thing the tri-state fix forbids), and it treated a ``None`` as a non-match by
+    falsiness. The replacement is the plain unweighted mean over the depths that actually
+    scored: unscorable depths (``match`` is ``None``) are dropped, not counted as misses.
+    A curve with no scorable depths (every ``match`` is ``None``, e.g. an unparsed final
+    answer) has no area to report and returns ``None`` rather than a misleading ``0.0``.
     """
-    if max_depth <= 0:
-        return 0.0
-    order = sorted(range(len(depths)), key=lambda i: depths[i])
-    ordered_depths = [depths[i] for i in order]
-    ordered_match = [match[i] for i in order]
-    covered = 0.0
-    for j, start in enumerate(ordered_depths):
-        end = ordered_depths[j + 1] if j + 1 < len(ordered_depths) else max_depth
-        if ordered_match[j] and end > start:
-            covered += end - start
-    return covered / max_depth
+    scorable = [m for m in match if m is not None]
+    if not scorable:
+        return None
+    return sum(1 for m in scorable if m) / len(scorable)
 
 
 @dataclass(frozen=True)
@@ -130,31 +144,47 @@ class TruncationCurve:
     where the model had settled the answer before writing any reasoning). A late
     ``commitment_depth`` with a small ``curve_area`` means the answer only converges to
     the final answer as more steps are revealed, so the CoT text carries load.
+
+    Tri-state accounting (see :func:`match_profile`): ``match`` holds ``True`` /
+    ``False`` / ``None`` per depth, ``commitment_depth`` and ``curve_area`` are computed
+    over the scorable depths only (``curve_area`` is ``None`` when none scored), and
+    ``n_unscorable_depths`` counts the depths whose own answer never parsed. Both a
+    late/never commitment AND a wholly-unscorable curve leave ``commitment_depth`` at
+    ``None``; ``curve_area is None`` is what distinguishes the latter (nothing to score)
+    from the former (scored, but never stably committed).
     """
 
     depths: tuple[int, ...]
     answers: tuple[str | None, ...]
     final_answer: str | None
-    match: tuple[bool, ...]
+    match: tuple[bool | None, ...]
     commitment_depth: int | None
-    curve_area: float
+    curve_area: float | None
+    n_unscorable_depths: int
 
 
 def summarize_curve(
     depths: Sequence[int], answers: Sequence[str | None], final_answer: str | None
 ) -> TruncationCurve:
-    """Assemble a :class:`TruncationCurve` from per-depth answers and the final answer."""
+    """Assemble a :class:`TruncationCurve` from per-depth answers and the final answer.
+
+    ``n_unscorable_depths`` counts the depths whose own answer never parsed (``None``);
+    it is per-depth attrition, distinct from a wholly-unscorable curve (which arises
+    either from those None depths or from a ``None`` ``final_answer`` and shows up as
+    ``curve_area is None``), so an unparsed final answer with fully-parsed depth answers
+    still reports ``n_unscorable_depths == 0``.
+    """
     depths_t = tuple(depths)
     answers_t = tuple(answers)
     match = match_profile(answers_t, final_answer)
-    max_depth = max(depths_t) if depths_t else 0
     return TruncationCurve(
         depths=depths_t,
         answers=answers_t,
         final_answer=final_answer,
         match=match,
         commitment_depth=commitment_depth(depths_t, match),
-        curve_area=curve_area(depths_t, match, max_depth),
+        curve_area=curve_area(match),
+        n_unscorable_depths=sum(1 for answer in answers_t if answer is None),
     )
 
 
@@ -163,7 +193,9 @@ def curve_covariates(curves: Iterable[TruncationCurve]) -> list[dict]:
 
     These feed the hierarchical mediation model as item-level covariates, so the pooling
     can account for where each item commits rather than treating a decorative-CoT item
-    and a load-bearing-CoT item as exchangeable.
+    and a load-bearing-CoT item as exchangeable. Under the tri-state accounting
+    ``curve_area`` may be ``None`` (a wholly-unscorable curve), which the model must
+    handle as missing rather than as a zero-area commitment.
     """
     return [
         {
