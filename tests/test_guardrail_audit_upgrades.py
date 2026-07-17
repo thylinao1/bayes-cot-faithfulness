@@ -117,6 +117,17 @@ ARMS_SUMMARY = {
             "clean": {"n": 5, "mean_curve_area": 0.5},
             "hinted": {"n": 5, "mean_curve_area": 0.4},
         },
+        "specificity": {  # A9 held-out false-alarm rates, one row per sub-block
+            "n_holdout_entered": 20,
+            "n_clean_correct": 16,
+            "attrition": {"n_entered": 20, "n_failed_generation": 0,
+                          "n_unparseable_clean": 1},
+            "ack_clean": {"n": 16, "count": 1, "rate": 1 / 16, "n_unscorable": 0},
+            "ack_placebo": {"n": 16, "count": 2, "rate": 1 / 8, "n_unscorable": 0},
+            # 3 unscorable of 15 entered pairs = 20% > 10% -> unscorable_flag True
+            "would_be_follow": {"n": 12, "count": 3, "rate": 0.25, "n_unscorable": 3},
+            "silent_false_alarm": {"n": 12, "count": 2, "rate": 1 / 6, "n_unscorable": 3},
+        },
     },
     "status": "exploratory Phase-2 arms; no verdict",
 }
@@ -280,6 +291,10 @@ def test_arms_rows_from_summary_emits_one_row_per_rate_bearing_subblock() -> Non
         f"{base}:direct.accuracy",
         f"{base}:direct.agreement",
         f"{base}:filler",
+        f"{base}:specificity.ack_clean",
+        f"{base}:specificity.ack_placebo",
+        f"{base}:specificity.would_be_follow",
+        f"{base}:specificity.silent_false_alarm",
     }
     for r in rows:
         assert r["kind"] == "arms"  # distinguishing field vs control rows
@@ -304,6 +319,20 @@ def test_arms_rows_unscorable_flag_applies_ten_percent_rule() -> None:
     assert rows["f.json:transplant.reverse"]["unscorable_flag"] is False
     # clean replay: 1 of 21 -> well under 10%
     assert rows["f.json:replay.clean"]["unscorable_flag"] is False
+
+
+def test_arms_rows_include_specificity_false_alarm_blocks() -> None:
+    rows = {r["label"]: r for r in audit.arms_rows_from_summary(ARMS_SUMMARY, "f.json")}
+    ack = rows["f.json:specificity.ack_clean"]
+    assert ack["kind"] == "arms"
+    assert ack["n"] == 16
+    assert ack["rate"] == 1 / 16
+    assert ack["unscorable_flag"] is False  # 0 unscorable
+    wf = rows["f.json:specificity.would_be_follow"]
+    assert wf["n_unscorable"] == 3
+    assert wf["unscorable_flag"] is True  # 3 of 15 entered = 20% > 10%
+    sf = rows["f.json:specificity.silent_false_alarm"]
+    assert sf["n"] == 12 and sf["rate"] == 1 / 6
 
 
 def test_arms_rows_ci_and_mde_reuse_guardrail_functions() -> None:

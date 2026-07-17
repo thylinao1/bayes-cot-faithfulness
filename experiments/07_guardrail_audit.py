@@ -43,7 +43,9 @@ The same artifact additionally ingests the exploratory Phase-2 arm summaries wri
 by experiments/08_additive_arms.py as results/**/arms_summary_*.json. Each rate-bearing
 sub-block those summarizers emit -- replay clean/hinted drift, transplant forward/reverse
 carry-over, direct accuracy and with/without-CoT agreement, placebo would-be-hint follow,
-two-step follow, and filler match -- becomes one power row, distinguished from the control
+two-step follow, filler match, and the four held-out specificity false-alarm rates
+(ack_clean, ack_placebo, would_be_follow, silent_false_alarm) -- becomes one power row,
+distinguished from the control
 rows by a "kind" field ("control" vs "arms"). An arm row carries the sub-block's n, its
 observed rate, the exact one-sided 95% Clopper-Pearson upper bound on the observed count,
 the minimum detectable rate at that n, a "powered" flag, and -- so the pre-registration's
@@ -292,9 +294,10 @@ def _arms_candidates(arms: dict) -> list[tuple[str, object, object, object]]:
 
     One tuple per measurement 08's summarizers expose a rate for: the two replay drift
     sides, the two transplant carry-over directions, the direct arm's accuracy and its
-    with/without-CoT agreement (each nested with its own scorable n), and the single
-    follow-style rate of the placebo, two-step, and filler arms. The curves arm exposes
-    no rate and is intentionally absent. Missing arms simply contribute nothing.
+    with/without-CoT agreement (each nested with its own scorable n), the single
+    follow-style rate of the placebo, two-step, and filler arms, and the four held-out
+    specificity false-alarm rates (A9). The curves arm exposes no rate and is
+    intentionally absent. Missing arms simply contribute nothing.
     """
     candidates: list[tuple[str, object, object, object]] = []
 
@@ -349,6 +352,18 @@ def _arms_candidates(arms: dict) -> list[tuple[str, object, object, object]]:
             ("filler", filler.get("n"),
              filler.get("filler_match_rate"), filler.get("n_unscorable"))
         )
+
+    # A9 held-out specificity: four false-alarm rates on unmanipulated items, each a
+    # uniform n / count / rate / n_unscorable sub-block written by summarize_specificity.
+    specificity = arms.get("specificity")
+    if isinstance(specificity, dict):
+        for sub in ("ack_clean", "ack_placebo", "would_be_follow", "silent_false_alarm"):
+            block = specificity.get(sub)
+            if isinstance(block, dict):
+                candidates.append(
+                    (f"specificity.{sub}", block.get("n"),
+                     block.get("rate"), block.get("n_unscorable"))
+                )
 
     return candidates
 
