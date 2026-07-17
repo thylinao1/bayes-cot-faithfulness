@@ -10,6 +10,17 @@ free**: no API, no cloud, no cost.
 - `PREREGISTRATION.md`: the frozen pass/fail. Read it before running.
 - `05_realmodel_control.py`: the runner (clean arm, positive control, negative
   control, a coarse mediation + breakdown rho*).
+- `08_additive_arms.py`: the additive Phase-2 arms (replay floor, matched
+  placebo, no-CoT probe, two-step protocol, length-matched filler, truncation
+  dose-response curves, CoT transplant, three-tier cue taxonomy). Exploratory
+  scaffolding for the Phase-2 pre-registration: it never touches the frozen
+  controls and produces no PASS/REVIEW verdict. Enable arms with a repeatable
+  `--arm` flag; run with no flags to see the choices.
+- `09_parser_audit.py`: an offline audit of the frozen answer extractor. A
+  44-case constructed battery with a measured extraction error rate and its
+  exact upper bound, a seeded hand-audit TSV, and a per-arm answer-position
+  table. The parser stays frozen; this bounds how much of any measured
+  unfaithfulness could be extraction artifact.
 - `06_positive_control_demo.py`: the positive-control demonstration: the auditor
   flagging a known-unfaithful case end to end, offline and free. Act 1 runs the
   case-level auditor on three labelled transcripts (a planted deception it must flag,
