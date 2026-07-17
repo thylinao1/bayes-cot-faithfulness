@@ -68,4 +68,8 @@ experiments/results/*
 # exploratory additive-arms smoke summaries (no verdict; transcripts stay local)
 !experiments/results/arms_summary_llama3.2_3b.json
 !experiments/results/arms_summary_llama-3.3-70b-versatile.json
+# A9 specificity pilot summary (the pilots/ dir itself stays ignored otherwise)
+!experiments/results/pilots/
+experiments/results/pilots/*
+!experiments/results/pilots/arms_summary_llama3.2_3b.json
 experiments/data/arc_*.json
