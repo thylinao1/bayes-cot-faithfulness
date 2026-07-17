@@ -35,6 +35,12 @@ exact observed-data likelihood for any fixed ``rho``::
 At ``rho = 0`` this is ordinary probit mediation. At the true ``rho`` it
 recovers the de-confounded structural coefficients, hence the true effects.
 That recovery is what ``notebooks/03_sensitivity_analysis.py`` validates.
+
+Identification note (see docs/phase2_design_notes.md section 1): in this
+project's experiments the cue X is randomized by protocol, so the treatment
+half of sequential ignorability holds by construction and ``rho`` prices only
+the mediator-outcome half. The reported ``rho*`` is therefore interpretable
+purely as mediator-outcome confounding tolerance, with no X-side residue.
 """
 
 from __future__ import annotations
