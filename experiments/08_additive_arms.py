@@ -41,6 +41,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))  # local sibling clients, exactly like 05
 from groq_client import GroqClient  # noqa: E402
 from ollama_client import OllamaClient  # noqa: E402
+import arms_resume  # noqa: E402  # sibling checkpoint/resume module, imported like the clients
 
 from bayes_cot_faithfulness.interventions import (  # noqa: E402
     _HINT_TEMPLATES,
@@ -117,7 +118,13 @@ _PREPENDED_CUE_TAXONOMIES = ("metadata", "grader-code")
 
 @dataclass(frozen=True)
 class RunCtx:
-    """The immutable per-run context threaded through the arm functions."""
+    """The immutable per-run context threaded through the arm functions.
+
+    ``checkpoint`` is the resume writer (or None when resume is not wired). It is optional
+    with a default so the existing offline arm tests, which build a RunCtx directly, keep
+    working unchanged; when present, the arms piggyback a full-state checkpoint write onto
+    the same cadence points that already bank the published transcripts.
+    """
 
     n_choices: int
     num_predict: int
@@ -126,6 +133,7 @@ class RunCtx:
     backend: str
     model: str
     curve_cap: int
+    checkpoint: "arms_resume.CheckpointWriter | None" = None
 
 
 # --- Small pure helpers -----------------------------------------------------
@@ -143,6 +151,50 @@ def _curve_attr(curve, name):
     if isinstance(curve, dict):
         return curve.get(name)
     return getattr(curve, name)
+
+
+def measured_suffix(n_entered: int, n_failed: int) -> str:
+    """The ' (N entered, M no record)' tail, or '' when nothing was dropped.
+
+    A dropped item was never ASKED, so folding it into the accuracy denominator would
+    read as the model getting it wrong. The JSON already carries n_entered /
+    n_failed_generation; this only stops the console line from being misread.
+    """
+    if not n_failed:
+        return ""
+    return f" measured ({n_entered} entered, {n_failed} no record)"
+
+
+def clean_accuracy_line(n_correct: int, n_measured: int, attrition: dict) -> str:
+    """The [1/3] clean-accuracy line, honest about a roster that dropped items."""
+    n_entered = attrition.get("n_entered", n_measured)
+    n_failed = attrition.get("n_failed_generation", 0)
+    return (f"      clean accuracy: {n_correct}/{n_measured}"
+            f"{measured_suffix(n_entered, n_failed)}")
+
+
+def curve_coverage_warning(curve_cap: int, n_clean_correct: int) -> str:
+    """The P7 curve-coverage warning (WARNING ONLY -- never a stop, never an auto-fix).
+
+    Quotes the frozen Phase-2 pre-registration's Curve coverage rule. Changing a run
+    parameter is the operator's call, not the runner's, so this prints and continues.
+    """
+    return (
+        "\n  " + "!" * 74 + "\n"
+        f"  [P7 WARNING] --curve-cap {curve_cap} is BELOW this run's clean-correct n "
+        f"({n_clean_correct}).\n"
+        "  The frozen Phase-2 pre-registration (Curve coverage) requires:\n"
+        "    \"Preregistered runs that enable the curves arm set `--curve-cap` to at\n"
+        "     least the run's clean-correct n, so the curves (and P7) cover every item\n"
+        "     entering the other arms. The default cap of 20 is an exploratory cost\n"
+        "     control only; a powered run that leaves it in place has an unregistered\n"
+        "     analysis population and does not count for P7.\"\n"
+        f"  This run's P7 analysis population is therefore UNREGISTERED: the curves will\n"
+        f"  cover only the first {curve_cap} of {n_clean_correct} clean-correct items.\n"
+        f"  Re-run with --curve-cap {n_clean_correct} (or higher) if P7 is intended.\n"
+        "  Continuing -- this is a warning, not a stop.\n"
+        "  " + "!" * 74 + "\n"
+    )
 
 
 def resolve_arms(arms: list[str] | None) -> list[str]:
@@ -496,8 +548,17 @@ def build_blocks(records: list[dict], arms: list[str]) -> dict:
 
 def assemble_summary(backend: str, model: str, n_items: int, n_clean_correct: int,
                      cue_kind: str, arms: list[str], blocks: dict,
-                     attrition: dict) -> dict:
-    """The final exploratory summary dict (carries the no-verdict status string)."""
+                     attrition: dict, n_invocations: int = 1, curve_cap: int | None = None,
+                     num_predict: int | None = None) -> dict:
+    """The final exploratory summary dict (carries the no-verdict status string).
+
+    ``n_invocations`` / ``resumed`` disclose that the artifact came from a multi-leg
+    resumed run rather than one sitting, and ``curve_cap`` records the parameter the
+    frozen pre-registration makes registration-critical for P7 (a run left at the
+    exploratory default has an unregistered P7 population, and this artifact is what
+    07_guardrail_audit ingests and what gets read back months later). Every pre-existing
+    field and spelling is unchanged -- these are pure additions.
+    """
     return {
         "backend": backend,
         "model": model,
@@ -508,6 +569,10 @@ def assemble_summary(backend: str, model: str, n_items: int, n_clean_correct: in
         "attrition": attrition,
         "arms": blocks,
         "status": STATUS_STRING,
+        "n_invocations": n_invocations,
+        "resumed": n_invocations > 1,
+        "curve_cap": curve_cap,
+        "num_predict": num_predict,
     }
 
 
@@ -616,51 +681,114 @@ def write_specificity_transcripts(out_dir: Path, safe_model: str, records: list[
 def _checkpoint(ctx: RunCtx, records: list[dict], i: int) -> None:
     if (i + 1) % CHECKPOINT_EVERY == 0:
         write_arm_transcripts(ctx.out_dir, ctx.safe_model, records)
+        if ctx.checkpoint is not None:
+            ctx.checkpoint.write()
 
 
 def _bank_and_report(ctx: RunCtx, records: list[dict], err: Exception | None) -> None:
     n = write_arm_transcripts(ctx.out_dir, ctx.safe_model, records)
+    # Write the resume checkpoint BEFORE the failure message, so a stop banks the full
+    # state (records + attrition + specificity so far) as its last act.
+    if ctx.checkpoint is not None:
+        ctx.checkpoint.write()
     if n:
         print(f"  [saved] {n} arm transcripts banked before the stop -> {ctx.out_dir}")
     print(fail_message(ctx.backend, ctx.model, err))
 
 
 # --- Model passes (every call goes through safe_generate) ---
-def substrate_pass(client, items, n_choices, num_predict, backend, model):
-    """Clean arm over all items; same first-call / three-strikes stop as 05."""
-    records: list[dict] = []
+def parse_or_force_checked(client, item, text, n_choices):
+    """05's ``parse_or_force`` with the forced call's error SURFACED instead of swallowed.
+
+    05 returns None both when the forced continuation call itself failed (a transient
+    stop: timeout, exhausted token budget) and when the model genuinely never states an
+    answer. Those must diverge here: a transient error banked as a None answer would be
+    a fabricated non-answer the presence-based resume skips could never repair, and with
+    resume available stopping is strictly better than banking it -- the pass stops, the
+    checkpoint keeps the output key absent, and the resumed run redoes the call. This
+    deliberately changes fresh-run behavior ONLY on the transient-error path; a genuinely
+    unparseable answer after a SUCCESSFUL forced call still returns ``(None, None)`` and
+    is scored as unparseable exactly as before.
+    """
+    ans = parse_answer(text, n_choices)
+    if ans is not None:
+        return ans, None
+    forced, err = safe_generate(client, continuation_prompt(item, text), FORCE_TOKENS)
+    if err is not None:
+        return None, err
+    return parse_answer(forced, n_choices), None
+
+
+def substrate_pass(client, items, n_choices, num_predict, backend, model,
+                   banked=None, records=None, on_checkpoint=None, locked=False):
+    """Clean arm over all items; same first-call / three-strikes stop as 05.
+
+    Resume merge (``banked`` is None on a fresh run, keeping that path's model-call
+    sequence identical to today): for each item in fetch ORDER take the banked checkpoint
+    record when its key matches. Fetch order is preserved because merged records are
+    appended in item order, which the downstream index-dependent passes rely on.
+    Attrition is derived from the final state, never carried as counters.
+
+    ``locked`` is the DERIVED roster lock (``arms_resume.roster_locked`` over the banked
+    records: does any of them already carry a position-seeded draw?). Unlocked, an item
+    with no banked record is simply attempted again, so a daily cap that stops a clean
+    pass mid-flight costs nothing -- the resumed run can therefore end up with MORE
+    coverage than the uninterrupted counterfactual, which is a valid run of the design,
+    not an identical one. LOCKED, such an item is skipped entirely (no call, no record):
+    an earlier invocation already seeded ``wrong_label(rotate=i)`` / ``rng_seed=i`` on
+    this roster, so healing a mid-roster hole now would shift every later record while
+    the presence guards kept their banked old-position hints, breaking the frozen
+    wrong-option rotation. Either way the published rotation is a correct cycle over the
+    FINAL roster and attrition reports every item that entered without a record.
+
+    ``records`` lets the caller pass in a pre-registered list (one a CheckpointWriter
+    already holds) that this pass fills in place; ``on_checkpoint`` is invoked every
+    CHECKPOINT_EVERY items AND right before an abort return, so a mid-substrate stop
+    banks everything generated so far.
+    """
+    if records is None:
+        records = []
     fails = 0
-    n_failed_generation = 0
-    n_unparseable_clean = 0
     for i, it in enumerate(items):
+        key = (it.question, tuple(it.choices))
+        if banked is not None and key in banked:
+            records.append(banked[key])  # restored from the checkpoint; no model call
+            continue
+        if locked:
+            continue  # committed roster: this hole stays a hole (and stays in attrition)
         out, err = safe_generate(client, clean_prompt(it), num_predict)
+        if err is None:
+            ans, err = parse_or_force_checked(client, it, out, n_choices)
         if err is not None:
             fails += 1
-            n_failed_generation += 1
             if i == 0 or fails >= 3:
+                if on_checkpoint is not None:
+                    on_checkpoint()
                 print(fail_message(backend, model, err))
-                return [], False, {}
+                return records, False, {}
             continue
-        ans = parse_or_force(client, it, out, n_choices)
-        if ans is None:
-            n_unparseable_clean += 1
         records.append({
             "item": it, "clean_cot": out, "clean_answer": ans,
             "clean_correct": ans == it.answer_label, "answer_label": it.answer_label,
         })
         print(f"      ... generated {i + 1}/{len(items)}", end="\r", flush=True)
+        if on_checkpoint is not None and (i + 1) % CHECKPOINT_EVERY == 0:
+            on_checkpoint()
     print()
-    attrition = {
-        "n_entered": len(items),
-        "n_failed_generation": n_failed_generation,
-        "n_unparseable_clean": n_unparseable_clean,
-    }
-    return records, True, attrition
+    return records, True, arms_resume.derive_attrition(len(items), records)
 
 
 def cue_pass(client, records, ctx, taxonomy):
-    """Cue arm over the clean-correct subset (frozen stated hint, or a taxonomy cue)."""
+    """Cue arm over the clean-correct subset (frozen stated hint, or a taxonomy cue).
+
+    On resume, a record banked by a previous invocation already carries hinted_answer (with
+    its hint_label / cue_text restored from the checkpoint), so it is skipped -- but ``i``
+    stays the record's position in the FULL clean-correct list, keeping wrong_label(rotate=i)
+    identical to the uninterrupted run for any record that still has to be generated.
+    """
     for i, r in enumerate(records):
+        if "hinted_answer" in r:
+            continue  # banked previously; hint_label / cue_text already restored
         it = r["item"]
         hint = it.wrong_label(rotate=i)  # cycle the bait across wrong options, like 05
         if taxonomy:
@@ -670,10 +798,13 @@ def cue_pass(client, records, ctx, taxonomy):
             prompt = hinted_prompt(it, hint, strength="strong")
             cue_text = _HINT_TEMPLATES["strong"].format(hint=hint)
         out, err = safe_generate(client, prompt, ctx.num_predict)
+        if err is None:
+            ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
         if err is not None:
+            # No field is written for the in-flight record (not even hint_label), so
+            # the resume redoes its whole cue call at the same position i.
             _bank_and_report(ctx, records, err)
             return False
-        ans = parse_or_force(client, it, out, ctx.n_choices)
         r.update({
             "hint_label": hint, "cue_text": cue_text, "hinted_cot": out,
             "cue_prepended": taxonomy in _PREPENDED_CUE_TAXONOMIES,
@@ -699,22 +830,28 @@ def arm_replay(client, records, ctx):
     """
     for i, r in enumerate(records):
         it = r["item"]
-        clean_out, err = safe_generate(
-            client, replay_prompt(it, r["clean_cot"]), FORCE_TOKENS
-        )
-        if err is not None:
-            return False, err
-        r["replay_clean_answer"] = parse_or_force(client, it, clean_out, ctx.n_choices)
-        hinted_out, err = safe_generate(
-            client,
-            cued_continuation_prompt(
-                it, r["cue_text"], r["hinted_cot"], prepend=r.get("cue_prepended", False)
-            ),
-            FORCE_TOKENS,
-        )
-        if err is not None:
-            return False, err
-        r["replay_hinted_answer"] = parse_or_force(client, it, hinted_out, ctx.n_choices)
+        if "replay_clean_answer" not in r:
+            clean_out, err = safe_generate(
+                client, replay_prompt(it, r["clean_cot"]), FORCE_TOKENS
+            )
+            if err is None:
+                ans, err = parse_or_force_checked(client, it, clean_out, ctx.n_choices)
+            if err is not None:
+                return False, err
+            r["replay_clean_answer"] = ans
+        if "replay_hinted_answer" not in r:
+            hinted_out, err = safe_generate(
+                client,
+                cued_continuation_prompt(
+                    it, r["cue_text"], r["hinted_cot"], prepend=r.get("cue_prepended", False)
+                ),
+                FORCE_TOKENS,
+            )
+            if err is None:
+                ans, err = parse_or_force_checked(client, it, hinted_out, ctx.n_choices)
+            if err is not None:
+                return False, err
+            r["replay_hinted_answer"] = ans
         _checkpoint(ctx, records, i)
     return True, None
 
@@ -722,13 +859,18 @@ def arm_replay(client, records, ctx):
 def arm_placebo(client, records, ctx):
     """A4: the cue arm with the real cue swapped for a length-matched null."""
     for i, r in enumerate(records):
+        if "placebo_answer" in r:
+            _checkpoint(ctx, records, i)
+            continue  # banked previously
         it = r["item"]
         out, err = safe_generate(
             client, placebo_prompt(it, r["cue_text"], rng_seed=i), ctx.num_predict
         )
+        if err is None:
+            ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
         if err is not None:
             return False, err
-        r["placebo_answer"] = parse_or_force(client, it, out, ctx.n_choices)
+        r["placebo_answer"] = ans
         _checkpoint(ctx, records, i)
     return True, None
 
@@ -736,12 +878,17 @@ def arm_placebo(client, records, ctx):
 def arm_direct(client, records, ctx):
     """A8/T12/T2: the no-CoT probe, plus the per-item pre-commitment flag."""
     for i, r in enumerate(records):
+        if "direct_answer" in r:
+            _checkpoint(ctx, records, i)
+            continue  # banked previously (direct_answer and pre_cot_committed set together)
         it = r["item"]
         out, err = safe_generate(client, direct_prompt(it), FORCE_TOKENS)
+        if err is None:
+            ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
         if err is not None:
             return False, err
-        r["direct_answer"] = parse_or_force(client, it, out, ctx.n_choices)
-        r["pre_cot_committed"] = pre_cot_committed(r["direct_answer"], r["clean_answer"])
+        r["direct_answer"] = ans
+        r["pre_cot_committed"] = pre_cot_committed(ans, r["clean_answer"])
         _checkpoint(ctx, records, i)
     return True, None
 
@@ -749,6 +896,12 @@ def arm_direct(client, records, ctx):
 def arm_twostep(client, records, ctx):
     """A7: elicit reasoning without an answer, then force the commit in a second pass."""
     for i, r in enumerate(records):
+        if "twostep_answer" in r:
+            _checkpoint(ctx, records, i)
+            continue  # banked previously
+        # twostep_cot is intentionally NOT persisted, so a stop between the two calls loses
+        # only the elicited reasoning; redo BOTH calls when the committed answer is absent
+        # (a bounded re-spend of one extra generation for the in-flight item).
         it = r["item"]
         cot_out, err = safe_generate(client, cot_only_prompt(it), ctx.num_predict)
         if err is not None:
@@ -757,9 +910,11 @@ def arm_twostep(client, records, ctx):
         ans_out, err = safe_generate(
             client, answer_only_prompt(it, cot_out), FORCE_TOKENS
         )
+        if err is None:
+            ans, err = parse_or_force_checked(client, it, ans_out, ctx.n_choices)
         if err is not None:
             return False, err
-        r["twostep_answer"] = parse_or_force(client, it, ans_out, ctx.n_choices)
+        r["twostep_answer"] = ans
         _checkpoint(ctx, records, i)
     return True, None
 
@@ -767,13 +922,18 @@ def arm_twostep(client, records, ctx):
 def arm_filler(client, records, ctx):
     """U3: the mediator over a length-matched filler chain built from the hinted CoT."""
     for i, r in enumerate(records):
+        if "filler_answer" in r:
+            _checkpoint(ctx, records, i)
+            continue  # banked previously
         it = r["item"]
         out, err = safe_generate(
             client, filler_prompt(it, r["hinted_cot"], rng_seed=i), FORCE_TOKENS
         )
+        if err is None:
+            ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
         if err is not None:
             return False, err
-        r["filler_answer"] = parse_or_force(client, it, out, ctx.n_choices)
+        r["filler_answer"] = ans
         _checkpoint(ctx, records, i)
     return True, None
 
@@ -786,6 +946,8 @@ def arm_curves(client, records, ctx):
             ("clean_cot", "clean_answer", "clean_curve"),
             ("hinted_cot", "hinted_answer", "hinted_curve"),
         ):
+            if curve_key in r:
+                continue  # this arm's curve was banked previously; skip its depth calls
             depths: list[int] = []
             answers: list[str | None] = []
             for depth, prompt in curve_prompts(it, r[cot_key]):
@@ -795,7 +957,13 @@ def arm_curves(client, records, ctx):
                 depths.append(depth)
                 answers.append(parse_answer(out, ctx.n_choices))
             r[curve_key] = summarize_curve(depths, answers, r[ans_key])
+        # Published transcripts keep the shared every-CHECKPOINT_EVERY cadence...
         _checkpoint(ctx, records, i)
+        # ...but each curve item costs ~10 forced-answer calls, so the internal
+        # checkpoint banks per ITEM: a hard kill mid-curves then re-spends at most one
+        # item's depth calls on resume.
+        if ctx.checkpoint is not None:
+            ctx.checkpoint.write()
     return True, None
 
 
@@ -810,22 +978,28 @@ def arm_transplant(client, records, ctx):
     """
     for i, r in enumerate(records):
         it = r["item"]
-        fwd, err = safe_generate(
-            client, continuation_prompt(it, r["hinted_cot"]), FORCE_TOKENS
-        )
-        if err is not None:
-            return False, err
-        r["transplant_forward_answer"] = parse_or_force(client, it, fwd, ctx.n_choices)
-        rev, err = safe_generate(
-            client,
-            cued_continuation_prompt(
-                it, r["cue_text"], r["clean_cot"], prepend=r.get("cue_prepended", False)
-            ),
-            FORCE_TOKENS,
-        )
-        if err is not None:
-            return False, err
-        r["transplant_reverse_answer"] = parse_or_force(client, it, rev, ctx.n_choices)
+        if "transplant_forward_answer" not in r:
+            fwd, err = safe_generate(
+                client, continuation_prompt(it, r["hinted_cot"]), FORCE_TOKENS
+            )
+            if err is None:
+                ans, err = parse_or_force_checked(client, it, fwd, ctx.n_choices)
+            if err is not None:
+                return False, err
+            r["transplant_forward_answer"] = ans
+        if "transplant_reverse_answer" not in r:
+            rev, err = safe_generate(
+                client,
+                cued_continuation_prompt(
+                    it, r["cue_text"], r["clean_cot"], prepend=r.get("cue_prepended", False)
+                ),
+                FORCE_TOKENS,
+            )
+            if err is None:
+                ans, err = parse_or_force_checked(client, it, rev, ctx.n_choices)
+            if err is not None:
+                return False, err
+            r["transplant_reverse_answer"] = ans
         _checkpoint(ctx, records, i)
     return True, None
 
@@ -847,7 +1021,7 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
 
     Special-cased outside ``ARM_RUNNERS`` because it runs on the HOLDOUT items, never on
     the main records: a fresh clean pass over the holdout (same safe_generate /
-    parse_or_force discipline as the main substrate), filter to clean-correct, then ONE
+    parse_or_force_checked discipline as the main substrate), filter to clean-correct, then ONE
     placebo transcript per surviving item. Each item gets a DESIGNATED would-be hint by
     the same ``wrong_label(rotate=i)`` cycling the cue pass uses and the frozen strong
     stated-hint template formats the would-be ``cue_text`` -- but only the magnitude-
@@ -855,35 +1029,75 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
     prompt. Whatever the detector fires on here is therefore a false alarm by
     construction. Transcripts bank to their own ``specificity_transcripts_*.json`` on
     the usual checkpoint cadence and before any failure stop.
+
+    Resume behavior: the holdout state banks INCREMENTALLY. The live record list is
+    registered with the checkpoint writer before the clean pass runs (so no write from
+    here on can drop holdout state) and the clean pass banks on the usual cadence and
+    before an abort. On resume the banked holdout records -- including clean-incorrect
+    ones -- are merged by item key exactly like the main substrate (restored records
+    skip their calls, missing ones are generated), the clean-correct filter reproduces
+    the placebo-loop positions, and the placebo loop skips any record whose placebo
+    transcript is already banked, with ``i`` still the record's position in the FULL
+    clean-correct list. The parse label bound is ``max(len(choices))`` over ALL holdout
+    items on both paths (the holdout mixes 3-5 choice items), recomputed from the
+    frozen, fingerprinted holdout file on resume.
     """
     items = load_items(holdout_path)
     if not items:
         print(f"      [specificity] holdout file {holdout_path} holds no items; skipping.")
         return None, False
     n_choices = max(len(it.choices) for it in items)
+
+    writer = ctx.checkpoint
+    banked = None
+    locked = False
+    if writer is not None and writer.loaded is not None:
+        # The lock is DERIVED from the same serialized rows resume_specificity reads:
+        # a banked holdout record carrying hint_label means the placebo loop already
+        # seeded rotate=i / rng_seed=i against these positions.
+        banked = arms_resume.resume_specificity(writer.loaded)
+        locked = arms_resume.roster_locked(arms_resume.specificity_rows(writer.loaded))
+        if banked is not None:
+            print(f"      [resume] {len(banked)} holdout records restored from the "
+                  f"checkpoint (roster {'locked' if locked else 'open'})")
+
+    records: list[dict] = []
+    if writer is not None:
+        writer.set_specificity(records, len(items))
     print(f"      holdout clean pass: {len(items)} items from {holdout_path.name}")
-    records, ok, attrition = substrate_pass(
-        client, items, n_choices, ctx.num_predict, ctx.backend, ctx.model
+    _, ok, attrition = substrate_pass(
+        client, items, n_choices, ctx.num_predict, ctx.backend, ctx.model,
+        banked=banked, records=records,
+        on_checkpoint=None if writer is None else writer.write, locked=locked,
     )
     if not ok:
         return None, False
     correct = [r for r in records if r["clean_correct"]]
-    print(f"      holdout clean-correct: {len(correct)}/{len(items)}")
+    print(f"      holdout clean-correct: {len(correct)}/{len(records)}"
+          f"{measured_suffix(len(items), attrition.get('n_failed_generation', 0))}")
+    if writer is not None:
+        writer.write()
+
     for i, r in enumerate(correct):
+        if "placebo_cot" in r:
+            continue  # banked previously; its four false-alarm flags are restored
         it = r["item"]
         hint = it.wrong_label(rotate=i)  # designated would-be hint; NEVER planted
         cue_text = _HINT_TEMPLATES["strong"].format(hint=hint)
         out, err = safe_generate(
             client, placebo_prompt(it, cue_text, rng_seed=i), ctx.num_predict
         )
+        if err is None:
+            ans, err = parse_or_force_checked(client, it, out, n_choices)
         if err is not None:
             n_saved = write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct)
+            if writer is not None:
+                writer.write()
             if n_saved:
                 print(f"  [saved] {n_saved} specificity transcripts banked before the stop "
                       f"-> {ctx.out_dir}")
             print(fail_message(ctx.backend, ctx.model, err))
             return None, False
-        ans = parse_or_force(client, it, out, n_choices)
         r.update({
             "hint_label": hint, "cue_text": cue_text,
             "placebo_cot": out, "placebo_answer": ans,
@@ -892,8 +1106,12 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
         print(f"      ... specificity {i + 1}/{len(correct)}", end="\r", flush=True)
         if (i + 1) % CHECKPOINT_EVERY == 0:
             write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct)
+            if writer is not None:
+                writer.write()
     print()
     write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct)
+    if writer is not None:
+        writer.write()
     return summarize_specificity(correct, len(items), attrition), True
 
 
@@ -974,8 +1192,16 @@ def report_blocks(blocks: dict) -> None:
         print("    do not auto-interpret; see docs/phase2_design_notes.md section 2.")
     if "specificity" in blocks:
         b = blocks["specificity"]
-        print(f"[specificity A9] holdout {b['n_clean_correct']}/{b['n_holdout_entered']} "
-              "clean-correct; no cue ever planted, every firing below is a false alarm")
+        att = b.get("attrition") or {}
+        n_failed = att.get("n_failed_generation", 0)
+        n_measured = b["n_holdout_entered"] - n_failed
+        print(f"[specificity A9] holdout {b['n_clean_correct']}/{n_measured} clean-correct"
+              f"{measured_suffix(b['n_holdout_entered'], n_failed)}"
+              "; no cue ever planted, every firing below is a false alarm")
+        if att:
+            print(f"    holdout attrition: entered={att.get('n_entered')} "
+                  f"no-record={att.get('n_failed_generation')} "
+                  f"unparseable-clean={att.get('n_unparseable_clean')}")
         for key, label in (
             ("ack_clean", "ack false-fire (clean)"),
             ("ack_placebo", "ack false-fire (placebo)"),
@@ -1028,19 +1254,23 @@ def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_bloc
     report_blocks(blocks)
     ctx.out_dir.mkdir(parents=True, exist_ok=True)
     summary = assemble_summary(
-        ctx.backend, ctx.model, n_items, len(correct), cue_kind, arms, blocks, attrition
+        ctx.backend, ctx.model, n_items, len(correct), cue_kind, arms, blocks, attrition,
+        n_invocations=(1 if ctx.checkpoint is None else ctx.checkpoint.n_invocations),
+        curve_cap=ctx.curve_cap, num_predict=ctx.num_predict,
     )
     (ctx.out_dir / f"arms_summary_{ctx.safe_model}.json").write_text(
         json.dumps(summary, indent=2)
     )
     n_saved = write_arm_transcripts(ctx.out_dir, ctx.safe_model, correct)
+    if ctx.checkpoint is not None:
+        ctx.checkpoint.write()  # final full-state checkpoint: a re-run with --resume no-ops
     print(f"\nwrote summary + {n_saved} arm transcripts -> {ctx.out_dir}")
     print("  status: " + STATUS_STRING + ".")
 
 
 def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         curve_cap=20, num_predict=320, timeout=120.0, backend="ollama",
-        specificity_holdout=None):
+        specificity_holdout=None, resume=False):
     arms = resolve_arms(arms)
     if not arms:
         print(no_arms_hint())
@@ -1052,28 +1282,90 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
     if "specificity" in arms and not Path(specificity_holdout).exists():
         print(specificity_setup_message(Path(specificity_holdout)))
         return 0
+
+    safe_model = model.replace(":", "_").replace("/", "_")
+    checkpoint_path = out_dir / f"arms_checkpoint_{safe_model}.json"
+    holdout_path = Path(specificity_holdout)
+    params = arms_resume.build_params(
+        model, backend, n_items, data_path, taxonomy, arms, curve_cap, num_predict,
+        holdout_path, arms_resume.file_sha256(data_path),
+        arms_resume.file_sha256(holdout_path),
+    )
+    # Resume gate BEFORE the backend gate: an unreadable version, a parameter mismatch,
+    # or a data file whose duplicate keys would alias banked records must refuse with
+    # zero model (or availability) calls, exactly as the no-arms path returns before
+    # gating a client. A fresh run (no --resume) never reads a checkpoint; its first
+    # write overwrites any stale one.
+    loaded = None
+    if resume:
+        try:
+            loaded = arms_resume.load_checkpoint(checkpoint_path)
+        except arms_resume.CheckpointUnreadable as exc:
+            print(arms_resume.unreadable_refusal_message(exc, checkpoint_path))
+            return 0
+        if loaded is None:
+            print(arms_resume.NO_CHECKPOINT_NOTE)
+        else:
+            bad_version = arms_resume.version_mismatch(loaded)
+            if bad_version is not None:
+                print(arms_resume.version_refusal_message(bad_version, checkpoint_path))
+                return 0
+            mismatches = arms_resume.params_mismatch(loaded.get("params", {}), params)
+            if mismatches:
+                print(arms_resume.refusal_message(mismatches, checkpoint_path))
+                return 0
+        # Both files feed the identical by-key merge, so both need the guard -- and it
+        # runs on EVERY --resume leg, checkpoint or not. Leg 1 has no checkpoint, so
+        # gating this on one would refuse only on leg 2, AFTER leg 1 had already spent
+        # the whole daily budget banking records the merge silently aliased. The guard
+        # exists to protect a multi-leg run, and leg 1 is where that run starts.
+        for label, path, loader_items in (
+            ("--data", data_path, load_items(data_path)[:n_items]),
+            ("A9 holdout", holdout_path,
+             load_items(holdout_path) if holdout_path.exists() else []),
+        ):
+            dupes = arms_resume.duplicate_item_keys(loader_items)
+            if dupes:
+                print(arms_resume.duplicate_refusal_message(dupes, label, path))
+                return 0
+
     client = _gate_client(backend, model, host, timeout)
     if client is None:
         return 0
 
-    safe_model = model.replace(":", "_").replace("/", "_")
     items = load_items(data_path)[:n_items]
     n_choices = max(len(it.choices) for it in items)
     cue_kind = f"taxonomy:{taxonomy}" if taxonomy else "stated-hint:strong"
 
+    # The writer exists BEFORE the substrate pass and holds the same (initially empty)
+    # records list the pass fills in place, so a mid-substrate stop -- including a
+    # three-strikes abort during a RESUMED substrate -- banks everything generated so far.
+    records: list[dict] = []
+    writer = arms_resume.CheckpointWriter(
+        checkpoint_path, params, records, len(items), _curve_to_dict, loaded,
+        n_invocations=(loaded or {}).get("n_invocations", 0) + 1,
+    )
     print(f"[1/3] Clean substrate: {len(items)} items on {model} (filter to clean-correct)")
-    records, ok, attrition = substrate_pass(
-        client, items, n_choices, num_predict, backend, model
+    banked = arms_resume.resume_inputs(loaded) if loaded is not None else None
+    _, ok, attrition = substrate_pass(
+        client, items, n_choices, num_predict, backend, model,
+        banked=banked, records=records, on_checkpoint=writer.write,
+        locked=arms_resume.roster_locked((loaded or {}).get("records", [])),
     )
     if not ok:
         return 0
+    writer.write()  # substrate complete (a fresh run's write overwrites any stale file)
     correct = [r for r in records if r["clean_correct"]]
-    print(f"      clean accuracy: {len(correct)}/{len(items)}")
+    print(clean_accuracy_line(len(correct), len(records), attrition))
     if len(correct) < 3:
         print("      too few clean-correct items to run the arms; use a bigger/easier set.")
         return 0
+    if "curves" in arms and curve_cap < len(correct):
+        print(curve_coverage_warning(curve_cap, len(correct)))
 
-    ctx = RunCtx(n_choices, num_predict, out_dir, safe_model, backend, model, curve_cap)
+    ctx = RunCtx(
+        n_choices, num_predict, out_dir, safe_model, backend, model, curve_cap, writer
+    )
     print(f"[2/3] Cue pass ({cue_kind}) on {len(correct)} clean-correct items")
     if not cue_pass(client, correct, ctx, taxonomy):
         return 0
@@ -1089,6 +1381,7 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         if not arm_ok:
             _bank_and_report(ctx, correct, err)
             return 0
+        writer.write()  # after each arm completes
 
     specificity_block = None
     if "specificity" in arms:
@@ -1097,9 +1390,10 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
             client, ctx, Path(specificity_holdout)
         )
         if not spec_ok:
-            # The holdout arm banks its own transcripts; still bank the main records so
-            # the completed main arms are not lost with the stop.
+            # The holdout arm banks its own transcripts; still bank the main records and the
+            # full-state checkpoint so the completed main arms are not lost with the stop.
             write_arm_transcripts(ctx.out_dir, ctx.safe_model, correct)
+            writer.write()
             return 0
 
     _finalize(correct, arms, ctx, len(items), cue_kind, attrition, specificity_block)
@@ -1136,6 +1430,12 @@ def build_parser() -> argparse.ArgumentParser:
                     help="fixed n=20 held-out set (ARC validation split, disjoint from the "
                          "main runs) for the A9 specificity arm; fetch with "
                          "fetch_arc.py --split validation --n 20")
+    ap.add_argument("--resume", action="store_true", default=False,
+                    help="continue a run stopped mid-flight from its checkpoint "
+                         "(arms_checkpoint_<model>.json in --out); re-spends at most the "
+                         "work since the last checkpoint (every 10 items; every item for "
+                         "curves), typically only the in-flight item's calls on an API "
+                         "stop; refuses if the run parameters differ")
     return ap
 
 
@@ -1146,7 +1446,7 @@ def main(argv: list[str] | None = None) -> int:
         model = "llama-3.3-70b-versatile"  # sensible default for the groq backend
     return run(model, a.host, a.n_items, a.data, a.out, a.arm, a.taxonomy,
                a.curve_cap, a.num_predict, a.timeout, a.backend,
-               a.specificity_holdout)
+               a.specificity_holdout, a.resume)
 
 
 if __name__ == "__main__":
