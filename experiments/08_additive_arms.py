@@ -1228,9 +1228,22 @@ def no_arms_hint() -> str:
 
 # --- Orchestration ---
 def _gate_client(backend, model, host, timeout):
-    """Build the backend client, or print the setup message and return None ($0 gate)."""
+    """Build the backend client, or print the setup message and return None ($0 gate).
+
+    ``max_wait`` is raised from GroqClient's 25s default for THIS runner only (05 and the
+    client's own default are untouched), because the two throttles it must tell apart ask
+    for very different waits. A per-minute TOKEN throttle asks for at most about a minute
+    -- the bucket refills every minute -- and a powered sweep rides that ceiling
+    continuously: the first leg logged 1,854 waits, 99.9 percent of them 1-5s, then died
+    on a single 35s ask. The DAILY budget, the stop this runner is actually designed to
+    bank and resume from, asks for hours. A 90s ceiling therefore rides out any
+    per-minute refill while still aborting immediately on a daily cap, which is the
+    signal --resume exists to act on. Without it the run cannot finish: at sustained TPM
+    saturation Groq asks ~34s, so every resumed leg aborts on its first call and makes
+    zero progress.
+    """
     if backend == "groq":
-        client = GroqClient(model=model, temperature=0.0, timeout=timeout)
+        client = GroqClient(model=model, temperature=0.0, timeout=timeout, max_wait=90.0)
         if not client.is_available():
             print(groq_setup_message())
             return None
