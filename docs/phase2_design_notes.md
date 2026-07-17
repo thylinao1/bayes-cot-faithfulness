@@ -97,6 +97,24 @@ Implementation: the pure pieces (`continuation_prompt`, replay and transplant
 prompt builders) are shared with the additive-arms runner; the transplant arm
 runs as `--arm transplant` there. No frozen arm is touched.
 
+**Update 2026-07-17 (context preservation vs crossing; unscorable records).**
+The floor and the transplant must not be measured through the same prompt. The
+replay FLOOR preserves each CoT's source context: the clean replay re-feeds the
+clean CoT through the cue-free continuation frame (its own context), and the
+hinted replay re-feeds the hinted CoT with the cue still present
+(`cued_continuation_prompt`), so both are pure teacher forcing. The TRANSPLANT
+crosses contexts: the forward direction strips the cue from the hinted CoT
+(`continuation_prompt`), and the reverse direction adds the cue to the clean CoT
+(`cued_continuation_prompt`). Without this distinction the hinted replay and the
+forward transplant would issue byte-identical prompts, the forward carry-over
+would be the arithmetic complement of the hinted replay drift (1 minus the drift
+rate, up to call-to-call nondeterminism), and the interpretation table above would
+be unreachable because "carry-over vs floor" would be comparing a quantity with
+itself. Separately, unscorable records -- those where either compared answer
+failed to parse on a side -- are excluded from every rate above (numerator and
+denominator alike) and reported per block as `n_unscorable`, so attrition is never
+silently folded into a drift or carry-over rate.
+
 ## 3. Signed suppressor effects are representable (A10)
 
 FUR (parametric faithfulness, Tutek et al.) reports reasoning steps with
