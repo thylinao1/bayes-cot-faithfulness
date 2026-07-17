@@ -68,6 +68,9 @@ experiments/results/*
 # exploratory additive-arms smoke summaries (no verdict; transcripts stay local)
 !experiments/results/arms_summary_llama3.2_3b.json
 !experiments/results/arms_summary_llama-3.3-70b-versatile.json
+# first PREREGISTERED sweep summary (all 8 arms, ARC-130, stated-hint); the power
+# artifact ingests it and it accompanies the run. Transcripts stay local (bulky).
+!experiments/results/arms_summary_llama-3.1-8b-instant.json
 # A9 specificity pilot summary (the pilots/ dir itself stays ignored otherwise)
 !experiments/results/pilots/
 experiments/results/pilots/*
