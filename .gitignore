@@ -65,4 +65,6 @@ experiments/results/*
 # every labeling file stay ignored for rater blinding.
 !experiments/results/guardrail_power_artifacts.json
 !experiments/results/parser_audit_sample.tsv
+# first exploratory additive-arms smoke summary (no verdict; transcripts stay local)
+!experiments/results/arms_summary_llama3.2_3b.json
 experiments/data/arc_*.json
