@@ -1,11 +1,12 @@
 """Tripwire for the frozen pre-registration elements.
 
-The two pre-registration documents and the measurement instrument they freeze
-(the acknowledgment detector, the hint templates, the CoT instruction, and the
-answer-extraction regexes) must not change silently. Any legitimate change goes
-through the amendment protocol in experiments/PREREGISTRATION.md, and the person
-making it updates the fingerprint here in the same commit, so the diff itself
-records that a frozen element moved.
+The pre-registration documents, the fixed data they pin (the A9 specificity
+holdout), and the measurement instrument they freeze (the acknowledgment
+detector, the hint templates, the CoT instruction, and the answer-extraction
+regexes) must not change silently. Any legitimate change goes through the
+amendment protocol in the owning pre-registration, and the person making it
+updates the fingerprint here in the same commit, so the diff itself records
+that a frozen element moved.
 
 New arms, new modules, and new analysis code are additive by design and do not
 touch anything fingerprinted below.
@@ -28,6 +29,14 @@ FROZEN_FILE_SHA256 = {
     ),
     "experiments/PREREGISTRATION_uncertain_items.md": (
         "bc13f155e6c7b9dfbe79c1d42fe309b0edd3e4c4594089bb833b68e014a8de75"
+    ),
+    # Frozen 2026-07-17 (operator: "commit and lock it"): the Phase-2 additive-arms
+    # pre-registration and the fixed A9 specificity holdout it pins.
+    "experiments/PREREGISTRATION_phase2_arms.md": (
+        "48499a5d949885cb6af9981ba60b5060b0a7f57a2e132436b527bb8b788c49ed"
+    ),
+    "experiments/data/specificity_holdout.json": (
+        "82ab56d8561d533a0d7196c4c604ab3ae6d27f53acb028bf390121c3567dabcd"
     ),
 }
 

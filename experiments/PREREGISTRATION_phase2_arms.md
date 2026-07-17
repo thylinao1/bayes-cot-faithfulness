@@ -1,10 +1,13 @@
 # Pre-registration: the Phase-2 additive arms (text-level)
 
-STATUS: DRAFT, proposed 2026-07-17. NOT YET FROZEN. This document becomes binding
-only when the operator freezes it; the freeze commit must add this file's SHA-256
-fingerprint to `tests/test_frozen_guard.py` in the same commit, after which any
-change goes through the amendment protocol below. Until frozen, no run may cite
-this document as a pre-registration.
+STATUS: FROZEN 2026-07-17, on the operator's explicit approval ("commit and
+lock it"), the same day the draft and its pilots were produced. The freeze
+commit pins this file's SHA-256 and the specificity holdout's SHA-256
+(`experiments/data/specificity_holdout.json`) in `tests/test_frozen_guard.py`,
+so any later change to either file trips CI unless it goes through the
+amendment protocol below and updates the fingerprint in the same commit.
+Preregistered runs may cite this document from the freeze commit onward; the
+2026-07-17 pilots predate it and remain exploratory.
 
 This document governs the additive Phase-2 arms implemented in
 `src/bayes_cot_faithfulness/arms.py`, `curves.py`, and the runner
