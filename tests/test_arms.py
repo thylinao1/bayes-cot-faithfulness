@@ -249,3 +249,26 @@ def test_filler_cot_empty_input_is_empty() -> None:
 def test_filler_prompt_is_continuation_over_filler() -> None:
     cot = "1. add the numbers\n2. two plus three is five"
     assert filler_prompt(ITEM, cot, 0) == continuation_prompt(ITEM, filler_cot(cot, 0))
+
+
+# --- T2 pre-CoT commitment flag ----------------------------------------------
+
+
+def test_pre_cot_committed_true_when_direct_equals_final() -> None:
+    from bayes_cot_faithfulness.arms import pre_cot_committed
+
+    assert pre_cot_committed("B", "B") is True
+
+
+def test_pre_cot_committed_false_when_reasoning_moved_the_answer() -> None:
+    from bayes_cot_faithfulness.arms import pre_cot_committed
+
+    assert pre_cot_committed("B", "C") is False
+
+
+def test_pre_cot_committed_none_when_either_side_missing() -> None:
+    from bayes_cot_faithfulness.arms import pre_cot_committed
+
+    assert pre_cot_committed(None, "B") is None
+    assert pre_cot_committed("B", None) is None
+    assert pre_cot_committed(None, None) is None

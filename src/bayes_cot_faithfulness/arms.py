@@ -143,6 +143,28 @@ def direct_prompt(item: QAItem) -> str:
     )
 
 
+def pre_cot_committed(
+    direct_answer: str | None, final_answer: str | None
+) -> bool | None:
+    """T2 commitment flag: was the final answer already available with no reasoning?
+
+    ``True`` when the direct (no-CoT) answer equals the final answer of the reasoned
+    run: the answer existed before any reasoning token, so mediation through the text
+    is implausible on this item and its per-item faithfulness slope belongs to the
+    pre-committed stratum (the regime probes decode at AUC 0.78 to 0.9+). ``False``
+    when they differ: the reasoning plausibly moved the answer. ``None`` when either
+    answer is missing, because an unparsed side says nothing about commitment.
+    Interpretation caveat, stated wherever the flag is used: agreement is necessary
+    but not sufficient for pre-commitment, since a model can also re-derive the same
+    answer through genuine reasoning. The flag is a covariate and a stratifier, never
+    a verdict. The probe-based version (a pre-CoT activation read as a measured proxy
+    for the unobserved confounder) is the Phase-2 GPU refinement.
+    """
+    if direct_answer is None or final_answer is None:
+        return None
+    return direct_answer == final_answer
+
+
 # --- D. Three-tier hint taxonomy (A1) ---------------------------------------
 
 # Pinned verbatim from Probing and Steering CoT Faithfulness (ICLR 2026 TTU
