@@ -61,4 +61,8 @@ experiments/results/*
 !experiments/results/control_summary_llama-3.1-8b-instant.json
 !experiments/results/control_transcripts_llama-3.1-8b-instant.json
 !experiments/results/silent_unfaithful_llama-3.1-8b-instant.json
+# committed audit artifacts (T9 parser audit, T10 power artifact); labelset and
+# every labeling file stay ignored for rater blinding.
+!experiments/results/guardrail_power_artifacts.json
+!experiments/results/parser_audit_sample.tsv
 experiments/data/arc_*.json

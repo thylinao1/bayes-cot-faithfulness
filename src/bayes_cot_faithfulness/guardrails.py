@@ -18,6 +18,14 @@ closes them with closed-form, offline checks.
    shortcut at zero successes, and ``minimum_detectable_rate`` the smallest true
    follow-rate that the given n could detect with the requested power.
 
+3. **Cue effect above the noise floor.** A follow rate on its own does not say
+   whether the cue moved the model more than an unrelated, content-free edit would
+   have. ``newcombe_diff_ci`` gives a two-sided confidence interval for the
+   difference between two independent proportions (e.g. hint-follow rate minus
+   neutral-edit change rate) via Newcombe's method 10, which stays well-behaved at
+   the small n typical of a clean-correct subset (unlike a normal-approximation
+   two-sample test).
+
 Nothing here calls a model or the network. All results are frozen dataclasses.
 """
 
@@ -233,3 +241,68 @@ def minimum_detectable_rate(
     if hit.size == 0:
         return 1.0
     return float(grid[hit[0]])
+
+
+# --------------------------------------------------------------------------- #
+# Difference of two proportions (Newcombe method 10)
+# --------------------------------------------------------------------------- #
+@dataclass(frozen=True)
+class NewcombeDiffResult:
+    """Outcome of a Newcombe method-10 CI for the difference of two proportions."""
+
+    diff: float
+    lower: float
+    upper: float
+    p1: float
+    p2: float
+    conf: float
+
+
+def _wilson_score_interval(k: int, n: int, conf: float) -> tuple[float, float]:
+    """Two-sided Wilson score interval for a single proportion k / n at level conf.
+
+    Inputs are assumed already validated by the caller (this is a private helper,
+    not part of the public API).
+    """
+    z = stats.norm.ppf(1.0 - (1.0 - conf) / 2.0)
+    phat = k / n
+    denom = 1.0 + z * z / n
+    center = (phat + z * z / (2.0 * n)) / denom
+    half_width = (z / denom) * np.sqrt(phat * (1.0 - phat) / n + z * z / (4.0 * n * n))
+    return center - half_width, center + half_width
+
+
+def newcombe_diff_ci(k1: int, n1: int, k2: int, n2: int, conf: float = 0.95) -> NewcombeDiffResult:
+    """Newcombe's method 10: a two-sided CI for p1 - p2, built from two Wilson intervals.
+
+    A two-sample z-test on raw proportions is the wrong tool at the small n typical
+    of a clean-correct subset (it can undercover badly, especially near 0 or 1).
+    Newcombe's method instead combines the two independent single-proportion Wilson
+    score intervals: compute the Wilson interval (l_i, u_i) for each proportion at
+    the same ``conf``, then
+
+        lower = diff - sqrt((p1 - l1)^2 + (u2 - p2)^2)
+        upper = diff + sqrt((u1 - p1)^2 + (p2 - l2)^2)
+
+    where ``diff = p1 - p2`` (Newcombe 1998, "Interval Estimation for the Difference
+    Between Independent Proportions: Comparison of Eleven Methods", method 10).
+    """
+    for k, n in ((k1, n1), (k2, n2)):
+        if n < 1:
+            raise ValueError("n must be at least 1.")
+        if not 0 <= k <= n:
+            raise ValueError("k must satisfy 0 <= k <= n.")
+    if not 0.0 < conf < 1.0:
+        raise ValueError("conf must lie strictly between 0 and 1.")
+
+    p1 = k1 / n1
+    p2 = k2 / n2
+    l1, u1 = _wilson_score_interval(k1, n1, conf)
+    l2, u2 = _wilson_score_interval(k2, n2, conf)
+    diff = p1 - p2
+    lower = diff - np.sqrt((p1 - l1) ** 2 + (u2 - p2) ** 2)
+    upper = diff + np.sqrt((u1 - p1) ** 2 + (p2 - l2) ** 2)
+    return NewcombeDiffResult(
+        diff=float(diff), lower=float(lower), upper=float(upper),
+        p1=float(p1), p2=float(p2), conf=float(conf),
+    )

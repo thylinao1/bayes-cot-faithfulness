@@ -13,6 +13,7 @@ import pytest
 from bayes_cot_faithfulness.guardrails import (
     attrition_balance,
     minimum_detectable_rate,
+    newcombe_diff_ci,
     proportion_ci_upper,
     rule_of_three_upper,
     srm_test,
@@ -212,3 +213,91 @@ def test_mdr_higher_power_needs_higher_rate() -> None:
     low = minimum_detectable_rate(50, power=0.8)
     high = minimum_detectable_rate(50, power=0.95)
     assert high >= low
+
+
+# --------------------------------------------------------------------------- #
+# newcombe_diff_ci (Newcombe method 10)
+# --------------------------------------------------------------------------- #
+def test_newcombe_known_value_k56n70_vs_k48n80() -> None:
+    # Arrange: p1 = 56/70 = 0.8, p2 = 48/80 = 0.6, diff = 0.2.
+    #
+    # Hand-computed reference (Wilson score interval, conf = 0.95, z = 1.959964):
+    #   For (k, n): phat = k/n, denom = 1 + z^2/n,
+    #     center = (phat + z^2/(2n)) / denom,
+    #     half_width = (z/denom) * sqrt(phat*(1-phat)/n + z^2/(4n^2)),
+    #     (l, u) = (center - half_width, center + half_width).
+    #   Group 1 (k=56, n=70): denom = 1 + 3.841616/70 = 1.054880
+    #     center = (0.8 + 3.841616/140)/1.054880 = 0.827440/1.054880 = 0.784446
+    #     half_width = (1.959964/1.054880)*sqrt(0.8*0.2/70 + 3.841616/19600)
+    #                = 1.857822 * sqrt(0.0022857 + 0.0001960) = 1.857822*0.049816 = 0.092560
+    #     -> (l1, u1) = (0.691834, 0.876953)
+    #   Group 2 (k=48, n=80): denom = 1 + 3.841616/80 = 1.048020
+    #     center = (0.6 + 3.841616/160)/1.048020 = 0.624010/1.048020 = 0.595415
+    #     half_width = (1.959964/1.048020)*sqrt(0.6*0.4/80 + 3.841616/25600)
+    #                = 1.870108*sqrt(0.0030000 + 0.0001501) = 1.870108*0.056135 = 0.104988
+    #     -> (l2, u2) = (0.490455, 0.700382)
+    #   diff = 0.2
+    #   lower = diff - sqrt((p1-l1)^2 + (u2-p2)^2)
+    #         = 0.2 - sqrt((0.8-0.691834)^2 + (0.700382-0.6)^2)
+    #         = 0.2 - sqrt(0.011702 + 0.010076) = 0.2 - sqrt(0.021778) = 0.2 - 0.147568
+    #   upper = diff + sqrt((u1-p1)^2 + (p2-l2)^2)
+    #         = 0.2 + sqrt((0.876953-0.8)^2 + (0.6-0.490455)^2)
+    #         = 0.2 + sqrt(0.005922 + 0.012001) = 0.2 + sqrt(0.017923) = 0.2 + 0.133877
+    # (the exact scipy-computed reference used in the assertions below is
+    # lower = 0.052431, upper = 0.333873, matching this hand computation to 1e-3)
+
+    # Act
+    result = newcombe_diff_ci(56, 70, 48, 80)
+
+    # Assert
+    assert result.p1 == pytest.approx(0.8)
+    assert result.p2 == pytest.approx(0.6)
+    assert result.diff == pytest.approx(0.2)
+    assert result.lower == pytest.approx(0.052431, abs=1e-3)
+    assert result.upper == pytest.approx(0.333873, abs=1e-3)
+
+
+def test_newcombe_symmetry_swaps_and_negates() -> None:
+    # Arrange / Act: swapping the two groups should negate the difference and swap
+    # (and negate) the bounds, since Newcombe's method treats the groups symmetrically.
+    forward = newcombe_diff_ci(56, 70, 48, 80)
+    backward = newcombe_diff_ci(48, 80, 56, 70)
+
+    # Assert
+    assert backward.diff == pytest.approx(-forward.diff)
+    assert backward.lower == pytest.approx(-forward.upper)
+    assert backward.upper == pytest.approx(-forward.lower)
+
+
+def test_newcombe_zero_difference_straddles_zero() -> None:
+    # Arrange: identical proportions (25/50 vs 25/50) give diff = 0, and the CI
+    # around a true zero difference should straddle 0 (not sit entirely to one side).
+    result = newcombe_diff_ci(25, 50, 25, 50)
+
+    # Assert
+    assert result.diff == pytest.approx(0.0)
+    assert result.lower < 0.0 < result.upper
+
+
+def test_newcombe_validation_errors() -> None:
+    with pytest.raises(ValueError):
+        newcombe_diff_ci(-1, 10, 5, 10)  # k1 < 0
+    with pytest.raises(ValueError):
+        newcombe_diff_ci(11, 10, 5, 10)  # k1 > n1
+    with pytest.raises(ValueError):
+        newcombe_diff_ci(5, 0, 5, 10)  # n1 < 1
+    with pytest.raises(ValueError):
+        newcombe_diff_ci(5, 10, 5, 10, conf=1.0)  # conf not in (0, 1)
+    with pytest.raises(ValueError):
+        newcombe_diff_ci(5, 10, 5, 10, conf=0.0)  # conf not in (0, 1)
+
+
+def test_newcombe_conf_is_recorded_and_wider_interval_for_higher_conf() -> None:
+    # Arrange / Act: a higher confidence level should widen the interval.
+    narrow = newcombe_diff_ci(56, 70, 48, 80, conf=0.90)
+    wide = newcombe_diff_ci(56, 70, 48, 80, conf=0.99)
+
+    # Assert
+    assert narrow.conf == pytest.approx(0.90)
+    assert wide.conf == pytest.approx(0.99)
+    assert (wide.upper - wide.lower) > (narrow.upper - narrow.lower)
