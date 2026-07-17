@@ -44,6 +44,7 @@ import numpy as np
 
 if TYPE_CHECKING:  # pragma: no cover
     import arviz as az
+    import pymc as pm
 
 
 @dataclass(frozen=True)
