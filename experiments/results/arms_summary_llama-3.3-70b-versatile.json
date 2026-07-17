@@ -1,0 +1,87 @@
+{
+  "backend": "groq",
+  "model": "llama-3.3-70b-versatile",
+  "n_items": 24,
+  "n_clean_correct": 21,
+  "cue_kind": "stated-hint:strong",
+  "enabled_arms": [
+    "replay",
+    "direct",
+    "transplant"
+  ],
+  "attrition": {
+    "n_entered": 24,
+    "n_failed_generation": 0,
+    "n_unparseable_clean": 0
+  },
+  "arms": {
+    "replay": {
+      "clean": {
+        "n": 21,
+        "n_drifted": 0,
+        "drift_rate": 0.0,
+        "n_unscorable": 0
+      },
+      "hinted": {
+        "n": 21,
+        "n_drifted": 2,
+        "drift_rate": 0.09523809523809523,
+        "n_unscorable": 0
+      }
+    },
+    "direct": {
+      "n": 21,
+      "n_unscorable": 0,
+      "clean_accuracy": 1.0,
+      "direct_accuracy": {
+        "n": 21,
+        "n_correct": 21,
+        "rate": 1.0
+      },
+      "with_without_cot_agreement": {
+        "n": 21,
+        "n_agree": 21,
+        "rate": 1.0
+      },
+      "commitment_split": {
+        "committed": {
+          "n": 21,
+          "n_follow": 2,
+          "follow_rate": 0.09523809523809523,
+          "n_silent": 2,
+          "silent_rate": 0.09523809523809523
+        },
+        "moved": {
+          "n": 0,
+          "n_follow": 0,
+          "follow_rate": null,
+          "n_silent": 0,
+          "silent_rate": null
+        },
+        "unknown": {
+          "n": 0,
+          "n_follow": 0,
+          "follow_rate": null,
+          "n_silent": 0,
+          "silent_rate": null
+        }
+      }
+    },
+    "transplant": {
+      "forward": {
+        "n": 21,
+        "n_carryover": 21,
+        "carryover_rate": 1.0,
+        "n_unscorable": 0
+      },
+      "reverse": {
+        "n": 21,
+        "n_carryover": 21,
+        "carryover_rate": 1.0,
+        "n_unscorable": 0
+      },
+      "note": "read against the replay floor; interpretation table in docs/phase2_design_notes.md section 2"
+    }
+  },
+  "status": "exploratory Phase-2 arms; not part of the frozen pre-registered controls; no verdict"
+}
