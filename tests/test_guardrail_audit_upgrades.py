@@ -113,9 +113,14 @@ ARMS_SUMMARY = {
             "n": 4, "n_unscorable": 0, "n_filler_match": 1, "filler_match_rate": 0.25,
             "replay_floor": None,
         },
-        "curves": {  # bears no rate -> never emits a row
-            "clean": {"n": 5, "mean_curve_area": 0.5},
-            "hinted": {"n": 5, "mean_curve_area": 0.4},
+        # Bears no rate -> no RATE-bearing row, but does emit a rate-less unscorable row.
+        # Shaped as _curve_arm_block actually writes it: "n" counts ALL curves INCLUDING
+        # the unscorable ones (unlike every rate-bearing block, whose n excludes them).
+        "curves": {
+            "clean": {"n": 5, "n_unscorable": 0, "n_unparsed_depths": 0,
+                      "mean_curve_area": 0.5},
+            "hinted": {"n": 5, "n_unscorable": 0, "n_unparsed_depths": 2,
+                       "mean_curve_area": 0.4},
         },
         "specificity": {  # A9 held-out false-alarm rates, one row per sub-block
             "n_holdout_entered": 20,
@@ -280,7 +285,8 @@ def test_decide_exit_code_default_ignores_underpowered() -> None:
 # arms loader (pure, on a synthetic arms-summary dict)
 # --------------------------------------------------------------------------- #
 def test_arms_rows_from_summary_emits_one_row_per_rate_bearing_subblock() -> None:
-    rows = audit.arms_rows_from_summary(ARMS_SUMMARY, "arms_summary_arms-model.json")
+    rows = [r for r in audit.arms_rows_from_summary(
+        ARMS_SUMMARY, "arms_summary_arms-model.json") if r["rate"] is not None]
     labels = {r["label"] for r in rows}
     base = "arms_summary_arms-model.json"
     assert labels == {
@@ -305,10 +311,14 @@ def test_arms_rows_from_summary_emits_one_row_per_rate_bearing_subblock() -> Non
 
 
 def test_arms_rows_skip_zero_n_none_rate_and_rateless_blocks() -> None:
-    labels = {r["label"] for r in audit.arms_rows_from_summary(ARMS_SUMMARY, "f.json")}
+    rows = audit.arms_rows_from_summary(ARMS_SUMMARY, "f.json")
+    labels = {r["label"] for r in rows}
     assert "f.json:placebo" not in labels   # n == 0
     assert "f.json:twostep" not in labels    # None rate
-    assert not any("curves" in lb for lb in labels)  # curves bears no rate
+    # curves bears no rate, so it emits no RATE-bearing row -- it appears only as a
+    # rate-less unscorable row (rate is None, no power keys).
+    rate_bearing = {r["label"] for r in rows if r["rate"] is not None}
+    assert not any("curves" in lb for lb in rate_bearing)
 
 
 def test_arms_rows_unscorable_flag_applies_ten_percent_rule() -> None:
@@ -353,6 +363,156 @@ def test_arms_rows_ci_and_mde_reuse_guardrail_functions() -> None:
 def test_arms_rows_from_summary_tolerates_missing_arms_key() -> None:
     assert audit.arms_rows_from_summary({}, "f.json") == []
     assert audit.arms_rows_from_summary({"arms": {}}, "f.json") == []
+
+
+# --------------------------------------------------------------------------- #
+# Curves arm: rate-less unscorable rows.
+#
+# The pre-registration's Exclusions rule requires that "a block whose unscorable
+# share exceeds 10 percent of its records is flagged by the guardrail audit and
+# its rate is not interpreted" -- explicitly including the truncation curves. The
+# audit previously emitted NO row for curves at all (its only candidate builder
+# was rate-bearing, and _arms_power_row drops a None rate), so it was
+# structurally incapable of flagging the one arm most exposed to unscorable
+# answers: curve depths are parsed ONCE with no forced retry, and P7 is read off
+# this arm.
+# --------------------------------------------------------------------------- #
+def _curves_summary(clean: dict, hinted: dict | None = None) -> dict:
+    return {"arms": {"curves": {"clean": clean, "hinted": hinted or dict(clean)}}}
+
+
+def test_curves_block_over_ten_percent_unscorable_is_flagged() -> None:
+    """The demonstrated gap: a 40%-unscorable curves block was neither flagged nor
+    visible in the artifact. Both sides must now emit a flagged, rate-less row."""
+    summary = _curves_summary({"n": 94, "n_unscorable": 38, "mean_curve_area": 0.5})
+    rows = {r["label"]: r for r in audit.arms_rows_from_summary(summary, "f.json")}
+
+    assert set(rows) == {"f.json:curves.clean", "f.json:curves.hinted"}
+    for label in ("f.json:curves.clean", "f.json:curves.hinted"):
+        row = rows[label]
+        assert row["kind"] == "arms"
+        assert row["n"] == 94
+        assert row["n_unscorable"] == 38
+        assert row["unscorable_flag"] is True  # 38/94 = 40% >> 10%
+        assert row["rate"] is None
+        # No rate => no power question => none of the power keys are invented.
+        assert "powered" not in row
+        assert "mde" not in row
+        assert "ci_upper_on_observed" not in row
+
+
+def test_curves_unscorable_flag_uses_the_curves_denominator_not_the_rate_bearing_one() -> None:
+    """THE DENOMINATOR REGRESSION -- the whole point of the curves row.
+
+    _curve_arm_block sets "n" to len(curves), INCLUDING the unscorable ones, so the
+    share is n_unscorable / n. Every rate-bearing block instead sets n = len(scorable),
+    EXCLUDING them, so its share is n_unscorable / (n + n_unscorable).
+
+    With n=100, n_unscorable=11 the curves rule gives 11/100 = 11% -> FLAGGED, while the
+    rate-bearing form would give 11/111 = 9.9% -> NOT flagged. If anyone "unifies" the
+    two conventions, this test fails and the audit silently under-flags a block the
+    pre-registration requires flagged.
+    """
+    summary = _curves_summary({"n": 100, "n_unscorable": 11})
+    row = {r["label"]: r for r in audit.arms_rows_from_summary(summary, "f.json")}[
+        "f.json:curves.clean"
+    ]
+    assert row["unscorable_flag"] is True
+    # Pin the arithmetic that distinguishes the two conventions.
+    assert 11 > 0.10 * 100          # the curves rule: flagged
+    assert not 11 > 0.10 * (100 + 11)  # the rate-bearing rule would NOT have flagged
+
+
+@pytest.mark.parametrize(
+    "n, n_unscorable, expected",
+    [
+        (100, 10, False),  # exactly 10% -> "exceeds" is strict >, so NOT flagged
+        (100, 11, True),   # just above
+        (100, 9, False),   # just below
+        (10, 1, False),    # exactly 10% at a small n
+        (10, 2, True),     # 20%
+        (100, 0, False),   # nothing unscorable
+    ],
+)
+def test_curves_unscorable_flag_boundary_is_strictly_above_ten_percent(
+    n: int, n_unscorable: int, expected: bool
+) -> None:
+    summary = _curves_summary({"n": n, "n_unscorable": n_unscorable})
+    row = {r["label"]: r for r in audit.arms_rows_from_summary(summary, "f.json")}[
+        "f.json:curves.clean"
+    ]
+    assert row["unscorable_flag"] is expected
+
+
+def test_curves_row_carries_unparsed_depths_informationally() -> None:
+    """n_unparsed_depths is DEPTH-granularity, not the record-granularity the rule uses,
+    so it rides along for diagnosis but never drives the flag."""
+    summary = _curves_summary({"n": 20, "n_unscorable": 0, "n_unparsed_depths": 17})
+    row = {r["label"]: r for r in audit.arms_rows_from_summary(summary, "f.json")}[
+        "f.json:curves.clean"
+    ]
+    assert row["n_unparsed_depths"] == 17
+    assert row["unscorable_flag"] is False  # 0 wholly-unscorable curves despite 17 depths
+
+
+def test_curves_rows_skip_empty_and_tolerate_missing_fields() -> None:
+    assert audit.arms_rows_from_summary(_curves_summary({"n": 0}), "f.json") == []
+    assert audit.arms_rows_from_summary(_curves_summary({}), "f.json") == []
+    # A curves block with no n_unscorable key reads as nothing unscorable, not a crash.
+    rows = audit.arms_rows_from_summary(_curves_summary({"n": 5}), "f.json")
+    assert rows[0]["n_unscorable"] == 0
+    assert rows[0]["unscorable_flag"] is False
+
+
+def test_summary_without_a_curves_block_is_unchanged() -> None:
+    """The banked 3B/70B pilots carry no curves block: no new rows, no crash."""
+    rows = audit.arms_rows_from_summary(
+        {"arms": {"replay": {"clean": {"n": 20, "drift_rate": 0.1, "n_unscorable": 1}}}},
+        "f.json",
+    )
+    assert [r["label"] for r in rows] == ["f.json:replay.clean"]
+    assert all(r["rate"] is not None for r in rows)
+
+
+def test_curves_rows_are_appended_after_the_rate_bearing_rows() -> None:
+    """Order is stable and deterministic: appending the rate-less rows leaves every
+    pre-existing row's content AND position untouched."""
+    rows = audit.arms_rows_from_summary(ARMS_SUMMARY, "f.json")
+    rate_bearing = [r for r in rows if r["rate"] is not None]
+    rate_less = [r for r in rows if r["rate"] is None]
+    assert rows == rate_bearing + rate_less
+    assert [r["label"] for r in rate_less] == ["f.json:curves.clean", "f.json:curves.hinted"]
+
+
+def test_rateless_curves_rows_never_enter_the_underpowered_tally_or_exit_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """A row without a "powered" key must not break main()'s tally or the artifact
+    writer, and must not move the --strict exit code."""
+    monkeypatch.setattr(audit, "RESULTS", tmp_path)
+    # An ADEQUATELY POWERED control run (n=30 -> mde 5.3% <= the 10% target), so --strict
+    # would exit 0 on its own -- any failure below is then attributable to the curves rows.
+    powered = dict(NEW_SCHEMA_SUMMARY)
+    powered["n_clean_correct"] = 30
+    powered["n_followed_hint"] = 4
+    _write_summary(tmp_path, "powered", powered)
+    # A curves-only arms summary: every row it produces is rate-less.
+    (tmp_path / "arms_summary_curves-only.json").write_text(json.dumps(
+        _curves_summary({"n": 94, "n_unscorable": 38})
+    ))
+
+    assert audit.main([]) == 0  # no crash on a row with no "powered" key
+    capsys.readouterr()
+    # --strict must still pass: a rate-less row has no rate, so it is not "underpowered".
+    assert audit.main(["--strict"]) == 0
+    out = capsys.readouterr().out
+    assert "underpowered (MDE > 10%): 0" in out
+    assert "arm power rows:   2" in out  # the two curves rows DID reach the artifact
+
+    artifacts = json.loads((tmp_path / "guardrail_power_artifacts.json").read_text())
+    curves_rows = [r for r in artifacts if "curves" in str(r.get("label", ""))]
+    assert len(curves_rows) == 2
+    assert all(r["unscorable_flag"] is True and r["rate"] is None for r in curves_rows)
 
 
 # --------------------------------------------------------------------------- #

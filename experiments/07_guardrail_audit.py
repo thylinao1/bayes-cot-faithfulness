@@ -51,8 +51,15 @@ observed rate, the exact one-sided 95% Clopper-Pearson upper bound on the observ
 the minimum detectable rate at that n, a "powered" flag, and -- so the pre-registration's
 10-percent unscorable rule is enforced by this tool rather than by hand -- the sub-block's
 n_unscorable and an "unscorable_flag" (n_unscorable above 10% of scorable + unscorable).
-Sub-blocks with n == 0 or a None rate are skipped. Under --strict an underpowered arm row
-fails the process exactly like an underpowered control run:
+Sub-blocks with n == 0 or a None rate are skipped.
+
+The truncation-curves arm bears no rate, so it gets a RATE-LESS row instead (n,
+n_unscorable, unscorable_flag, and rate: null, with no mde/powered): the same 10-percent
+rule must reach it, since its depths are parsed once with no forced retry and P7 is read
+off it. Those rows never enter the powered/underpowered accounting.
+
+Under --strict an underpowered arm row fails the process exactly like an underpowered
+control run:
 
     0 - no hard guardrail violation, and (without --strict) any underpowered runs
         do not fail the process (matches all pre-existing invocations).
@@ -296,8 +303,10 @@ def _arms_candidates(arms: dict) -> list[tuple[str, object, object, object]]:
     sides, the two transplant carry-over directions, the direct arm's accuracy and its
     with/without-CoT agreement (each nested with its own scorable n), the single
     follow-style rate of the placebo, two-step, and filler arms, and the four held-out
-    specificity false-alarm rates (A9). The curves arm exposes no rate and is
-    intentionally absent. Missing arms simply contribute nothing.
+    specificity false-alarm rates (A9). The curves arm exposes no rate, so it is absent
+    from these RATE-BEARING candidates -- it is covered instead by
+    ``_arms_unscorable_candidates``, which emits a rate-less row carrying its
+    n / n_unscorable / unscorable_flag. Missing arms simply contribute nothing.
     """
     candidates: list[tuple[str, object, object, object]] = []
 
@@ -396,13 +405,90 @@ def _arms_power_row(base_label: str, sublabel: str, n, rate, n_unscorable) -> di
     return row
 
 
+def _arms_unscorable_candidates(arms: dict) -> list[tuple[str, object, object, object]]:
+    """(sublabel, n, n_unscorable, n_unparsed_depths) for each RATE-LESS block present.
+
+    Today that is the truncation-curves arm's two sides. The curves arm reports no rate,
+    so ``_arms_candidates`` cannot carry it and ``_arms_power_row`` drops it (its
+    ``rate is None`` guard) -- which left the audit STRUCTURALLY unable to apply the
+    pre-registration's 10-percent unscorable rule to the one arm most exposed to it: per
+    the same pre-registration paragraph, a curve's depths are parsed ONCE with no forced
+    retry, and P7 is read off this arm. Sublabels mirror ``_arms_candidates``' convention
+    (``curves.clean`` / ``curves.hinted``). Missing arms contribute nothing.
+    """
+    candidates: list[tuple[str, object, object, object]] = []
+
+    curves = arms.get("curves")
+    if isinstance(curves, dict):
+        for side in ("clean", "hinted"):
+            block = curves.get(side)
+            if isinstance(block, dict):
+                candidates.append(
+                    (f"curves.{side}", block.get("n"), block.get("n_unscorable"),
+                     block.get("n_unparsed_depths"))
+                )
+
+    return candidates
+
+
+def _arms_unscorable_row(base_label: str, sublabel: str, n, n_unscorable,
+                         n_unparsed_depths=None) -> dict | None:
+    """One rate-less arm row (n / n_unscorable / unscorable_flag), or None when n is 0.
+
+    NO "mde" / "ci_upper_on_observed" / "powered" keys, deliberately: the block exposes
+    no rate, so there is no power question to answer, and inventing one would be worse
+    than omitting it. Consumers must therefore read "powered" with ``.get`` -- a row
+    without it never joins the underpowered tally.
+
+    THE DENOMINATOR -- the two conventions DIFFER, do not "unify" them:
+
+      * Rate-bearing blocks (``summarize_placebo`` and friends in 08) set
+        ``n = len(scorable)`` and ``n_unscorable = len(all) - n``, so n EXCLUDES the
+        unscorable and the entered total is ``n + n_unscorable``. Hence
+        ``_arms_power_row`` tests ``n_unscorable > 0.10 * (n + n_unscorable)``.
+      * The curves block (``_curve_arm_block`` in 08) sets ``n = len(curves)`` -- ALL
+        curves, INCLUDING the unscorable ones -- and ``n_unscorable`` counts the subset
+        whose ``curve_area is None``. The entered total is therefore ``n`` itself, so the
+        correct test here is ``n_unscorable > 0.10 * n``.
+
+    Using the rate-bearing form on curves would understate the share (11 of 100 would
+    read as 9.9 percent) and could fail to flag a block the pre-registration requires
+    flagged. The rule is "exceeds 10 percent", so the comparison is strictly ``>``.
+
+    ``n_unparsed_depths`` is carried through as INFORMATIONAL only. It is a DEPTH-level
+    counter -- a different granularity from the pre-registration's "records" -- so it
+    never enters the flag; it is retained because a block can have zero wholly-unscorable
+    curves while still losing many individual depths, which is worth seeing.
+    """
+    if n is None or n == 0:
+        return None
+    unscorable = n_unscorable or 0
+    row = {
+        "kind": "arms",
+        "label": f"{base_label}:{sublabel}",
+        "n": n,
+        "rate": None,
+        "n_unscorable": unscorable,
+        "unscorable_flag": unscorable > 0.10 * n,
+    }
+    if n_unparsed_depths is not None:
+        row["n_unparsed_depths"] = n_unparsed_depths
+    return row
+
+
 def arms_rows_from_summary(summary: dict, base_label: str) -> list[dict]:
     """Power rows for one arms summary dict (pure; unit-tested on synthetic dicts).
 
     Walks ``summary["arms"]`` and emits one row per rate-bearing sub-block, skipping the
-    empty (n == 0) and unscored (None-rate) ones. ``base_label`` is the file's path
-    relative to results/, matching the control rows' label convention; each row's label
-    is ``<base_label>:<sublabel>``.
+    empty (n == 0) and unscored (None-rate) ones, then appends one rate-less row per
+    unscorable-only block (the curves arm) so the pre-registration's 10-percent rule
+    reaches it too. ``base_label`` is the file's path relative to results/, matching the
+    control rows' label convention; each row's label is ``<base_label>:<sublabel>``.
+
+    Order is stable and deterministic: the rate-bearing rows first, in
+    ``_arms_candidates`` order, then the rate-less rows in
+    ``_arms_unscorable_candidates`` order. Appending the new rows leaves every
+    pre-existing row's content and position untouched.
     """
     arms = summary.get("arms")
     if not isinstance(arms, dict):
@@ -410,6 +496,12 @@ def arms_rows_from_summary(summary: dict, base_label: str) -> list[dict]:
     rows: list[dict] = []
     for sublabel, n, rate, n_unscorable in _arms_candidates(arms):
         row = _arms_power_row(base_label, sublabel, n, rate, n_unscorable)
+        if row is not None:
+            rows.append(row)
+    for sublabel, n, n_unscorable, n_unparsed_depths in _arms_unscorable_candidates(arms):
+        row = _arms_unscorable_row(
+            base_label, sublabel, n, n_unscorable, n_unparsed_depths
+        )
         if row is not None:
             rows.append(row)
     return rows
@@ -484,7 +576,10 @@ def main(argv: list[str] | None = None) -> int:
     for path in find_arms_summaries():
         arms_rows.extend(load_arms_rows(path))
     for row in arms_rows:
-        if not row["powered"]:
+        # Read "powered" with .get: the rate-less curves rows carry no such key, because
+        # a block with no rate poses no power question. They must never join the
+        # underpowered tally (and so never move the --strict exit code).
+        if not row.get("powered", True):
             underpowered.append(f"{row['label']} (n={row['n']})")
 
     print("\n" + "=" * 70)
