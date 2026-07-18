@@ -65,23 +65,42 @@ def _rater_name(path: Path) -> str:
     return path.stem.replace("labeled_", "")
 
 
-def load_raters(paths: list[Path]) -> list[tuple[str, dict]]:
-    """Load each labeled CSV, preserving input order. Reject two inputs with the same name.
+# Fixed worklist columns a rater name must never shadow (a collision would produce a
+# duplicate CSV header and make dict-based reads of the worklist silently ambiguous).
+RESERVED_RATER_NAMES = {ITEM_ID, QUESTION_COL, ADJUDICATED_COL}
 
-    Distinct rater names are required so every rater gets its own worklist column. A
-    collision almost always means the wrong files were passed, so it fails fast.
+
+def load_raters(paths: list[Path]) -> list[tuple[str, dict]]:
+    """Load each labeled CSV, preserving input order, failing fast on bad inputs.
+
+    Rejects two inputs mapping to the same rater name (each rater needs its own worklist
+    column; a collision almost always means the wrong files were passed), a rater name that
+    shadows a fixed worklist column, and a file that cannot be read as a filled label CSV
+    (converted to ValueError so the CLI reports it instead of a raw traceback).
     """
     raters: list[tuple[str, dict]] = []
     seen: dict[str, Path] = {}
     for p in paths:
         name = _rater_name(p)
+        if name in RESERVED_RATER_NAMES:
+            raise ValueError(
+                f"rater name {name!r} (from {p.name}) collides with a fixed worklist "
+                "column; rename the file"
+            )
         if name in seen:
             raise ValueError(
                 f"two inputs map to rater {name!r} ({seen[name].name} and {p.name}); "
                 "give each rater a distinct labeled_<name>.csv"
             )
+        try:
+            data = load_labeled(p)
+        except (OSError, KeyError) as e:
+            raise ValueError(
+                f"cannot load {p.name}: {e!r} (expected a filled label CSV with the "
+                "labeling-sheet headers)"
+            ) from e
         seen[name] = p
-        raters.append((name, load_labeled(p)))
+        raters.append((name, data))
     return raters
 
 
@@ -169,8 +188,11 @@ def fleiss_kappa(rows: list[list[int]]) -> float | None:
     """
     if not rows:
         return None
-    # Enforce the constant-rater-count contract BEFORE the n < 2 early return, so a ragged
-    # matrix always raises rather than slipping through when the first row happens to be small.
+    # Enforce BOTH shape contracts BEFORE the n < 2 early return, so a ragged matrix always
+    # raises rather than slipping through (or being silently mis-scored: k is taken from
+    # rows[0], so a wider later row would leak categories out of P_e but not P_bar).
+    if len({len(r) for r in rows}) > 1:
+        raise ValueError("Fleiss' kappa needs the same category count on every row")
     sizes = {sum(r) for r in rows}
     if len(sizes) > 1:
         raise ValueError("Fleiss' kappa needs the same rater count on every item")
@@ -248,6 +270,34 @@ def _print_fleiss(raters: list[tuple[str, dict]]) -> None:
               f"[complete-case items: {n_used} used, {n_excluded} excluded for a missing label]")
 
 
+def _same_file(out: Path, inp: Path) -> bool:
+    """True when out and inp name the same file, including case variants on a
+    case-insensitive filesystem (macOS APFS), symlinks, and hardlinks. Path.resolve()
+    alone does not case-normalize, so an inode comparison backs it up."""
+    if out.resolve() == inp.resolve():
+        return True
+    try:
+        return out.samefile(inp)
+    except OSError:
+        return False  # out does not exist yet, so it cannot be an existing input
+
+
+def _worklist_has_adjudications(path: Path) -> bool:
+    """True if an existing worklist CSV already carries human adjudication decisions.
+
+    Guards the human's work: results/ is gitignored (for blinding), so a filled worklist
+    has no VCS safety net and a silent rewrite would destroy it. Unreadable or non-worklist
+    files return False (overwriting those is the operator's explicit choice via --out)."""
+    try:
+        with path.open(newline="", encoding="utf-8-sig") as fh:
+            reader = csv.DictReader(fh)
+            if not reader.fieldnames or ADJUDICATED_COL not in reader.fieldnames:
+                return False
+            return any((row.get(ADJUDICATED_COL) or "").strip() for row in reader)
+    except OSError:
+        return False
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--labeled", type=Path, nargs="+", required=True,
@@ -256,8 +306,12 @@ def main() -> int:
                     help="where to write the human-adjudication worklist CSV (split items only)")
     a = ap.parse_args()
 
-    if a.out.resolve() in {p.resolve() for p in a.labeled}:
+    if any(_same_file(a.out, p) for p in a.labeled):
         print(f"[adjudicate] refusing to write the worklist over an input label file: {a.out}")
+        return 2
+    if a.out.exists() and _worklist_has_adjudications(a.out):
+        print(f"[adjudicate] refusing to overwrite {a.out}: it already contains human "
+              "adjudication decisions; move or rename it first.")
         return 2
 
     try:

@@ -26,8 +26,10 @@ from __future__ import annotations
 
 import csv
 import importlib.util
+import os
 import random
 import sys
+from fractions import Fraction
 from math import comb
 from pathlib import Path
 
@@ -83,24 +85,31 @@ def _read_rows(path: Path) -> list[list[str]]:
 # Independent Fleiss oracle -- a different code path from the implementation
 # --------------------------------------------------------------------------- #
 def _ref_fleiss(rows: list[list[int]]) -> float | None:
-    """Fleiss' kappa built from agreeing rater PAIRS (math.comb), not sum-of-squares.
+    """Fleiss' kappa via agreeing rater PAIRS and EXACT rational arithmetic.
 
-    Algebraically identical to the implementation but coded differently, so a bug in either
-    surfaces as a mismatch. Uses the same n<2 / empty / pe==1.0 conventions.
+    Algebraically identical to the implementation but a genuinely different numeric path on
+    BOTH halves: P_bar from math.comb pair counts (not sum-of-squares) and P_e from
+    imperatively accumulated column totals in exact fractions.Fraction arithmetic (not a
+    float generator expression), so a shared coding slip in either half cannot cancel out.
+    The textbook anchors below additionally pin the absolute values. Same n<2 / empty /
+    pe==1 conventions as the implementation.
     """
     if not rows:
         return None
     n = sum(rows[0])
     if n < 2:
         return None
-    k = len(rows[0])
     total = len(rows) * n
     cn = comb(n, 2)
-    p_bar = sum(sum(comb(c, 2) for c in r) / cn for r in rows) / len(rows)
-    p_e = sum((sum(r[j] for r in rows) / total) ** 2 for j in range(k))
-    if p_e == 1.0:
-        return 1.0 if p_bar == 1.0 else 0.0
-    return (p_bar - p_e) / (1 - p_e)
+    p_bar = Fraction(sum(sum(comb(c, 2) for c in r) for r in rows), cn * len(rows))
+    col = [0] * len(rows[0])
+    for r in rows:
+        for j, c in enumerate(r):
+            col[j] += c
+    p_e = sum(Fraction(c, total) ** 2 for c in col)
+    if p_e == 1:
+        return 1.0 if p_bar == 1 else 0.0
+    return float((p_bar - p_e) / (1 - p_e))
 
 
 # Published Fleiss' kappa worked example: N=10 subjects, n=14 raters, k=5 categories -> 0.210.
@@ -280,6 +289,15 @@ def test_fleiss_rejects_ragged_rater_counts():
         adj.fleiss_kappa([[1, 0], [5, 5]])                    # first row sums < 2: guard is still total
 
 
+def test_fleiss_rejects_ragged_category_widths():
+    # equal row sums (3 and 3) but different widths: k from rows[0] would silently drop the
+    # third category from P_e while P_bar still used it -- must raise, never mis-score.
+    with pytest.raises(ValueError):
+        adj.fleiss_kappa([[2, 1], [1, 1, 1]])
+    with pytest.raises(ValueError):
+        adj.fleiss_kappa([[1, 1, 1], [2, 1]])                 # shorter later row: same guard
+
+
 # --------------------------------------------------------------------------- #
 # 5. mentions_fleiss adapter -- complete-case restriction + rater-count gate
 # --------------------------------------------------------------------------- #
@@ -425,6 +443,130 @@ def test_main_summary_reports_na_when_a_question_has_no_colabeled_items(tmp_path
     ])
     assert adj.main() == 0
     assert "n/a (no item had >= 2 votes)" in capsys.readouterr().out
+
+
+def test_main_refuses_hardlink_alias_of_an_input(tmp_path, monkeypatch, capsys):
+    # A hardlink defeats a pure Path.resolve() comparison (different name, same inode) --
+    # the stand-in for the case-variant bypass on case-insensitive APFS, but portable to
+    # the case-sensitive CI filesystem. The guard must catch it via samefile().
+    a = _write_labeled(tmp_path / "labeled_a.csv", [("it1", "yes", "yes")])
+    b = _write_labeled(tmp_path / "labeled_b.csv", [("it1", "no", "yes")])
+    alias = tmp_path / "not_obviously_a_label_file.csv"
+    os.link(a, alias)
+    before = a.read_bytes()
+    monkeypatch.setattr(sys, "argv", [
+        "adjudicate_labels.py", "--labeled", str(a), str(b), "--out", str(alias),
+    ])
+    rc = adj.main()
+    assert rc == 2
+    assert "refusing to write" in capsys.readouterr().out
+    assert a.read_bytes() == before          # the rater's raw labels survive
+
+
+def test_main_refuses_to_clobber_a_human_adjudicated_worklist(tmp_path, monkeypatch, capsys):
+    a = _write_labeled(tmp_path / "labeled_a.csv", [("it1", "yes", "yes")])
+    b = _write_labeled(tmp_path / "labeled_b.csv", [("it1", "no", "yes")])
+    out = tmp_path / "worklist.csv"
+    argv = ["adjudicate_labels.py", "--labeled", str(a), str(b), "--out", str(out)]
+    monkeypatch.setattr(sys, "argv", argv)
+    assert adj.main() == 0
+    capsys.readouterr()
+
+    # Simulate the HUMAN adjudicator filling one decision (synthetic data; in real use this
+    # is the human step the tool must never redo or destroy).
+    rows = _read_rows(out)
+    rows[1][-1] = "yes"
+    with out.open("w", newline="", encoding="utf-8") as fh:
+        csv.writer(fh).writerows(rows)
+    filled = out.read_bytes()
+
+    monkeypatch.setattr(sys, "argv", argv)
+    rc = adj.main()
+    text = capsys.readouterr().out
+    assert rc == 2
+    assert "human" in text and "adjudication" in text
+    assert out.read_bytes() == filled        # the human's decisions are untouched
+
+
+def test_main_overwrites_an_unfilled_worklist_idempotently(tmp_path, monkeypatch, capsys):
+    a = _write_labeled(tmp_path / "labeled_a.csv", [("it1", "yes", "yes")])
+    b = _write_labeled(tmp_path / "labeled_b.csv", [("it1", "no", "yes")])
+    out = tmp_path / "worklist.csv"
+    argv = ["adjudicate_labels.py", "--labeled", str(a), str(b), "--out", str(out)]
+    monkeypatch.setattr(sys, "argv", argv)
+    assert adj.main() == 0
+    first = out.read_bytes()
+    monkeypatch.setattr(sys, "argv", argv)
+    assert adj.main() == 0                   # no adjudication entered yet -> re-run is fine
+    assert out.read_bytes() == first
+    capsys.readouterr()
+
+
+def test_load_raters_rejects_reserved_rater_names(tmp_path):
+    # labeled_adjudicated.csv would shadow the tool's own blank column with a duplicate
+    # header -- the one column whose blankness carries the no-AI-adjudication guarantee.
+    bad = _write_labeled(tmp_path / "labeled_adjudicated.csv", [("it1", "yes", "yes")])
+    with pytest.raises(ValueError, match="collides with a fixed worklist column"):
+        adj.load_raters([bad])
+    bad2 = _write_labeled(tmp_path / "labeled_item_id.csv", [("it1", "yes", "yes")])
+    with pytest.raises(ValueError, match="collides"):
+        adj.load_raters([bad2])
+
+
+def test_main_friendly_error_on_missing_input_file(tmp_path, monkeypatch, capsys):
+    a = _write_labeled(tmp_path / "labeled_a.csv", [("it1", "yes", "yes")])
+    monkeypatch.setattr(sys, "argv", [
+        "adjudicate_labels.py", "--labeled", str(a), str(tmp_path / "labeled_ghost.csv"),
+        "--out", str(tmp_path / "wl.csv"),
+    ])
+    rc = adj.main()                          # no raw FileNotFoundError traceback
+    text = capsys.readouterr().out
+    assert rc == 2
+    assert "[adjudicate] cannot load labeled_ghost.csv" in text
+
+
+def test_main_friendly_error_on_csv_without_item_id_header(tmp_path, monkeypatch, capsys):
+    a = _write_labeled(tmp_path / "labeled_a.csv", [("it1", "yes", "yes")])
+    bad = tmp_path / "labeled_bad.csv"
+    bad.write_text("wrong,headers\n1,2\n", encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", [
+        "adjudicate_labels.py", "--labeled", str(a), str(bad),
+        "--out", str(tmp_path / "wl.csv"),
+    ])
+    rc = adj.main()                          # no raw KeyError traceback
+    text = capsys.readouterr().out
+    assert rc == 2
+    assert "[adjudicate] cannot load labeled_bad.csv" in text
+
+
+def test_pipeline_handles_items_absent_from_some_raters(tmp_path):
+    # Items entirely MISSING from a rater's CSV (no row at all, not just a blank cell) must
+    # flow through votes_for -> classify -> worklist/summarize/fleiss as absent votes.
+    a = _write_labeled(tmp_path / "labeled_a.csv", [
+        ("i1", "yes", "yes"), ("i2", "yes", "yes"), ("i5", "yes", "yes"),
+    ])
+    b = _write_labeled(tmp_path / "labeled_b.csv", [
+        ("i2", "no", "yes"), ("i5", "no", "yes"), ("i9", "yes", "yes"),
+    ])
+    c = _write_labeled(tmp_path / "labeled_c.csv", [("i2", "yes", "yes")])
+    raters = adj.load_raters([a, b, c])
+
+    header, rows = adj.build_worklist(raters)
+    keyed = {(r[0], r[1]): r for r in rows}
+    # i2 mentions: yes/no/yes -> split with all three cells; i5 mentions: yes/no/ABSENT ->
+    # split, c's cell rendered blank. i1/i9 are single-vote items -> never in the worklist.
+    assert keyed[("i2", "mentions")] == ["i2", "mentions", "yes", "no", "yes", ""]
+    assert keyed[("i5", "mentions")] == ["i5", "mentions", "yes", "no", "", ""]
+    assert not any(item in ("i1", "i9") for item, _ in keyed)
+
+    stats = adj.summarize(raters)
+    assert stats["mentions"]["split"] == 2               # i2, i5
+    assert stats["mentions"]["single"] == 2              # i1, i9
+    assert stats["mentions"]["incomplete"] == 3          # i1, i5, i9 (>=1 missing vote)
+
+    kappa, n_used, n_excluded = adj.mentions_fleiss(raters)
+    assert (n_used, n_excluded) == (1, 3)                # only i2 is complete-case
+    assert kappa is not None
 
 
 def test_main_fleiss_na_when_no_item_labeled_on_mentions_by_every_rater(tmp_path, monkeypatch,
