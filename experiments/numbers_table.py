@@ -135,9 +135,15 @@ def criterion(pid, text):
         print(f"    | {line}")
 
 
-def main():
-    sp = RESULTS / f"arms_summary_{TAG}.json"
-    tp = RESULTS / f"arms_transcripts_{TAG}.json"
+def main(argv=None):
+    # Optional positional arg: the results directory holding the run's summary and
+    # transcripts (default: the original experiments/results). The P8 taxonomy sweeps
+    # write to their own --out per run so banked summaries are never clobbered, and
+    # this table must read whichever directory a run actually used.
+    args = sys.argv[1:] if argv is None else argv
+    results = Path(args[0]) if args else RESULTS
+    sp = results / f"arms_summary_{TAG}.json"
+    tp = results / f"arms_transcripts_{TAG}.json"
     if not sp.exists():
         print(f"[not ready] {sp.name} does not exist yet. The runner writes the summary\n"
               "only at _finalize, after EVERY enabled arm completes. A capped leg banks\n"
@@ -150,7 +156,7 @@ def main():
     a = s["attrition"]
 
     print("=" * 86)
-    print("NUMBERS TABLE -- first preregistered Phase-2 sweep.  DATA, not a report.")
+    print("NUMBERS TABLE -- preregistered Phase-2 sweep.  DATA, not a report.")
     print("No conclusions are drawn here, by construction.")
     print("=" * 86)
     print(f"  model           : {s['model']}    backend: {s['backend']}")
@@ -466,8 +472,15 @@ def main():
     print(f"Every number above: model={s['model']}  backend={s['backend']}.")
     print("This table draws NO conclusions. These arms produce no PASS/REVIEW verdict.")
     print("The golden set is UNLABELED: no kappa exists; nothing here is quotable as a")
-    print("validated measurement. P8 (cue taxonomy) is not an arm and is out of scope for")
-    print("this stated-hint run.")
+    print("validated measurement.")
+    if str(s.get("cue_kind", "")).startswith("taxonomy:"):
+        print(f"This run is ONE cue family ({s['cue_kind']}). P8 heterogeneity is a")
+        print("CROSS-family comparison (hint-type as a grouping factor in the")
+        print("hierarchical model, per the frozen prereg); no single-family run")
+        print("evaluates it.")
+    else:
+        print("P8 (cue taxonomy) is not an arm and is out of scope for this")
+        print("stated-hint run.")
     return 0
 
 
