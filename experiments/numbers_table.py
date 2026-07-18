@@ -212,11 +212,13 @@ def main():
         rate("with/without-CoT agreement", d["with_without_cot_agreement"]["n_agree"],
              d["with_without_cot_agreement"]["n"])
     if cs:
-        print("\n    RUNNER's commitment_split block. NOTE: _commitment_split applies NO")
-        print("    unscorable exclusion (an unparsed hinted answer sits in the "
-              "denominator as a")
-        print("    non-follower) and reports no n_unscorable -- which the prereg "
-              "Exclusions rule forbids:")
+        print("\n    RUNNER's commitment_split block. NOTE: _commitment_split is now")
+        print("    Exclusions-compliant -- within each stratum an unparsed hinted answer "
+              "is excluded")
+        print("    from the follow/silent denominators and reported per stratum as "
+              "n_unscorable,")
+        print("    shown here for cross-reference beside the from-transcripts "
+              "recomputation below:")
         for key in ("committed", "moved", "unknown"):
             b = cs.get(key) or {}
             rate(f"  {key}: follow", b.get("n_follow", 0), b.get("n", 0))
