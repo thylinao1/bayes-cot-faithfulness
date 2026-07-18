@@ -76,6 +76,11 @@ experiments/results/*
 experiments/results/pilots/*
 !experiments/results/pilots/arms_summary_llama3.2_3b.json
 experiments/data/arc_*.json
+# P3 candidate-substrate fetches (gitignored like the ARC fetches; the runner
+# fingerprints their sha256 in its checkpoint params, and committing LogiQA 2.0
+# data would also be a CC BY-NC-SA redistribution question -- see the memo)
+experiments/data/logiqa2*.json
+experiments/data/aqua*.json
 
 # R session history from exploratory analysis in experiments/
 experiments/.Rhistory
