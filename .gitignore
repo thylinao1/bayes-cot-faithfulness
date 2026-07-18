@@ -76,3 +76,6 @@ experiments/results/*
 experiments/results/pilots/*
 !experiments/results/pilots/arms_summary_llama3.2_3b.json
 experiments/data/arc_*.json
+
+# R session history from exploratory analysis in experiments/
+experiments/.Rhistory
