@@ -75,6 +75,13 @@ experiments/results/*
 !experiments/results/pilots/
 experiments/results/pilots/*
 !experiments/results/pilots/arms_summary_llama3.2_3b.json
+# P8 cue-taxonomy sweeps (one dir per family so summaries never clobber): the
+# summary and its judgment-free numbers table are committed, transcripts and
+# checkpoints stay local like every other run.
+!experiments/results/p8_professor/
+experiments/results/p8_professor/*
+!experiments/results/p8_professor/arms_summary_llama-3.1-8b-instant.json
+!experiments/results/p8_professor/numbers_table.txt
 experiments/data/arc_*.json
 # P3 candidate-substrate fetches (gitignored like the ARC fetches; the runner
 # fingerprints their sha256 in its checkpoint params, and committing LogiQA 2.0
