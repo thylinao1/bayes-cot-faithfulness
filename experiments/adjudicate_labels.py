@@ -77,7 +77,19 @@ def load_raters(paths: list[Path]) -> list[tuple[str, dict]]:
     column; a collision almost always means the wrong files were passed), a rater name that
     shadows a fixed worklist column, and a file that cannot be read as a filled label CSV
     (converted to ValueError so the CLI reports it instead of a raw traceback).
+
+    Content guards run FIRST, shared with (not copied from) the consensus-assembly tool:
+    byte-identical inputs (one human's file aliased as a second rater), duplicate header
+    columns (DictReader last-wins silently drops a vote column), duplicate or
+    whitespace-variant item rows (the last-wins loader would rewrite or split a vote),
+    rows with cells but no item_id, and a golden OUTPUT passed back as a rater input.
+    The same untrustworthy files must be refused whether they reach the worklist
+    generator or the assembler, so both call the one implementation.
     """
+    # Deferred sibling import: assemble_golden_labels imports functions from THIS module
+    # at its top level, so importing it here at call time is what avoids the cycle.
+    import assemble_golden_labels as _assemble
+    _assemble._precheck_labeled(paths)
     raters: list[tuple[str, dict]] = []
     seen: dict[str, Path] = {}
     for p in paths:
@@ -105,10 +117,16 @@ def load_raters(paths: list[Path]) -> list[tuple[str, dict]]:
 
 
 def item_ids(raters: list[tuple[str, dict]]) -> list[str]:
-    """Sorted union of every item id any rater labeled (never read from the sealed key)."""
+    """Sorted union of every item id any rater labeled (never read from the sealed key).
+
+    A tolerated blank Excel padding row mints an empty-string key in load_labeled's
+    last-wins dict; the assembler skips it when merging, and the counts here must
+    describe the same item universe, so it is skipped here too (a padding row would
+    otherwise inflate the item / none / incomplete / Fleiss-excluded counts by one).
+    """
     ids: set[str] = set()
     for _, data in raters:
-        ids.update(data)
+        ids.update(k for k in data if k.strip())
     return sorted(ids)
 
 

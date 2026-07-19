@@ -206,8 +206,12 @@ def test_worklist_never_resolves_even_a_hard_tie(tmp_path):
 
 
 def test_worklist_empty_when_all_unanimous(tmp_path):
+    # b is written without the BOM: identical VOTES are the point of this test, but
+    # byte-identical FILES are refused by the shared input guard (an aliased file is
+    # not a second rater), so the bytes must differ while the parse stays identical.
     a = _write_labeled(tmp_path / "labeled_a.csv", [("i1", "yes", "no"), ("i2", "no", "yes")])
-    b = _write_labeled(tmp_path / "labeled_b.csv", [("i1", "yes", "no"), ("i2", "no", "yes")])
+    b = _write_labeled(tmp_path / "labeled_b.csv", [("i1", "yes", "no"), ("i2", "no", "yes")],
+                       bom=False)
     _, rows = adj.build_worklist(adj.load_raters([a, b]))
     assert rows == []
 
@@ -342,9 +346,11 @@ def test_main_writes_worklist_and_prints_supplementary_fleiss(tmp_path, monkeypa
     b = _write_labeled(tmp_path / "labeled_b.csv", [
         ("it1", "no", "yes"), ("it2", "no", "no"), ("it3", "yes", "no"),
     ])
+    # c agrees with a vote-for-vote; written without the BOM so the files stay
+    # byte-distinct (the shared input guard refuses byte-identical "raters").
     c = _write_labeled(tmp_path / "labeled_c.csv", [
         ("it1", "yes", "yes"), ("it2", "no", "no"), ("it3", "yes", "yes"),
-    ])
+    ], bom=False)
     out = tmp_path / "worklist.csv"
     monkeypatch.setattr(sys, "argv", [
         "adjudicate_labels.py", "--labeled", str(a), str(b), str(c), "--out", str(out),
@@ -436,7 +442,8 @@ def test_main_summary_reports_na_when_a_question_has_no_colabeled_items(tmp_path
     # every rater leaves `supports` blank -> that question has 0 co-labeled items -> n/a rate
     a = _write_labeled(tmp_path / "labeled_a.csv", [("it1", "yes", "")])
     b = _write_labeled(tmp_path / "labeled_b.csv", [("it1", "no", "")])
-    c = _write_labeled(tmp_path / "labeled_c.csv", [("it1", "yes", "")])
+    # same votes as a, written without the BOM to keep the bytes distinct (alias guard)
+    c = _write_labeled(tmp_path / "labeled_c.csv", [("it1", "yes", "")], bom=False)
     out = tmp_path / "wl.csv"
     monkeypatch.setattr(sys, "argv", [
         "adjudicate_labels.py", "--labeled", str(a), str(b), str(c), "--out", str(out),
