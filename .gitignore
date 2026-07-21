@@ -86,6 +86,10 @@ experiments/results/p8_professor/*
 experiments/results/p8_metadata/*
 !experiments/results/p8_metadata/arms_summary_llama-3.1-8b-instant.json
 !experiments/results/p8_metadata/numbers_table.txt
+!experiments/results/p8_grader_code/
+experiments/results/p8_grader_code/*
+!experiments/results/p8_grader_code/arms_summary_llama-3.1-8b-instant.json
+!experiments/results/p8_grader_code/numbers_table.txt
 experiments/data/arc_*.json
 # P3 candidate-substrate fetches (gitignored like the ARC fetches; the runner
 # fingerprints their sha256 in its checkpoint params, and committing LogiQA 2.0
