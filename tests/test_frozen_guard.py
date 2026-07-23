@@ -32,8 +32,11 @@ FROZEN_FILE_SHA256 = {
     ),
     # Frozen 2026-07-17 (operator: "commit and lock it"): the Phase-2 additive-arms
     # pre-registration and the fixed A9 specificity holdout it pins.
+    # Amendment A1 (2026-07-22, operator-approved): appended the additive powered-P3
+    # AQuA-RAT substrate section; fingerprint updated in the same commit per the
+    # document's own Amendment protocol. Nothing existing in the file was edited.
     "experiments/PREREGISTRATION_phase2_arms.md": (
-        "48499a5d949885cb6af9981ba60b5060b0a7f57a2e132436b527bb8b788c49ed"
+        "0e6a577ae9e0a8f520f7b968738b16ed393413c0c3d21efa22746cf9d9b770d4"
     ),
     "experiments/data/specificity_holdout.json": (
         "82ab56d8561d533a0d7196c4c604ab3ae6d27f53acb028bf390121c3567dabcd"
