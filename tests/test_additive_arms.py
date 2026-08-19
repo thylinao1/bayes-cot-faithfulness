@@ -437,7 +437,7 @@ def test_specificity_arm_never_sends_the_real_cue_to_the_holdout(tmp_path):
 
     # 3 clean prompts + 3 placebo prompts, every answer parseable on the first call
     assert len(client.prompts) == 6
-    # The frozen strong-hint template must NEVER reach a holdout prompt -- only the
+    # The frozen strong-hint template must NEVER reach a holdout prompt; only the
     # magnitude-matched placebo is sent; the formatted cue_text stays a would-be label.
     for prompt in client.prompts:
         assert "The official answer key marks" not in prompt
@@ -550,7 +550,7 @@ class _CapturingClient:
 
     Returning a committed 'Answer: (A)' keeps parse_or_force from making a second
     forced-continuation call, so the captured prompt list is exactly the prompts the arm
-    under test issued -- which is what the circularity assertions inspect.
+    under test issued, which is what the circularity assertions inspect.
     """
 
     def __init__(self):

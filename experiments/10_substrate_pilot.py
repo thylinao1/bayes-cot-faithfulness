@@ -1,7 +1,7 @@
 """Exploratory P3 substrate pilot: measure f = P(direct wrong | reasoned correct).
 
-Implements the pilot protocol of docs/p3_substrate_scouting.md section 5, approved by
-the operator on 2026-07-19 (option (a): both finalists). Two model calls per item on
+Implements the pilot protocol of docs/p3_substrate_scouting.md section 5, approved
+on 2026-07-19 (option (a): both finalists). Two model calls per item on
 the first N items of a candidate substrate in fetch order: a clean CoT pass and a
 direct no-CoT pass, temperature 0.0, the frozen prompt frames, nothing else. From the
 two passes it reports, with n and BOTH one-sided 95 percent Clopper-Pearson bounds:
@@ -9,7 +9,7 @@ two passes it reports, with n and BOTH one-sided 95 percent Clopper-Pearson boun
   - c, the clean-correct rate (on BOTH denominators: items entered, the memo's yield
     arithmetic, and items measured, the attrition-honest rate);
   - f, the moved fraction among clean-correct items (direct answer wrong while the
-    reasoned answer was correct) -- the quantity that predicts the P3 moved stratum;
+    reasoned answer was correct), the quantity that predicts the P3 moved stratum;
   - y = f x c(entered), the moved yield per item entered;
   - direct accuracy over the measured items whose direct answer parsed (unscorable
     excluded and counted, the Exclusions discipline; derived from the same two
@@ -20,7 +20,7 @@ These numbers SIZE a powered P3 run under the memo's pre-specified decision rule
 log. The pilot is exploratory and disclosed: nothing here is preregistered, nothing
 is pooled with preregistered data, and nothing below carries a verdict.
 
-No cue is ever planted: there is no hint, no taxonomy, no placebo -- just the clean
+No cue is ever planted: there is no hint, no taxonomy, no placebo, just the clean
 frame and the direct frame. $0 policy: local Ollama or free Groq only, availability-
 gated exactly like 05/08; resume banks state so a free-tier cap costs nothing.
 
@@ -53,8 +53,8 @@ def _load_arms_module():
     """Load the additive-arms runner by file path (digit-prefixed, not importable).
 
     08 loads the frozen 05 the same way at import time; neither makes a model call on
-    import. Reusing 08's machinery -- the substrate pass, the checked parse discipline,
-    the availability-gated client, the checkpoint cadence -- keeps this pilot's call
+    import. Reusing 08's machinery (the substrate pass, the checked parse discipline,
+    the availability-gated client, the checkpoint cadence) keeps this pilot's call
     behavior identical to the preregistered sweeps instead of a drifting copy.
     """
     spec = importlib.util.spec_from_file_location("additive_arms_08", ARMS_SCRIPT)
@@ -266,7 +266,7 @@ def run(data_path: Path, n_items: int, out_dir: Path, model: str, backend: str,
             saved = loaded.get("params", {})
             mismatches = arms_resume.params_mismatch(saved, params)
             # params_mismatch compares only arms_resume.PARAM_FIELDS, which does not
-            # know this script's "protocol" field -- guard it explicitly, or a future
+            # know this script's "protocol" field, so guard it explicitly, or a future
             # protocol revision would silently merge v1 banked records into a v2 run.
             if saved.get("protocol") != params["protocol"]:
                 mismatches.insert(0, ("protocol", saved.get("protocol"), params["protocol"]))

@@ -99,7 +99,7 @@ experiments/results/p3_powered_aqua/*
 experiments/data/arc_*.json
 # P3 candidate-substrate fetches (gitignored like the ARC fetches; the runner
 # fingerprints their sha256 in its checkpoint params, and committing LogiQA 2.0
-# data would also be a CC BY-NC-SA redistribution question -- see the memo)
+# data would also be a CC BY-NC-SA redistribution question; see the memo)
 experiments/data/logiqa2*.json
 experiments/data/aqua*.json
 

@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Fail CI when public prose breaks the project's tone lock.
+"""Fail CI when public prose breaks the project's writing style guide.
 
-Scans the site HTML and the README for the hard tone rules: no em or en dashes
-(literal characters or HTML entities), no curly quotes, no style vocabulary, and
-no relative dates. Code regions (script, style, pre, code) are stripped first so a
-dash inside a shell snippet or a class name never trips the check.
+Scans the site HTML and the README for the typography and vocabulary rules the
+project writes to: plain ASCII punctuation (no em or en dashes as literal
+characters or HTML entities), straight quotes, no filler vocabulary from the
+list below, and no relative dates in place of a real one. Code regions (script,
+style, pre, code) are stripped first so a dash inside a shell snippet or a class
+name never trips the check.
 
 Run locally or in CI:
 
-    python scripts/check_prose_tone.py
+    python scripts/check_prose_style.py
 """
 
 from __future__ import annotations
@@ -26,8 +28,6 @@ TARGETS = [
     ROOT / "README.md",
 ]
 
-# "robust/robustness" is intentionally allowed: it is used technically (the rho*
-# robustness statement), not as filler. Everything below is banned outright.
 BANNED_WORDS = [
     "leverage", "seamless", "delve", "underscore", "pivotal",
     "testament", "tapestry", "realm", "harness", "crucial",
@@ -81,14 +81,14 @@ def main() -> int:
         all_problems.extend(check_file(path))
 
     if all_problems:
-        print("Tone-lock violations in public prose:\n")
+        print("Style-guide violations in public prose:\n")
         for p in all_problems:
             print("  " + p)
-        print(f"\n{len(all_problems)} violation(s). See the tone lock (no em/en dashes, "
-              "no curly quotes, no style vocabulary, no relative dates).")
+        print(f"\n{len(all_problems)} violation(s). The style guide asks for no em or en "
+              "dashes, straight quotes, no filler vocabulary, and no relative dates.")
         return 1
 
-    print(f"Prose tone check passed: {len(TARGETS)} files clean.")
+    print(f"Prose style check passed: {len(TARGETS)} files clean.")
     return 0
 
 

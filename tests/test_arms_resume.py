@@ -11,7 +11,7 @@ UNDERLYING CALL OUTCOMES. When every call succeeds, that collapses to the obviou
 "resumed == uninterrupted" check the (a) / (b) / (a2) suites make. When a clean call
 failed transiently, it does NOT: that failure shaped the roster and every later
 position-seeded draw, so the correct golden reference is an uninterrupted run WITH THE
-SAME FAILURE INJECTED -- see the ROSTER LOCK tests, which pin the rotation cycle that a
+SAME FAILURE INJECTED; see the ROSTER LOCK tests, which pin the rotation cycle that a
 naive "heal the hole on resume" silently breaks.
 
 A scripted client that raises after K generate() calls models the token-budget stop at
@@ -330,7 +330,7 @@ def test_failed_generation_item_stays_out_of_a_locked_roster(tmp_path, monkeypat
 
     # Resume with a healthy client: healing the hole now would shift every later
     # record's position while its banked hint_label kept the old one, so the committed
-    # roster skips it entirely -- and the derived attrition still reports it, once.
+    # roster skips it entirely, and the derived attrition still reports it, once.
     resumed = ScriptedClient(items)
     rc2 = _run(monkeypatch, resumed, data_path=data_path, out_dir=out_dir,
                holdout_path=holdout_path, arms=["direct"], resume=True)
@@ -597,7 +597,7 @@ def test_tail_substrate_hole_before_any_cue_write_is_retried(tmp_path, monkeypat
 
 
 def test_tail_holdout_hole_before_any_placebo_write_is_retried(tmp_path, monkeypatch):
-    """(R1b) The same boundary in the A9 holdout clean pass -- the worst case, since A9
+    """(R1b) The same boundary in the A9 holdout clean pass, the worst case, since A9
     runs LAST (where the daily cap is most likely to land) and its n=20 is prereg-FIXED."""
     data_path, holdout_path, items = _golden_setup(tmp_path)
     arms = ["specificity"]
@@ -642,7 +642,7 @@ def test_hard_kill_before_any_cue_write_leaves_the_roster_open(tmp_path, monkeyp
 
     class HardKillClient(ScriptedClient):
         """KeyboardInterrupt is a BaseException, so safe_generate does not catch it and
-        no banking path runs -- exactly a SIGKILL."""
+        no banking path runs, exactly a SIGKILL."""
 
         def generate(self, prompt: str, num_predict: int = 0) -> str:
             if self.calls >= 11:  # after the i=9 cadence banked 10 records
@@ -714,7 +714,7 @@ def test_mid_merge_cadence_write_never_drops_a_banked_record(tmp_path, monkeypat
     assert rc == 0
     assert min(watcher.counts_seen) >= banked_before, (
         f"a mid-merge cadence write truncated the checkpoint to "
-        f"{min(watcher.counts_seen)} records (was {banked_before}) -- already-paid-for "
+        f"{min(watcher.counts_seen)} records (was {banked_before}); already-paid-for "
         "records were lost"
     )
     assert _summary(out_dir)["n_clean_correct"] == n_items
@@ -783,7 +783,7 @@ def test_unreadable_checkpoint_refuses_without_any_call(tmp_path, monkeypatch, c
 # (P1) The duplicate guard must run on LEG 1. Both legs of a real launch pass
 # --resume; leg 1 has no checkpoint yet. Gating the guard on one existing meant
 # leg 1 spent the entire daily budget banking records the by-key merge silently
-# aliased, and only leg 2 refused -- by which point the day is unrecoverable.
+# aliased, and only leg 2 refused, by which point the day is unrecoverable.
 # --------------------------------------------------------------------------- #
 def test_resume_leg1_without_checkpoint_refuses_duplicate_data(tmp_path, monkeypatch,
                                                                capsys):
@@ -825,8 +825,8 @@ def test_resume_leg1_without_checkpoint_refuses_duplicate_holdout(tmp_path, monk
 
 # --------------------------------------------------------------------------- #
 # (P2) A leg with nothing of its own to save must not destroy a previous leg's
-# banked work. substrate_pass's `i == 0` abort banks on the way down -- its whole
-# purpose is to SAVE -- so with loaded=None the union degenerated to the empty
+# banked work. substrate_pass's `i == 0` abort banks on the way down (its whole
+# purpose is to SAVE), so with loaded=None the union degenerated to the empty
 # live list and a zero-call relaunch wrote {records: [], specificity: null} over
 # the most expensive artifact in the run.
 # --------------------------------------------------------------------------- #
@@ -844,7 +844,7 @@ def test_fresh_leg_with_nothing_to_save_does_not_destroy_banked_state(tmp_path,
     assert before["specificity"] is not None
     assert len(before["specificity"]["records"]) == N_HOLDOUT
 
-    # Leg 2: the operator relaunches WITHOUT --resume while the key is still capped,
+    # Leg 2: relaunched WITHOUT --resume while the key is still capped,
     # so the very first call raises and nothing of this leg's own ever exists.
     dead = ScriptedClient(items, raise_after=0)
     rc = _run(monkeypatch, dead, data_path=data_path, out_dir=out_dir,
@@ -1070,10 +1070,10 @@ def test_resume_with_duplicate_items_refuses(tmp_path, monkeypatch, capsys):
 # A transient clean-call failure at item j>0 does NOT abort the pass (fails<3), so
 # the run proceeds onto a SHIFTED roster and banks hint_label/cue_text (rotate=i)
 # and rng_seed=i against those positions. Healing item j on resume would re-insert
-# it at its natural index and push every later record one position along -- while the
+# it at its natural index and push every later record one position along, while the
 # presence guards keep their banked, old-position hints. Observed before the lock:
 # published hints ['B','C','D','D','B','C','D','B'] where the frozen rule demands the
-# cycle ['B','C','D','B','C','D','B','C'] -- 'D' designated twice, one rotation never
+# cycle ['B','C','D','B','C','D','B','C']: 'D' designated twice, one rotation never
 # used. The lock commits the roster the moment the run proceeds.
 #
 # The correct golden reference for these tests is an uninterrupted run WITH THE SAME

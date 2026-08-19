@@ -1,6 +1,6 @@
 """Real-model faithfulness control: positive (planted hint) + negative (neutral).
 
-Week-1 experiment from the council plan. Runs entirely on a LOCAL open model via
+The week-1 real-model experiment. Runs entirely on a LOCAL open model via
 Ollama: no API, no cloud, no cost. The pre-registered pass/fail is in
 PREREGISTRATION.md (read and freeze it BEFORE looking at results).
 

@@ -41,15 +41,15 @@ an optional --strict flag that changes the process exit code.
 
 The same artifact additionally ingests the exploratory Phase-2 arm summaries written
 by experiments/08_additive_arms.py as results/**/arms_summary_*.json. Each rate-bearing
-sub-block those summarizers emit -- replay clean/hinted drift, transplant forward/reverse
+sub-block those summarizers emit (replay clean/hinted drift, transplant forward/reverse
 carry-over, direct accuracy and with/without-CoT agreement, placebo would-be-hint follow,
 two-step follow, filler match, and the four held-out specificity false-alarm rates
-(ack_clean, ack_placebo, would_be_follow, silent_false_alarm) -- becomes one power row,
+ack_clean, ack_placebo, would_be_follow and silent_false_alarm) becomes one power row,
 distinguished from the control
 rows by a "kind" field ("control" vs "arms"). An arm row carries the sub-block's n, its
 observed rate, the exact one-sided 95% Clopper-Pearson upper bound on the observed count,
-the minimum detectable rate at that n, a "powered" flag, and -- so the pre-registration's
-10-percent unscorable rule is enforced by this tool rather than by hand -- the sub-block's
+the minimum detectable rate at that n, a "powered" flag, and, so the pre-registration's
+10-percent unscorable rule is enforced by this tool rather than by hand, the sub-block's
 n_unscorable and an "unscorable_flag" (n_unscorable above 10% of scorable + unscorable).
 Sub-blocks with n == 0 or a None rate are skipped.
 
@@ -304,7 +304,7 @@ def _arms_candidates(arms: dict) -> list[tuple[str, object, object, object]]:
     with/without-CoT agreement (each nested with its own scorable n), the single
     follow-style rate of the placebo, two-step, and filler arms, and the four held-out
     specificity false-alarm rates (A9). The curves arm exposes no rate, so it is absent
-    from these RATE-BEARING candidates -- it is covered instead by
+    from these RATE-BEARING candidates; it is covered instead by
     ``_arms_unscorable_candidates``, which emits a rate-less row carrying its
     n / n_unscorable / unscorable_flag. Missing arms simply contribute nothing.
     """
@@ -383,7 +383,7 @@ def _arms_power_row(base_label: str, sublabel: str, n, rate, n_unscorable) -> di
     The observed success count is recovered as ``round(rate * n)`` (rate is stored as the
     exact integer fraction ``count / n``, so the round is lossless at these small n) and
     fed to the same ``proportion_ci_upper`` / ``minimum_detectable_rate`` the control rows
-    use -- the guardrail math is never reimplemented here. ``unscorable_flag`` applies the
+    use, so the guardrail math is never reimplemented here. ``unscorable_flag`` applies the
     pre-registration's 10-percent rule (unscorable above a tenth of the entered pairs).
     """
     if n is None or n == 0 or rate is None:
@@ -410,7 +410,7 @@ def _arms_unscorable_candidates(arms: dict) -> list[tuple[str, object, object, o
 
     Today that is the truncation-curves arm's two sides. The curves arm reports no rate,
     so ``_arms_candidates`` cannot carry it and ``_arms_power_row`` drops it (its
-    ``rate is None`` guard) -- which left the audit STRUCTURALLY unable to apply the
+    ``rate is None`` guard), which left the audit STRUCTURALLY unable to apply the
     pre-registration's 10-percent unscorable rule to the one arm most exposed to it: per
     the same pre-registration paragraph, a curve's depths are parsed ONCE with no forced
     retry, and P7 is read off this arm. Sublabels mirror ``_arms_candidates``' convention
@@ -437,17 +437,17 @@ def _arms_unscorable_row(base_label: str, sublabel: str, n, n_unscorable,
 
     NO "mde" / "ci_upper_on_observed" / "powered" keys, deliberately: the block exposes
     no rate, so there is no power question to answer, and inventing one would be worse
-    than omitting it. Consumers must therefore read "powered" with ``.get`` -- a row
+    than omitting it. Consumers must therefore read "powered" with ``.get``, since a row
     without it never joins the underpowered tally.
 
-    THE DENOMINATOR -- the two conventions DIFFER, do not "unify" them:
+    THE DENOMINATOR. The two conventions DIFFER, do not "unify" them:
 
       * Rate-bearing blocks (``summarize_placebo`` and friends in 08) set
         ``n = len(scorable)`` and ``n_unscorable = len(all) - n``, so n EXCLUDES the
         unscorable and the entered total is ``n + n_unscorable``. Hence
         ``_arms_power_row`` tests ``n_unscorable > 0.10 * (n + n_unscorable)``.
-      * The curves block (``_curve_arm_block`` in 08) sets ``n = len(curves)`` -- ALL
-        curves, INCLUDING the unscorable ones -- and ``n_unscorable`` counts the subset
+      * The curves block (``_curve_arm_block`` in 08) sets ``n = len(curves)``, ALL
+        curves INCLUDING the unscorable ones, and ``n_unscorable`` counts the subset
         whose ``curve_area is None``. The entered total is therefore ``n`` itself, so the
         correct test here is ``n_unscorable > 0.10 * n``.
 
@@ -456,7 +456,7 @@ def _arms_unscorable_row(base_label: str, sublabel: str, n, n_unscorable,
     flagged. The rule is "exceeds 10 percent", so the comparison is strictly ``>``.
 
     ``n_unparsed_depths`` is carried through as INFORMATIONAL only. It is a DEPTH-level
-    counter -- a different granularity from the pre-registration's "records" -- so it
+    counter, a different granularity from the pre-registration's "records", so it
     never enters the flag; it is retained because a block can have zero wholly-unscorable
     curves while still losing many individual depths, which is worth seeing.
     """

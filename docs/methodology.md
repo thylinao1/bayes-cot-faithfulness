@@ -1,8 +1,7 @@
 # Methodology
 
-> **Bayesian causal mediation analysis applied to LLM chain-of-thought reasoning.**
-
-This document formalises the framework the library implements. It exists for three reasons:
+This document formalises the Bayesian causal-mediation framework the library implements
+for LLM chain-of-thought reasoning. It exists for three reasons:
 
 1. To make the identification assumptions explicit (and to flag when they break).
 2. To connect this work to the activation-patching / causal-scrubbing / causal-abstraction lines in mechanistic interpretability.
@@ -21,10 +20,10 @@ This document formalises the framework the library implements. It exists for thr
 
 We treat the chain-of-thought tokens `M` as a mediator on the path from prompt `X` to answer `Y`. The prompt's effect on the answer decomposes into two paths:
 
-- **Direct path** (`X → Y`): the part of the prompt's effect that bypasses CoT. In a fully-faithful world this is zero.
-- **Indirect path** (`X → M → Y`): the part that flows through the reasoning. In a fully-faithful world this carries the entire effect.
+- The direct path (`X → Y`) is the part of the prompt's effect that bypasses CoT. In a fully-faithful world this is zero.
+- The indirect path (`X → M → Y`) is the part that flows through the reasoning. In a fully-faithful world this carries the entire effect.
 
-The decomposition we estimate is the **Robins-Greenland-Pearl** natural-effects decomposition:
+The decomposition we estimate is the Robins-Greenland-Pearl natural-effects decomposition:
 
 $$
 \text{NDE} = \mathbb{E}[Y \mid \text{do}(X{=}1), M{\sim}M(X{=}0)] - \mathbb{E}[Y \mid \text{do}(X{=}0), M{\sim}M(X{=}0)]
@@ -42,7 +41,7 @@ The reading is: NIE is the proportion of the prompt's effect on the answer that 
 
 ## 2 · Identification assumptions
 
-Standard mediation analysis identifies natural effects under the **sequential ignorability** assumption:
+Standard mediation analysis identifies natural effects under the sequential ignorability assumption:
 
 - (A1) No unmeasured confounders between `X` and `Y`
 - (A2) No unmeasured confounders between `X` and `M`
@@ -84,11 +83,11 @@ $$
 
 At $\rho = 0$ this is ordinary probit mediation. At the true $\rho$ it recovers the de-confounded coefficients, and so the true natural effects. The sensitivity sweep fits the model at each value on a grid of assumed $\rho$ and reads off the natural effects. The output is a curve, not a point: it shows how the faithfulness verdict moves as the no-hidden-confounder assumption is relaxed, and over what range of $\rho$ the verdict holds.
 
-**Validated result (synthetic, laptop CPU).** With a true residual correlation of $\rho = 0.5$ built into the data, an analyst who assumes ignorability reads off a natural indirect effect of $0.43$ when the truth is $0.21$. Ignoring the confounding overstates the faithful path by about $0.22$, and that gap does not shrink as the sample grows, because it is confounding and not sampling noise. The sweep recovers the truth at the true $\rho$ (recovery error $0.02$), and the indirect (faithful) path stays positive for every assumed $\rho$ in $[-0.6, +0.7]$. On this process the faithfulness conclusion survives a large amount of unmeasured confounding, and the analysis says exactly how much.
+Validated result, on synthetic data and a laptop CPU. With a true residual correlation of $\rho = 0.5$ built into the data, an analyst who assumes ignorability reads off a natural indirect effect of $0.43$ when the truth is $0.21$. Ignoring the confounding overstates the faithful path by about $0.22$, and that gap does not shrink as the sample grows, because it is confounding and not sampling noise. The sweep recovers the truth at the true $\rho$ (recovery error $0.02$), and the indirect (faithful) path stays positive for every assumed $\rho$ in $[-0.6, +0.7]$. On this process the faithfulness conclusion survives a large amount of unmeasured confounding, and the analysis says exactly how much.
 
 The direction matters for how the result reads: under positive M-Y confounding (the natural case when a shared hidden factor lifts both the CoT content and the answer), assuming ignorability makes the reasoning look more faithful than it is. A naive faithfulness audit can over-trust the CoT. See [`sensitivity.py`](../src/bayes_cot_faithfulness/sensitivity.py); the sweep figure is in the project README.
 
-**Reporting: a breakdown scalar and a confounding-agnostic interval.** Two summaries make the assumption auditable without committing to a value of $\rho$. The first is the **breakdown frontier** $\rho^\*$: the smallest $|\rho|$ at which the faithful path crosses zero (on the synthetic process, $\rho^\* \approx 0.74$). It is the sensitivity-analysis analogue of VanderWeele's E-value, a single comparable number a faithfulness claim ships with. The second is the **partial-identification interval**: if one is only willing to assume $|\rho| \le \bar\rho$, the effect is not point-identified but provably lies in $[\,\underline{b}, \overline{b}\,]$, the range of the natural effect over that set of $\rho$. When the interval excludes zero the verdict is *sign-identified* (it holds for every confounding level entertained); the interval excludes zero exactly when $\bar\rho < \rho^\*$, so the two summaries are duals. See `breakdown_frontier` and `partial_identification_bounds`.
+Reporting uses a breakdown scalar and a confounding-agnostic interval. Two summaries make the assumption auditable without committing to a value of $\rho$. The first is the breakdown frontier $\rho^\*$: the smallest $|\rho|$ at which the faithful path crosses zero (on the synthetic process, $\rho^\* \approx 0.74$). It is the sensitivity-analysis analogue of VanderWeele's E-value, a single comparable number a faithfulness claim ships with. The second is the partial-identification interval: if one is only willing to assume $|\rho| \le \bar\rho$, the effect is not point-identified but provably lies in $[\,\underline{b}, \overline{b}\,]$, the range of the natural effect over that set of $\rho$. When the interval excludes zero the verdict is *sign-identified* (it holds for every confounding level entertained); the interval excludes zero exactly when $\bar\rho < \rho^\*$, so the two summaries are duals. See `breakdown_frontier` and `partial_identification_bounds`.
 
 ## 4 · Hierarchical Bayesian estimator
 
@@ -110,12 +109,13 @@ Sampling: 4 chains, 1500 tuning + 1500 posterior draws, NUTS with `target_accept
 
 Posterior samples over $(\alpha, \beta, \gamma, \sigma_M)$ are converted into a posterior over $(\text{NDE}, \text{NIE}, \text{TE})$ on the probability scale by Monte Carlo integration over the mediator distribution (see [`effects.posterior_natural_effects`](../src/bayes_cot_faithfulness/effects.py)).
 
-**Why Bayesian.**
+Why Bayesian:
+
 - Calibrated uncertainty intervals out of the box, with no asymptotic normality assumption.
 - Hierarchical pooling across prompts and seeds for the real-LLM experiments (extending the simple model above).
 - Posterior model comparison (Bayes factors / WAIC / PSIS-LOO) for "is this CoT faithful or not?" hypothesis tests.
 
-**Partial pooling across prompts (implemented).** A single faithfulness number for a model is the wrong unit. Faithfulness varies by prompt and by task, and some prompts have far fewer usable traces than others. Estimating each prompt on its own overfits the small ones; collapsing everything into one number hides the variation. The partial-pooling model gives each prompt $g$ its own coefficients drawn from a population:
+Partial pooling across prompts is implemented. A single faithfulness number for a model is the wrong unit. Faithfulness varies by prompt and by task, and some prompts have far fewer usable traces than others. Estimating each prompt on its own overfits the small ones; collapsing everything into one number hides the variation. The partial-pooling model gives each prompt $g$ its own coefficients drawn from a population:
 
 $$
 \alpha_g \sim \mathcal{N}(\mu_\alpha, \tau_\alpha), \qquad
@@ -146,11 +146,11 @@ The synthetic gate uses a single binary `X` and a scalar `M`. The full benchmark
 | **Counterfactual mediation** | Paraphrase or swap CoT segments using a separate model. Interchange interventions, analogous to Geiger et al. |
 | **Hierarchical pooling** | Random effects for prompt difficulty and seed variance. The partial-pooling model is prototyped in `hierarchical.py`; the extension is to real prompts and seeds. |
 
-The CoT intervention toolkit is borrowed from **Lanham et al. (2023)** ("Measuring Faithfulness in Chain-of-Thought Reasoning") and **Turpin et al. (2023)** ("Language Models Don't Always Say What They Think"). The Bayesian layer on top is the novel methodological contribution.
+The CoT intervention toolkit is borrowed from Lanham et al. (2023) ("Measuring Faithfulness in Chain-of-Thought Reasoning") and Turpin et al. (2023) ("Language Models Don't Always Say What They Think"). The Bayesian layer on top is the novel methodological contribution.
 
 ## 7 · Relationship to mechanistic interpretability
 
-The natural extension is from **token-level CoT mediation** (this project) to **circuit-level activation mediation** (a natural follow-on):
+The natural extension is from token-level CoT mediation (this project) to circuit-level activation mediation:
 
 | Behavioural level | Mechanistic level |
 |---|---|

@@ -1,9 +1,9 @@
 # experiments/: real-model faithfulness controls
 
-The week-1 real-model step from the council plan: run the faithfulness auditor on a
-real open model with a planted positive control and a neutral negative control. The
-goal is the one result a skeptic cannot wave away. Everything here is **local and
-free**: no API, no cloud, no cost.
+The week-1 real-model step: run the faithfulness auditor on a real open model with a
+planted positive control and a neutral negative control. The goal is a result that
+holds up to a skeptical reading. Everything here is local and free: no API, no cloud,
+no cost.
 
 ## Files
 
@@ -25,9 +25,9 @@ free**: no API, no cloud, no cost.
   flagging a known-unfaithful case end to end, offline and free. Act 1 runs the
   case-level auditor on three labelled transcripts (a planted deception it must flag,
   a genuine answer and an honest disclosure it must clear). Act 2 runs the estimator
-  on a faithful and a decorative synthetic world and shows it separates them (a large,
-  robust faithful path versus a faithful path of ~0). Companion figure:
-  `notebooks/05_generate_positive_control_figure.py`. This is the credibility floor:
+  on a faithful and a decorative synthetic world and shows it separates them (a large
+  faithful path that survives heavy confounding, versus a faithful path of ~0).
+  Companion figure: `notebooks/05_generate_positive_control_figure.py`. This is the credibility floor:
   proof the instrument responds when unfaithfulness is present.
 - `ollama_client.py`: a tiny stdlib HTTP client for a local Ollama server.
 - `data/toy_mcq.json`: a 12-item smoke-test set (swap in a real dataset for a real run).
@@ -93,7 +93,7 @@ consistently (the neutral edit did not move the answer), so a hinted-arm change 
 attributable to the hint and not to model noise. The full-set instability is reported
 as a model caveat.
 
-A capable model is robust to a stated wrong hint (the 70B followed it only 7% of the
+A capable model mostly resists a stated wrong hint (the 70B followed it only 7% of the
 time), so use the stronger Turpin manipulation to fire the positive control:
 
 ```bash

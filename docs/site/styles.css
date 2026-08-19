@@ -2123,7 +2123,7 @@ input[type=range]:focus-visible {
 .scrolly-sticky > .transcript-card { position: sticky; top: 96px; }
 @media (max-width: 880px) { .scrolly-sticky > .transcript-card { position: static; } }
 
-/* line highlighting, JS-enhanced only */
+/* line emphasis, only when JS is active */
 .scrolly-js .transcript-body .t-line,
 .scrolly-js .transcript-head .t-context {
   transition: color 0.35s ease, background 0.35s ease, opacity 0.35s ease;

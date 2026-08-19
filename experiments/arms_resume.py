@@ -2,8 +2,8 @@
 
 WHY: a powered run makes ~2,000 free-tier calls and the daily token budget (500K)
 can end it mid-flight. Without resume, a rerun restarts from item 1 and re-spends the
-whole budget. This module serializes the FULL run state -- every substrate record
-(including clean-INCORRECT ones) and the held-out A9 specificity state -- to an
+whole budget. This module serializes the FULL run state (every substrate record,
+including clean-INCORRECT ones, plus the held-out A9 specificity state) to an
 internal checkpoint file and rehydrates it, so a ``--resume`` run continues where the
 stop happened, re-spending at most the work since the last checkpoint (written every
 CHECKPOINT_EVERY items, every item for the truncation curves, and before every
@@ -22,8 +22,8 @@ Concretely, and this is the whole of what is promised:
 It is NOT "resumed == an uninterrupted failure-free run", and it is not even "same call
 outcomes => same result". Where no position-seeded draw has been banked yet, a resume
 RETRIES transient holes, so the resumed run can end up with MORE coverage than the
-uninterrupted counterfactual would have had (a harmless direction -- more measured
-items -- but not identical). Once such draws exist the roster is locked and reproduces
+uninterrupted counterfactual would have had (a harmless direction: more measured
+items, though not identical). Once such draws exist the roster is locked and reproduces
 exactly. See THE ROSTER LOCK below.
 
 The checkpoint is a SEPARATE internal file (``arms_checkpoint_<model>.json``), never the
@@ -42,19 +42,19 @@ Constraints that shape this module:
     across positions, so a resume refuses it up front.
 
   - THE ROSTER LOCK, DERIVED (:func:`roster_locked`). The roster is locked exactly when
-    some banked record already carries a position-seeded draw -- read off the disk, not
+    some banked record already carries a position-seeded draw, read off the disk, not
     tracked as a flag. Unlocked, an item with no banked record is simply attempted again
     on resume, so a daily cap that stops the run DURING a clean pass costs nothing.
     Locked, such an item is skipped ENTIRELY: healing a mid-roster hole would shift every
     later record's position while the presence guards keep their banked, old-position
-    ``hint_label`` -- silently breaking the frozen "planted wrong option cycles across
+    ``hint_label``, silently breaking the frozen "planted wrong option cycles across
     wrong choices by item index" rule (observed: a rotation designated twice and another
     never used). A locked roster is exactly the earlier invocation's roster.
 
     Deriving beats flagging on two counts. A flag has to be SET at some moment, and the
     only moments available are wrong: "the clean pass returned ok" fires before cue_pass
     makes a single call, and substrate_pass returns ok whenever fewer than 3 items failed
-    and the loop merely ENDS -- so a cap landing on the last 1-2 items of a clean pass
+    and the loop merely ENDS, so a cap landing on the last 1-2 items of a clean pass
     produced a "completed" pass full of un-retried holes that the flag then froze in
     place (measured: cap on item 6 of 8 permanently deleted 2 items a healthy resume
     could have regenerated). The derived condition reads the truth instead, so it is also
@@ -70,7 +70,7 @@ Constraints that shape this module:
     or a checkpoint version mismatch refuses the resume with ZERO model calls: banked
     records were generated under the checkpoint's parameters and must not be mixed with
     a different design. The content hashes matter because the data files are gitignored
-    local fetches -- a re-fetch between two legs would otherwise silently merge banked
+    local fetches; a re-fetch between two legs would otherwise silently merge banked
     records against a different item set.
 
   - Curves rehydrate into :class:`TruncationCurve` instances (the dict keys match
@@ -116,7 +116,7 @@ _ALWAYS_FIELDS = (
     "clean_answer", "clean_cot", "clean_correct",
 )
 # Optional per-arm scalar outputs. Serialized only when present so absence round-trips as
-# "this call has not run yet" -- the exact signal the runner's skip conditions read.
+# "this call has not run yet", the exact signal the runner's skip conditions read.
 _OPTIONAL_SCALAR_FIELDS = (
     "hint_label", "cue_text", "cue_prepended", "hinted_answer", "hinted_cot",
     "followed", "acknowledged", "silent",
@@ -145,7 +145,7 @@ def derive_attrition(n_entered: int, records: list) -> dict:
     """Substrate attrition derived from final state, never from carried counters.
 
     With retry-on-resume semantics an item's terminal state is either a record or an
-    absence -- there are no failure EVENTS to carry across invocations, so deriving
+    absence: there are no failure EVENTS to carry across invocations, so deriving
     the counters from state keeps the accounting idempotent over any number of
     interruptions: ``n_failed_generation`` is the items entered minus the records
     produced, and ``n_unparseable_clean`` the records whose clean answer never parsed.
@@ -257,7 +257,7 @@ def duplicate_item_keys(items: list[QAItem]) -> list[tuple[str, tuple[str, ...]]
     """Item keys appearing more than once, in first-seen order.
 
     The resume merge is by key, so a duplicate key would alias ONE banked record across
-    every duplicate position -- silently collapsing distinct positions (and their
+    every duplicate position, silently collapsing distinct positions (and their
     position-seeded cue / placebo draws) onto the same banked outputs. A resume refuses
     such a data file before any model call; a fresh run is unaffected.
     """
@@ -272,7 +272,7 @@ def duplicate_refusal_message(dupes: list[tuple[str, tuple[str, ...]]], label: s
                               path: Path) -> str:
     """Refusal naming WHICH file carries the duplicates (--data or the A9 holdout).
 
-    Both files feed the identical by-key merge, so both need the guard and the operator
+    Both files feed the identical by-key merge, so both need the guard and the caller
     needs to know which one to de-duplicate.
     """
     rows = "\n".join(f"    - {question!r}" for question, _choices in dupes)
@@ -481,7 +481,7 @@ def _atomic_write_json(path: Path, payload: dict) -> None:
 
 
 def _union_rows(banked_rows: list, live_rows: list) -> list:
-    """Banked rows overlaid with live rows, keyed by item -- live always wins.
+    """Banked rows overlaid with live rows, keyed by item; live always wins.
 
     write() must be INCAPABLE of dropping a record that was already paid for. The live
     list holds only the merge's prefix while a resumed clean pass is still running, so
@@ -489,7 +489,7 @@ def _union_rows(banked_rows: list, live_rows: list) -> list:
     deleted every banked record at index > i (measured: a 14-record checkpoint collapsed
     to 10, losing 5 already-generated items). Record ORDER in the file is irrelevant --
     resume_inputs re-keys the rows into a dict and the live list is always rebuilt in
-    item order from the data file -- so the union is safe as well as sufficient.
+    item order from the data file, so the union is safe as well as sufficient.
     """
     merged: dict = {}
     for row in banked_rows:
@@ -502,8 +502,8 @@ def _union_rows(banked_rows: list, live_rows: list) -> list:
 class CheckpointWriter:
     """Serializes the FULL run state to the checkpoint file on demand.
 
-    Holds a live reference to the substrate records list -- constructed EMPTY before
-    the substrate pass and filled in place as the run progresses -- so every
+    Holds a live reference to the substrate records list, constructed EMPTY before
+    the substrate pass and filled in place as the run progresses, so every
     ``write()`` captures the current state, including a partially generated substrate,
     unioned with whatever the resumed checkpoint already held. ``loaded`` is the
     checkpoint being resumed from (None on a fresh run); until the specificity arm
@@ -555,14 +555,14 @@ class CheckpointWriter:
     def write(self) -> None:
         if self.loaded is None and not self.records and self._specificity is None:
             # Nothing of our own to record yet, so writing would only DESTROY. A fresh
-            # run legitimately overwrites a stale checkpoint -- but only once it has
+            # run legitimately overwrites a stale checkpoint, but only once it has
             # something to put there. Without this guard a leg that died before its
             # first successful generation still wrote {records: [], specificity: null}:
             # substrate_pass's `i == 0` abort banks on the way down (its whole purpose
             # is to SAVE work), and with loaded=None the union degenerates to the empty
             # live list. A relaunch WITHOUT --resume against a still-capped key thus
             # made zero successful calls and deleted the previous leg's banked records
-            # and its A9 holdout block -- the most expensive artifact in the run.
+            # and its A9 holdout block, the most expensive artifact in the run.
             return
         payload = {
             "version": CHECKPOINT_VERSION,

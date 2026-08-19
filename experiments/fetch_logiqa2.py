@@ -57,7 +57,7 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
 
     Plain json.loads silently keeps the LAST occurrence of a duplicated key, so a row
     carrying two "answer" values would validate cleanly with whichever the file listed
-    last -- exactly the untrustworthy-answer-key case the drop-never-repair rule (memo
+    last, exactly the untrustworthy-answer-key case the drop-never-repair rule (memo
     C3) exists for. Raising here makes parse_jsonl drop the whole line instead.
     """
     keys = [k for k, _ in pairs]
@@ -103,7 +103,7 @@ def parse_jsonl(blob: str) -> list[dict]:
     ``splitlines()`` also breaks on U+2028/U+2029/U+0085, which are LEGAL unescaped
     inside a JSON string, so it would shatter a valid row that merely contains one.
     Blank lines, undecodable lines, rows with duplicated keys, and rows that are not
-    a JSON object are skipped -- drop, never repair; the survivors keep the shipped
+    a JSON object are skipped: drop, never repair; the survivors keep the shipped
     order, which is what makes "the first N items in fetch order" reproducible.
     """
     items: list[dict] = []

@@ -2,9 +2,9 @@
 
 score_labels.py computes the study's headline inter-rater number (Cohen's kappa between
 human annotators) and compares the heuristic auditor to the human majority. It ships the
-credibility unlock for the golden set, yet had no test; this file is that test.
+credibility check for the golden set, yet had no test; this file is that test.
 
-RATER BLINDING -- ABSOLUTE. Nothing here reads, opens, or references any real sealed
+RATER BLINDING IS ABSOLUTE. Nothing here reads, opens, or references any real sealed
 label/key artifact (results/labelset/, results/labeling_key.json, results/labeling_sheet.*,
 labeled_fable5*.csv, fable5_agreement_stats.txt). Every fixture is SYNTHETIC data written
 into pytest's tmp_path, and main() is always invoked with an explicit --key pointing at a
@@ -19,7 +19,7 @@ reference (the confusion-matrix expected-agreement form, a different code path f
 implementation's marginal-product form), which is itself anchored to hand-computed
 textbook kappa values. The test stays STDLIB-ONLY on purpose: score_labels.py is
 deliberately dependency-free ("No model calls, no network"), and the CI dev environment
-does not install scikit-learn -- a test that imported it would pass locally and break CI
+does not install scikit-learn, so a test that imported it would pass locally and break CI
 (which is exactly what happened before this rewrite).
 """
 
@@ -94,13 +94,13 @@ def _write_labeled(path: Path, rows: list[tuple[str, str, str]], *, bom: bool = 
 
 def _write_key(path: Path, entries: dict[str, dict[str, bool]]) -> Path:
     """Write a synthetic labeling_key.json: {item_id: {heuristic_acknowledged_hint,
-    heuristic_followed_hint}} -- the exact shape score_labels.main consumes."""
+    heuristic_followed_hint}}, the exact shape score_labels.main consumes."""
     path.write_text(json.dumps(entries))
     return path
 
 
 # --------------------------------------------------------------------------- #
-# 1. cohen_kappa -- the load-bearing function -- validated against the oracle
+# 1. cohen_kappa, the load-bearing function, validated against the oracle
 # --------------------------------------------------------------------------- #
 def _deterministic_pairs() -> list[tuple[list[bool], list[bool]]]:
     """A fixed, seeded battery of rater-pair boolean vectors with varied agreement."""
@@ -166,7 +166,7 @@ def test_cohen_kappa_known_negative_case():
 def test_cohen_kappa_pe_one_degenerate_convention():
     # pe == 1.0 requires both raters constant on the SAME class, which forces po == 1.0;
     # the function returns 1.0 in that (only reachable) branch of its "1.0 if po==1.0 else
-    # 0.0" convention (Cohen's kappa is formally undefined there -- a single shared class).
+    # 0.0" convention (Cohen's kappa is formally undefined there, with a single shared class).
     assert sl.cohen_kappa([True] * 4, [True] * 4) == 1.0
     assert sl.cohen_kappa([False] * 4, [False] * 4) == 1.0
     assert _ref_kappa([True] * 4, [True] * 4) == 1.0
@@ -288,7 +288,7 @@ def test_main_two_annotators_kappa_and_heuristic_agreement(tmp_path, monkeypatch
         ("it4", "yes", "yes"), ("it5", "no", "yes"),
     ])
     # heuristic key: one deliberate FALSE POSITIVE (it2: heuristic acknowledged, humans
-    # say NOT -- the dangerous direction the script calls out) and one FN (it4).
+    # say NOT, the dangerous direction the script calls out) and one FN (it4).
     key = _write_key(tmp_path / "labeling_key.json", {
         "it1": {"heuristic_acknowledged_hint": True, "heuristic_followed_hint": True},
         "it2": {"heuristic_acknowledged_hint": True, "heuristic_followed_hint": False},   # FP

@@ -83,9 +83,9 @@ def cued_continuation_prompt(
     that collapses the banked "carry-over vs replay floor" comparison into an arithmetic
     identity; inserting the cue here is what keeps them distinct.
 
-    The frame mirrors ``continuation_prompt`` (interventions.py) byte-for-byte -- the same
+    The frame mirrors ``continuation_prompt`` (interventions.py) byte-for-byte, with the same
     "Partial reasoning so far:" block behavior for empty vs nonempty reasoning and the
-    same final forced-answer sentence -- so the ONLY difference from the mediator machinery
+    same final forced-answer sentence, so the ONLY difference from the mediator machinery
     is the inserted cue. An empty or missing ``cue_text`` therefore returns exactly
     ``continuation_prompt(item, partial_cot)``. ``prepend`` fixes the cue where its
     taxonomy family places it: after the choices for the stated hint and the ``professor``

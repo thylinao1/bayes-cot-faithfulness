@@ -47,7 +47,7 @@ and the probability-scale natural effects follow directly:
 
 This is exact for every ``rho`` in the admissible band; there is no
 approximation step. The logistic (sigmoid) DGP in ``synthetic.py`` has no such
-elementary closed form -- the logit-normal integral is not elementary, and the
+elementary closed form. The logit-normal integral is not elementary, and the
 usual probit approximation to the logistic carries an error floor around 1e-2
 that does not shrink with more Monte Carlo draws, which would make it a weaker
 correctness net than the Monte Carlo it is meant to check. So the closed form

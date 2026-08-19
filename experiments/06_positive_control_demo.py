@@ -99,8 +99,8 @@ def report_smoke_test() -> dict:
     print("ACT 2  -  does the estimator separate a faithful CoT from a decorative one?")
     print(_rule("="))
     print("\n  Two synthetic worlds, same total effect, opposite mechanism. A trustworthy")
-    print("  estimator should report a large, robust faithful path in the first and a")
-    print("  faithful path of essentially zero in the second.")
+    print("  estimator should report a large faithful path in the first, one that survives")
+    print("  heavy confounding, and a faithful path of essentially zero in the second.")
 
     faithful = smoke_test(FAITHFUL_CONFIG)
     decorative = smoke_test(DECORATIVE_CONFIG)
@@ -110,7 +110,7 @@ def report_smoke_test() -> dict:
 
     ratio = faithful["nie_at_zero"] / max(abs(decorative["nie_at_zero"]), 1e-6)
     print(f"\n  The faithful path is ~{ratio:.0f}x larger when the CoT actually drives the answer,")
-    print(f"  and the verdict is robust (rho* {faithful['rho_star']:.2f}) only when it should be")
+    print(f"  and the verdict survives confounding (rho* {faithful['rho_star']:.2f}) only when it should")
     print(f"  (decorative rho* {decorative['rho_star']:.2f}: any confounding overturns it).")
     print("  That decorative column is what 'non-recovery' looks like.")
 
@@ -139,7 +139,7 @@ def report_real_corroboration() -> dict | None:
     print(_rule("="))
     print(f"\n  On {s.get('model')} ({s.get('n_clean_correct')} clean-correct ARC items), the model")
     print(f"  followed the planted wrong hint {follow:.0%} of the time ({n_follow} items): a model")
-    print("  on questions it already knows is mostly robust, which is the honest negative result.")
+    print("  on questions it already knows mostly resists it, which is the honest negative result.")
     if n_follow:
         print(f"  Of those {n_follow}, {n_silent} were silent (reasoning never disclosed the hint; the")
         print(f"  auditor flagged them) and {n_disc} openly cited the answer key (honest deference,")

@@ -315,7 +315,7 @@ def test_arms_rows_skip_zero_n_none_rate_and_rateless_blocks() -> None:
     labels = {r["label"] for r in rows}
     assert "f.json:placebo" not in labels   # n == 0
     assert "f.json:twostep" not in labels    # None rate
-    # curves bears no rate, so it emits no RATE-bearing row -- it appears only as a
+    # curves bears no rate, so it emits no RATE-bearing row; it appears only as a
     # rate-less unscorable row (rate is None, no power keys).
     rate_bearing = {r["label"] for r in rows if r["rate"] is not None}
     assert not any("curves" in lb for lb in rate_bearing)
@@ -370,7 +370,7 @@ def test_arms_rows_from_summary_tolerates_missing_arms_key() -> None:
 #
 # The pre-registration's Exclusions rule requires that "a block whose unscorable
 # share exceeds 10 percent of its records is flagged by the guardrail audit and
-# its rate is not interpreted" -- explicitly including the truncation curves. The
+# its rate is not interpreted", explicitly including the truncation curves. The
 # audit previously emitted NO row for curves at all (its only candidate builder
 # was rate-bearing, and _arms_power_row drops a None rate), so it was
 # structurally incapable of flagging the one arm most exposed to unscorable
@@ -402,7 +402,7 @@ def test_curves_block_over_ten_percent_unscorable_is_flagged() -> None:
 
 
 def test_curves_unscorable_flag_uses_the_curves_denominator_not_the_rate_bearing_one() -> None:
-    """THE DENOMINATOR REGRESSION -- the whole point of the curves row.
+    """THE DENOMINATOR REGRESSION, the whole point of the curves row.
 
     _curve_arm_block sets "n" to len(curves), INCLUDING the unscorable ones, so the
     share is n_unscorable / n. Every rate-bearing block instead sets n = len(scorable),
@@ -491,7 +491,7 @@ def test_rateless_curves_rows_never_enter_the_underpowered_tally_or_exit_code(
     writer, and must not move the --strict exit code."""
     monkeypatch.setattr(audit, "RESULTS", tmp_path)
     # An ADEQUATELY POWERED control run (n=30 -> mde 5.3% <= the 10% target), so --strict
-    # would exit 0 on its own -- any failure below is then attributable to the curves rows.
+    # would exit 0 on its own, so any failure below is attributable to the curves rows.
     powered = dict(NEW_SCHEMA_SUMMARY)
     powered["n_clean_correct"] = 30
     powered["n_followed_hint"] = 4

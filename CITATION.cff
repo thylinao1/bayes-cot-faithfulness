@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "bayes-cot-faithfulness: Bayesian causal mediation for chain-of-thought faithfulness"
+abstract: >-
+  A Bayesian causal-mediation framework for measuring whether a language model chain-of-thought
+  causes its answer. The reasoning is treated as a mediator, the prompt effect is split into a
+  direct and an indirect path, and the result is a posterior over each path with a sensitivity
+  sweep over hidden confounding.
+authors:
+  - family-names: Silchenko
+    given-names: Maksim
+repository-code: https://github.com/thylinao1/bayes-cot-faithfulness
+license: "MIT"
+date-released: 2026-08-19
+keywords:
+  - "chain-of-thought"
+  - "faithfulness"
+  - "causal mediation"
+  - "Bayesian inference"
+  - "interpretability"

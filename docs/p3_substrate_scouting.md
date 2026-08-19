@@ -4,7 +4,7 @@ STATUS: DRAFT proposal, 2026-07-19. This document authorizes NOTHING. It propose
 candidate substrates and pre-specifies the selection criteria and decision rule
 BEFORE any run, as PREREGISTRATION_phase2_arms.md requires ("Powered P3 tests
 need a substrate hard enough to populate the moved stratum, chosen BEFORE the
-run, never swapped after seeing the split"). The operator decides whether to
+run, never swapped after seeing the split"). Maksim decides whether to
 proceed, in which case the amendment in section 6 must land before any powered
 run. No model call has been made under this document. Every dataset fact below
 was gathered and independently re-verified against live sources on 2026-07-19;
@@ -22,7 +22,7 @@ The binding constraint is the realized moved-stratum size. On ARC-Challenge the
 pilots produced moved n = 4 of 31 (llama3.2:3b) and n = 0 of 21 (70B): the
 substrate is too easy, the direct answer already agrees with the reasoned one.
 The prereg's testability floor (moved n >= 10) only supports detecting a 40-50
-point difference. Target here: **moved n >= 30**.
+point difference. Target here: moved n >= 30.
 
 Sizing check (unpooled two-proportion normal approximation, one-sided alpha
 0.05, power 0.80, committed stratum n >= 100, pilot base rates 22 percent
@@ -46,25 +46,25 @@ f 0.10, c 0.40 -> N >= 750 (at that point the substrate is the wrong choice).
 
 ## 2. Selection criteria (fixed before any pilot or run)
 
-- **C1 Frozen-instrument compatibility.** Lettered options within the frozen
+- C1, frozen-instrument compatibility: lettered options within the frozen
   answer-extraction capture class `[A-F]` (interventions.py, fingerprinted by
   test_frozen_guard.py). 4-option preferred (zero friction with everything
   built for ARC); 5-option acceptable ([A-F] covers A-E). Anything beyond F is
   ineligible: it would require changing a frozen instrument mid-study.
-- **C2 Difficulty window.** Hard enough that the direct answer is often wrong,
+- C2, difficulty window: hard enough that the direct answer is often wrong,
   easy enough that reasoning still reaches the correct answer on a usable
   fraction of items (clean-correct rate roughly 0.35 to 0.80 for
   llama-3.1-8b-instant, measured in the pilot, never assumed).
-- **C3 Trustworthy gold labels.** The design plants a wrong option as bait and
+- C3, trustworthy gold labels: the design plants a wrong option as bait and
   selects on clean-correct; a noisy answer key poisons both. Documented label
   noise disqualifies.
-- **C4 Cost and access.** $0 and no authentication: fetchable in the
+- C4, cost and access: $0 and no authentication, fetchable in the
   fetch_arc.py pattern (plain HTTP, no token, no gated terms). License must
   permit research use and committing transcripts to a public repo.
-- **C5 Holdout disjointness.** The A9 specificity holdout is a fixed ARC
+- C5, holdout disjointness: the A9 specificity holdout is a fixed ARC
   validation file; any non-ARC substrate is disjoint by construction. The
   holdout keeps running unchanged regardless of substrate.
-- **C6 Deterministic fetch.** A fetch_<name>.py mirroring fetch_arc.py: fixed
+- C6, deterministic fetch: a fetch_<name>.py mirroring fetch_arc.py, with fixed
   fetch order, wrong-option cycling by item index, same JSON output schema.
 
 ## 3. Candidates (facts verified 2026-07-19)
@@ -114,17 +114,17 @@ are used, and nothing is trained.
 
 ### Ruled out
 
-- **MathQA** (5-option): fails C3. ASDiv (ACL 2020, section 3.2) executed the
+- MathQA (5-option) fails C3. ASDiv (ACL 2020, section 3.2) executed the
   annotated formulas and found 27 percent of arithmetic-subset problems whose
   formula does not match the labeled answer; with bait planting and
   clean-correct selection both keyed to the gold label, that noise level is
   disqualifying.
-- **MMLU-Pro** (10-option A-J): fails C1. Verified from the test parquet:
+- MMLU-Pro (10-option A-J) fails C1. Verified from the test parquet:
   answers span A-J (83 percent of items have ten options). The frozen
   extraction regexes capture [A-F] only; G-J answers would be systematically
   unparseable, and widening the capture class is a frozen-instrument change.
   Not worth an instrument amendment when 4/5-option candidates exist.
-- **GPQA** (4-option): fails C4 and C2. Confirmed gated on HF behind
+- GPQA (4-option) fails C4 and C2. Confirmed gated on HF behind
   terms-acceptance including "You agree to NOT reveal examples from this
   dataset in plain text or images online", which is incompatible with
   committing transcripts to a public repo, and the no-auth fetch pattern
@@ -168,12 +168,12 @@ fetcher, the pilot-derived n, the P3 hypothesis restated for the new
 substrate), logged under the amendment protocol with the fingerprint updated
 in the same commit, BEFORE the run. Nothing in the existing document changes;
 the amendment adds, never edits. The exploratory pilots in section 5 do not
-claim preregistered status and so do not require the amendment first, but the
-operator gates whether even the pilots run.
+claim preregistered status and so do not require the amendment first, but
+whether even the pilots run is a separate go-ahead.
 
-## 7. What happens next (operator gate)
+## 7. What happens next
 
-Nothing, until the operator decides. Options: (a) approve pilots on both
+Nothing, until a decision is made. The options: (a) approve pilots on both
 finalists; (b) approve one; (c) rescout with different criteria; (d) drop
 powered P3 for now (P3 remains reportable at its testability floor on ARC as
 "directional with CI, underpowered", exactly as the frozen prereg words it).

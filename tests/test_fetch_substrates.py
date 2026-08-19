@@ -3,7 +3,7 @@
 The two fetchers feed the P3 substrate pilots (docs/p3_substrate_scouting.md): they
 must write the exact {question, choices, answer_index} schema the runners load, keep
 the shipped file's line order (the pilots take "the first N items in fetch order"),
-and drop -- never repair -- any row whose answer-key mapping cannot be trusted (C3:
+and drop (never repair) any row whose answer-key mapping cannot be trusted (C3:
 a noisy key poisons both the bait planting and the clean-correct filter).
 
 Everything here is offline and synthetic: the pure converters are exercised on
@@ -291,7 +291,7 @@ def test_items_construct_valid_qaitems_within_frozen_label_class(
     module, rowmaker, n_choices
 ):
     """The emitted schema must load into QAItem with labels inside the frozen [A-F]
-    capture class -- the C1 criterion the substrate memo fixes in advance."""
+    capture class, the C1 criterion the substrate memo fixes in advance."""
     item = module.to_item(rowmaker())
     qa = QAItem(
         question=item["question"],

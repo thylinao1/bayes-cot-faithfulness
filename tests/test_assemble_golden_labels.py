@@ -8,7 +8,7 @@ human adjudicated value VERBATIM; split items with a blank adjudicated cell and 
 default the tool refuses to write when anything would be flagged; --allow-partial writes the
 flagged sheet with an explicit PARTIAL marker column instead.
 
-RATER BLINDING -- ABSOLUTE. Nothing here reads, opens, or references any real sealed
+RATER BLINDING IS ABSOLUTE. Nothing here reads, opens, or references any real sealed
 label/key artifact (results/labelset/, results/labeling_key.json, results/labeling_sheet.*,
 labeled_fable5*.csv, fable5_agreement_stats.txt). Every fixture is SYNTHETIC data written
 into pytest's tmp_path. The tool has no --key argument and derives item ids from the labeled
@@ -81,7 +81,7 @@ def _write_worklist(path: Path, rater_names: list[str],
                     rows: list[tuple[str, str, list[str], str]], *, bom: bool = True) -> Path:
     """Write a synthetic adjudication worklist in adjudicate_labels' exact format.
 
-    ``rows`` is (item_id, question, per-rater vote cells, adjudicated cell) -- the
+    ``rows`` is (item_id, question, per-rater vote cells, adjudicated cell), the
     adjudicated cell is what the HUMAN typed after the worklist was generated.
     """
     header = [ITEM_ID, asm.QUESTION_COL, *rater_names, asm.ADJUDICATED_COL]
@@ -108,7 +108,7 @@ def _run_main(monkeypatch, argv: list[str]) -> int:
     return asm.main()
 
 
-# Two-rater fixture matching the frozen design (operator + one friend):
+# Two-rater fixture matching the frozen design (two independent raters):
 #   it1 unanimous yes/yes on both questions; it2 mentions SPLIT, supports unanimous;
 #   it3 unanimous no on mentions, supports SPLIT.
 def _two_rater_fixture(tmp_path: Path) -> tuple[Path, Path]:
@@ -194,7 +194,7 @@ def test_adjudicated_value_is_applied_verbatim_even_against_the_majority(tmp_pat
 def test_adjudicated_cell_accepts_the_same_tokens_as_rater_cells(tmp_path, monkeypatch,
                                                                  capsys):
     # The adjudicated cell is parsed with the SAME yes/no token conventions load_labeled
-    # applies to rater cells ("Y", "TRUE", "1", case and whitespace) -- and canonicalized
+    # applies to rater cells ("Y", "TRUE", "1", case and whitespace), and canonicalized
     # to yes/no on write, like every other cell in the golden CSV.
     a = _write_labeled(tmp_path / "labeled_a.csv", [("it1", "yes", "yes")])
     b = _write_labeled(tmp_path / "labeled_b.csv", [("it1", "no", "yes")])
@@ -309,7 +309,7 @@ def test_unparseable_adjudicated_value_is_an_error_even_with_allow_partial(tmp_p
                                                                            monkeypatch,
                                                                            capsys):
     # A non-blank adjudication that does not parse as yes/no is a human-input error the
-    # tool must surface -- treating it as blank would silently DISCARD a human decision,
+    # tool must surface: treating it as blank would silently DISCARD a human decision,
     # and coercing it would INVENT one.
     a = _write_labeled(tmp_path / "labeled_a.csv", [("it1", "yes", "yes")])
     b = _write_labeled(tmp_path / "labeled_b.csv", [("it1", "no", "yes")])
@@ -362,7 +362,7 @@ def test_rejects_worklist_row_whose_recorded_votes_mismatch_current_labels(tmp_p
                                                                            capsys):
     # The worklist records each rater's vote at generation time. If a labeled CSV changed
     # since (recorded a=yes, but the file now says a=no), the adjudication may no longer
-    # apply -- refuse and tell the operator to regenerate the worklist.
+    # apply, so refuse and say the worklist must be regenerated.
     a, b = _two_rater_fixture(tmp_path)
     wl = _write_worklist(tmp_path / "worklist.csv", ["a", "b"], [
         ("it2", "mentions", ["no", "yes"], "no"),          # recorded votes are swapped
@@ -480,7 +480,7 @@ def test_refuses_to_overwrite_a_file_that_is_not_a_previous_golden_output(tmp_pa
                                                                           capsys):
     # --out points at an EXISTING file that is not this tool's own output (here: a filled
     # label CSV under a name the input guard cannot recognize). results/ is gitignored, so
-    # a silent overwrite would destroy un-versioned human work -- refuse.
+    # a silent overwrite would destroy un-versioned human work, so refuse.
     a, b = _two_rater_fixture(tmp_path)
     wl = _filled_worklist(tmp_path)
     stray = _write_labeled(tmp_path / "labeled_carol_backup.csv", [("it9", "yes", "yes")])
@@ -573,7 +573,7 @@ def test_round_trip_with_the_real_worklist_generator(tmp_path, monkeypatch, caps
 
 
 # --------------------------------------------------------------------------- #
-# 6. the printed summary tells the operator what happened
+# 6. the printed summary says what happened
 # --------------------------------------------------------------------------- #
 def test_summary_reports_counts_and_the_never_decides_disclaimer(tmp_path, monkeypatch,
                                                                  capsys):
@@ -781,7 +781,7 @@ def test_partial_then_complete_overwrite_of_the_same_path(tmp_path, monkeypatch,
 
 
 def test_refuses_duplicate_header_columns_in_a_labeled_csv(tmp_path, monkeypatch, capsys):
-    # HIGH finding (checker round 2): a duplicated Q1 column in a RATER file is last-wins
+    # Second review pass: a duplicated Q1 column in a RATER file is last-wins
     # in the loader, so a stray second copy silently flipped a real vote and turned a true
     # split into unanimity. Refused up front, same as the worklist header guard.
     bad = tmp_path / "labeled_a.csv"
@@ -801,7 +801,7 @@ def test_refuses_duplicate_header_columns_in_a_labeled_csv(tmp_path, monkeypatch
 def test_ragged_padding_rows_tolerated_and_ragged_content_refused_cleanly(tmp_path,
                                                                           monkeypatch,
                                                                           capsys):
-    # Checker round 2: a padding row WIDER than the header (bare commas from Excel) put a
+    # Second review pass: a padding row WIDER than the header (bare commas from Excel) put a
     # LIST under DictReader's None restkey and crashed with a raw AttributeError. Fully
     # blank ragged rows are now skipped; a blank-id row whose only content sits in an
     # overflow cell is refused cleanly, never a traceback.
@@ -831,7 +831,7 @@ def test_ragged_padding_rows_tolerated_and_ragged_content_refused_cleanly(tmp_pa
 def test_whitespace_variant_item_ids_are_refused_within_and_across_files(tmp_path,
                                                                          monkeypatch,
                                                                          capsys):
-    # Checker round 2: the loader keys RAW ids, so 'it1' and 'it1 ' are two phantom items
+    # Second review pass: the loader keys RAW ids, so 'it1' and 'it1 ' are two phantom items
     # to it. Inconsistent whitespace is refused with a message that names the cause.
     a = _write_labeled(tmp_path / "labeled_a.csv", [("it1", "yes", "yes"), ("it1 ", "no", "no")])
     b = _write_labeled(tmp_path / "labeled_b.csv", [("it1", "yes", "yes")])
@@ -850,7 +850,7 @@ def test_whitespace_variant_item_ids_are_refused_within_and_across_files(tmp_pat
 
 
 def test_worklist_with_blank_padding_rows_is_accepted(tmp_path, monkeypatch, capsys):
-    # Checker round 2: the worklist is the one file a human MUST edit in Excel, and Excel
+    # Second review pass: the worklist is the one file a human MUST edit in Excel, and Excel
     # appends used-range padding rows of bare commas; those were a hard error before.
     a, b = _two_rater_fixture(tmp_path)
     wl = _filled_worklist(tmp_path)
@@ -864,7 +864,7 @@ def test_worklist_with_blank_padding_rows_is_accepted(tmp_path, monkeypatch, cap
 
 
 def test_two_empty_sheets_report_zero_items_not_byte_identity(tmp_path, monkeypatch, capsys):
-    # Checker round 2: two header-only sheets are byte-identical by construction; the
+    # Second review pass: two header-only sheets are byte-identical by construction; the
     # honest refusal is "0 items", not an alias/copy accusation.
     a = _write_labeled(tmp_path / "labeled_x.csv", [])
     d = tmp_path / "two"
@@ -880,7 +880,7 @@ def test_two_empty_sheets_report_zero_items_not_byte_identity(tmp_path, monkeypa
 
 
 def test_zero_byte_leftover_at_out_is_overwritable(tmp_path, monkeypatch, capsys):
-    # Checker round 2: a 0-byte leftover (e.g. from a crash) holds no human work; blocking
+    # Second review pass: a 0-byte leftover (e.g. from a crash) holds no human work; blocking
     # the rerun with "pick a fresh path" only causes path proliferation.
     a, b = _two_rater_fixture(tmp_path)
     wl = _filled_worklist(tmp_path)
@@ -893,13 +893,13 @@ def test_zero_byte_leftover_at_out_is_overwritable(tmp_path, monkeypatch, capsys
 
 
 def test_stray_file_matching_the_old_fixed_tmp_name_survives(tmp_path, monkeypatch, capsys):
-    # Checker round 2: a fixed <out>.tmp name would truncate an unrelated pre-existing
+    # Second review pass: a fixed <out>.tmp name would truncate an unrelated pre-existing
     # file; the unique mkstemp name must leave it untouched.
     a, b = _two_rater_fixture(tmp_path)
     wl = _filled_worklist(tmp_path)
     out = tmp_path / "golden.csv"
     stray = tmp_path / "golden.csv.tmp"
-    stray.write_text("something the operator saved here", encoding="utf-8")
+    stray.write_text("something a user saved here", encoding="utf-8")
     before = stray.read_bytes()
     assert _run_main(monkeypatch, ["--labeled", str(a), str(b), "--worklist", str(wl),
                                    "--out", str(out)]) == 0
@@ -909,7 +909,7 @@ def test_stray_file_matching_the_old_fixed_tmp_name_survives(tmp_path, monkeypat
 
 def test_summary_distinguishes_filled_adjudications_from_worklist_rows(tmp_path,
                                                                        monkeypatch, capsys):
-    # Checker round 2 (test gap): lock the filled-vs-rows distinction on a fixture where
+    # Second review pass, test gap: lock the filled-vs-rows distinction on a fixture where
     # the two counts differ (1 filled of 2 rows); the summary prints before the refusal.
     a, b = _two_rater_fixture(tmp_path)
     wl = _write_worklist(tmp_path / "worklist.csv", ["a", "b"], [
@@ -924,7 +924,7 @@ def test_summary_distinguishes_filled_adjudications_from_worklist_rows(tmp_path,
 
 
 def test_oversized_field_in_a_labeled_csv_is_refused_cleanly(tmp_path, monkeypatch, capsys):
-    # Checker round 2 (test gap): exercise main's csv.Error arm on the LABELED path (the
+    # Second review pass, test gap: exercise main's csv.Error arm on the LABELED path (the
     # worklist path wraps csv.Error into ValueError internally, so it never reached it).
     a = tmp_path / "labeled_a.csv"
     with a.open("w", newline="", encoding="utf-8") as fh:

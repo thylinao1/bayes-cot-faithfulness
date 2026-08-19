@@ -1,10 +1,10 @@
 # Phase-2 design notes: identification, transplant check, signed effects
 
-Written 2026-07-17 from the July 2026 landscape sweep (incorporate list items
+Written 2026-07-17 from the July 2026 literature sweep (incorporate list items
 T11, T3, A10). Nothing here changes the frozen pre-registrations; these notes
 specify additive Phase-2 analyses and record properties the current estimator
 already has. Sources are cited by arXiv ID; the full source list lives in the
-project's landscape file.
+project's sweep file.
 
 ## 1. What the randomized cue buys the rho sweep (T11)
 
@@ -14,16 +14,16 @@ rho = Corr(eps_M, eps_Y). Sequential ignorability is really two conditions
 (Imai, Keele, Yamamoto 2010), and they do not stand or fall together in this
 design:
 
-1. **Treatment ignorability: X independent of the potential outcomes and
-   potential mediators.** In observational mediation studies this is an
+1. Treatment ignorability, meaning X is independent of the potential outcomes
+   and potential mediators. In observational mediation studies this is an
    assumption. Here it holds by construction: the cue X (clean vs hinted arm)
    is assigned by the experiment protocol, never by the model, and the planted
    wrong option is cycled across letters by item index. There is no mechanism
    by which an unmeasured property of the item or the model can influence
    which arm an item receives.
 
-2. **Mediator ignorability: no unmeasured confounding of the M to Y relation
-   given X.** This is structurally violated for an autoregressive model (the
+2. Mediator ignorability, meaning no unmeasured confounding of the M to Y
+   relation given X. This is structurally violated for an autoregressive model (the
    same hidden state generates both the reasoning and the answer), which is
    exactly what the rho sweep, the breakdown frontier rho*, and the
    partial-identification bounds price.
@@ -64,13 +64,13 @@ across arms on the same item and measure answer carry-over.
 
 Design, on the existing planted-hint items:
 
-- **Forward transplant.** Take the CoT generated under the hinted prompt,
+- Forward transplant: take the CoT generated under the hinted prompt,
   present it through the forced-answer continuation frame (which shows the
   question and the reasoning but not the cue), and record whether the forced
   answer reproduces the hinted-run answer.
-- **Reverse transplant.** Same with the clean-run CoT: the forced answer
+- Reverse transplant: the same with the clean-run CoT, where the forced answer
   should reproduce the clean answer, not the hinted one.
-- **Floor.** Every transplant rate is read against the replay-drift floor
+- Floor: every transplant rate is read against the replay-drift floor
   (arm T4): the same model re-fed its own unedited CoT through the identical
   machinery. Drift there is pure teacher-forcing artifact, so a transplant
   effect is only real to the extent it exceeds the floor.
@@ -97,8 +97,8 @@ Implementation: the pure pieces (`continuation_prompt`, replay and transplant
 prompt builders) are shared with the additive-arms runner; the transplant arm
 runs as `--arm transplant` there. No frozen arm is touched.
 
-**Update 2026-07-17 (context preservation vs crossing; unscorable records).**
-The floor and the transplant must not be measured through the same prompt. The
+Update 2026-07-17, on context preservation versus crossing and unscorable
+records. The floor and the transplant must not be measured through the same prompt. The
 replay FLOOR preserves each CoT's source context: the clean replay re-feeds the
 clean CoT through the cue-free continuation frame (its own context), and the
 hinted replay re-feeds the hinted CoT with the cue still present
@@ -110,8 +110,8 @@ forward transplant would issue byte-identical prompts, the forward carry-over
 would be the arithmetic complement of the hinted replay drift (1 minus the drift
 rate, up to call-to-call nondeterminism), and the interpretation table above would
 be unreachable because "carry-over vs floor" would be comparing a quantity with
-itself. Separately, unscorable records -- those where either compared answer
-failed to parse on a side -- are excluded from every rate above (numerator and
+itself. Separately, unscorable records (those where either compared answer
+failed to parse on a side) are excluded from every rate above (numerator and
 denominator alike) and reported per block as `n_unscorable`, so attrition is never
 silently folded into a drift or carry-over rate.
 

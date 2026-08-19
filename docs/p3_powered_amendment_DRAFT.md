@@ -1,14 +1,14 @@
-# DRAFT amendment: powered P3 on AQuA-RAT (AWAITING OPERATOR APPROVAL)
+# DRAFT amendment: powered P3 on AQuA-RAT (AWAITING APPROVAL)
 
 STATUS: DRAFT, 2026-07-22. This file is NOT the frozen pre-registration and is NOT
 committed into it. It is the proposed additive amendment section for
 `experiments/PREREGISTRATION_phase2_arms.md`, prepared under that document's Amendment
-protocol and `docs/p3_substrate_scouting.md` section 6, for the operator to review. It
+protocol and `docs/p3_substrate_scouting.md` section 6, for review. It
 authorizes NOTHING on its own. No powered run has started.
 
-## What lands, and how, ONLY on operator approval
+## What lands, and how, ONLY on approval
 
-On an explicit operator yes, the block under "PROPOSED NEW SECTION" below is APPENDED
+On an explicit yes, the block under "PROPOSED NEW SECTION" below is APPENDED
 verbatim to `experiments/PREREGISTRATION_phase2_arms.md` (nothing existing in that file
 changes), its new SHA-256 is recomputed, and
 `tests/test_frozen_guard.py::FROZEN_FILE_SHA256["experiments/PREREGISTRATION_phase2_arms.md"]`
@@ -98,4 +98,4 @@ pooled with the ARC data or with the exploratory pilots.
    all eight arms, own --out (e.g. experiments/results/p3_powered_aqua), --resume driver,
    single process (kill-before-relaunch discipline).
 
-Nothing in steps 1-6 happens until the operator approves this draft.
+Nothing in steps 1-6 happens until this draft is approved.

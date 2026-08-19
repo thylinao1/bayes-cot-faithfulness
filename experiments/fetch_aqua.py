@@ -16,8 +16,8 @@ question, the options, and the answer key are used; the shipped rationales (the
 noisy part of this dataset) are never read.
 
 Every shipped option carries a positional letter prefix (``A)24``, ``B)25``, ...).
-The prefix is stripped -- the runner's prompt frame adds its own ``(A)`` labels, and
-a double label would change the frozen prompt surface -- and the prefix letter must
+The prefix is stripped, because the runner's prompt frame adds its own ``(A)`` labels and
+a double label would change the frozen prompt surface. The prefix letter must
 match the option's position, so a shuffled or malformed row can never silently remap
 the answer key.
 
@@ -132,7 +132,7 @@ def parse_jsonl(blob: str) -> list[dict]:
     ``splitlines()`` also breaks on U+2028/U+2029/U+0085, which are LEGAL unescaped
     inside a JSON string, so it would shatter a valid row that merely contains one.
     Blank lines, undecodable lines, rows with duplicated keys, and rows that are not
-    a JSON object are skipped -- drop, never repair; the survivors keep the shipped
+    a JSON object are skipped: drop, never repair; the survivors keep the shipped
     order, which is what makes "the first N items in fetch order" reproducible.
     """
     items: list[dict] = []

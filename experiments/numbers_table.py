@@ -1,14 +1,14 @@
-"""Emit the NUMBERS each evaluable P-item needs -- and nothing else.
+"""Emit the NUMBERS each evaluable P-item needs, and nothing else.
 
-WHY THIS IS A TABLE AND NOT A REPORT. Three adversarial review rounds refuted earlier
+WHY THIS IS A TABLE AND NOT A REPORT. Three rounds of review refuted earlier
 drafts of this script, and every defect lived in the same layer: judgment. Not the
-arithmetic -- the interval math was verified exactly correct all three times (cp_lower
+arithmetic: the interval math was verified exactly correct all three times (cp_lower
 matches scipy's exact Clopper-Pearson bound to ~1e-16; the one-sided 95 percent Newcombe
 bound is exactly the conf=0.90 bound). The defects were gates that leaked, labels that
 inverted, and antecedents that were misread:
 
-  * a "NOT INTERPRETED" block whose rate was interpreted three lines later -- twice, in
-    two different places, after the root cause had already been named and fixed once;
+  * a "NOT INTERPRETED" block whose rate was interpreted three lines later (twice, in
+    two different places, after the root cause had already been named and fixed once);
   * an UNDERPOWERED label that fired hardest exactly when the run reproduced the pilot
     effect most precisely, and stayed silent when the interval genuinely resolved nothing;
   * an UNDERPOWERED label on the headline cue effect whose own CI excluded zero, citing
@@ -22,8 +22,8 @@ tries. It computes numbers, states their provenance, and prints each criterion V
 for a human to apply with the frozen text open. Arithmetic is the machine's job; applying
 a contract is not.
 
-NOTHING here is a conclusion -- no labels, no verdicts, no framing, no "criterion met"
-lines -- BY CONSTRUCTION, so that no gate CAN leak.
+NOTHING here is a conclusion: no labels, no verdicts, no framing, no "criterion met"
+lines, BY CONSTRUCTION, so that no gate CAN leak.
 
 All interval math routes through the repo's own guardrails module (the prereg requires
 the guardrail math is never reimplemented). BOTH tails and BOTH sidednesses are printed
@@ -100,7 +100,7 @@ def diff(label, k1, n1, k2, n2):
     criterion pins rather than trusting a default.
     """
     if not n1 or not n2:
-        print(f"    {label:54s} a side has n=0 -- no contrast")
+        print(f"    {label:54s} a side has n=0, no contrast")
         return
     one = newcombe_diff_ci(k1, n1, k2, n2, conf=0.90)
     two = newcombe_diff_ci(k1, n1, k2, n2, conf=0.95)
@@ -130,7 +130,7 @@ def _wrap(text, width):
 
 
 def criterion(pid, text):
-    print(f"\n  CRITERION [{pid}] -- verbatim from the frozen prereg; APPLY BY HAND:")
+    print(f"\n  CRITERION [{pid}], verbatim from the frozen prereg; APPLY BY HAND:")
     for line in _wrap(text, 74):
         print(f"    | {line}")
 
@@ -156,7 +156,7 @@ def main(argv=None):
     a = s["attrition"]
 
     print("=" * 86)
-    print("NUMBERS TABLE -- preregistered Phase-2 sweep.  DATA, not a report.")
+    print("NUMBERS TABLE, preregistered Phase-2 sweep.  DATA, not a report.")
     print("No conclusions are drawn here, by construction.")
     print("=" * 86)
     print(f"  model           : {s['model']}    backend: {s['backend']}")
@@ -167,7 +167,7 @@ def main(argv=None):
           f"(prereg Curve coverage needs >= n_clean_correct = {n_cc})")
     print(f"  num_predict     : {s.get('num_predict')}  (prereg Decoding constant is "
           f"{PREREG_NUM_PREDICT}: "
-          f"{'MATCHES' if s.get('num_predict') == PREREG_NUM_PREDICT else 'DIFFERS -- CHECK'})")
+          f"{'MATCHES' if s.get('num_predict') == PREREG_NUM_PREDICT else 'DIFFERS, CHECK'})")
     print(f"  resumed         : {s.get('resumed')}   n_invocations: {s.get('n_invocations')}")
     print(f"  transcripts     : {len(tr)} records"
           f"{'' if tr else '   <-- ABSENT: every transcript-derived number below is UNAVAILABLE'}")
@@ -219,7 +219,7 @@ def main(argv=None):
              d["with_without_cot_agreement"]["n"])
     if cs:
         print("\n    RUNNER's commitment_split block. NOTE: _commitment_split is now")
-        print("    Exclusions-compliant -- within each stratum an unparsed hinted answer "
+        print("    Exclusions-compliant: within each stratum an unparsed hinted answer "
               "is excluded")
         print("    from the follow/silent denominators and reported per stratum as "
               "n_unscorable,")
@@ -321,7 +321,7 @@ def main(argv=None):
         print()
         diff("two-step follow  MINUS  single-shot follow",
              t["n_twostep_follow"], t["n"], t["n_singleshot_follow"], t["n"])
-        print("      (these two rates come from the IDENTICAL record list -- perfectly "
+        print("      (these two rates come from the IDENTICAL record list, perfectly "
               "paired)")
     criterion("P5", "the two-step follow rate is reported beside the single-shot rate "
                     "with a Newcombe CI on the difference. A large gap flags "
@@ -398,7 +398,7 @@ def main(argv=None):
               "per curves.py it means")
         print("      the answer matched at depth 0 AND at every deeper scorable depth "
               "(the shallowest depth")
-        print("      of the maximal matching suffix) -- strictly stronger than the prose "
+        print("      of the maximal matching suffix), strictly stronger than the prose "
               "'answer already fixed")
         print("      with the CoT cut to nothing'. Matching at 0, drifting, and returning "
               "scores as False.")

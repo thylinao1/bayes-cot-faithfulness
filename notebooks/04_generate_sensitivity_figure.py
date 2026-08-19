@@ -73,7 +73,7 @@ def main() -> None:
     assert np.all(np.diff(nie) < 1e-6), "NIE should be monotone decreasing in rho"
 
     # (3) at the true rho the sweep lands far closer to the truth than the
-    #     ignorability estimate does -- recovery beats the naive bias by >4x.
+    #     ignorability estimate does: recovery beats the naive bias by >4x.
     i_true = int(np.argmin(np.abs(rhos - RHO_TRUE)))
     recovery_err = abs(nie[i_true] - true_nie)
     ignorability_bias = nie[i0] - true_nie

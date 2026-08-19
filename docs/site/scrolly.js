@@ -14,7 +14,7 @@
   const steps = Array.from(root.querySelectorAll('.step-card'));
   if (!transcript || !steps.length) return;
 
-  // Mark JS-enhanced so CSS can dim inactive lines and stage the verdict.
+  // Mark that JS is active, so CSS can dim inactive lines and stage the verdict.
   root.classList.add('scrolly-js');
 
   const lines = Array.from(transcript.querySelectorAll('[data-line]'));

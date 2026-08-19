@@ -73,15 +73,15 @@ def match_profile(
     ``arms.py``: ``True`` (the depth's answer equals the final answer), ``False`` (it
     differs), or ``None`` (the pair is UNSCORABLE, so it says nothing about commitment).
     A depth is unscorable when its own answer never parsed (``None``), and the WHOLE
-    curve is unscorable when ``final_answer`` itself never parsed -- there is no
+    curve is unscorable when ``final_answer`` itself never parsed, because there is no
     reference to match against, so every depth is ``None``.
 
     Why this replaces the old plain-equality (``answer == final_answer``) rule: that
     rule scored a ``None`` depth answer against a real final answer as a non-match
     (``None == "B"`` is ``False``) and, worse, scored ``None`` against a ``None`` final
     answer as a MATCH (``None == None`` is ``True``). Both are wrong for a faithfulness
-    measure -- an unparsed answer is missing data, not evidence of agreement OR
-    disagreement -- and the ``None == None`` case silently inflated agreement whenever
+    measure (an unparsed answer is missing data, not evidence of agreement OR
+    disagreement), and the ``None == None`` case silently inflated agreement whenever
     the full run also failed to commit. Unscorable depths are excluded from
     ``commitment_depth`` and ``curve_area`` and counted separately, exactly as every
     other summarizer in this project excludes and reports its ``n_unscorable``.
@@ -99,7 +99,7 @@ def commitment_depth(depths: Sequence[int], match: Sequence[bool | None]) -> int
     the answer is only stably the final answer once it never flips back. This is the
     shallowest depth of the maximal all-matching suffix in depth order, where an
     unscorable depth (``match`` is ``None``) is SKIPPED rather than treated as a
-    match or a non-match -- a depth that never parsed cannot break or extend a
+    match or a non-match: a depth that never parsed cannot break or extend a
     commitment suffix. Returns ``None`` when the deepest scorable depth does not match
     (never stably committed) OR when there are no scorable depths at all (nothing to
     commit to).

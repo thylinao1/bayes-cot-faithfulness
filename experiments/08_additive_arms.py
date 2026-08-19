@@ -1,7 +1,7 @@
 """Additive Phase-2 arms for the real-model faithfulness study (NO frozen controls).
 
-These arms exercise the Phase-2 prompt constructors that landed this session without
-touching the frozen pre-registered experiment (05). Every arm here is EXPLORATORY
+These arms exercise the Phase-2 prompt constructors without touching the frozen
+pre-registered experiment (05). Every arm here is EXPLORATORY
 scaffolding for the Phase-2 pre-registration: none of it produces a PASS/REVIEW
 verdict, and the written output says so. The arms:
 
@@ -16,7 +16,7 @@ verdict, and the written output says so. The arms:
                       detector's false-alarm rate on UNMANIPULATED items. Runs on its
                       own holdout file (validation split, disjoint from every test-split
                       item the main runs use), never on the main records, and never
-                      plants a real cue on those items -- that is the point.
+                      plants a real cue on those items, which is the point.
 
 $0 policy: local Ollama or free Groq only, availability-gated exactly like 05. If the
 backend is unreachable, setup steps are printed and the script exits without a request.
@@ -174,10 +174,10 @@ def clean_accuracy_line(n_correct: int, n_measured: int, attrition: dict) -> str
 
 
 def curve_coverage_warning(curve_cap: int, n_clean_correct: int) -> str:
-    """The P7 curve-coverage warning (WARNING ONLY -- never a stop, never an auto-fix).
+    """The P7 curve-coverage warning (WARNING ONLY: never a stop, never an auto-fix).
 
     Quotes the frozen Phase-2 pre-registration's Curve coverage rule. Changing a run
-    parameter is the operator's call, not the runner's, so this prints and continues.
+    parameter is a human decision, not the runner's, so this prints and continues.
     """
     return (
         "\n  " + "!" * 74 + "\n"
@@ -192,7 +192,7 @@ def curve_coverage_warning(curve_cap: int, n_clean_correct: int) -> str:
         f"  This run's P7 analysis population is therefore UNREGISTERED: the curves will\n"
         f"  cover only the first {curve_cap} of {n_clean_correct} clean-correct items.\n"
         f"  Re-run with --curve-cap {n_clean_correct} (or higher) if P7 is intended.\n"
-        "  Continuing -- this is a warning, not a stop.\n"
+        "  Continuing. This is a warning, not a stop.\n"
         "  " + "!" * 74 + "\n"
     )
 
@@ -281,7 +281,7 @@ def _commitment_split(records: list[dict]) -> dict:
        ``n_unscorable``. Both ``followed`` (hinted_answer == hint_label) and ``silent``
        (is_unfaithful_on_hint(hinted_answer, ...)) evaluate False for a None hinted
        answer, so leaving it in the denominator would score it as a non-follower /
-       non-silent -- the attrition the frozen prereg Exclusions rule forbids and every
+       non-silent, the attrition the frozen prereg Exclusions rule forbids and every
        other summarizer in this file already excludes-and-counts.
     """
     groups: dict[str, list[dict]] = {"committed": [], "moved": [], "unknown": []}
@@ -447,8 +447,8 @@ def _transplant_direction(records: list[dict], got_key: str, want_key: str) -> d
     """Carry-over for one transplant direction over the SCORABLE pairs only.
 
     A record is scorable only when both the transplanted answer and the target answer
-    parsed. A None on either side -- including a double-None, which the old ``None == None``
-    counted as a spurious carry-over -- is excluded from the rate and counted in
+    parsed. A None on either side (including a double-None, which the old ``None == None``
+    counted as a spurious carry-over) is excluded from the rate and counted in
     ``n_unscorable``.
     """
     pairs = [(r.get(got_key), r.get(want_key)) for r in records if got_key in r]
@@ -493,7 +493,7 @@ def specificity_scores(
     false-firing on a CLEAN transcript (no cue was ever present), ``ack_placebo`` the
     same on the placebo transcript. ``would_be_follow`` and ``silent_false_alarm``
     compare the placebo answer against the item's DESIGNATED would-be hint, so they are
-    ``None`` (unscorable) when the placebo answer never parsed -- and also when the
+    ``None`` (unscorable) when the placebo answer never parsed, and also when the
     designated hint is missing, so a double-None is never scored as a spurious follow,
     the same trap the transplant summarizer closes.
     """
@@ -572,7 +572,7 @@ def assemble_summary(backend: str, model: str, n_items: int, n_clean_correct: in
     frozen pre-registration makes registration-critical for P7 (a run left at the
     exploratory default has an unregistered P7 population, and this artifact is what
     07_guardrail_audit ingests and what gets read back months later). Every pre-existing
-    field and spelling is unchanged -- these are pure additions.
+    field and spelling is unchanged; these are pure additions.
     """
     return {
         "backend": backend,
@@ -719,7 +719,7 @@ def parse_or_force_checked(client, item, text, n_choices):
     stop: timeout, exhausted token budget) and when the model genuinely never states an
     answer. Those must diverge here: a transient error banked as a None answer would be
     a fabricated non-answer the presence-based resume skips could never repair, and with
-    resume available stopping is strictly better than banking it -- the pass stops, the
+    resume available stopping is strictly better than banking it: the pass stops, the
     checkpoint keeps the output key absent, and the resumed run redoes the call. This
     deliberately changes fresh-run behavior ONLY on the transient-error path; a genuinely
     unparseable answer after a SUCCESSFUL forced call still returns ``(None, None)`` and
@@ -747,7 +747,7 @@ def substrate_pass(client, items, n_choices, num_predict, backend, model,
     ``locked`` is the DERIVED roster lock (``arms_resume.roster_locked`` over the banked
     records: does any of them already carry a position-seeded draw?). Unlocked, an item
     with no banked record is simply attempted again, so a daily cap that stops a clean
-    pass mid-flight costs nothing -- the resumed run can therefore end up with MORE
+    pass mid-flight costs nothing, and the resumed run can therefore end up with MORE
     coverage than the uninterrupted counterfactual, which is a valid run of the design,
     not an identical one. LOCKED, such an item is skipped entirely (no call, no record):
     an earlier invocation already seeded ``wrong_label(rotate=i)`` / ``rng_seed=i`` on
@@ -797,7 +797,7 @@ def cue_pass(client, records, ctx, taxonomy):
     """Cue arm over the clean-correct subset (frozen stated hint, or a taxonomy cue).
 
     On resume, a record banked by a previous invocation already carries hinted_answer (with
-    its hint_label / cue_text restored from the checkpoint), so it is skipped -- but ``i``
+    its hint_label / cue_text restored from the checkpoint), so it is skipped, but ``i``
     stays the record's position in the FULL clean-correct list, keeping wrong_label(rotate=i)
     identical to the uninterrupted run for any record that still has to be generated.
     """
@@ -835,7 +835,7 @@ def cue_pass(client, records, ctx, taxonomy):
 
 def arm_replay(client, records, ctx):
     """T4: re-feed each clean and hinted CoT through the forced-answer frame, each in its
-    OWN context -- the clean CoT cue-free, the hinted CoT with its cue preserved.
+    OWN context: the clean CoT cue-free, the hinted CoT with its cue preserved.
 
     The clean replay uses the cue-free continuation frame (``replay_prompt``); the hinted
     replay keeps the cue in the frame (``cued_continuation_prompt``), so both are pure
@@ -1039,7 +1039,7 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
     parse_or_force_checked discipline as the main substrate), filter to clean-correct, then ONE
     placebo transcript per surviving item. Each item gets a DESIGNATED would-be hint by
     the same ``wrong_label(rotate=i)`` cycling the cue pass uses and the frozen strong
-    stated-hint template formats the would-be ``cue_text`` -- but only the magnitude-
+    stated-hint template formats the would-be ``cue_text``, but only the magnitude-
     matched placebo (A4 null) is ever sent; the real cue text never reaches a holdout
     prompt. Whatever the detector fires on here is therefore a false alarm by
     construction. Transcripts bank to their own ``specificity_transcripts_*.json`` on
@@ -1048,8 +1048,8 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
     Resume behavior: the holdout state banks INCREMENTALLY. The live record list is
     registered with the checkpoint writer before the clean pass runs (so no write from
     here on can drop holdout state) and the clean pass banks on the usual cadence and
-    before an abort. On resume the banked holdout records -- including clean-incorrect
-    ones -- are merged by item key exactly like the main substrate (restored records
+    before an abort. On resume the banked holdout records (including clean-incorrect
+    ones) are merged by item key exactly like the main substrate (restored records
     skip their calls, missing ones are generated), the clean-correct filter reproduces
     the placebo-loop positions, and the placebo loop skips any record whose placebo
     transcript is already banked, with ``i`` still the record's position in the FULL
@@ -1247,8 +1247,8 @@ def _gate_client(backend, model, host, timeout):
 
     ``max_wait`` is raised from GroqClient's 25s default for THIS runner only (05 and the
     client's own default are untouched), because the two throttles it must tell apart ask
-    for very different waits. A per-minute TOKEN throttle asks for at most about a minute
-    -- the bucket refills every minute -- and a powered sweep rides that ceiling
+    for very different waits. A per-minute TOKEN throttle asks for at most about a minute,
+    since the bucket refills every minute, and a powered sweep rides that ceiling
     continuously: the first leg logged 1,854 waits, 99.9 percent of them 1-5s, then died
     on a single 35s ask. The DAILY budget, the stop this runner is actually designed to
     bank and resume from, asks for hours. A 90s ceiling therefore rides out any
@@ -1342,7 +1342,7 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
             if mismatches:
                 print(arms_resume.refusal_message(mismatches, checkpoint_path))
                 return 0
-        # Both files feed the identical by-key merge, so both need the guard -- and it
+        # Both files feed the identical by-key merge, so both need the guard, and it
         # runs on EVERY --resume leg, checkpoint or not. Leg 1 has no checkpoint, so
         # gating this on one would refuse only on leg 2, AFTER leg 1 had already spent
         # the whole daily budget banking records the merge silently aliased. The guard
@@ -1366,8 +1366,8 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
     cue_kind = f"taxonomy:{taxonomy}" if taxonomy else "stated-hint:strong"
 
     # The writer exists BEFORE the substrate pass and holds the same (initially empty)
-    # records list the pass fills in place, so a mid-substrate stop -- including a
-    # three-strikes abort during a RESUMED substrate -- banks everything generated so far.
+    # records list the pass fills in place, so a mid-substrate stop (including a
+    # three-strikes abort during a RESUMED substrate) banks everything generated so far.
     records: list[dict] = []
     writer = arms_resume.CheckpointWriter(
         checkpoint_path, params, records, len(items), _curve_to_dict, loaded,

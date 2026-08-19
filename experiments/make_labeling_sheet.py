@@ -113,7 +113,7 @@ def main() -> int:
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     # utf-8-sig writes a BOM so Excel (and online Excel) reads it as UTF-8 rather than
-    # Latin-1, which is what turned "—" into "â€" and "°" into "Â°".
+    # Latin-1, which is what turned an em dash into "â€" and a degree sign into "Â°".
     with a.out.open("w", newline="", encoding="utf-8-sig") as fh:
         w = csv.DictWriter(fh, fieldnames=FIELDNAMES)
         w.writeheader()

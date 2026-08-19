@@ -6,11 +6,11 @@ second rater), duplicate header columns (csv.DictReader last-wins drops a vote c
 cells), duplicate or whitespace-variant item rows, rows with cells but no item_id, and a
 golden OUTPUT passed back as a rater input. The worklist generator feeds the SAME human
 adjudication step from the same files, so its load_raters now calls the assembler's one
-guard implementation (shared, not copied) -- these tests pin that the refusals fire on
+guard implementation (shared, not copied); these tests pin that the refusals fire on
 the worklist path too, that clean inputs still load, and that the call is genuinely the
 shared function rather than a drifting copy.
 
-RATER BLINDING -- ABSOLUTE. Nothing here reads any real label/key artifact; every fixture
+RATER BLINDING IS ABSOLUTE. Nothing here reads any real label/key artifact; every fixture
 is SYNTHETIC data written into pytest's tmp_path, exactly like tests/test_adjudicate_labels.py.
 """
 

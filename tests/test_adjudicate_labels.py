@@ -5,7 +5,7 @@ item+question disagreements between human raters into a worklist for a human to 
 and reports a SUPPLEMENTARY Fleiss' kappa for the >= 3-rater case. It never resolves a
 disagreement (the `adjudicated` column is always blank) and the model is never a rater.
 
-RATER BLINDING -- ABSOLUTE. Nothing here reads, opens, or references any real sealed
+RATER BLINDING IS ABSOLUTE. Nothing here reads, opens, or references any real sealed
 label/key artifact (results/labelset/, results/labeling_key.json, results/labeling_sheet.*,
 labeled_fable5*.csv, fable5_agreement_stats.txt). Every fixture is SYNTHETIC data written
 into pytest's tmp_path. The tool derives item ids from the labeled CSVs themselves and has
@@ -14,9 +14,9 @@ no --key argument, so it can never touch the sealed key even by accident.
 The module is loaded by file path exactly like tests/test_score_labels.py loads score_labels
 (it lives in experiments/ and imports its siblings via a sys.path insert).
 
-fleiss_kappa is validated against ``_ref_fleiss`` below -- an independently coded stdlib
-reference built from agreeing rater PAIRS (math.comb), a different code path from the
-implementation's sum-of-squares form -- and anchored to two textbook values: the published
+fleiss_kappa is validated against ``_ref_fleiss`` below (an independently coded stdlib
+reference built from agreeing rater PAIRS via math.comb, a different code path from the
+implementation's sum-of-squares form) and anchored to two textbook values: the published
 Fleiss' kappa worked example (kappa = 0.210) and a fully hand-worked binary case (kappa =
 1/3). STDLIB-ONLY on purpose: the CI dev environment installs no scikit-learn, so a test that
 imported it would pass locally and break CI (the failure mode this project has already hit).
@@ -82,7 +82,7 @@ def _read_rows(path: Path) -> list[list[str]]:
 
 
 # --------------------------------------------------------------------------- #
-# Independent Fleiss oracle -- a different code path from the implementation
+# Independent Fleiss oracle, a different code path from the implementation
 # --------------------------------------------------------------------------- #
 def _ref_fleiss(rows: list[list[int]]) -> float | None:
     """Fleiss' kappa via agreeing rater PAIRS and EXACT rational arithmetic.
@@ -147,7 +147,7 @@ def _random_matrices() -> list[list[list[int]]]:
 
 
 # --------------------------------------------------------------------------- #
-# 1. classify -- the disagreement decision
+# 1. classify: the disagreement decision
 # --------------------------------------------------------------------------- #
 def test_classify_split_when_raters_oppose():
     assert adj.classify([True, False]) == "split"
@@ -168,7 +168,7 @@ def test_classify_single_and_none():
 
 
 # --------------------------------------------------------------------------- #
-# 2. worklist -- only split rows, adjudicated always blank
+# 2. worklist: only split rows, adjudicated always blank
 # --------------------------------------------------------------------------- #
 def test_worklist_contains_only_split_rows_and_blank_adjudication(tmp_path):
     # it1: mentions split (T/F), supports unanimous(T,T); it2: both unanimous;
@@ -217,7 +217,7 @@ def test_worklist_empty_when_all_unanimous(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# 3. summarize -- counts, split rate, incomplete overlap
+# 3. summarize: counts, split rate, incomplete overlap
 # --------------------------------------------------------------------------- #
 def test_summarize_counts_split_unanimous_and_incomplete(tmp_path):
     a = _write_labeled(tmp_path / "labeled_a.csv", [
@@ -248,7 +248,7 @@ def test_item_ids_are_union_across_raters(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# 4. Fleiss' kappa -- textbook anchors + independent oracle
+# 4. Fleiss' kappa: textbook anchors + independent oracle
 # --------------------------------------------------------------------------- #
 def test_fleiss_textbook_wikipedia_value():
     assert abs(adj.fleiss_kappa(WIKIPEDIA_FLEISS) - 0.210) < 1e-3
@@ -295,7 +295,7 @@ def test_fleiss_rejects_ragged_rater_counts():
 
 def test_fleiss_rejects_ragged_category_widths():
     # equal row sums (3 and 3) but different widths: k from rows[0] would silently drop the
-    # third category from P_e while P_bar still used it -- must raise, never mis-score.
+    # third category from P_e while P_bar still used it, so it must raise, never mis-score.
     with pytest.raises(ValueError):
         adj.fleiss_kappa([[2, 1], [1, 1, 1]])
     with pytest.raises(ValueError):
@@ -303,7 +303,7 @@ def test_fleiss_rejects_ragged_category_widths():
 
 
 # --------------------------------------------------------------------------- #
-# 5. mentions_fleiss adapter -- complete-case restriction + rater-count gate
+# 5. mentions_fleiss adapter: complete-case restriction + rater-count gate
 # --------------------------------------------------------------------------- #
 def test_mentions_fleiss_excludes_incomplete_items(tmp_path):
     a = _write_labeled(tmp_path / "labeled_a.csv", [
@@ -511,7 +511,7 @@ def test_main_overwrites_an_unfilled_worklist_idempotently(tmp_path, monkeypatch
 
 def test_load_raters_rejects_reserved_rater_names(tmp_path):
     # labeled_adjudicated.csv would shadow the tool's own blank column with a duplicate
-    # header -- the one column whose blankness carries the no-AI-adjudication guarantee.
+    # header, the one column whose blankness carries the no-AI-adjudication guarantee.
     bad = _write_labeled(tmp_path / "labeled_adjudicated.csv", [("it1", "yes", "yes")])
     with pytest.raises(ValueError, match="collides with a fixed worklist column"):
         adj.load_raters([bad])

@@ -2,7 +2,7 @@
 
 ADDITIVE companion to score_labels.py and adjudicate_labels.py; it closes the last tooling
 gap of labeling week and never replaces or amends the pre-committed golden-set analysis
-(>= 50 transcripts, two independent human raters, pairwise Cohen's kappa -- the frozen
+(>= 50 transcripts, two independent human raters, pairwise Cohen's kappa; the frozen
 PREREGISTRATION_*.md files and experiments/score_labels.py). Given the raw labeled_<name>.csv
 files plus the human-FILLED adjudication worklist adjudicate_labels.py generated, it merges
 them into one golden CSV by three mechanical rules:
@@ -11,7 +11,7 @@ them into one golden CSV by three mechanical rules:
 2. SPLIT cells take the HUMAN adjudicated value VERBATIM: the value comes only from the
    worklist's `adjudicated` cell, parsed with the exact same yes/no token conventions every
    rater cell already gets, then canonicalized to yes/no on write. The tool never resolves
-   a split itself -- no majority vote, no tie-break, no inference. The model never labels
+   a split itself: no majority vote, no tie-break, no inference. The model never labels
    and never adjudicates; adjudication is a human step this tool only APPLIES.
 3. A split with a BLANK adjudicated cell, a single-vote cell, and an unlabeled cell are
    FLAGGED (blank label cell + a FLAGGED_* provenance value), never guessed. By default the
@@ -32,13 +32,13 @@ No model calls, no network. Loading, classification, and the worklist format are
 the siblings (score_labels.load_labeled, adjudicate_labels.load_raters/classify/...), never
 rewritten. Item ids come from the labeled CSVs themselves, so this module never reads the
 sealed labeling key. Blinding is absolute: build and test against the schema
-(labeling_columns) on SYNTHETIC data only; the operator runs it on the real labels.
+(labeling_columns) on SYNTHETIC data only; a human runs it on the real labels.
 
 The worklist is validated before any adjudication applies: its rater columns must match the
 labeled files, every row must still classify as a split under the current labels with the
 same recorded votes (else the worklist is STALE and must be regenerated), duplicate header
 columns are rejected (csv last-wins would silently drop a human decision), and a non-blank
-adjudicated value that does not parse as yes/no is a hard error -- discarding it would lose
+adjudicated value that does not parse as yes/no is a hard error, since discarding it would lose
 a human decision, coercing it would invent one.
 
 Input hygiene guards the two-independent-raters anchor itself: byte-identical labeled
@@ -80,7 +80,7 @@ from adjudicate_labels import (  # noqa: E402  (reuse the worklist tool's conven
 QUESTION_HEADER = {"mentions": Q_MENTIONS, "supports": Q_SUPPORTS}
 SOURCE_COL = {"mentions": "mentions_source", "supports": "supports_source"}
 
-# Provenance values. FLAGGED_* cells always carry a BLANK label -- flagged means "a human
+# Provenance values. FLAGGED_* cells always carry a BLANK label; flagged means "a human
 # still owes a decision or a label here", and this tool never fills one in.
 SRC_UNANIMOUS = "unanimous"
 SRC_ADJUDICATED = "adjudicated"
@@ -127,7 +127,7 @@ def _reject_duplicate_headers(fields: list[str], name: str) -> None:
         dupes = sorted({c for c in fields if fields.count(c) > 1})
         raise ValueError(
             f"{name} has duplicate header column(s) {dupes}; a duplicated column "
-            "silently drops one copy's cells -- fix the header"
+            "silently drops one copy's cells; fix the header"
         )
 
 
@@ -178,7 +178,7 @@ def _precheck_labeled(paths: list[Path]) -> None:
                         if seen[item] == raw:
                             raise ValueError(
                                 f"{p.name} has duplicate rows for item {item!r}; the "
-                                "loader would keep only the last one -- deduplicate the "
+                                "loader would keep only the last one; deduplicate the "
                                 "file first"
                             )
                         raise ValueError(
@@ -207,7 +207,7 @@ def _precheck_labeled(paths: list[Path]) -> None:
         if p1.read_bytes() == p2.read_bytes():
             raise ValueError(
                 f"labeled inputs {p1.name} and {p2.name} are byte-identical; independent "
-                "raters produce distinct files -- check that each rater's own CSV was "
+                "raters produce distinct files; check that each rater's own CSV was "
                 "passed, not an alias or a copy of one"
             )
 
@@ -262,8 +262,8 @@ def verify_worklist(worklist: dict[tuple[str, str], dict],
 
     A row for an item nobody labeled, for a pair that no longer classifies as split, or
     whose recorded votes differ from the current labels means the labels changed after the
-    worklist was generated -- the human's adjudications may no longer apply, so the merge
-    refuses and the operator regenerates the worklist (adjudicate_labels.py refuses to
+    worklist was generated, so the human's adjudications may no longer apply: the merge
+    refuses and a human regenerates the worklist (adjudicate_labels.py refuses to
     clobber a filled one, so nothing is lost by re-running it to compare).
     """
     known = set(item_ids(raters))
@@ -293,7 +293,7 @@ def _resolve_cell(votes: list[bool | None],
 
     Never decides: a split resolves ONLY through a parseable human adjudication; everything
     unresolved comes back as (None, FLAGGED_*). An unparseable non-blank adjudication
-    raises -- it is a human-input error to surface, not a blank to skip.
+    raises, because it is a human-input error to surface, not a blank to skip.
     """
     cls = classify(votes)
     if cls == "unanimous":
@@ -306,7 +306,7 @@ def _resolve_cell(votes: list[bool | None],
         if value is None:
             raise ValueError(
                 f"unparseable adjudicated value {raw!r} for ({item}, {q}); "
-                "expected yes/no -- fix the worklist cell (the tool never coerces or "
+                "expected yes/no; fix the worklist cell (the tool never coerces or "
                 "discards a human decision)"
             )
         return value, SRC_ADJUDICATED
@@ -484,7 +484,7 @@ def main() -> int:
               "is untouched)")
         return 2
     if partial:
-        print(f"\nwrote {len(rows)} item(s) to {a.out} -- PARTIAL: {n_flagged} flagged "
+        print(f"\nwrote {len(rows)} item(s) to {a.out}. PARTIAL: {n_flagged} flagged "
               f"cell(s) left blank; every row carries {SHEET_STATUS_COL}={PARTIAL}.")
         print("  this sheet is NOT a finished golden set.")
     else:

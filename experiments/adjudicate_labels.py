@@ -23,7 +23,7 @@ PREREGISTRATION_*.md files). This tool adds two things on top of that anchor:
 No model calls, no network. The loader (score_labels.load_labeled) and the item-id / column
 conventions are reused, not rewritten. Item ids come from the labeled CSVs themselves, so
 this module never reads the sealed labeling key. Blinding is absolute: build and test against
-the schema (labeling_columns) on SYNTHETIC data only; the operator runs it on the real labels.
+the schema (labeling_columns) on SYNTHETIC data only; a human runs it on the real labels.
 """
 
 from __future__ import annotations
@@ -182,7 +182,7 @@ def build_worklist(raters: list[tuple[str, dict]]) -> tuple[list[str], list[list
     """Build the human-adjudication worklist: ONLY the split item+question rows.
 
     Columns: item_id, question, <one column per rater's vote>, adjudicated. The adjudicated
-    column is always blank -- this tool surfaces disagreements, it never resolves them.
+    column is always blank; this tool surfaces disagreements, it never resolves them.
     """
     names = [n for n, _ in raters]
     header = [ITEM_ID, QUESTION_COL, *names, ADJUDICATED_COL]
@@ -305,7 +305,7 @@ def _worklist_has_adjudications(path: Path) -> bool:
 
     Guards the human's work: results/ is gitignored (for blinding), so a filled worklist
     has no VCS safety net and a silent rewrite would destroy it. Unreadable or non-worklist
-    files return False (overwriting those is the operator's explicit choice via --out)."""
+    files return False (overwriting those is an explicit choice via --out)."""
     try:
         with path.open(newline="", encoding="utf-8-sig") as fh:
             reader = csv.DictReader(fh)

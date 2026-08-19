@@ -8,7 +8,7 @@ For the structural model
 
 the natural direct effect (NDE) and natural indirect effect (NIE) on the
 probability of Y are integrals over the mediator distribution. We compute
-them by Monte Carlo integration -- both for ground truth (using the true
+them by Monte Carlo integration, both for ground truth (using the true
 parameters of the data-generating process) and for posterior estimates
 (using draws from a fitted Bayesian model).
 """
