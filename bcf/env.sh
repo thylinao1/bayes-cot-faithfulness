@@ -23,6 +23,19 @@ export OUTLINES_CACHE_DIR="${SCRATCH}/outlines"
 export VLLM_CACHE_ROOT="${SCRATCH}/vllm"
 mkdir -p "$HF_HOME" "$TRITON_CACHE_DIR" "$OUTLINES_CACHE_DIR" "$VLLM_CACHE_ROOT"
 
+# No CUDA JIT between the allocation and the run. vLLM 0.28.0 picks FlashInfer for
+# top-p / top-k sampling and JIT-compiles flashinfer's sampling.cu on first use, AFTER the
+# weights are loaded. That compile is node dependent: job 825246 ran it fine on xgph12,
+# job 825480 died on xgph10 with
+#   flashinfer/sampling.cuh(623): error: class "cub::_V_300302_SM_800::BlockAdjacentDifference<...>"
+#   ninja: build stopped: subcommand failed
+# after 5 minutes of allocation, model download and load. Every generation in this project
+# runs at temperature 0 (frozen decoding constant) except the pre-registered k=32 T=0.7
+# arm, so the sampler kernel is not on the measurement path, and trading it for the
+# PyTorch sampler removes a node-dependent build from between a scarce card and a run.
+# Unset BCF_KEEP_FLASHINFER_SAMPLER to opt back in on a node where it works.
+export VLLM_USE_FLASHINFER_SAMPLER="${BCF_KEEP_FLASHINFER_SAMPLER:-0}"
+
 export BCF_ROOT="${BCF_ROOT:-$HOME/bcf}"
 export BCF_REPO="${BCF_REPO:-$BCF_ROOT/repo}"
 export BCF_RESULTS="${BCF_RESULTS:-$BCF_ROOT/results}"
