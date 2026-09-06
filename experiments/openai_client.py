@@ -21,6 +21,7 @@ client-side template guess would silently score a different prompt.
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import threading
@@ -215,8 +216,21 @@ class OpenAIClient:
                 last = OpenAIClientError(f"server error {exc.code} at {url}: {detail}")
             except urllib.error.URLError as exc:
                 last = OpenAIClientError(f"could not reach {url}: {exc}")
-            except TimeoutError as exc:
-                last = OpenAIClientError(f"timed out after {self.timeout}s at {url}: {exc}")
+            # A reset or a short read DURING resp.read() is a bare OSError, not a
+            # URLError: urllib wraps only the failures it sees while opening the
+            # connection. Under concurrency that is the common transport failure, and
+            # without this clause it escapes the retry loop and kills the arm on a
+            # blip the next attempt would have survived. TimeoutError and
+            # ConnectionResetError are both OSError subclasses, so one clause covers
+            # them; a JSON body that will not decode is NOT retried, because the same
+            # bytes decode the same way twice.
+            except (OSError, http.client.HTTPException) as exc:
+                # http.client.IncompleteRead is an HTTPException, NOT an OSError: a
+                # server that announces a Content-Length and then hangs up lands here
+                # and nowhere else. Both classes are the transport giving out mid-call,
+                # which the next attempt can survive.
+                last = OpenAIClientError(f"transport failure at {url}: "
+                                         f"{type(exc).__name__}: {exc}")
             if attempt < self.max_retries - 1:
                 self._bump("retries")
                 wait = min(self.retry_wait * (self.retry_backoff ** attempt),

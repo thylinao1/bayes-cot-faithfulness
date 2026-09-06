@@ -46,3 +46,17 @@ to `pending.pop()`, which consumes the newest finished item instead of the oldes
 out of index order. Result above: 3 failed, 16 passed, exit 1. The line reverted and the
 same file re-run: 19 passed, exit 0 (and 171 passed across the six targeted test files).
 The identity check therefore fails when ordering breaks; it is not vacuous.
+
+SECOND FINDING, from running the suite rather than from reading it (2026-09-07).
+test_request_log_lines_stay_whole_under_concurrency failed once out of several runs with
+ConnectionResetError escaping OpenAIClient._post. urllib wraps only the failures it sees
+while OPENING a connection, so a reset or a short read during resp.read() came out as a
+bare OSError and, for a server that announces a Content-Length and then hangs up, as
+http.client.IncompleteRead, which is an HTTPException and not an OSError at all. Neither
+was caught, so a transport blip killed the arm instead of costing one retry. Both classes
+are now retried and counted, and
+test_a_connection_reset_mid_read_is_retried_not_raised holds the second case: the fake
+server truncates its first response, the client retries once, the call returns, and the
+retry counter reads 1. Before the fix that test failed with
+"http.client.IncompleteRead: IncompleteRead(1 bytes read, 9998 more expected)"; after it,
+20 passed three runs in a row.

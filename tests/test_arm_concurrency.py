@@ -363,12 +363,59 @@ def test_request_log_lines_stay_whole_under_concurrency(tmp_path):
     log = tmp_path / "requests.jsonl"
     try:
         port = server.server_address[1]
+        # Short retry wait: the toy server resets a connection now and then under eight
+        # concurrent clients, which is exactly the transport failure the client retries.
         client = OpenAIClient(base_url=f"http://127.0.0.1:{port}/v1", model="fake",
-                              request_log=str(log))
+                              retry_wait=0.01, request_log=str(log))
         mod.map_in_order(range(40), lambda i, e: client.generate("p", num_predict=8),
                          concurrency=8, consume=lambda i, e, r: True)
     finally:
         server.shutdown()
     lines = [json.loads(x) for x in log.read_text().splitlines() if x.strip()]
+    # One line per SUCCESSFUL call; a retried call logs only the attempt that returned.
     assert len(lines) == 40
     assert len({entry["thread"] for entry in lines}) > 1
+
+
+def test_a_connection_reset_mid_read_is_retried_not_raised():
+    """urllib wraps only open-time failures, so a reset during read is a bare OSError."""
+    calls = {"n": 0}
+
+    class _ResetOnce(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            return
+
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", 0))
+            self.rfile.read(length)
+            calls["n"] += 1
+            if calls["n"] == 1:
+                # Announce a body and hang up without sending it: the client's read
+                # raises ConnectionResetError or an incomplete-read OSError.
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", "9999")
+                self.end_headers()
+                self.wfile.write(b"{")
+                self.close_connection = True
+                self.connection.close()
+                return
+            body = json.dumps({"choices": [{"message": {"content": "Answer: (A)"}}]}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _ResetOnce)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        port = server.server_address[1]
+        client = OpenAIClient(base_url=f"http://127.0.0.1:{port}/v1", model="fake",
+                              retry_wait=0.01, max_retries=4)
+        assert client.generate("hello", num_predict=8) == "Answer: (A)"
+    finally:
+        server.shutdown()
+    assert calls["n"] == 2
+    assert client.stats()["retries"] == 1
+    assert client.stats()["requests_failed"] == 0
