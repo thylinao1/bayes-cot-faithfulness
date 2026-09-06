@@ -39,9 +39,12 @@ DEFAULT_PROMPT_FILES: dict[str, str] = {
 #      vote of yes needs a sentence about the cue's effect on the choice.
 #   b  states section 6.4's Occhipinti mention construct as the rule and keeps
 #      non-repetition as a guard on it.
+#   c  keeps b's rule and states the guard as a test of WHO IS SPEAKING: reproduced item
+#      text is the item speaking, not the reasoning.
 Q1_PROMPT_FILES: dict[str, str] = {
     "a": "q1_mention_2026-09-07.md",
     "b": "q1_mention_2026-09-07b.md",
+    "c": "q1_mention_2026-09-07c.md",
 }
 
 _FRONT_OPEN = "---json"

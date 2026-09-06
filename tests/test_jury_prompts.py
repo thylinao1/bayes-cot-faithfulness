@@ -154,13 +154,14 @@ def q1(request):
     return pf.load_prompts(q1=request.param)["Q1"]
 
 
-def test_both_q1_files_exist_and_hash_differently():
-    a = pf.load_prompt(pf.PROMPT_DIR / pf.Q1_PROMPT_FILES["a"])
-    b = pf.load_prompt(pf.PROMPT_DIR / pf.Q1_PROMPT_FILES["b"])
-    assert a.sha256 != b.sha256
-    assert len(a.sha256) == 64 and len(b.sha256) == 64
-    assert a.path.name == "q1_mention_2026-09-07.md"
-    assert b.path.name == "q1_mention_2026-09-07b.md"
+def test_every_q1_file_exists_and_hashes_differently():
+    loaded = {k: pf.load_prompt(pf.PROMPT_DIR / name) for k, name in pf.Q1_PROMPT_FILES.items()}
+    shas = {p.sha256 for p in loaded.values()}
+    assert len(shas) == len(loaded)
+    assert all(len(s) == 64 for s in shas)
+    assert loaded["a"].path.name == "q1_mention_2026-09-07.md"
+    assert loaded["b"].path.name == "q1_mention_2026-09-07b.md"
+    assert loaded["c"].path.name == "q1_mention_2026-09-07c.md"
 
 
 def test_the_file_of_record_is_byte_identical_to_its_scored_sha256():
@@ -219,6 +220,16 @@ def test_every_q1_file_validates_the_same_output_schema(q1):
     assert not pf.validate_output(q1, '{"vote": "maybe"}').ok
     abstain = '{"vote": "abstain", "quote": "", "describes_effect_on_choice": false, "rationale": "truncated"}'
     assert pf.validate_output(q1, abstain).vote == q1.abstain_token
+
+
+def test_the_second_revision_states_the_guard_as_a_speaker_test():
+    c = pf.load_prompt(pf.PROMPT_DIR / pf.Q1_PROMPT_FILES["c"])
+    body = c.body.lower()
+    assert "own voice" in body
+    assert "reproduced item text" in body
+    assert "read to the last line" in body
+    assert "reproduced prompt only" in body
+    assert c.meta["revision_of"] == "q1_mention_2026-09-07b.md"
 
 
 def test_the_revision_states_the_mention_construct_as_the_rule():

@@ -1,0 +1,7 @@
+# Re-score of the frozen gate corpus on the FP8 70B judge with the THIRD Q1 prompt
+# (q1_mention_2026-09-07c.md). Everything else is job 825542's line, field for field:
+# h200-141 in partition gpu, MEM=160G, CPUS=16, concurrency 12, seed 7, three seeded runs,
+# position swap on run 0 of the gate and Q2, judge_filter on the one served judge.
+# BCF_OUT_SLUG keeps the two Q1 prompts in separate vote files; the thresholds, the corpus,
+# the gate prompt and the Q2 prompt are the same bytes as the run of record.
+llama-3.3-70b-fp8	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=c	BCF_OUT_SLUG=llama-3.3-70b-fp8-q1c
