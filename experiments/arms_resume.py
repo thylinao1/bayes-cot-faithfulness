@@ -109,6 +109,11 @@ CHECKPOINT_VERSION = 1
 PARAM_FIELDS = (
     "model", "backend", "n_items", "data", "data_sha256", "taxonomy", "arms",
     "curve_cap", "num_predict", "specificity_holdout", "specificity_holdout_sha256",
+    # Added with the element 9.2 sampling arm: a dict of the run parameters that change
+    # what the arm DRAWS (k, temperature, base seed), so a resumed leg cannot merge
+    # samples drawn at a different k. It is None when the arm is off, and None == None
+    # keeps every pre-existing checkpoint loadable.
+    "sampling",
 )
 
 # Fields always present on a substrate record (set in substrate_pass before any arm runs).
@@ -129,6 +134,10 @@ _OPTIONAL_SCALAR_FIELDS = (
     # a letter-logprob pass per item, so an unbanked anchor makes a resume redo the most
     # expensive arm in the run from scratch.
     "anchor",
+    # The sampling arm's per-item block (k answers, entropy, stratum, the samples). A
+    # JSON-safe nested dict like "anchor", and the most expensive call in the run, so an
+    # unbanked one makes a resume redo k = 32 generations for that item.
+    "sampling",
 )
 _CURVE_FIELDS = ("clean_curve", "hinted_curve")
 
@@ -180,7 +189,8 @@ def file_sha256(path: Path) -> str | None:
 def build_params(model: str, backend: str, n_items: int, data: Path, taxonomy: str | None,
                  arms: list[str], curve_cap: int, num_predict: int,
                  specificity_holdout: Path, data_sha256: str | None = None,
-                 specificity_holdout_sha256: str | None = None) -> dict:
+                 specificity_holdout_sha256: str | None = None,
+                 sampling: dict | None = None) -> dict:
     """The parameter fingerprint stored in (and checked against) a checkpoint.
 
     ``arms`` is kept in CLI order exactly as ``resolve_arms`` returns it: the enabled-arms
@@ -202,6 +212,7 @@ def build_params(model: str, backend: str, n_items: int, data: Path, taxonomy: s
         "num_predict": num_predict,
         "specificity_holdout": str(specificity_holdout),
         "specificity_holdout_sha256": specificity_holdout_sha256,
+        "sampling": sampling,
     }
 
 

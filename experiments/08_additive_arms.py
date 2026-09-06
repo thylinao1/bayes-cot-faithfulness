@@ -31,6 +31,7 @@ Run (from the repo root):
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import sys
@@ -85,6 +86,14 @@ from bayes_cot_faithfulness.curves import (  # noqa: E402
     curve_covariates,
     curve_prompts,
     summarize_curve,
+)
+from bayes_cot_faithfulness.sampling_arm import (  # noqa: E402
+    SAMPLING_K,
+    SAMPLING_TEMPERATURE,
+    STABILITY_K_GRID,
+    UNCERTAIN_ENTROPY_THRESHOLD,
+    summarize_item_samples,
+    summarize_sampling as summarize_sampling_block,
 )
 
 CONTROL_SCRIPT = HERE / "05_realmodel_control.py"
@@ -165,6 +174,12 @@ class RunCtx:
     # code path (see map_in_order), and it is the default so an existing call site that
     # builds a RunCtx positionally keeps the behavior it had.
     concurrency: int = 1
+    # Element 9.2, the uncertain-item sampling arm. The defaults ARE the frozen values;
+    # they are fields rather than constants only so a smoke run can shorten k, and every
+    # one of them is written into the arm block and the run meta.
+    sampling_k: int = SAMPLING_K
+    sampling_temperature: float = SAMPLING_TEMPERATURE
+    sampling_seed: int | None = None
 
 
 # --- Small pure helpers -----------------------------------------------------
@@ -531,6 +546,24 @@ def summarize_curves(records: list[dict]) -> dict:
     return out
 
 
+def summarize_sampling(records: list[dict]) -> dict:
+    """Element 9.2: the entropy distribution, the uncertain fraction, k stability.
+
+    Draw methods are counted rather than assumed: a run that fell back to seeded calls
+    on one item and used the n parameter on the rest would show both here.
+    """
+    blocks = [r["sampling"] for r in records if "sampling" in r]
+    out = summarize_sampling_block(blocks)
+    methods: dict[str, int] = {}
+    for b in blocks:
+        key = str(b.get("draw_method"))
+        methods[key] = methods.get(key, 0) + 1
+    out["draw_methods"] = dict(sorted(methods.items()))
+    out["n_records_entered"] = len(records)
+    out["n_records_with_samples"] = len(blocks)
+    return out
+
+
 def _transplant_direction(records: list[dict], got_key: str, want_key: str) -> dict:
     """Carry-over for one transplant direction over the SCORABLE pairs only.
 
@@ -691,6 +724,7 @@ def build_blocks(records: list[dict], arms: list[str]) -> dict:
         "twostep": summarize_twostep,
         "filler": summarize_filler,
         "curves": summarize_curves,
+        "sampling": summarize_sampling,
         "transplant": summarize_transplant,
         "anchor": summarize_anchor,
     }
@@ -781,8 +815,9 @@ def serialize_arm_record(r: dict) -> dict:
         ckey = f"{arm}_curve"
         if ckey in r:
             out[ckey] = _curve_to_dict(r[ckey])
-    if "anchor" in r:
-        out["anchor"] = r["anchor"]
+    for block in ("anchor", "sampling"):
+        if block in r:
+            out[block] = r[block]
     return out
 
 
@@ -1220,6 +1255,73 @@ def arm_curves(client, records, ctx):
     return ok, state["err"]
 
 
+SAMPLING_CAPABILITY_REFUSAL = (
+    "the sampling arm needs a backend that can draw k completions at a chosen "
+    "temperature (OpenAIClient.sample_completions). The ollama and groq clients in this "
+    "repo are pinned to temperature 0 with one completion per call, so running element "
+    "9.2 through them would silently produce k copies of one greedy answer and an "
+    "entropy of exactly 0 on every item. Use --backend openai against the served model."
+)
+
+
+def _sha16(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def arm_sampling(client, records, ctx):
+    """Element 9.2: k sampled answers on the CLEAN prompt, per clean-correct item.
+
+    The prompt is the CLEAN one, not the cued one: the uncertain-item stratum is a
+    property of the item and the model, and reading it off a cued prompt would define
+    the stratum with the manipulation already applied.
+
+    The seed is per item (``sampling_seed + i * k``) so two items never share a draw and
+    a resumed leg redraws the same samples for the item it stopped on. Whether the k
+    draws came from one request with ``n = k`` or from k seeded requests is decided by
+    the server, recorded per item as ``draw_method``, and reported in the arm block.
+    """
+    if not hasattr(client, "sample_completions"):
+        return False, RuntimeError(SAMPLING_CAPABILITY_REFUSAL)
+
+    def _work(i, r):
+        if "sampling" in r:
+            return {}, None  # banked on an earlier leg; do not redraw
+        it = r["item"]
+        seed = None if ctx.sampling_seed is None else ctx.sampling_seed + i * ctx.sampling_k
+        try:
+            outs, method = client.sample_completions(
+                clean_prompt(it), k=ctx.sampling_k,
+                temperature=ctx.sampling_temperature, seed=seed,
+                num_predict=ctx.num_predict,
+            )
+        except Exception as exc:  # noqa: BLE001 - same discipline as safe_generate
+            return {}, exc
+        # No forced-answer fallback here. parse_or_force would spend a SECOND call on an
+        # unparsed sample and fold its answer into the distribution, which would make the
+        # entropy a property of two different generations. An unparsed sample is counted
+        # as unscorable instead.
+        answers = [parse_answer(o, ctx.n_choices) for o in outs]
+        block = summarize_item_samples(
+            answers,
+            n_options=len(it.choices),
+            answer_label=it.answer_label,
+            item_labels=list(it.labels),
+            threshold=UNCERTAIN_ENTROPY_THRESHOLD,
+            k_grid=STABILITY_K_GRID,
+        )
+        block["draw_method"] = method
+        block["seed"] = seed
+        block["temperature"] = ctx.sampling_temperature
+        block["prompt"] = "clean"
+        block["samples"] = [
+            {"index": j, "answer": a, "parsed": a is not None, "completion": o}
+            for j, (o, a) in enumerate(zip(outs, answers))
+        ]
+        return {"sampling": block}, None
+
+    return _run_record_arm(records, _work, ctx)
+
+
 def arm_transplant(client, records, ctx):
     """T3: forward (hinted CoT, cue STRIPPED) and reverse (clean CoT, cue ADDED) crossing.
 
@@ -1552,6 +1654,7 @@ ARM_RUNNERS = {
     "twostep": arm_twostep,
     "filler": arm_filler,
     "curves": arm_curves,
+    "sampling": arm_sampling,
     "transplant": arm_transplant,
     "anchor": arm_anchor,
 }
@@ -1612,6 +1715,26 @@ def report_blocks(blocks: dict) -> None:
                   f"never={x['n_never_committed']} unscorable={x['n_unscorable']} "
                   f"unparsed-depths={x['n_unparsed_depths']} mean-area={area} "
                   f"hist={x['commitment_depth_hist']}")
+    if "sampling" in blocks:
+        b = blocks["sampling"]
+        num = lambda x: "n/a" if x is None else f"{x:.3f}"
+        print(f"[sampling 9.2] k={b['k']} T={b['temperature']} on the clean prompt; "
+              f"{b['n_items_with_entropy']}/{b['n_records_entered']} items scored "
+              f"(draw {b['draw_methods']})")
+        print("    normalized entropy: min " + num(b["entropy_min"])
+              + " q25 " + num(b["entropy_q25"])
+              + " median " + num(b["entropy_median"])
+              + " q75 " + num(b["entropy_q75"])
+              + " max " + num(b["entropy_max"]))
+        print(f"    right-but-uncertain at {b['entropy_threshold']}: "
+              f"{b['n_right_but_uncertain']}/{b['n_records_entered']} "
+              f"({_pct(b['right_but_uncertain_fraction'])}); strata {b['strata']}; "
+              f"modal ties {b['n_modal_ties']}; unscorable samples "
+              f"{b['n_unscorable_samples']}; out-of-set {b['n_out_of_set_samples']}")
+        for step in b["stability"]["steps"]:
+            print(f"    stability k {step['from_k']} to {step['to_k']}: stratum changed "
+                  f"{step['n_stratum_changed']}/{step['n_items_comparable']}, flag changed "
+                  f"{step['n_flag_changed']}/{step['n_items_comparable']}")
     if "transplant" in blocks:
         b = blocks["transplant"]
         f, rv = b["forward"], b["reverse"]
@@ -1750,7 +1873,9 @@ def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_bloc
 def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         curve_cap=20, num_predict=320, timeout=120.0, backend="ollama",
         specificity_holdout=None, resume=False, *, base_url=None, seed=None,
-        chat_template_kwargs=None, concurrency=1):
+        chat_template_kwargs=None, concurrency=1,
+        sampling_k=SAMPLING_K, sampling_temperature=SAMPLING_TEMPERATURE,
+        sampling_seed=None):
     arms = resolve_arms(arms)
     if not arms:
         print(no_arms_hint())
@@ -1766,10 +1891,19 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
     safe_model = model.replace(":", "_").replace("/", "_")
     checkpoint_path = out_dir / f"arms_checkpoint_{safe_model}.json"
     holdout_path = Path(specificity_holdout)
+    # The sampling arm's DRAW parameters ride in the fingerprint only when the arm is
+    # enabled, so a run without it writes the same None a pre-existing checkpoint
+    # carries and stays resumable.
+    sampling_params = (
+        {"k": sampling_k, "temperature": sampling_temperature, "seed": sampling_seed,
+         "threshold": UNCERTAIN_ENTROPY_THRESHOLD, "prompt": "clean"}
+        if "sampling" in arms else None
+    )
     params = arms_resume.build_params(
         model, backend, n_items, data_path, taxonomy, arms, curve_cap, num_predict,
         holdout_path, arms_resume.file_sha256(data_path),
         arms_resume.file_sha256(holdout_path),
+        sampling=sampling_params,
     )
     # Resume gate BEFORE the backend gate: an unreadable version, a parameter mismatch,
     # or a data file whose duplicate keys would alias banked records must refuse with
@@ -1849,6 +1983,8 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
     ctx = RunCtx(
         n_choices, num_predict, out_dir, safe_model, backend, model, curve_cap, writer,
         concurrency,
+        sampling_k=sampling_k, sampling_temperature=sampling_temperature,
+        sampling_seed=sampling_seed,
     )
     print(f"[2/3] Cue pass ({cue_kind}) on {len(correct)} clean-correct items")
     if not cue_pass(client, correct, ctx, taxonomy):
@@ -1924,6 +2060,16 @@ def build_parser() -> argparse.ArgumentParser:
                     help="fixed n=20 held-out set (ARC validation split, disjoint from the "
                          "main runs) for the A9 specificity arm; fetch with "
                          "fetch_arc.py --split validation --n 20")
+    ap.add_argument("--sampling-k", type=int, default=SAMPLING_K,
+                    help="element 9.2: samples per item on the clean prompt "
+                         f"(frozen at {SAMPLING_K}). Lower it only for a smoke run; the "
+                         "value is written into the arm block and the checkpoint params.")
+    ap.add_argument("--sampling-temperature", type=float, default=SAMPLING_TEMPERATURE,
+                    help=f"element 9.2 sampling temperature (frozen at "
+                         f"{SAMPLING_TEMPERATURE}).")
+    ap.add_argument("--sampling-seed", type=int, default=None,
+                    help="base seed for the sampling arm; item i draws with "
+                         "seed + i * k. Defaults to --seed.")
     ap.add_argument("--concurrency", type=int, default=1,
                     help="requests in flight at once (default 1 = the sequential client "
                          "every Phase-1 measurement was taken with). Above 1 the records "
@@ -1950,10 +2096,15 @@ def main(argv: list[str] | None = None) -> int:
     if a.concurrency < 1:
         print("[setup] --concurrency must be at least 1.")
         return 0
+    if a.sampling_k < 1:
+        print("[setup] --sampling-k must be at least 1.")
+        return 0
     return run(model, a.host, a.n_items, a.data, a.out, a.arm, a.taxonomy,
                a.curve_cap, a.num_predict, a.timeout, a.backend,
                a.specificity_holdout, a.resume, base_url=a.base_url, seed=a.seed,
-               chat_template_kwargs=template_kwargs, concurrency=a.concurrency)
+               chat_template_kwargs=template_kwargs, concurrency=a.concurrency,
+               sampling_k=a.sampling_k, sampling_temperature=a.sampling_temperature,
+               sampling_seed=(a.sampling_seed if a.sampling_seed is not None else a.seed))
 
 
 if __name__ == "__main__":
