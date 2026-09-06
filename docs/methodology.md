@@ -87,7 +87,7 @@ Validated result, on synthetic data and a laptop CPU. With a true residual corre
 
 The direction matters for how the result reads: under positive M-Y confounding (the natural case when a shared hidden factor lifts both the CoT content and the answer), assuming ignorability makes the reasoning look more faithful than it is. A naive faithfulness audit can over-trust the CoT. See [`sensitivity.py`](../src/bayes_cot_faithfulness/sensitivity.py); the sweep figure is in the project README.
 
-Reporting uses a breakdown scalar and a confounding-agnostic interval. Two summaries make the assumption auditable without committing to a value of $\rho$. The first is the breakdown frontier $\rho^\*$: the smallest $|\rho|$ at which the faithful path crosses zero (on the synthetic process, $\rho^\* \approx 0.74$). It is the sensitivity-analysis analogue of VanderWeele's E-value, a single comparable number a faithfulness claim ships with. The second is the partial-identification interval: if one is only willing to assume $|\rho| \le \bar\rho$, the effect is not point-identified but provably lies in $[\,\underline{b}, \overline{b}\,]$, the range of the natural effect over that set of $\rho$. When the interval excludes zero the verdict is *sign-identified* (it holds for every confounding level entertained); the interval excludes zero exactly when $\bar\rho < \rho^\*$, so the two summaries are duals. See `breakdown_frontier` and `partial_identification_bounds`.
+Reporting uses a breakdown scalar and a confounding-agnostic interval. Two summaries make the assumption auditable without committing to a value of $\rho$. The first is the breakdown frontier $\rho^\*$: the smallest $|\rho|$ at which the faithful path crosses zero (on the synthetic process, $\rho^\* \approx 0.74$). It is the sensitivity-analysis analogue of VanderWeele's E-value, a single comparable number a faithfulness claim ships with. The second is the partial-identification interval: if one is only willing to assume $|\rho| \le \bar\rho$, the effect is not point-identified but provably lies in $[\,\underline{b}, \overline{b}\,]$, the range of the natural effect over that set of $\rho$. When the interval excludes zero the verdict is *sign-identified* (it holds for every confounding level entertained); the interval excludes zero exactly when $\bar\rho < \rho^\*$, so the two summaries are duals. The frontier is computed from a maximum-likelihood fit, not from a posterior, and the current implementation returns the optimizer's parameters without checking convergence. Read it as a point-estimate sensitivity curve. The uncertainty-aware replacement is a separate quantity and is labelled as such wherever both appear. See `breakdown_frontier` and `partial_identification_bounds`.
 
 ## 4 · Hierarchical Bayesian estimator
 
@@ -111,7 +111,7 @@ Posterior samples over $(\alpha, \beta, \gamma, \sigma_M)$ are converted into a 
 
 Why Bayesian:
 
-- Calibrated uncertainty intervals out of the box, with no asymptotic normality assumption.
+- Uncertainty that can be checked rather than assumed, with no asymptotic normality assumption. Calibration is a property of the model, the priors, the implementation and the target, not of the framework, so it is demonstrated separately with computation checks and repeated-sampling performance, and reported where it fails.
 - Hierarchical pooling across prompts and seeds for the real-LLM experiments (extending the simple model above).
 - Posterior model comparison (Bayes factors / WAIC / PSIS-LOO) for "is this CoT faithful or not?" hypothesis tests.
 
@@ -158,7 +158,7 @@ The natural extension is from token-level CoT mediation (this project) to circui
 | Intervention = truncate / paraphrase | Intervention = activation patching / interchange |
 | Effect = answer logit change | Effect = answer logit change |
 
-Causal scrubbing (Chan et al. 2023) and causal abstraction / DAS (Geiger et al. 2023) operate at the mechanistic level and use frequentist or point-estimate methods. The Bayesian framework here ports over directly: each interchange becomes an observation in a hierarchical model whose posterior tells you, with calibrated uncertainty, whether a claimed circuit *causally* implements a claimed computation.
+Causal scrubbing (Chan et al. 2023) and causal abstraction / DAS (Geiger et al. 2023) operate at the mechanistic level and use frequentist or point-estimate methods. The Bayesian framework here ports over directly: each interchange becomes an observation in a hierarchical model whose posterior quantifies, under stated assumptions and a stated sensitivity range, whether a claimed circuit *causally* implements a claimed computation. Whether that posterior is calibrated is an empirical question about the model and the implementation, tested separately and reported.
 
 ## References
 

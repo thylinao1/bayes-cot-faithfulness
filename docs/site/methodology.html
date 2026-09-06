@@ -256,7 +256,11 @@ $$\text{sign-identified} \iff \bar\rho < \rho^*$$
         that happens exactly when the confounding budget $\bar\rho$ is below $\rho^*$. The two
         summaries are duals. On the single-world sweep here $\rho^* \approx 0.74$; the two-world
         positive control on the overview is a separate synthetic process and gives the 0.69 vs
-        0.05 separation. See <code>breakdown_frontier</code> and <code>partial_identification_bounds</code>.
+        0.05 separation. The frontier is computed from a maximum-likelihood fit, not from a
+        posterior, and the current implementation returns the optimizer's parameters without
+        checking convergence. Read it as a point-estimate sensitivity curve; the
+        uncertainty-aware replacement is a separate quantity and is labelled as such wherever
+        both appear. See <code>breakdown_frontier</code> and <code>partial_identification_bounds</code>.
       </p>
     </div>
   </div>

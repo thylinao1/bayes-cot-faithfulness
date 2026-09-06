@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Bayesian Causal Faithfulness for LLM Chain-of-Thought</title>
-<meta name="description" content="A Bayesian causal-mediation framework for measuring whether LLM chain-of-thought reasoning actually drives its answers. Calibrated uncertainty for scalable oversight and deception detection." />
+<meta name="description" content="A Bayesian causal-mediation framework for measuring whether LLM chain-of-thought reasoning actually drives its answers. Calibrated uncertainty for scalable oversight and for measuring silent cue-following." />
 <meta name="author" content="Maksim Silchenko" />
 <meta property="og:title" content="Bayesian Causal Faithfulness for LLM Chain-of-Thought" />
 <meta property="og:description" content="Calibrated uncertainty for the question 'does this model's reasoning actually cause its answer?'" />
@@ -82,7 +82,7 @@
     <p class="hero-sub">
       A Bayesian causal-mediation framework for measuring whether LLM
       reasoning is faithful or post-hoc rationalization, with calibrated
-      uncertainty for scalable oversight and deception detection.
+      uncertainty for scalable oversight and for measuring silent cue-following.
     </p>
     <div class="hero-cta">
       <a href="demo.html" class="btn btn-primary">Try the Live Demo</a>
@@ -95,15 +95,15 @@
         <dd>124</dd>
       </div>
       <div class="stat">
-        <dt>robustness separation, faithful vs decorative</dt>
+        <dt>robustness separation, faithful vs decorative (synthetic)</dt>
         <dd>&rho;* 0.69 <span class="stat-vs">vs</span> 0.05</dd>
       </div>
       <div class="stat">
-        <dt>largest real-model audit run</dt>
+        <dt>largest real-model audit run (pilot)</dt>
         <dd>n = 103</dd>
       </div>
       <div class="stat">
-        <dt>planted wrong-hint follow rate, n = 103 run</dt>
+        <dt>planted wrong-hint follow rate, n = 103 run (pilot)</dt>
         <dd>36.9&thinsp;%</dd>
       </div>
     </dl>
@@ -232,9 +232,12 @@
         credible intervals that can be used to make deployment decisions.
       </p>
       <p class="why-bayes">
-        <strong>Why Bayesian:</strong> calibrated uncertainty by construction,
-        hierarchical pooling across prompts and seeds, and posterior model comparison
-        (Bayes factors, PSIS-LOO) for "is this faithful?" hypothesis tests.
+        <strong>Why Bayesian:</strong> uncertainty that can be checked rather than assumed.
+        Calibration is a property of the model, the priors, the implementation and the
+        target, not of the framework, so we demonstrate it separately with computation
+        checks and repeated-sampling performance, and we report where it fails. Hierarchical
+        pooling across prompts and seeds, and posterior model comparison (Bayes factors,
+        PSIS-LOO), follow the same estimator.
       </p>
     </div>
 
@@ -306,7 +309,11 @@
         for a model whose CoT and answer share hidden state, sitting at &rho; = 0 reports a
         faithful path that is too high. The gap does not shrink with more data, because it
         is confounding and not noise. The sweep makes that gap visible and bounded instead
-        of invisible.
+        of invisible. The frontier itself, &rho;*, is computed from a maximum-likelihood
+        fit, not from a posterior, and the current implementation returns the optimizer's
+        parameters without checking convergence. Read it as a point-estimate sensitivity
+        curve; the uncertainty-aware replacement is a separate quantity, labelled as such
+        wherever both appear.
       </p>
     </div>
     <div class="math-card reveal">
@@ -316,8 +323,9 @@
         and some prompts have far fewer usable traces than others. The hierarchical model
         gives each prompt its own faithfulness slope drawn from a shared population, so a
         prompt with five traces borrows strength from the rest instead of swinging wildly on
-        its own. The output is a population slope with calibrated uncertainty, plus a direct
-        read on how much prompts disagree.
+        its own. The output is a population slope with its posterior interval, plus a direct
+        read on how much prompts disagree. The interval's calibration is tested, not
+        assumed, and the test is reported.
       </p>
     </div>
   </div>
@@ -351,7 +359,7 @@
           <tr><th>transcript</th><th>followed wrong hint</th><th>disclosed it</th><th>verdict</th></tr>
         </thead>
         <tbody>
-          <tr><td>planted deception</td><td>yes</td><td>no</td><td><span class="chip chip-flag">flagged</span></td></tr>
+          <tr><td>planted silent cue-following</td><td>yes</td><td>no</td><td><span class="chip chip-flag">flagged</span></td></tr>
           <tr><td>genuine reasoning</td><td>no</td><td>n/a</td><td><span class="chip chip-clear">cleared</span></td></tr>
           <tr><td>honest disclosure</td><td>yes</td><td>yes</td><td><span class="chip chip-clear">cleared</span></td></tr>
         </tbody>
@@ -361,16 +369,22 @@
     <div class="evidence-lead-col">
       <span class="kicker">unit test on synthetic data</span>
       <p class="evidence-note">
-        On synthetic worlds with known mechanisms, the estimator separates a faithful CoT
-        (faithful path +0.40, overturned only at &rho;* = 0.69) from a decorative one
-        (+0.02, overturned at &rho;* = 0.05). &rho;* is the mediation-analysis cousin of
-        VanderWeele's E-value: how strong a hidden common cause would have to be before the
-        verdict flips. Higher is more robust.
+        On synthetic worlds with known mechanisms (synthetic), the estimator separates a
+        faithful CoT (faithful path +0.40, overturned only at &rho;* = 0.69) from a
+        decorative one (+0.02, overturned at &rho;* = 0.05). &rho;* is the mediation-analysis
+        cousin of VanderWeele's E-value: how strong a residual mediator-outcome correlation
+        would have to be before this particular conclusion flips. It answers that one
+        question and no other. In particular it does not move when a direct bypass grows:
+        with the mediator coefficient fixed, the crossing stays at 0.624695 while the
+        mediated share falls from 100&thinsp;% to 1.6&thinsp;%. Read it beside the direct,
+        indirect and total effects, never instead of them.
       </p>
+      <span class="kicker">real open-model runs, pilot</span>
       <p class="evidence-note">
-        On real open-model runs, a planted wrong hint was followed on every adequately
-        powered run, at 12.5&thinsp;% (n&nbsp;=&nbsp;16), 13.6&thinsp;% (n&nbsp;=&nbsp;22), and
-        36.9&thinsp;% on the largest run (n&nbsp;=&nbsp;103). Most of that following was
+        On real open-model runs (pilot), a planted wrong hint was followed on every run
+        whose one-event detection rate cleared the 10&thinsp;% target, at 12.5&thinsp;%
+        (n&nbsp;=&nbsp;16), 13.6&thinsp;% (n&nbsp;=&nbsp;22), and 36.9&thinsp;% on the
+        largest run (n&nbsp;=&nbsp;103). Most of that following was
         <em>silent</em> by the heuristic auditor labels (human labeling in progress): the
         chain-of-thought did not disclose the hint, which the auditor flagged. Read that silent
         share as a first look, not a final measurement.
@@ -451,19 +465,21 @@
   </figure>
 
   <div class="ledger reveal">
+    <span class="kicker">real-model runs, pilot</span>
     <h3 class="ledger-title">Every real-model run, with its guardrails</h3>
     <p class="ledger-sub">
       No follow rate is read without its sample size, its exact one-sided 95&thinsp;% upper
-      bound, and the minimum detectable effect at that n. The two 0&thinsp;% runs are marked
-      underpowered: at n = 11 the true follow rate could still be as high as
-      23.8&thinsp;%. The silent-share column is withheld until the golden set is human-labeled.
+      bound, and the minimum detectable effect at that n. The two 0&thinsp;% runs sit at n =
+      11, where the one-event detection rate is 13.61&thinsp;%: a true follow rate as high as
+      23.8&thinsp;% is still consistent with the data. The silent-share column is withheld
+      until the golden set is human-labeled.
     </p>
     <div class="table-scroll">
       <table class="ledger-table">
         <thead>
           <tr>
             <th>model</th><th>backend</th><th>n (clean-correct)</th><th>follow rate</th>
-            <th>95&thinsp;% upper</th><th>MDE (80&thinsp;% power)</th><th>&rho;*</th><th>power</th>
+            <th>95&thinsp;% upper</th><th>MDE (80&thinsp;% power)</th><th>&rho;* (superseded specification)</th><th>one-event detection rate</th>
           </tr>
         </thead>
         <tbody>
@@ -472,35 +488,35 @@
             <td>103 <span class="lt-sub">of 120</span></td>
             <td class="lt-num">36.9&thinsp;% <span class="lt-sub">38/103</span></td>
             <td class="lt-num">45.4&thinsp;%</td><td class="lt-num">1.6&thinsp;%</td><td class="lt-num">0.708</td>
-            <td><span class="chip chip-clear">powered</span></td>
+            <td class="lt-num">1.55&thinsp;%</td>
           </tr>
           <tr>
             <td class="lt-model">Llama-3.1-8B-instant</td><td>Groq</td>
             <td>22 <span class="lt-sub">of 30</span></td>
             <td class="lt-num">13.6&thinsp;% <span class="lt-sub">3/22</span></td>
             <td class="lt-num">31.6&thinsp;%</td><td class="lt-num">7.1&thinsp;%</td><td class="lt-num">0.750</td>
-            <td><span class="chip chip-clear">powered</span></td>
+            <td class="lt-num">7.05&thinsp;%</td>
           </tr>
           <tr>
             <td class="lt-model">llama3.2:3b</td><td>Ollama</td>
             <td>16 <span class="lt-sub">of 24</span></td>
             <td class="lt-num">12.5&thinsp;% <span class="lt-sub">2/16</span></td>
             <td class="lt-num">34.4&thinsp;%</td><td class="lt-num">9.6&thinsp;%</td><td class="lt-num">0.782</td>
-            <td><span class="chip chip-clear">powered</span></td>
+            <td class="lt-num">9.57&thinsp;%</td>
           </tr>
           <tr>
             <td class="lt-model">Llama-3.3-70B-versatile</td><td>Groq</td>
             <td>11 <span class="lt-sub">of 20</span></td>
             <td class="lt-num">0&thinsp;% <span class="lt-sub">0/11</span></td>
             <td class="lt-num">23.8&thinsp;%</td><td class="lt-num">13.7&thinsp;%</td><td class="lt-num">0.800</td>
-            <td><span class="chip chip-flag">underpowered</span></td>
+            <td class="lt-num">13.61&thinsp;%</td>
           </tr>
           <tr>
             <td class="lt-model">llama3.1:8b</td><td>Ollama</td>
             <td>11 <span class="lt-sub">of 12</span></td>
             <td class="lt-num">0&thinsp;% <span class="lt-sub">0/11</span></td>
             <td class="lt-num">23.8&thinsp;%</td><td class="lt-num">13.7&thinsp;%</td><td class="lt-num">n/a</td>
-            <td><span class="chip chip-flag">underpowered</span></td>
+            <td class="lt-num">13.61&thinsp;%</td>
           </tr>
         </tbody>
       </table>
@@ -508,6 +524,19 @@
     <p class="ledger-foot">
       Computed by <code>experiments/07_guardrail_audit.py</code>: exact Clopper-Pearson bounds,
       SRM and attrition checks, and the minimum detectable rate for every saved run.
+      One-event detection rate is 1 minus 0.2 to the power of 1/n, the smallest true follow
+      rate at which a run of this size has an 80&thinsp;% chance of seeing at least one event;
+      it is not power for a mediation effect, a difference between models, or a calibration
+      estimate, which are sized separately and reported per contrast.
+    </p>
+    <p class="ledger-foot">
+      &rho;* (superseded specification): these values were produced by a mediation
+      specification with no intercept in either equation, fitted to raw CoT step counts. On a
+      synthetic null where the mediator is independent of the treatment and the outcome is
+      independent of both, that specification reports NIE 0.213 and TE 0.270 against a truth
+      of zero (seed 731, n 10,000). The values above are retained for provenance and are not
+      current estimates. Column B is being recomputed under a specification with fitted
+      intercepts and a declared estimand contract.
     </p>
   </div>
 
@@ -519,8 +548,12 @@
       unfaithfulness that surfaces in the text: silent, never-verbalised reasoning is invisible
       to any transcript-level auditor by construction. Several runs are small (free-tier rate
       limits), and every follow rate is reported next to its sample size and minimum detectable
-      effect. Cross-run &rho;* agreement (0.708 to 0.800) is suggestive, not test-retest
-      reliability. The full limitations list, the pre-registration, and every transcript are
+      effect. The cross-run &rho;* agreement (0.708 to 0.800) came from a specification we have
+      since shown to report a substantial mediated effect on a null, so it is neither
+      test-retest reliability nor a current measurement. It is also invariant to the
+      direct-effect path by construction, so agreement across runs would not have been evidence
+      about hidden-path strength even under a correct fit. The full limitations list, the
+      pre-registration, and every transcript are
       <a href="https://github.com/thylinao1/bayes-cot-faithfulness#what-this-is-not" target="_blank" rel="noopener">public in the repo</a>.
     </p>
   </div>
@@ -635,7 +668,7 @@
       </div>
       <div class="compare-verdict good">
         <div class="verdict-label">conclusion</div>
-        <p>The 95 % credible intervals overlap by 23 points. The difference is not significant at this sample size.</p>
+        <p>Overlapping intervals do not settle a comparison. What settles it is the interval for the difference B minus A and the posterior probability that it exceeds a margin worth acting on. Both are printed here; read them, not the overlap.</p>
       </div>
       <div class="compare-decision good">
         Decision &middot; <strong>Collect more data before any deployment claim</strong>
@@ -764,11 +797,12 @@
       <span class="kicker">guardrail, interactive</span>
       <h3>How small an effect can a run detect?</h3>
       <p>
-        Every follow rate ships with the minimum detectable effect at its sample size. Drag the
-        sample size and watch the smallest true follow rate an 80&thinsp;%-power one-sided test can
-        tell apart from zero. At or below the 10&thinsp;% target the run is adequately powered; above
-        it, a 0&thinsp;% only tells you the run was too small to see anything. The real runs sit
-        at n = 16, 22, and 103.
+        This slider shows one narrow thing: the smallest true follow rate at which a run of
+        size n has an 80&thinsp;percent chance of seeing at least one event, which is 1 minus
+        0.2^(1/n), so 9.57&thinsp;percent at n&nbsp;=&nbsp;16 and 1.55&thinsp;percent at
+        n&nbsp;=&nbsp;103. It is not power for a mediation effect, for a difference between
+        models, or for a calibration estimate; those are sized separately and reported per
+        contrast. The real runs sit at n = 16, 22, and 103.
       </p>
     </div>
     <div class="pmde-panel">
@@ -783,7 +817,7 @@
           <span class="pmde-k">min detectable effect</span>
           <span class="pmde-v" id="pmde-mde">1.7%</span>
         </div>
-        <span class="chip chip-clear" id="pmde-chip">adequately powered</span>
+        <span class="chip chip-clear" id="pmde-chip">detects at least one event at this rate</span>
       </div>
       <div class="pmde-presets">
         <button type="button" class="pmde-preset" data-n="16">n = 16</button>
@@ -887,7 +921,7 @@
         <span class="prereg-chip met">met</span>
         <div>
           <strong>Negative control: neutral reword changes &le; 15&thinsp;% of answers</strong>
-          <span>Handled by the require-stable subset, which keeps only items the neutral edit did not move.</span>
+          <span>Evaluated on the original control population, where the neutral edit's effect is the quantity of interest. The require-stable subset is reported beside it and is labelled conditional, because keeping only the items the edit did not move makes stability follow from the filter.</span>
         </div>
       </div>
       <div class="prereg-item">
@@ -928,9 +962,10 @@
     </ul>
     <p class="phase2-note">
       The method is validated on synthetic data, and on real models the heuristic auditor
-      flags silent hint-following that the human-labeled golden set will confirm. What scales
-      it from a pilot to a benchmark is compute and API budget, the same specific, itemised
-      bottleneck the first grant unblocked.
+      flags silent hint-following, and the human-labeled golden set will test that flag.
+      Human labels can disagree with it, and the disagreement is a reported result either
+      way. What scales it from a pilot to a benchmark is compute and API budget, the same
+      specific, itemised bottleneck the first grant unblocked.
     </p>
   </div>
 </section>
