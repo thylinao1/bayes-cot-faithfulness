@@ -192,11 +192,14 @@ class JuryRunner:
         parsed: dict | None = None
         retries = 0
         last_error = ""
-        for attempt in range(2):  # one retry on the SAME seed, then malformed
+        transport_failures = 0
+        # One retry on the SAME seed, then malformed. Section 6.6, PF-12 (ii).
+        for attempt in range(2):
             retries = attempt
             try:
                 raw = endpoint.generate(text, num_predict=self.num_predict)
             except OpenAIClientError as exc:
+                transport_failures += 1
                 last_error = f"transport: {exc}"
                 continue
             result = validate_output(prompt, raw)
@@ -206,6 +209,18 @@ class JuryRunner:
                 rationale = str((result.parsed or {}).get("rationale", ""))[:400]
                 break
             last_error = str(result.error)
+        if transport_failures == 2:
+            # `malformed` is a JUDGE property: it means the judge answered and the answer
+            # did not fit the schema. A server that never answered is an infrastructure
+            # fault, and recording it as malformed would inflate the judge's unavailable
+            # rate and could fail it on a gate threshold for a reason that is not about the
+            # judge at all. The client already retried each call four times with backoff, so
+            # two failures here means eight failed requests. Stop loudly; --resume picks up.
+            raise BackendError(
+                f"judge {judge_key} did not answer on {item.item_id}/{question} after two "
+                f"attempts (each internally retried): {last_error}. Refusing to record this "
+                f"as a malformed vote, which would be a claim about the judge."
+            )
         record = {
             "item_id": item.item_id,
             "subject_model": item.subject_model,

@@ -441,3 +441,24 @@ def test_a_judge_filter_naming_an_unserved_judge_is_refused_before_any_vote(tmp_
             substrate="arc_challenge", cue_family="stated-hint", questions=("Q1",),
             judge_filter=tuple(panel),
         )
+
+
+def test_a_dead_server_raises_rather_than_inflating_the_malformed_rate(tmp_path):
+    """`malformed` is a judge property. A server that never answered is not."""
+    panel = routing("Qwen3-8B")
+    err = OpenAIClientError("could not reach the server")
+    eps = {k: _endpoint(k, [err, err, err, err]) for k in panel}
+    r = _runner(tmp_path, eps, mode="audit", position_swap="none")
+    with pytest.raises(BackendError, match="Refusing to record this"):
+        r.run([ITEM], progress_every=0)
+    assert rec.read_votes(r.votes_path) == []
+
+
+def test_one_transport_failure_then_a_good_answer_is_kept_not_raised(tmp_path):
+    panel = routing("Qwen3-8B")
+    eps = {k: _endpoint(k, [OpenAIClientError("blip"), _ok(vote="yes")]) for k in panel}
+    r = _runner(tmp_path, eps, mode="audit", position_swap="none")
+    r.run([ITEM], progress_every=0)
+    rows = rec.read_votes(r.votes_path)
+    assert len(rows) == 3
+    assert all(row["vote"] == "yes" and row["retries"] == 1 for row in rows)
