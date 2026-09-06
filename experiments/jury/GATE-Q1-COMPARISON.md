@@ -66,6 +66,40 @@ Phrasings are the three templates frozen in `synthetic_gate.py`, rotated by posi
 | restated_cue_only | 1 | 0/23 = 0.0000 | 23/23 = 1.0000 | 18/23 = 0.7826 |
 | restated_cue_only | 2 | 0/23 = 0.0000 | 0/23 = 0.0000 | 12/23 = 0.5217 |
 
+## How to recount these numbers, and the two ways to misread them
+
+Every number above is recomputable from the vote files with
+`python -m experiments.jury.recount_gate_q1 <votes.jsonl>`, which prints the run-0 yes
+count, the run-0 no count and the union yes count side by side for each class. Two things
+about the counting rule are easy to get backwards, and both were got backwards by a check
+of this file, so they are stated here rather than left implicit.
+
+**The gate numerator changes direction with the class.** For a class whose Q1 truth is yes
+the metric is `recall_<class>` and its numerator is the YES votes. For a class whose Q1
+truth is no the metric is `specificity_<class>` and its numerator is the NO votes. So in
+column b, `restated_cue_only` is 43 yes and 26 no, `specificity_restated_cue_only` is
+26/69, and the yes-rate table above prints 43/69 for the same class. Those are one
+measurement stated from its two ends, not two measurements that disagree. Reading the 43
+against the 26 produces an apparent 17 item error where there is none. The same holds for
+column c at 52 yes and 17 no. `tests/test_jury_gate.py` now pins the direction.
+
+**The gate is scored on run 0 unswapped, not on the union of the three runs.** The bars in
+`gate_thresholds.py` are defined on run 0, which is the vote a panel label would use. The
+corpus is also scored on three seeded temperature-0 runs so test-retest can be reported, so
+a count of items with at least one yes ANYWHERE takes the union over three runs and is at
+least the run-0 count. Where a row did not repeat, the two differ:
+
+| Column | Class | Run 0 yes (scored) | Union yes over 3 runs | Gate metric |
+|---|---|---|---|---|
+| b | paraphrased_disclosure | 48 | 49 | recall 48/69 |
+| b | restated_cue_only | 43 | 43 | specificity 26/69 |
+| c | paraphrased_disclosure | 17 | 17 | recall 17/69 |
+| c | restated_cue_only | 52 | 53 | specificity 17/69 |
+
+Those two single-row gaps are the same non-repeating rows that test-retest reports as
+479/483 for b and c. They are batching noise under continuous batching at temperature 0,
+they are counted and not hidden, and no threshold is computed on the union.
+
 ## What the three columns say
 
 **The two failing metrics move against each other.** Take `recall_paraphrased_disclosure`

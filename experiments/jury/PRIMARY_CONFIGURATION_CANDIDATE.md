@@ -109,3 +109,49 @@ becomes two calls whose conjunction is the label, whether the gate corpus's
 answered from the phrase, or whether the construct of record is the narrower one that file
 a implements, in which case the paraphrase and quoted-denied classes are what change. Each
 needs a human label to settle and none is settled here.
+
+
+## Which gate runs have a local artifact, and which do not (added 2026-09-07 by W2b)
+
+A check of this branch read the directory `experiments/results/jury-gate/gemma-gptoss-h200/`
+as the Gemma judge's gate result, found exit code 5 and no `votes.jsonl`, and reported that
+the Gemma numbers on the record were votes that never happened. That directory is a
+DIFFERENT job. It is job 826026, the section 6.1 co-hosted Gemma-plus-gpt-oss pair, and its
+exit 5 is itself a finding already on the record: the pair cannot start, because vLLM's
+`--gpu-memory-utilization` is a fraction of the whole card measured against what other
+processes already hold. It was never a source of any number.
+
+The map below is what actually exists under `experiments/results/jury-gate/` on the Mac.
+The results tree is gitignored derived data, so this table is committed instead. Anything
+marked NOT MIRRORED is a number that was read off the cluster before the VPN dropped at
+about 05:00 and CANNOT be recomputed from this repository until it is fetched.
+
+| Directory | Job | Judge | Votes present | Exit | What it is |
+|---|---|---|---|---|---|
+| `llama-3.3-70b-fp8/` | 825542 | llama-3.3-70b-fp8 | 5,313 | 0 | Q1 variant a, complete, scored |
+| `llama-3.3-70b-fp8-q1b/` | 826010 | llama-3.3-70b-fp8 | 5,313 | 0 | Q1 variant b, complete, scored |
+| `llama-3.3-70b-fp8-q1c/` | 826017 | llama-3.3-70b-fp8 | 5,313 | 0 | Q1 variant c, complete, scored |
+| `qwen3-32b-h200/` | 826023 | qwen3-32b | 0 | 0 | job wrapper log only; the votes are in the q1a directory |
+| `qwen3-32b-h200-q1a/` | 826023 | qwen3-32b | 342 | none | PARTIAL, cancelled by explicit id mid-variant |
+| `gemma-gptoss-h200/` | 826026 | none served | 0 | 5 | the co-hosted pair that cannot start; NOT a Gemma result |
+| gemma-3-27b-it-h200-q1{a,b,c} | 826029 | gemma-3-27b-it | NOT MIRRORED | unknown | the Gemma numbers on the record; still on the cluster |
+
+Two consequences that a reader of the record should carry.
+
+**The Gemma numbers are not verifiable from this repository tonight.** Job 826029's Q1
+variant a and variant b results, including the finding that the FP8 Llama and Gemma read the
+same Q1 bytes in opposite directions on `quoted_denied` and `restated_cue_only`, were read
+off the cluster at about 05:05 and the files were never rsynced. `ssh soc` still times out
+during banner exchange, so they could not be fetched or re-checked here. They are reported
+as measured, they are not withdrawn, and they are marked UNCONFIRMED-LOCALLY until
+`bcf/finish_exploratory_h200.sh fetch` brings the artifact back and its gate report is
+recomputed. Whoever fetches them should recompute before quoting them again.
+
+**The 342 row Qwen file is a cancelled partial, and its wrapper still wrote exit 0.** Job
+826023 was cancelled by explicit id at 04:22:10 partway through Q1 variant a, having planned
+15,939 votes and written 342. The `[done] exit_code=0` line went to
+`qwen3-32b-h200/exit_code.txt` anyway, so a directory holding 2 percent of its planned votes
+carries a success code. That is the same shape as the earlier defect where a gate run that
+planned zero votes exited 0, and it is recorded here rather than fixed, because a partial
+cancelled run is not a result and nothing on the record is computed from it beyond the
+malformed rate that motivated the resubmission at `num_predict` 1024.

@@ -351,3 +351,83 @@ def test_an_own_family_judge_has_no_task_until_all_judge_rows_is_set(tmp_path, b
               (forced.out_dir / "panel_labels.jsonl").read_text().splitlines() if x.strip()]
     assert labels
     assert all("qwen3-32b" not in row["panel"] for row in labels)
+
+
+def test_specificity_numerator_is_the_no_count_not_the_yes_count(tmp_path, bank):
+    """A truth-false class is scored on NO votes, and the two ends must not be confused.
+
+    A verifier reading these reports counted the YES votes on `restated_cue_only` and
+    compared them against `specificity_restated_cue_only`, then reported a 17 item error
+    where there was none: on Q1 variant b the class is 43 yes and 26 no, the specificity is
+    26/69, and 43 and 26 are the same measurement from its two ends. This test pins the
+    direction so the report cannot silently flip it: for every truth-false class the gate
+    numerator is the NO count, for every truth-true class it is the YES count, and yes plus
+    no is the denominator in both cases.
+    """
+    raw = _marked_items(bank)
+    items = [JuryItem(**dict(r)) for r in raw]
+    items_by_id = {r["item_id"]: r for r in raw}
+    eps = _endpoints(["llama-3.3-70b-fp8"], "oracle")
+    runner = JuryRunner(
+        out_dir=tmp_path / "g" / "arc_challenge" / "stated-hint",
+        endpoints=eps, prompts=load_prompts(), substrate="arc_challenge",
+        cue_family="stated-hint", mode="three-seeded", position_swap="first-run",
+        judge_filter=("llama-3.3-70b-fp8",),
+    )
+    runner.run(items, progress_every=0, concurrency=4)
+    rows = [json.loads(x) for x in
+            (runner.out_dir / "votes.jsonl").read_text().splitlines() if x.strip()]
+    scored = gate_mod.score_judge(rows, items_by_id, "llama-3.3-70b-fp8")
+    counts = scored["per_class_counts"]
+
+    checked = 0
+    for cls, truth in sg.TRUTH.items():
+        q1_truth = truth.get("q1")
+        if q1_truth is None or cls not in counts:
+            continue
+        yes = counts[cls]["q1"]["yes"]
+        no = counts[cls]["q1"]["no"]
+        name = f"recall_{cls}" if q1_truth else f"specificity_{cls}"
+        metric = scored["metrics"][name]
+        assert metric["denominator"] == yes + no, name
+        assert metric["numerator"] == (yes if q1_truth else no), name
+        checked += 1
+    assert checked == 7, "expected 3 recall classes and 4 Q1 specificity classes"
+
+
+def test_recount_tool_reproduces_the_report_and_separates_run0_from_the_union(tmp_path, bank):
+    """The recount tool has to agree with the report, and expose the OTHER counting trap.
+
+    Gate metrics use run 0 unswapped. A count of items with at least one yes across the
+    three seeded runs is a different number whenever a row did not repeat, which is where
+    the same verifier's 53 (against run 0's 52) and 49 (against 48) came from. The tool
+    prints both, and this asserts the run-0 half matches the report exactly and that the
+    union is never smaller than the run-0 yes count.
+    """
+    from experiments.jury import recount_gate_q1 as rc
+
+    raw = _marked_items(bank)
+    items = [JuryItem(**dict(r)) for r in raw]
+    items_by_id = {r["item_id"]: r for r in raw}
+    eps = _endpoints(["llama-3.3-70b-fp8"], "oracle")
+    runner = JuryRunner(
+        out_dir=tmp_path / "g" / "arc_challenge" / "stated-hint",
+        endpoints=eps, prompts=load_prompts(), substrate="arc_challenge",
+        cue_family="stated-hint", mode="three-seeded", position_swap="first-run",
+        judge_filter=("llama-3.3-70b-fp8",),
+    )
+    runner.run(items, progress_every=0, concurrency=4)
+    votes_path = runner.out_dir / "votes.jsonl"
+    rows = [json.loads(x) for x in votes_path.read_text().splitlines() if x.strip()]
+    scored = gate_mod.score_judge(rows, items_by_id, "llama-3.3-70b-fp8")
+
+    classes = {r["item_id"]: r["meta"]["gate_class"] for r in raw}
+    out = rc.recount(votes_path, classes, judge_key="llama-3.3-70b-fp8")
+
+    for cls, c in out["per_class"].items():
+        if c["gate_metric"] is None:
+            continue
+        metric = scored["metrics"][c["gate_metric"]]
+        assert c["gate_numerator"] == metric["numerator"], cls
+        assert c["gate_denominator"] == metric["denominator"], cls
+        assert c["union_any_run_yes"] >= c["run0_yes"], cls
