@@ -53,11 +53,24 @@ from bayes_cot_faithfulness.interventions import (  # noqa: E402
     is_unfaithful_on_hint,
     parse_answer,
 )
+from bayes_cot_faithfulness.outcome_scale import (  # noqa: E402
+    assert_records_scaled,
+    check_outcome_scale,
+    letter_logprob_fields,
+)
 from bayes_cot_faithfulness.arms import (  # noqa: E402
+    ANCHOR_CELLS,
     _TAXONOMY_TEMPLATES,
+    anchor_cell_means,
+    anchor_outcome,
+    anchor_prompt,
+    anchor_prompts,
     answer_only_prompt,
+    assert_donor_pool_unselected,
     cot_only_prompt,
     cued_continuation_prompt,
+    draw_donor,
+    falsifier_donor_texts,
     direct_prompt,
     filler_prompt,
     placebo_prompt,
@@ -108,6 +121,17 @@ STATUS_STRING = (
 
 CHECKPOINT_EVERY = 10  # bank transcripts every N items, like 05
 FORCE_TOKENS = 24  # forced-answer continuation calls need only the final line, like 05
+
+# CONTRACT record fields. This runner's arms are all TEXT-level interventions (the cue is
+# inserted into the prompt, never into the logits), and their outcome is the frozen
+# parser's answer, so every record it writes is intervention_level "text" on the
+# binary_follow scale. The anchor arm additionally captures a LOGIT-level read of the same
+# four cells (letter logprobs on the designated target option); that read is stored inside
+# the anchor block with its own level and scale, never merged into the record's own, so
+# the two are never pooled into one row without a stated bridge.
+INTERVENTION_LEVEL = "text"
+OUTCOME_SCALE = "binary_follow"
+ANCHOR_SEED = 4021  # base seed for the anchor's per-question donor draws and edits
 
 # Taxonomy families whose cue is PREPENDED before the question (leaked-context cues: an
 # XML metadata header, a hidden grader snippet), as opposed to the stated hint and the
@@ -548,6 +572,53 @@ def summarize_specificity(
     }
 
 
+def summarize_anchor(records: list[dict]) -> dict:
+    """A2 element 21: the four mu_ab cells, the five contrasts, and the control cells.
+
+    Every rate here is a mean over the items where that cell SCORED, with ``n`` beside it,
+    and the donor-draw probabilities are carried through so a later weighted analysis does
+    not have to assume the design it cannot see. The contrasts are point differences: the
+    intervals belong to the estimator workstream, which reads the raw records.
+    """
+    rows = [r["anchor"] for r in records if "anchor" in r]
+    if not rows:
+        return {"n_items": 0, "note": "anchor arm produced no rows"}
+    cell_rows = [{c: row["cells"][c]["y"] for c in ANCHOR_CELLS} for row in rows]
+    block = anchor_cell_means(cell_rows)
+
+    controls: dict[str, dict] = {}
+    for name in sorted({k for row in rows for k in row["controls"]}):
+        applied = [row["controls"][name] for row in rows
+                   if name in row["controls"] and row["controls"][name]["applied"]]
+        entry = {"n_applied": len(applied), "n_items": len(rows)}
+        for recipient in ("a0", "a1"):
+            ys = [c[recipient]["y"] for c in applied if c[recipient]["y"] is not None]
+            entry[recipient] = {
+                "n": len(ys),
+                "mean": (sum(ys) / len(ys)) if ys else None,
+            }
+        controls[name] = entry
+
+    probs = [row["donor_draw"][src]["probability"] for row in rows for src in ("clean", "cued")]
+    n_logit = sum(
+        1 for row in rows for c in ANCHOR_CELLS
+        if row["cells"][c].get("logprob") and row["cells"][c]["logprob"].get("answer_logprobs")
+    )
+    return {
+        "n_items": len(rows),
+        "target_option_note": "one designated target option per item, identical in all four cells",
+        "outcome_scale": rows[0]["outcome_scale"],
+        "intervention_level": rows[0]["intervention_level"],
+        "donor_draw_probability_min": min(probs),
+        "donor_draw_probability_max": max(probs),
+        "donor_selected_on": None,
+        "n_cells_with_letter_logprobs": n_logit,
+        "n_cells_total": len(rows) * len(ANCHOR_CELLS),
+        **block,
+        "controls": controls,
+    }
+
+
 def build_blocks(records: list[dict], arms: list[str]) -> dict:
     """Assemble only the summary blocks for the arms that actually ran."""
     builders = {
@@ -558,6 +629,7 @@ def build_blocks(records: list[dict], arms: list[str]) -> dict:
         "filler": summarize_filler,
         "curves": summarize_curves,
         "transplant": summarize_transplant,
+        "anchor": summarize_anchor,
     }
     return {arm: builders[arm](records) for arm in arms if arm in builders}
 
@@ -589,6 +661,11 @@ def assemble_summary(backend: str, model: str, n_items: int, n_clean_correct: in
         "resumed": n_invocations > 1,
         "curve_cap": curve_cap,
         "num_predict": num_predict,
+        # CONTRACT: round-1 verification failed check 4 because these were absent from
+        # every summary. They are written from the module constants, not from an
+        # argument, so a summary can never disagree with the records it summarizes.
+        "intervention_level": INTERVENTION_LEVEL,
+        "outcome_scale": OUTCOME_SCALE,
     }
 
 
@@ -611,6 +688,11 @@ def serialize_arm_record(r: dict) -> dict:
     """Flatten one record (with its QAItem and any curves) into a JSON-safe dict."""
     it = r["item"]
     out = {
+        # CONTRACT fields, on every record, written by construction rather than by hand.
+        "intervention_level": INTERVENTION_LEVEL,
+        "outcome_scale": OUTCOME_SCALE,
+        "logprob_source_token": r.get("logprob_source_token"),
+        "answer_logprobs": r.get("answer_logprobs"),
         "question": it.question,
         "choices": list(it.choices),
         "answer_label": it.answer_label,
@@ -636,6 +718,8 @@ def serialize_arm_record(r: dict) -> dict:
         ckey = f"{arm}_curve"
         if ckey in r:
             out[ckey] = _curve_to_dict(r[ckey])
+    if "anchor" in r:
+        out["anchor"] = r["anchor"]
     return out
 
 
@@ -648,6 +732,11 @@ def write_arm_transcripts(out_dir: Path, safe_model: str, records: list[dict]) -
     out_dir.mkdir(parents=True, exist_ok=True)
     processed = [r for r in records if "hinted_answer" in r]
     transcripts = [serialize_arm_record(r) for r in processed]
+    # CONTRACT: "the runner asserts outcome_scale before writing a checkpoint". Every
+    # checkpoint write in this runner goes through here, so this is the one place that
+    # has to hold. It REFUSES rather than warns: a mislabelled record would be pooled
+    # across intervention levels downstream, and banking it is worse than stopping.
+    assert_records_scaled(transcripts)
     (out_dir / f"arms_transcripts_{safe_model}.json").write_text(
         json.dumps(transcripts, indent=2)
     )
@@ -663,6 +752,10 @@ def serialize_specificity_record(r: dict) -> dict:
     """
     it = r["item"]
     out = {
+        "intervention_level": INTERVENTION_LEVEL,
+        "outcome_scale": OUTCOME_SCALE,
+        "logprob_source_token": r.get("logprob_source_token"),
+        "answer_logprobs": r.get("answer_logprobs"),
         "question": it.question,
         "choices": list(it.choices),
         "answer_label": it.answer_label,
@@ -688,6 +781,7 @@ def write_specificity_transcripts(out_dir: Path, safe_model: str, records: list[
     out_dir.mkdir(parents=True, exist_ok=True)
     processed = [r for r in records if "placebo_cot" in r]
     transcripts = [serialize_specificity_record(r) for r in processed]
+    assert_records_scaled(transcripts)
     (out_dir / f"specificity_transcripts_{safe_model}.json").write_text(
         json.dumps(transcripts, indent=2)
     )
@@ -1020,6 +1114,147 @@ def arm_transplant(client, records, ctx):
     return True, None
 
 
+def _letter_logprob_block(client, prompt: str, item, target: str) -> dict:
+    """The LOGIT-level read of one anchor cell, or a null block when the backend lacks it.
+
+    Stores the raw letter logprobs, the decoded token each was read off, and the
+    distribution renormalized over the letter set, because the Phase-1 unit check found
+    the four letters holding 0.00026 of the next-token mass on one probe and 0.99929 on
+    the other: a raw value alone is not a distribution over the choices, and a value with
+    no source token cannot be told apart from one read off a template token. Failure to
+    score is recorded as a null block with its reason, never as a missing field, and never
+    stops the arm: the binary_follow outcome is the anchor's primary scale.
+    """
+    block = {"intervention_level": "logit", "outcome_scale": "logprob_margin"}
+    if not hasattr(client, "forced_answer_logprobs"):
+        block.update(letter_logprob_fields(None, None, target_letter=target))
+        block["unavailable_reason"] = "backend has no forced_answer_logprobs"
+        return block
+    try:
+        got = client.forced_answer_logprobs(prompt, list(item.labels))
+    except Exception as exc:  # noqa: BLE001 - any server-side failure is a null block
+        block.update(letter_logprob_fields(None, None, target_letter=target))
+        block["unavailable_reason"] = f"{type(exc).__name__}: {exc}"[:200]
+        return block
+    block.update(letter_logprob_fields(got.logprobs, got.tokens, target_letter=target))
+    block["method"] = got.method
+    return block
+
+
+def _anchor_alternative_option(item, target: str) -> str:
+    """The option the decisive-premise edit repoints the donor chain AT.
+
+    The item's true answer when that differs from the planted target (the natural
+    counter-argument), otherwise the first other label. Deterministic per item.
+    """
+    if item.answer_label != target:
+        return item.answer_label
+    for lab in item.labels:
+        if lab != target:
+            return lab
+    raise ValueError("item has only one option label")
+
+
+def arm_anchor(client, records, ctx):
+    """A2 element 21: the four-cell randomized replay anchor and its falsifier controls.
+
+    For each question the recipient cue a (clean / cued) is crossed with the donor source
+    b (clean / cued reasoning) in FRESH answer runs, giving mu_ab. Donors are drawn
+    independently within questions from the question's full generated set at a recorded
+    probability, and the pool description is asserted to carry no outcome filter before any
+    draw, so "never selected on success or hint-following" is enforced rather than
+    promised. The designated target option is the planted option, identical in all four
+    cells, and the outcome scale is identical too.
+
+    The four falsifier control families are then run on the CUED donor under BOTH recipient
+    frames, which is what separates donor-source dependence from semantic dependence: a
+    control that moves the outcome under both recipients is about what the text says, one
+    that moves it under neither is about where the text came from.
+    """
+    for i, r in enumerate(records):
+        if "anchor" in r:
+            _checkpoint(ctx, records, i)
+            continue
+        it = r["item"]
+        target = r["hint_label"]
+        alternative = _anchor_alternative_option(it, target)
+        prepend = r.get("cue_prepended", False)
+
+        # One generation per arm per question at temperature 0, so each pool holds one
+        # donor and the draw probability is 1.0. The pool is still described and asserted,
+        # because the k-sample sweep enlarges it and the assertion must already be there.
+        pools = {
+            "clean": (["" + r["clean_cot"]],
+                      {"arm": "clean", "selected_on": None, "n_generations": 1}),
+            "cued": (["" + r["hinted_cot"]],
+                     {"arm": "hinted", "selected_on": None, "n_generations": 1}),
+        }
+        draws = {}
+        for k, (pool, meta) in pools.items():
+            assert_donor_pool_unselected(meta)
+            draws[k] = draw_donor(pool, k, ANCHOR_SEED + 2 * i + (0 if k == "clean" else 1))
+
+        prompts = anchor_prompts(
+            it, draws["clean"].text, draws["cued"].text, r["cue_text"], prepend=prepend
+        )
+        cells = {}
+        for cell in ANCHOR_CELLS:
+            out, err = safe_generate(client, prompts[cell], FORCE_TOKENS)
+            if err is None:
+                ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
+            if err is not None:
+                return False, err
+            logit = _letter_logprob_block(client, prompts[cell], it, target)
+            check_outcome_scale(logit["intervention_level"], logit["outcome_scale"])
+            cells[cell] = {
+                "answer": ans,
+                "y": anchor_outcome(ans, target),
+                "logprob": logit,
+            }
+
+        controls = {}
+        edits = falsifier_donor_texts(
+            draws["cued"].text,
+            target_option=target,
+            alternative_option=alternative,
+            rng_seed=ANCHOR_SEED + i,
+        )
+        for name, edit in edits.items():
+            entry = {"applied": edit.applied, "n_edits": edit.n_edits}
+            for recipient_cued, key in ((False, "a0"), (True, "a1")):
+                prompt = anchor_prompt(
+                    it, edit.text, recipient_cued=recipient_cued,
+                    cue_text=r["cue_text"], prepend=prepend,
+                )
+                out, err = safe_generate(client, prompt, FORCE_TOKENS)
+                if err is None:
+                    ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
+                if err is not None:
+                    return False, err
+                entry[key] = {"answer": ans, "y": anchor_outcome(ans, target)}
+            controls[name] = entry
+
+        r["anchor"] = {
+            "intervention_level": INTERVENTION_LEVEL,
+            "outcome_scale": OUTCOME_SCALE,
+            "target_option": target,
+            "alternative_option": alternative,
+            "donor_draw": {
+                k: {
+                    "source": d.source, "index": d.index, "pool_size": d.pool_size,
+                    "probability": d.probability, "selected_on": None,
+                }
+                for k, d in draws.items()
+            },
+            "cells": cells,
+            "controls": controls,
+        }
+        print(f"      ... anchor {i + 1}/{len(records)}", end="\r", flush=True)
+        _checkpoint(ctx, records, i)
+    print()
+    return True, None
+
+
 def specificity_setup_message(path: Path) -> str:
     """Printed (with NO model call made) when the A9 arm is enabled but its file is absent."""
     return (
@@ -1139,6 +1374,7 @@ ARM_RUNNERS = {
     "filler": arm_filler,
     "curves": arm_curves,
     "transplant": arm_transplant,
+    "anchor": arm_anchor,
 }
 # "specificity" is a valid --arm choice but is NOT in ARM_RUNNERS: it runs on the
 # holdout items through run_specificity_arm, never on the main records.
@@ -1227,6 +1463,26 @@ def report_blocks(blocks: dict) -> None:
             s = b[key]
             print(f"    {label}: {_pct(s['rate'])} "
                   f"({s['count']}/{s['n']}, {s['n_unscorable']} unscorable)")
+
+    if "anchor" in blocks:
+        b = blocks["anchor"]
+        print(f"[anchor A2-21] four-cell replay anchor on {b['n_items']} items; "
+              f"target = the planted option, scale = {b['outcome_scale']}")
+        for cell in ANCHOR_CELLS:
+            c = b["cells"][cell]
+            print(f"    {cell}: {_pct(c['mean'])} ({c['n']} scored, "
+                  f"{c['n_unscorable']} unscorable)")
+        for name, value in b["contrasts"].items():
+            shown = "n/a" if value is None else f"{value:+.3f}"
+            print(f"    contrast {name}: {shown}")
+        for name, entry in b["controls"].items():
+            print(f"    control {name}: applied {entry['n_applied']}/{entry['n_items']}; "
+                  f"clean recipient {_pct(entry['a0']['mean'])} ({entry['a0']['n']}), "
+                  f"cued recipient {_pct(entry['a1']['mean'])} ({entry['a1']['n']})")
+        print(f"    donor draw probability {b['donor_draw_probability_min']} to "
+              f"{b['donor_draw_probability_max']}; selected_on={b['donor_selected_on']}; "
+              f"letter logprobs on {b['n_cells_with_letter_logprobs']}/"
+              f"{b['n_cells_total']} cells")
 
 
 def no_arms_hint() -> str:

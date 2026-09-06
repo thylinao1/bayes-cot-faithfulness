@@ -129,6 +129,9 @@ report = {
     "forced_tokens": forced.tokens,
     "n_letters_scored": len(forced.logprobs),
     "n_letters_requested": 4,
+    "intervention_level": "logit",
+    "outcome_scale": "raw",
+    "logprob_source_token": forced.tokens,
 }
 print(json.dumps(report, indent=2))
 open("${OUT_DIR}/tp2_report.json", "w").write(json.dumps(report, indent=2))

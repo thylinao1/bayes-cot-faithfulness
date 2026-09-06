@@ -108,6 +108,10 @@ pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "substrate": "${SUBSTRATE}", "cue_family": "${CUE}",
     "tensor_parallel_size": ${TP}, "seed": ${SEED},
     "temperature": 0.0, "num_predict": ${NUM_PREDICT}, "curve_cap": ${CURVE_CAP},
+    # CONTRACT record schema. Round-1 verification check 4 failed because
+    # intervention_level was absent from every summary; it is written here AND by the
+    # runner into arms_summary, from the same constant, so the two cannot disagree.
+    "intervention_level": "text", "outcome_scale": "binary_follow",
     # JSON, parsed as JSON: interpolating it into a Python literal makes `false` a
     # NameError, which is exactly how job 825241 died.
     "chat_template_kwargs": json.loads(os.environ["BCF_META_TEMPLATE_KWARGS"]),
@@ -170,7 +174,7 @@ fi
 
 # --- 5. the arms ---------------------------------------------------------------
 ARM_FLAGS=()
-for arm in ${BCF_ARMS:-replay placebo direct twostep filler curves transplant specificity}; do
+for arm in ${BCF_ARMS:-replay placebo direct twostep filler curves transplant anchor specificity}; do
   ARM_FLAGS+=(--arm "$arm")
 done
 TAXONOMY_FLAGS=()

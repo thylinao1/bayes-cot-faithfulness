@@ -152,30 +152,71 @@ def parse_jsonl(blob: str) -> list[dict]:
     return items
 
 
+def concat_splits(blobs: list[tuple[str, str]], n: int) -> list[dict]:
+    """Items from several splits, in the order given, deduplicated by question text.
+
+    Needed because the CONTRACT asks for a pool of at least 700 while the AQuA-RAT test
+    split ships only 254 usable items. Splits are concatenated in the order the caller
+    names them and the FIRST occurrence of a question wins, so naming ``test`` first
+    keeps every item the earlier 130-item and 254-item pools used, at the same indices,
+    and the enlargement is a pure append. Order is otherwise the shipped file order, so
+    "the first N items in fetch order" still means the same bytes month to month.
+    """
+    items: list[dict] = []
+    seen: set[str] = set()
+    for _split, blob in blobs:
+        for item in parse_jsonl(blob):
+            key = item["question"]
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append(item)
+            if len(items) >= n:
+                return items
+    return items
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--n", type=int, default=200, help="number of items to keep (>= 1)")
-    ap.add_argument("--split", default="test", choices=["test", "train", "dev"])
+    ap.add_argument("--split", default="test", choices=["test", "train", "dev"],
+                    help="first split to draw from; see --then-split")
+    ap.add_argument("--then-split", action="append", default=None,
+                    choices=["test", "train", "dev"],
+                    help="additional split(s), appended in the order given once the "
+                         "previous split is exhausted, deduplicated by question text. "
+                         "Repeatable. Use it when one split cannot supply --n items: "
+                         "the test split holds 254 usable AQuA-RAT items and the "
+                         "CONTRACT pool is at least 700.")
     ap.add_argument("--out", type=Path, default=HERE / "data" / "aqua_rat.json")
     a = ap.parse_args(argv)
     if a.n < 1:
         # A negative --n would slice [: -n] and silently keep all-but-the-last items.
         ap.error(f"--n must be >= 1, got {a.n}")
 
-    try:
-        raw = _download(a.split)
-    except urllib.error.URLError as exc:
-        print(f"[fetch] could not reach the AQuA-RAT raw file (no cost incurred): {exc}")
-        return 1
+    splits = [a.split] + [s for s in (a.then_split or []) if s != a.split]
+    blobs: list[tuple[str, str]] = []
+    raws: list[bytes] = []
+    for split in splits:
+        try:
+            raw = _download(split)
+        except urllib.error.URLError as exc:
+            print(f"[fetch] could not reach the AQuA-RAT raw file (no cost incurred): {exc}")
+            return 1
+        raws.append(raw)
+        # utf-8-sig: identical to utf-8 on the (BOM-less) pinned files, and a future
+        # pin update to a BOM-carrying file cannot silently drop row 1 (the BOM would
+        # otherwise survive strip() and break json.loads on the first line).
+        blobs.append((split, raw.decode("utf-8-sig")))
 
-    # utf-8-sig: identical to utf-8 on the (BOM-less) pinned files, and a future
-    # pin update to a BOM-carrying file cannot silently drop row 1 (the BOM would
-    # otherwise survive strip() and break json.loads on the first line).
-    items = parse_jsonl(raw.decode("utf-8-sig"))[: a.n]
+    items = concat_splits(blobs, a.n)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(items, indent=1))
-    print(f"wrote {len(items)} AQuA-RAT items ({a.split} split, fetch order) -> {a.out}")
-    print(f"  source: commit {PINNED_COMMIT}, sha256 {hashlib.sha256(raw).hexdigest()}")
+    print(f"wrote {len(items)} AQuA-RAT items ({'+'.join(splits)} splits, fetch order) "
+          f"-> {a.out}")
+    print(f"  source: commit {PINNED_COMMIT}")
+    for split, raw in zip(splits, raws):
+        print(f"  {split}: sha256 {hashlib.sha256(raw).hexdigest()}")
     return 0
 
 

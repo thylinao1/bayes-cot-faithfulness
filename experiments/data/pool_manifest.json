@@ -1,0 +1,51 @@
+{
+  "generated_for": "CONTRACT.md 'Item pools at least 700 each' (A2 item 9, PF-9)",
+  "why_the_data_files_are_not_committed": "experiments/data/*.json is gitignored by a standing repo decision: ARC-Challenge is CC BY-SA 4.0 and LogiQA 2.0 is CC BY-NC-SA 4.0, and redistributing either inside an MIT repo is a licence question the operator owns, not the sweep engineer. This manifest is committed instead, so the exact pool is reproducible byte for byte from the pinned fetchers and checkable without redistribution.",
+  "pools": {
+    "arc_challenge": {
+      "fetcher": "experiments/fetch_arc.py",
+      "command": "python experiments/fetch_arc.py --n 700 --split test",
+      "source": "allenai/ai2_arc ARC-Challenge, Hugging Face datasets-server rows API",
+      "licence": "CC BY-SA 4.0",
+      "order": "datasets-server row order, test split, first 700 usable items",
+      "n_items": 700,
+      "n_unique_resume_keys": 700,
+      "file_sha256": "2c7024b306c2442a1203cff86042e237029eef1b89e6ee49e211cc3e289d1971",
+      "item_sequence_sha256": "a48a5bef74ef30d0be729ffb4c90453a8f2390a6bc9bfe05a1a7842200860eaa",
+      "first_item_sha256": "20fab8286fc3b6b2a0437b776520f29bf4f8ab456587bbff02ea4853f3c57864",
+      "last_item_sha256": "4db06064139ab4d8dcbbe0b398916fa2ff279c028d3c066785a4753d913ea8a8",
+      "choices_min": 3,
+      "choices_max": 4
+    },
+    "aqua_rat": {
+      "fetcher": "experiments/fetch_aqua.py",
+      "command": "python experiments/fetch_aqua.py --n 700 --split test --then-split dev --then-split train",
+      "source": "google-deepmind/AQuA @ 26b64ed1f22208c6742f47df547dfd65088ec30d",
+      "licence": "Apache-2.0",
+      "order": "shipped file order, test then dev then train, deduplicated by question text, first occurrence wins",
+      "n_items": 700,
+      "n_unique_resume_keys": 700,
+      "file_sha256": "f7a76b90170cc65ef9def5655eebc1100cbdc3c1f1fdfab297f15c9c3d528ca5",
+      "item_sequence_sha256": "6997545c0887c57f5077112f8781ee3035a46a7327a75203ec48bc8cb3136117",
+      "first_item_sha256": "06e82fd6401fdf2b12b82906e0819d026c5dcb5eb0bc93f60c871cfd922374a1",
+      "last_item_sha256": "3b2e955f9a8b566f4251eb5d0f828e486203254b34f05f86ba75859d759e9292",
+      "choices_min": 5,
+      "choices_max": 5
+    },
+    "logiqa2": {
+      "fetcher": "experiments/fetch_logiqa2.py",
+      "command": "python experiments/fetch_logiqa2.py --n 700 --split test",
+      "source": "csitfun/LogiQA2.0 @ 955e1d3df6c59d9bfb44d9913da1e1a27ec14e18",
+      "licence": "CC BY-NC-SA 4.0",
+      "order": "shipped file order, test split, deduplicated on the resume merge key (question plus choices), first occurrence wins",
+      "n_items": 700,
+      "n_unique_resume_keys": 700,
+      "file_sha256": "203d418fe3c5d0536e3b21a556920556db73ac366eee60f924b565ebe62c07ea",
+      "item_sequence_sha256": "bbacc55d5dda07b365c5eb15ab5caabbdc546a288d8087677be50fd137a0b962",
+      "first_item_sha256": "9641be769f108d47ab44b95804cfe82d0236a0f14161042de9f6d6d7dc7bde3a",
+      "last_item_sha256": "efc1b4923c3f25f01544431442747831b18398cb07c9410cae82c25551c77883",
+      "choices_min": 4,
+      "choices_max": 4
+    }
+  }
+}

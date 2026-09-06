@@ -752,11 +752,17 @@ def test_summary_discloses_resume_provenance_and_curve_cap(tmp_path, monkeypatch
          holdout_path=holdout_path, arms=["direct"], curve_cap=5, resume=True)
     assert _summary(resume_out)["n_invocations"] == 3
 
-    # Every pre-existing field and spelling is untouched.
+    # Every pre-existing field and spelling is untouched. intervention_level and
+    # outcome_scale are the two CONTRACT additions round-1 verification check 4 asked
+    # for; they are pinned here for the same reason the others are, so a later edit
+    # cannot drop them silently.
     assert set(_science(fresh)) == {
         "backend", "model", "n_items", "n_clean_correct", "cue_kind", "enabled_arms",
         "attrition", "arms", "status", "curve_cap", "num_predict",
+        "intervention_level", "outcome_scale",
     }
+    assert fresh["intervention_level"] == "text"
+    assert fresh["outcome_scale"] == "binary_follow"
 
 
 # --------------------------------------------------------------------------- #
