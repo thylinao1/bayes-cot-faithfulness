@@ -1,0 +1,326 @@
+{
+  "generated": "2026-09-06 23:52:41",
+  "script": "/Users/maksimsilchenko/Developer/bayes-cot-faithfulness/notebooks/06_prefreeze_precision.py",
+  "python": "3.13.1",
+  "constants": {
+    "worlds": {
+      "faithful": {
+        "alpha": 0.1,
+        "beta": 2.0,
+        "gamma": 1.0,
+        "sigma_m": 0.5,
+        "rho": 0.0
+      },
+      "weak": {
+        "alpha": 0.3,
+        "beta": 0.6,
+        "gamma": 0.8,
+        "sigma_m": 0.5,
+        "rho": 0.3
+      }
+    },
+    "noise_fracs": [
+      0.0,
+      0.2,
+      0.4
+    ],
+    "n_per_cell": [
+      150,
+      300,
+      600,
+      3600
+    ],
+    "n_replicates_B": 10,
+    "sampler": {
+      "chains": 2,
+      "tune": 1000,
+      "draws": 1000,
+      "target_accept": 0.9,
+      "link": "probit",
+      "rho": 0.0
+    },
+    "cal_positives": 50,
+    "cal_negatives": 140,
+    "judge_se_true": 0.85,
+    "judge_sp_true": 0.97,
+    "follow_sizes": [
+      20,
+      50,
+      100
+    ],
+    "confirm_n": [
+      350,
+      400
+    ],
+    "confirm_noise": [
+      0.2
+    ],
+    "confirm_follow": [
+      500,
+      5000
+    ],
+    "p_nomention_true": 0.8,
+    "enrichment_ratio": 2.0,
+    "regex_recall": 0.7,
+    "regex_precision_at_frame": 0.9,
+    "regex_fp_rate_derived": 0.02777777777777779,
+    "n_replicates_A": 500,
+    "prior": "Jeffreys Beta(0.5, 0.5)"
+  },
+  "truths": {
+    "faithful": {
+      "nie_true": 0.40369,
+      "te_true": 0.431711,
+      "rho0_target_noise0.2": 0.36070078464870514,
+      "rho0_params_noise0.2": [
+        0.24155363523827958,
+        1.7756146414356644,
+        1.0012430143730395,
+        0.5192771319683184
+      ]
+    },
+    "weak": {
+      "nie_true": 0.15125650000000002,
+      "te_true": 0.2563795,
+      "rho0_target_noise0.2": 0.299301769760727,
+      "rho0_params_noise0.2": [
+        -0.13018065635336354,
+        1.1679542869034711,
+        0.8011578947646805,
+        0.5157609977163263
+      ]
+    }
+  },
+  "part_b": [
+    {
+      "world": "faithful",
+      "noise_frac": 0.2,
+      "n": 350,
+      "n_replicates": 10,
+      "nie_true": 0.40369,
+      "nie_rho0_target": 0.36070078464870514,
+      "nie_post_mean": 0.3586658536122757,
+      "nie_across_rep_sd": 0.03331751397175052,
+      "halfwidth_mean": 0.09960844167848404,
+      "halfwidth_max": 0.12105057699519244,
+      "coverage_truth": 1.0,
+      "coverage_rho0_target": 1.0,
+      "rhat_max": 1.0031474430354876,
+      "n_fits_rhat_above_1.01": 0,
+      "ess_bulk_min": 1449.4487365902614,
+      "divergences_total": 0,
+      "seconds_total": 25.54020357131958,
+      "noise_sd_mean": 0.14218805410378843
+    },
+    {
+      "world": "faithful",
+      "noise_frac": 0.2,
+      "n": 400,
+      "n_replicates": 10,
+      "nie_true": 0.40369,
+      "nie_rho0_target": 0.36070078464870514,
+      "nie_post_mean": 0.3628726963953389,
+      "nie_across_rep_sd": 0.03839282785765787,
+      "halfwidth_mean": 0.09035932977994039,
+      "halfwidth_max": 0.10522903695492752,
+      "coverage_truth": 1.0,
+      "coverage_rho0_target": 1.0,
+      "rhat_max": 1.005318625505656,
+      "n_fits_rhat_above_1.01": 0,
+      "ess_bulk_min": 1264.5112704076216,
+      "divergences_total": 0,
+      "seconds_total": 25.64537787437439,
+      "noise_sd_mean": 0.1413183495894236
+    },
+    {
+      "world": "weak",
+      "noise_frac": 0.2,
+      "n": 350,
+      "n_replicates": 10,
+      "nie_true": 0.15125650000000002,
+      "nie_rho0_target": 0.299301769760727,
+      "nie_post_mean": 0.3065905540307241,
+      "nie_across_rep_sd": 0.028948804306838577,
+      "halfwidth_mean": 0.06899094857033047,
+      "halfwidth_max": 0.07640449446294865,
+      "coverage_truth": 0.0,
+      "coverage_rho0_target": 1.0,
+      "rhat_max": 1.0057789222262024,
+      "n_fits_rhat_above_1.01": 0,
+      "ess_bulk_min": 1248.135569129897,
+      "divergences_total": 0,
+      "seconds_total": 23.497578620910645,
+      "noise_sd_mean": 0.12705130252219965
+    },
+    {
+      "world": "weak",
+      "noise_frac": 0.2,
+      "n": 400,
+      "n_replicates": 10,
+      "nie_true": 0.15125650000000002,
+      "nie_rho0_target": 0.299301769760727,
+      "nie_post_mean": 0.27892206313601947,
+      "nie_across_rep_sd": 0.04121555246401648,
+      "halfwidth_mean": 0.06694738861512975,
+      "halfwidth_max": 0.07444637023990971,
+      "coverage_truth": 0.1,
+      "coverage_rho0_target": 0.9,
+      "rhat_max": 1.0028991501742872,
+      "n_fits_rhat_above_1.01": 0,
+      "ess_bulk_min": 1287.9691330052492,
+      "divergences_total": 0,
+      "seconds_total": 25.479758977890015,
+      "noise_sd_mean": 0.12677555216385766
+    }
+  ],
+  "part_a": [
+    {
+      "judge": "judge_true_J0.82",
+      "judge_se_true": 0.85,
+      "judge_sp_true": 0.97,
+      "n_follow": 500,
+      "n_replicates": 500,
+      "corrected_width_mean": 0.218647666931586,
+      "corrected_coverage": 0.934,
+      "corrected_mean": 0.8097779988527437,
+      "regex_pr_width_mean": 0.322884286932294,
+      "regex_pr_coverage": 0.886,
+      "regex_pr_mean": 0.737825195062821,
+      "regex_rg_width_mean": 0.28812406970806853,
+      "regex_rg_coverage": 0.944,
+      "regex_rg_mean": 0.8125906788736771,
+      "middle_case_reports_corrected_frac": 0.972,
+      "n_eff_mean": 445.4459989851897,
+      "j_nonpositive_frac_mean": 0.0
+    },
+    {
+      "judge": "judge_true_J0.82",
+      "judge_se_true": 0.85,
+      "judge_sp_true": 0.97,
+      "n_follow": 5000,
+      "n_replicates": 500,
+      "corrected_width_mean": 0.19782268110842385,
+      "corrected_coverage": 0.942,
+      "corrected_mean": 0.8143230158523942,
+      "regex_pr_width_mean": 0.307762421435262,
+      "regex_pr_coverage": 0.896,
+      "regex_pr_mean": 0.7377971645959517,
+      "regex_rg_width_mean": 0.27242842932572137,
+      "regex_rg_coverage": 0.964,
+      "regex_rg_mean": 0.8129739570722493,
+      "middle_case_reports_corrected_frac": 0.968,
+      "n_eff_mean": 4453.037876149652,
+      "j_nonpositive_frac_mean": 0.0
+    },
+    {
+      "judge": "judge_at_K1_floor_J0.60",
+      "judge_se_true": 0.8,
+      "judge_sp_true": 0.8,
+      "n_follow": 500,
+      "n_replicates": 500,
+      "corrected_width_mean": 0.29181845708874565,
+      "corrected_coverage": 0.95,
+      "corrected_mean": 0.8124366795459896,
+      "regex_pr_width_mean": 0.3177559524912236,
+      "regex_pr_coverage": 0.86,
+      "regex_pr_mean": 0.7264099240765176,
+      "regex_rg_width_mean": 0.2904479680343254,
+      "regex_rg_coverage": 0.95,
+      "regex_rg_mean": 0.8015522530404209,
+      "middle_case_reports_corrected_frac": 0.654,
+      "n_eff_mean": 445.4183592112459,
+      "j_nonpositive_frac_mean": 0.0
+    },
+    {
+      "judge": "judge_at_K1_floor_J0.60",
+      "judge_se_true": 0.8,
+      "judge_sp_true": 0.8,
+      "n_follow": 5000,
+      "n_replicates": 500,
+      "corrected_width_mean": 0.27107748366551215,
+      "corrected_coverage": 0.964,
+      "corrected_mean": 0.814284425865569,
+      "regex_pr_width_mean": 0.30820239758033824,
+      "regex_pr_coverage": 0.864,
+      "regex_pr_mean": 0.7363772218240003,
+      "regex_rg_width_mean": 0.26832436618333505,
+      "regex_rg_coverage": 0.95,
+      "regex_rg_mean": 0.813745612688828,
+      "middle_case_reports_corrected_frac": 0.702,
+      "n_eff_mean": 4453.017906882756,
+      "j_nonpositive_frac_mean": 0.0
+    }
+  ],
+  "consistency_checks": [
+    {
+      "check": "C1 closed-form NIE == module MC (faithful)",
+      "pass": true,
+      "detail": "MC 0.402814 vs closed form 0.403032"
+    },
+    {
+      "check": "C1 closed-form NIE == module MC (weak)",
+      "pass": true,
+      "detail": "MC 0.159451 vs closed form 0.159423"
+    },
+    {
+      "check": "C2 attenuation analytic == large-n MAP (noise 0.2)",
+      "pass": true,
+      "detail": "analytic 0.36157 vs n=400000 MAP 0.36070"
+    },
+    {
+      "check": "C3 Rogan-Gladen inverts the forward map",
+      "pass": true,
+      "detail": "forward 0.686000000 -> back 0.800000000000 vs truth 0.8"
+    },
+    {
+      "check": "C4 derived regex fp rate reproduces precision 0.90",
+      "pass": true,
+      "detail": "fp_rate 0.02777778 -> precision 0.9000000000"
+    },
+    {
+      "check": "C5 Hajek IPW is design-unbiased for the judged rate",
+      "pass": true,
+      "detail": "weighted 0.68444 vs analytic 0.68600 on 400,000 design draws"
+    },
+    {
+      "check": "C5b Hajek IPW is design-unbiased for the regex rate",
+      "pass": true,
+      "detail": "weighted 0.56588 vs analytic 0.56556"
+    },
+    {
+      "check": "C6 realised noise sd == 0.2 x sd(M)",
+      "pass": true,
+      "detail": "requested 0.14155, realised 0.14106, sd(M)=0.70774"
+    },
+    {
+      "check": "C7 part B denominators",
+      "pass": true,
+      "detail": "all 4 part-B rows carry n_replicates = 10"
+    },
+    {
+      "check": "C7b part A denominators",
+      "pass": true,
+      "detail": "all 4 part-A rows carry n_replicates = 500"
+    },
+    {
+      "check": "C7c part A widths shrink with the follow stratum",
+      "pass": true,
+      "detail": "corrected interval width is non-increasing in the follow-stratum size for every judge"
+    },
+    {
+      "check": "C8 sampler health",
+      "pass": true,
+      "detail": "max r-hat over all 40 fits = 1.0058 (0 fits at or above the 1.01 convergence bar); min bulk ESS = 1248; total divergences = 0"
+    },
+    {
+      "check": "C9 half-width falls with n (faithful, noise 0.2)",
+      "pass": true,
+      "detail": "half-widths [0.0996, 0.0904] at n [350, 400]"
+    },
+    {
+      "check": "C9 half-width falls with n (weak, noise 0.2)",
+      "pass": true,
+      "detail": "half-widths [0.069, 0.0669] at n [350, 400]"
+    }
+  ]
+}
