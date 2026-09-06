@@ -76,4 +76,83 @@ not touched to reach this conclusion and is not touched by this branch.
 
 ## 2 · Scale-aware outcome priors
 
-The next commit on this branch.
+### The mechanism, stated in one paragraph
+
+The outcome index was `alpha0 + alpha*X + beta*M` with `alpha0 ~ Normal(0, 1.5)` and
+`beta ~ Normal(0, 2)` (`mediation.py:77-88` at `5840afc`). `alpha0` is then the index at
+**M = 0**, which for a reasoning-step count with a baseline near six is a place the data
+never visits. In the battery's family 4 the implied intercept is `-5.8` on the probit scale
+(and about `-11.2` on the logit scale the model actually used), that is, 3.9 and 7.5 prior
+standard deviations from the prior mean. The posterior cannot go there, so it shrinks
+`alpha0` and `beta` together and the mediated effect comes out low. `beta ~ Normal(0, 2)` has
+the same defect in the other direction: it says something different about a mediator counted
+in steps than about one counted in tokens.
+
+### The change
+
+`mediation.fit_mediation_model`, `intercepts=True` branch. Write `mbar = mean(M)`,
+`s = sd(M)`. The outcome index is now `alpha0_centered + alpha*X + beta*(M - mbar)`:
+
+| Parameter | Before (`5840afc`) | After | Why |
+|---|---|---|---|
+| `mu_m` | `Normal(mean(M), max(sd(M), 1))` | `Normal(mbar, s)` | unchanged in intent; the floor at 1 was the last absolute unit left in the mediator block |
+| `gamma` | `Normal(0, 1.5)` | `Normal(0, 1.5*s)` | a treatment shift of a few mediator standard deviations, in any unit |
+| `sigma_m` | `HalfNormal(1.0)` | `HalfNormal(s)` | likewise for the mediator's own spread |
+| `beta` | `Normal(0, 2.0)` | `Normal(0, 2.0/s)` | so the implied index contribution `beta*s` is `Normal(0, 2)` for every mediator unit |
+| outcome intercept | `alpha0 ~ Normal(0, 1.5)`, the index at M = 0 | `alpha0_centered ~ Normal(0, 1.5)`, the index at the mean mediator | a clean-arm answer rate anywhere in roughly [0.07, 0.93] at one prior sd, instead of a claim about a mediator value the data never takes |
+| `alpha0` (reported) | free parameter | `Deterministic(alpha0_centered - beta*mbar)` | downstream reads the un-centred intercept it has always read; `extract_intercept_samples` is unchanged |
+
+Exact lines after the change: `src/bayes_cot_faithfulness/mediation.py:154-162`.
+
+```python
+alpha = pm.Normal("alpha", mu=0.0, sigma=INDEX_PRIOR_SD)                       # 1.5
+beta = pm.Normal("beta", mu=0.0, sigma=MEDIATOR_INDEX_PRIOR_SD / m_sd)         # 2.0 / sd(M)
+gamma = pm.Normal("gamma", mu=0.0, sigma=GAMMA_PRIOR_SD_IN_M_SD * m_sd)        # 1.5 * sd(M)
+sigma_m = pm.HalfNormal("sigma_m", sigma=m_sd)                                 # sd(M)
+mu_m = pm.Normal("mu_m", mu=m_bar, sigma=m_sd)
+alpha0_c = pm.Normal("alpha0_centered", mu=0.0, sigma=INDEX_PRIOR_SD)          # 1.5
+pm.Deterministic("alpha0", alpha0_c - beta * m_bar)
+```
+
+`intercepts=False` is untouched: fixed-scale priors, no intercepts, mediator un-centred, so
+`intercepts=False, link="logit"` still reproduces the pre-repair model exactly and every
+historical number stays reproducible from this repository.
+
+### The estimand is unchanged, and that is a test, not a claim
+
+The natural effects depend on the intercepts only through the offset `alpha0 + beta*mu_m`,
+which centring leaves alone; and with every mediator prior stated in units of `s`, the whole
+model is equivariant under `M -> (M - shift)/scale`. So two invariances must hold exactly up
+to Monte Carlo error, and `tests/test_scale_aware_priors.py` asserts both at a tolerance of
+0.01 on a 1,500-row dataset with `mu_m = 6`.
+
+**Both checks were run against the pre-change model first and both failed** (scratch run,
+`fit_mediation_model` loaded from `5840afc`, same data, same seeds, converted with the
+logistic converter it was paired with):
+
+| Fit of the same data | NDE | NIE | TE | beta | alpha0 | mu_m |
+|---|---:|---:|---:|---:|---:|---:|
+| as given, mediator mean 6 | −0.0172 | +0.2627 | +0.2455 | +1.654 | −9.483 | +6.057 |
+| mediator shifted by −6 | −0.0325 | +0.2865 | +0.2540 | +1.936 | +0.426 | +0.056 |
+| mediator rescaled by 10 | −0.0083 | +0.1193 | +0.1110 | +0.368 | −5.169 | +63.376 |
+
+Closed-form truth for that world: NDE +0.0000, NIE +0.2827, TE +0.2827.
+
+- shift: NIE moves **0.0238** and NDE **0.0153**, against the 0.0100 tolerance — FAIL.
+- rescale: NIE moves **0.1434** and TE **0.1345** — FAIL, and the rescaled fit reported
+  **400 divergences after tuning**, so on that mediator unit the old priors did not merely
+  bias the answer, they broke the sampler.
+
+That is the "proven able to fail" record for both checks in this file.
+
+---
+
+## 3 · Attempts log (element 12 no-retry rule)
+
+Every attempt of every check is listed with its number. The reported value of a gate is the
+first run after the last code change.
+
+| # | Check | Result | What changed before it |
+|---|---|---|---|
+| 1 | `tests/test_link_agreement.py` + `tests/test_scale_aware_priors.py` + `test_effects` + `test_closed_form` + `test_suppressor_sign` | **1 failed, 32 passed** (80.3 s). `test_the_gate_fails_when_the_conversion_drops_the_intercepts` failed: dropping *both* intercepts from the conversion moved the NIE by only 0.0160, not the > 0.2 the assertion demanded. Cause is the test's own generator, not the estimator: this world has `alpha0 + beta*mu_m = 0.2`, so the two intercepts nearly cancel and assuming both are zero is nearly harmless *here*. | first run of the new files |
+| 2 | `tests/test_link_agreement.py` | **7 passed** (40.8 s) | the tripwire now drops the mediator baseline alone (the pre-2026-09-07 defect shape), and the test records why dropping both is not a tripwire in this world |
