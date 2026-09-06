@@ -1,0 +1,48 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/maksimsilchenko/Developer/bcf-trackg
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 19 items
+
+tests/test_arm_concurrency.py F..F.........F.....                        [100%]
+
+=================================== FAILURES ===================================
+__________ test_map_in_order_consumes_in_index_order_at_concurrency_8 __________
+tests/test_arm_concurrency.py:66: in test_map_in_order_consumes_in_index_order_at_concurrency_8
+    assert seen == list(range(20))
+E   assert [7, 8, 9, 10, 11, 12, ...] == [0, 1, 2, 3, 4, 5, ...]
+E     
+E     At index 0 diff: 7 != 0
+E     Use -v to get more diff
+_________ test_map_in_order_abort_stops_consuming_at_the_failing_index _________
+tests/test_arm_concurrency.py:110: in test_map_in_order_abort_stops_consuming_at_the_failing_index
+    assert consumed == [0, 1, 2, 3]
+E   assert [3] == [0, 1, 2, 3]
+E     
+E     At index 0 diff: 3 != 0
+E     Right contains 3 more items, first extra item: 1
+E     Use -v to get more diff
+_____________ test_substrate_pass_identical_at_concurrency_1_and_4 _____________
+tests/test_arm_concurrency.py:224: in test_substrate_pass_identical_at_concurrency_1_and_4
+    assert [r["clean_answer"] for r in seq] == [r["clean_answer"] for r in par]
+E   AssertionError: assert ['A', 'B', 'C...'A', 'B', ...] == ['D', 'A', 'B...'D', 'A', ...]
+E     
+E     At index 0 diff: 'A' != 'D'
+E     Use -v to get more diff
+----------------------------- Captured stdout call -----------------------------
+      ... generated 1/12      ... generated 2/12      ... generated 3/12      ... generated 4/12      ... generated 5/12      ... generated 6/12      ... generated 7/12      ... generated 8/12      ... generated 9/12      ... generated 10/12      ... generated 11/12      ... generated 12/12
+      ... generated 4/12      ... generated 5/12      ... generated 6/12      ... generated 7/12      ... generated 8/12      ... generated 9/12      ... generated 10/12      ... generated 11/12      ... generated 12/12      ... generated 3/12      ... generated 2/12      ... generated 1/12
+=========================== short test summary info ============================
+FAILED tests/test_arm_concurrency.py::test_map_in_order_consumes_in_index_order_at_concurrency_8
+FAILED tests/test_arm_concurrency.py::test_map_in_order_abort_stops_consuming_at_the_failing_index
+FAILED tests/test_arm_concurrency.py::test_substrate_pass_identical_at_concurrency_1_and_4
+======================== 3 failed, 16 passed in 10.21s =========================
+exit=1
+
+PROOF OF FALSIFIABILITY, 2026-09-07 (Track G).
+Injection: in experiments/08_additive_arms.py map_in_order, `pending.popleft()` changed
+to `pending.pop()`, which consumes the newest finished item instead of the oldest, i.e.
+out of index order. Result above: 3 failed, 16 passed, exit 1. The line reverted and the
+same file re-run: 19 passed, exit 0 (and 171 passed across the six targeted test files).
+The identity check therefore fails when ordering breaks; it is not vacuous.

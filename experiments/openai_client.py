@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -77,6 +78,17 @@ class OpenAIClient:
     timeout: float = 600.0
     max_retries: int = 4
     retry_wait: float = 5.0
+    # Exponential backoff factor between retries: attempt k waits
+    # retry_wait * retry_backoff ** k, capped at retry_wait_max. Set retry_backoff to
+    # 1.0 to get the constant retry_wait this client used before concurrency existed.
+    # The schedule affects only the failure path; a successful call never sleeps, so a
+    # concurrency-1 run produces the same records either way.
+    retry_backoff: float = 2.0
+    retry_wait_max: float = 60.0
+    # Hard ceiling on requests this client has in flight at once, enforced inside _post
+    # by a semaphore. 0 means "no client-side ceiling"; the caller's thread pool is then
+    # the only bound. Non-zero is the belt for a caller that over-subscribes the server.
+    max_in_flight: int = 0
     # e.g. {"enable_thinking": False} for Qwen3. Passed straight to the server, which
     # renders the chat template; never interpreted here.
     chat_template_kwargs: dict | None = None
@@ -91,6 +103,44 @@ class OpenAIClient:
     # growing another flag.
     request_log: str | None = field(default_factory=lambda: os.environ.get("BCF_REQUEST_LOG"))
     _resolved_mode: str | None = field(default=None, repr=False, compare=False)
+    # Counters, and the locks that make this client safe to share across threads. The
+    # request log is a single append-mode file handle per write, so two threads writing
+    # at once can interleave a line; the lock is what keeps every JSONL line whole.
+    _stats: dict = field(
+        default_factory=lambda: {"requests_ok": 0, "retries": 0, "requests_failed": 0},
+        repr=False, compare=False,
+    )
+    _stats_lock: "threading.Lock" = field(
+        default_factory=threading.Lock, repr=False, compare=False
+    )
+    _log_lock: "threading.Lock" = field(
+        default_factory=threading.Lock, repr=False, compare=False
+    )
+    _gate: "threading.Semaphore | None" = field(default=None, repr=False, compare=False)
+
+    def _bump(self, key: str) -> None:
+        with self._stats_lock:
+            self._stats[key] = self._stats.get(key, 0) + 1
+
+    def stats(self) -> dict:
+        """A snapshot of the request counters: successes, retries, hard failures.
+
+        ``retries`` counts RETRY ATTEMPTS, not failed calls: one call that succeeded on
+        its third try contributes 2 here and 1 to ``requests_ok``. A call that exhausted
+        ``max_retries`` contributes ``max_retries - 1`` retries and 1 to
+        ``requests_failed``, and raises.
+        """
+        with self._stats_lock:
+            return dict(self._stats)
+
+    def _acquire(self):
+        """The in-flight gate, created on first use so the dataclass stays cheap."""
+        if self.max_in_flight <= 0:
+            return None
+        with self._stats_lock:
+            if self._gate is None:
+                self._gate = threading.Semaphore(self.max_in_flight)
+        return self._gate
 
     def _record(self, path: str, payload: dict, body: dict, started: float) -> None:
         if not self.request_log:
@@ -106,10 +156,16 @@ class OpenAIClient:
             "completion_chars": sum(
                 len((c.get("message") or {}).get("content") or "") for c in choices
             ),
+            # Which OS thread issued the call. Two lines whose [t_start, t_end] overlap
+            # AND whose thread ids differ are the proof that requests were concurrent;
+            # without it an overlap could only be argued from the clock.
+            "thread": threading.get_ident(),
         }
         try:
-            with open(self.request_log, "a", encoding="utf-8") as fh:
-                fh.write(json.dumps(entry) + "\n")
+            line = json.dumps(entry) + "\n"
+            with self._log_lock:
+                with open(self.request_log, "a", encoding="utf-8") as fh:
+                    fh.write(line)
         except OSError:
             pass  # a throughput log is diagnostics; it must never kill a sweep
 
@@ -121,33 +177,52 @@ class OpenAIClient:
         return trimmed[: -len("/v1")] if trimmed.endswith("/v1") else trimmed
 
     def _post(self, path: str, payload: dict) -> dict:
+        gate = self._acquire()
+        if gate is not None:
+            gate.acquire()
+        try:
+            return self._post_inner(path, payload)
+        finally:
+            if gate is not None:
+                gate.release()
+
+    def _post_inner(self, path: str, payload: dict) -> dict:
         url = f"{self.base_url.rstrip('/')}{path}"
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-            },
-        )
+        # One Request object per attempt, not one per call: urllib mutates a Request
+        # while it is being opened (redirect handling, host header), so reusing one
+        # across threads is a data race waiting to happen.
+        body_bytes = json.dumps(payload).encode("utf-8")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
         last: Exception | None = None
         for attempt in range(self.max_retries):
+            req = urllib.request.Request(url, data=body_bytes, headers=headers)
             started = time.time()
             try:
                 with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                     body = json.loads(resp.read().decode("utf-8"))
                 self._record(path, payload, body, started)
+                self._bump("requests_ok")
                 return body
             except urllib.error.HTTPError as exc:
                 detail = exc.read().decode("utf-8", "ignore")[:300]
                 # 4xx is a bad request: retrying sends the identical body and fails again.
                 if exc.code < 500:
+                    self._bump("requests_failed")
                     raise OpenAIClientError(f"server error {exc.code} at {url}: {detail}") from exc
                 last = OpenAIClientError(f"server error {exc.code} at {url}: {detail}")
             except urllib.error.URLError as exc:
                 last = OpenAIClientError(f"could not reach {url}: {exc}")
+            except TimeoutError as exc:
+                last = OpenAIClientError(f"timed out after {self.timeout}s at {url}: {exc}")
             if attempt < self.max_retries - 1:
-                time.sleep(self.retry_wait)
+                self._bump("retries")
+                wait = min(self.retry_wait * (self.retry_backoff ** attempt),
+                           self.retry_wait_max)
+                time.sleep(wait)
+        self._bump("requests_failed")
         raise last or OpenAIClientError(f"request to {url} failed")
 
     def _get(self, url: str) -> dict:

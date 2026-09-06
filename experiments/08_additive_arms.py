@@ -34,6 +34,8 @@ import argparse
 import importlib.util
 import json
 import sys
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -159,6 +161,10 @@ class RunCtx:
     model: str
     curve_cap: int
     checkpoint: "arms_resume.CheckpointWriter | None" = None
+    # How many requests this run may have in flight at once. 1 is the pre-concurrency
+    # code path (see map_in_order), and it is the default so an existing call site that
+    # builds a RunCtx positionally keeps the behavior it had.
+    concurrency: int = 1
 
 
 # --- Small pure helpers -----------------------------------------------------
@@ -235,6 +241,63 @@ def resolve_arms(arms: list[str] | None) -> list[str]:
         if arm not in seen:
             seen.append(arm)
     return seen
+
+
+def map_in_order(seq, worker, *, concurrency: int, consume) -> bool:
+    """Run ``worker(i, elem)`` over ``seq`` and hand every result to ``consume`` IN ORDER.
+
+    This is the only place in this runner where more than one request can be in flight.
+    It exists because ``openai_client`` issues one HTTP request at a time and a vLLM
+    server batches, so a sequential client measures the client, not the card.
+
+    Two properties the arms depend on, and which the unit tests assert:
+
+    1. ``concurrency <= 1`` never creates a thread and never reorders anything. The call
+       sequence is worker(0), consume(0), worker(1), consume(1), ... which is exactly the
+       loop each arm ran before this helper existed. That is why the default is 1: the
+       existing behavior is not merely equivalent, it is the same code path.
+    2. Above 1, workers overlap but ``consume`` still sees index 0, then 1, then 2, with
+       at most ``concurrency`` workers running. Every mutation of a record and every
+       checkpoint write happens inside ``consume``, so a checkpoint always holds a PREFIX
+       of the results and never a hole with a later item filled in past it.
+
+    ``consume`` returns False to abort. On an abort the not-yet-started workers are
+    cancelled and their results are never consumed, which reproduces the sequential
+    "return on the first error" without leaving a later record half-written.
+
+    ``worker`` must not touch shared state; it takes an index and an element and returns
+    whatever ``consume`` needs. An exception inside a worker propagates out of this
+    function, as it would from a plain loop.
+    """
+    if concurrency <= 1:
+        for i, elem in enumerate(seq):
+            if not consume(i, elem, worker(i, elem)):
+                return False
+        return True
+
+    pending: deque = deque()
+    source = enumerate(seq)
+
+    def _fill(pool) -> None:
+        while len(pending) < concurrency:
+            try:
+                i, elem = next(source)
+            except StopIteration:
+                return
+            pending.append((i, elem, pool.submit(worker, i, elem)))
+
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        _fill(pool)
+        while pending:
+            i, elem, fut = pending.popleft()
+            result = fut.result()
+            _fill(pool)
+            if not consume(i, elem, result):
+                for _, _, queued in pending:
+                    queued.cancel()
+                pending.clear()
+                return False
+    return True
 
 
 # --- Pure per-arm summarizers (no model, no network; unit-tested offline) ----
@@ -830,7 +893,8 @@ def parse_or_force_checked(client, item, text, n_choices):
 
 
 def substrate_pass(client, items, n_choices, num_predict, backend, model,
-                   banked=None, records=None, on_checkpoint=None, locked=False):
+                   banked=None, records=None, on_checkpoint=None, locked=False,
+                   concurrency=1):
     """Clean arm over all items; same first-call / three-strikes stop as 05.
 
     Resume merge (``banked`` is None on a fresh run, keeping that path's model-call
@@ -858,25 +922,37 @@ def substrate_pass(client, items, n_choices, num_predict, backend, model,
     """
     if records is None:
         records = []
-    fails = 0
-    for i, it in enumerate(items):
+    state = {"fails": 0, "ok": True}
+
+    def _work(i, it):
         key = (it.question, tuple(it.choices))
         if banked is not None and key in banked:
-            records.append(banked[key])  # restored from the checkpoint; no model call
-            continue
+            return ("banked", banked[key])
         if locked:
-            continue  # committed roster: this hole stays a hole (and stays in attrition)
+            return ("locked", None)
+        ans = None
         out, err = safe_generate(client, clean_prompt(it), num_predict)
         if err is None:
             ans, err = parse_or_force_checked(client, it, out, n_choices)
+        return ("generated", (out, ans, err))
+
+    def _consume(i, it, result):
+        kind, payload = result
+        if kind == "banked":
+            records.append(payload)  # restored from the checkpoint; no model call
+            return True
+        if kind == "locked":
+            return True  # committed roster: this hole stays a hole (and stays in attrition)
+        out, ans, err = payload
         if err is not None:
-            fails += 1
-            if i == 0 or fails >= 3:
+            state["fails"] += 1
+            if i == 0 or state["fails"] >= 3:
                 if on_checkpoint is not None:
                     on_checkpoint()
                 print(fail_message(backend, model, err))
-                return records, False, {}
-            continue
+                state["ok"] = False
+                return False
+            return True
         records.append({
             "item": it, "clean_cot": out, "clean_answer": ans,
             "clean_correct": ans == it.answer_label, "answer_label": it.answer_label,
@@ -884,6 +960,14 @@ def substrate_pass(client, items, n_choices, num_predict, backend, model,
         print(f"      ... generated {i + 1}/{len(items)}", end="\r", flush=True)
         if on_checkpoint is not None and (i + 1) % CHECKPOINT_EVERY == 0:
             on_checkpoint()
+        return True
+
+    # Above concurrency 1 the three-strikes stop still fires on the FIRST failing item in
+    # item order, but up to concurrency-1 later items were already generated when it does.
+    # Those results are dropped, not banked, so the records list stays a clean prefix.
+    map_in_order(items, _work, concurrency=concurrency, consume=_consume)
+    if not state["ok"]:
+        return records, False, {}
     print()
     return records, True, arms_resume.derive_attrition(len(items), records)
 
@@ -896,9 +980,11 @@ def cue_pass(client, records, ctx, taxonomy):
     stays the record's position in the FULL clean-correct list, keeping wrong_label(rotate=i)
     identical to the uninterrupted run for any record that still has to be generated.
     """
-    for i, r in enumerate(records):
+    state = {"ok": True}
+
+    def _work(i, r):
         if "hinted_answer" in r:
-            continue  # banked previously; hint_label / cue_text already restored
+            return None  # banked previously; hint_label / cue_text already restored
         it = r["item"]
         hint = it.wrong_label(rotate=i)  # cycle the bait across wrong options, like 05
         if taxonomy:
@@ -907,25 +993,63 @@ def cue_pass(client, records, ctx, taxonomy):
         else:
             prompt = hinted_prompt(it, hint, strength="strong")
             cue_text = _HINT_TEMPLATES["strong"].format(hint=hint)
+        ans = None
         out, err = safe_generate(client, prompt, ctx.num_predict)
         if err is None:
             ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
-        if err is not None:
+        return {"hint": hint, "cue_text": cue_text, "out": out, "ans": ans, "err": err}
+
+    def _consume(i, r, res):
+        if res is None:
+            return True
+        if res["err"] is not None:
             # No field is written for the in-flight record (not even hint_label), so
             # the resume redoes its whole cue call at the same position i.
-            _bank_and_report(ctx, records, err)
+            _bank_and_report(ctx, records, res["err"])
+            state["ok"] = False
             return False
         r.update({
-            "hint_label": hint, "cue_text": cue_text, "hinted_cot": out,
+            "hint_label": res["hint"], "cue_text": res["cue_text"], "hinted_cot": res["out"],
             "cue_prepended": taxonomy in _PREPENDED_CUE_TAXONOMIES,
-            "hinted_answer": ans, "followed": ans == hint,
-            "acknowledged": acknowledges_hint(out),
-            "silent": is_unfaithful_on_hint(ans, hint, out),
+            "hinted_answer": res["ans"], "followed": res["ans"] == res["hint"],
+            "acknowledged": acknowledges_hint(res["out"]),
+            "silent": is_unfaithful_on_hint(res["ans"], res["hint"], res["out"]),
         })
         print(f"      ... cue {i + 1}/{len(records)}", end="\r", flush=True)
         _checkpoint(ctx, records, i)
+        return True
+
+    map_in_order(records, _work, concurrency=ctx.concurrency, consume=_consume)
+    if not state["ok"]:
+        return False
     print()
     return True
+
+
+def _run_record_arm(records, worker, ctx):
+    """Drive one per-record arm: ``worker(i, r)`` returns ``(updates, err)``.
+
+    Every arm below has the same shape, so the ordering, checkpointing and stop rules
+    live here once instead of eight times. ``updates`` is applied to the record with
+    ``dict.update`` IN INDEX ORDER, and it is applied even when ``err`` is set, because
+    an arm that made its first call and failed its second (replay, transplant, twostep)
+    banked the first result before this helper existed and its resume logic reads that
+    field's presence. A stop consumes no result past the failing index.
+    """
+    state = {"err": None}
+
+    def _consume(i, r, result):
+        updates, err = result
+        if updates:
+            r.update(updates)
+        if err is not None:
+            state["err"] = err
+            return False
+        _checkpoint(ctx, records, i)
+        return True
+
+    ok = map_in_order(records, worker, concurrency=ctx.concurrency, consume=_consume)
+    return ok, state["err"]
 
 
 def arm_replay(client, records, ctx):
@@ -938,18 +1062,21 @@ def arm_replay(client, records, ctx):
     what keeps this floor from being the arithmetic complement of the forward transplant
     carry-over (docs section 2).
     """
-    for i, r in enumerate(records):
+    def _work(i, r):
         it = r["item"]
+        updates: dict = {}
         if "replay_clean_answer" not in r:
+            ans = None
             clean_out, err = safe_generate(
                 client, replay_prompt(it, r["clean_cot"]), FORCE_TOKENS
             )
             if err is None:
                 ans, err = parse_or_force_checked(client, it, clean_out, ctx.n_choices)
             if err is not None:
-                return False, err
-            r["replay_clean_answer"] = ans
+                return updates, err
+            updates["replay_clean_answer"] = ans
         if "replay_hinted_answer" not in r:
+            ans = None
             hinted_out, err = safe_generate(
                 client,
                 cued_continuation_prompt(
@@ -960,98 +1087,102 @@ def arm_replay(client, records, ctx):
             if err is None:
                 ans, err = parse_or_force_checked(client, it, hinted_out, ctx.n_choices)
             if err is not None:
-                return False, err
-            r["replay_hinted_answer"] = ans
-        _checkpoint(ctx, records, i)
-    return True, None
+                return updates, err
+            updates["replay_hinted_answer"] = ans
+        return updates, None
+
+    return _run_record_arm(records, _work, ctx)
 
 
 def arm_placebo(client, records, ctx):
     """A4: the cue arm with the real cue swapped for a length-matched null."""
-    for i, r in enumerate(records):
+    def _work(i, r):
         if "placebo_answer" in r:
-            _checkpoint(ctx, records, i)
-            continue  # banked previously
+            return {}, None  # banked previously
         it = r["item"]
+        ans = None
         out, err = safe_generate(
             client, placebo_prompt(it, r["cue_text"], rng_seed=i), ctx.num_predict
         )
         if err is None:
             ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
         if err is not None:
-            return False, err
-        r["placebo_answer"] = ans
-        _checkpoint(ctx, records, i)
-    return True, None
+            return {}, err
+        return {"placebo_answer": ans}, None
+
+    return _run_record_arm(records, _work, ctx)
 
 
 def arm_direct(client, records, ctx):
     """A8/T12/T2: the no-CoT probe, plus the per-item pre-commitment flag."""
-    for i, r in enumerate(records):
+    def _work(i, r):
         if "direct_answer" in r:
-            _checkpoint(ctx, records, i)
-            continue  # banked previously (direct_answer and pre_cot_committed set together)
+            return {}, None  # banked previously (direct_answer and pre_cot_committed together)
         it = r["item"]
+        ans = None
         out, err = safe_generate(client, direct_prompt(it), FORCE_TOKENS)
         if err is None:
             ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
         if err is not None:
-            return False, err
-        r["direct_answer"] = ans
-        r["pre_cot_committed"] = pre_cot_committed(ans, r["clean_answer"])
-        _checkpoint(ctx, records, i)
-    return True, None
+            return {}, err
+        return {"direct_answer": ans,
+                "pre_cot_committed": pre_cot_committed(ans, r["clean_answer"])}, None
+
+    return _run_record_arm(records, _work, ctx)
 
 
 def arm_twostep(client, records, ctx):
     """A7: elicit reasoning without an answer, then force the commit in a second pass."""
-    for i, r in enumerate(records):
+    def _work(i, r):
         if "twostep_answer" in r:
-            _checkpoint(ctx, records, i)
-            continue  # banked previously
+            return {}, None  # banked previously
         # twostep_cot is intentionally NOT persisted, so a stop between the two calls loses
         # only the elicited reasoning; redo BOTH calls when the committed answer is absent
         # (a bounded re-spend of one extra generation for the in-flight item).
         it = r["item"]
         cot_out, err = safe_generate(client, cot_only_prompt(it), ctx.num_predict)
         if err is not None:
-            return False, err
-        r["twostep_cot"] = cot_out
+            return {}, err
+        ans = None
         ans_out, err = safe_generate(
             client, answer_only_prompt(it, cot_out), FORCE_TOKENS
         )
         if err is None:
             ans, err = parse_or_force_checked(client, it, ans_out, ctx.n_choices)
         if err is not None:
-            return False, err
-        r["twostep_answer"] = ans
-        _checkpoint(ctx, records, i)
-    return True, None
+            return {"twostep_cot": cot_out}, err
+        return {"twostep_cot": cot_out, "twostep_answer": ans}, None
+
+    return _run_record_arm(records, _work, ctx)
 
 
 def arm_filler(client, records, ctx):
     """U3: the mediator over a length-matched filler chain built from the hinted CoT."""
-    for i, r in enumerate(records):
+    def _work(i, r):
         if "filler_answer" in r:
-            _checkpoint(ctx, records, i)
-            continue  # banked previously
+            return {}, None  # banked previously
         it = r["item"]
+        ans = None
         out, err = safe_generate(
             client, filler_prompt(it, r["hinted_cot"], rng_seed=i), FORCE_TOKENS
         )
         if err is None:
             ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
         if err is not None:
-            return False, err
-        r["filler_answer"] = ans
-        _checkpoint(ctx, records, i)
-    return True, None
+            return {}, err
+        return {"filler_answer": ans}, None
+
+    return _run_record_arm(records, _work, ctx)
 
 
 def arm_curves(client, records, ctx):
     """T1: build a truncation dose-response curve on each arm for up to curve_cap items."""
-    for i, r in enumerate(records[: ctx.curve_cap]):
+    capped = records[: ctx.curve_cap]
+    state = {"err": None}
+
+    def _work(i, r):
         it = r["item"]
+        updates: dict = {}
         for cot_key, ans_key, curve_key in (
             ("clean_cot", "clean_answer", "clean_curve"),
             ("hinted_cot", "hinted_answer", "hinted_curve"),
@@ -1063,10 +1194,19 @@ def arm_curves(client, records, ctx):
             for depth, prompt in curve_prompts(it, r[cot_key]):
                 out, err = safe_generate(client, prompt, FORCE_TOKENS)
                 if err is not None:
-                    return False, err
+                    return updates, err
                 depths.append(depth)
                 answers.append(parse_answer(out, ctx.n_choices))
-            r[curve_key] = summarize_curve(depths, answers, r[ans_key])
+            updates[curve_key] = summarize_curve(depths, answers, r[ans_key])
+        return updates, None
+
+    def _consume(i, r, result):
+        updates, err = result
+        if updates:
+            r.update(updates)
+        if err is not None:
+            state["err"] = err
+            return False
         # Published transcripts keep the shared every-CHECKPOINT_EVERY cadence...
         _checkpoint(ctx, records, i)
         # ...but each curve item costs ~10 forced-answer calls, so the internal
@@ -1074,7 +1214,10 @@ def arm_curves(client, records, ctx):
         # item's depth calls on resume.
         if ctx.checkpoint is not None:
             ctx.checkpoint.write()
-    return True, None
+        return True
+
+    ok = map_in_order(capped, _work, concurrency=ctx.concurrency, consume=_consume)
+    return ok, state["err"]
 
 
 def arm_transplant(client, records, ctx):
@@ -1086,18 +1229,21 @@ def arm_transplant(client, records, ctx):
     the reverse prompt is not the cue-free frame, the forward carry-over is a distinct
     measurement from the hinted replay drift, not its arithmetic complement (docs section 2).
     """
-    for i, r in enumerate(records):
+    def _work(i, r):
         it = r["item"]
+        updates: dict = {}
         if "transplant_forward_answer" not in r:
+            ans = None
             fwd, err = safe_generate(
                 client, continuation_prompt(it, r["hinted_cot"]), FORCE_TOKENS
             )
             if err is None:
                 ans, err = parse_or_force_checked(client, it, fwd, ctx.n_choices)
             if err is not None:
-                return False, err
-            r["transplant_forward_answer"] = ans
+                return updates, err
+            updates["transplant_forward_answer"] = ans
         if "transplant_reverse_answer" not in r:
+            ans = None
             rev, err = safe_generate(
                 client,
                 cued_continuation_prompt(
@@ -1108,10 +1254,11 @@ def arm_transplant(client, records, ctx):
             if err is None:
                 ans, err = parse_or_force_checked(client, it, rev, ctx.n_choices)
             if err is not None:
-                return False, err
-            r["transplant_reverse_answer"] = ans
-        _checkpoint(ctx, records, i)
-    return True, None
+                return updates, err
+            updates["transplant_reverse_answer"] = ans
+        return updates, None
+
+    return _run_record_arm(records, _work, ctx)
 
 
 def _letter_logprob_block(client, prompt: str, item, target: str) -> dict:
@@ -1171,10 +1318,11 @@ def arm_anchor(client, records, ctx):
     control that moves the outcome under both recipients is about what the text says, one
     that moves it under neither is about where the text came from.
     """
-    for i, r in enumerate(records):
+    state = {"err": None}
+
+    def _work(i, r):
         if "anchor" in r:
-            _checkpoint(ctx, records, i)
-            continue
+            return {}, None
         it = r["item"]
         target = r["hint_label"]
         alternative = _anchor_alternative_option(it, target)
@@ -1199,11 +1347,12 @@ def arm_anchor(client, records, ctx):
         )
         cells = {}
         for cell in ANCHOR_CELLS:
+            ans = None
             out, err = safe_generate(client, prompts[cell], FORCE_TOKENS)
             if err is None:
                 ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
             if err is not None:
-                return False, err
+                return {}, err
             logit = _letter_logprob_block(client, prompts[cell], it, target)
             check_outcome_scale(logit["intervention_level"], logit["outcome_scale"])
             cells[cell] = {
@@ -1226,15 +1375,16 @@ def arm_anchor(client, records, ctx):
                     it, edit.text, recipient_cued=recipient_cued,
                     cue_text=r["cue_text"], prepend=prepend,
                 )
+                ans = None
                 out, err = safe_generate(client, prompt, FORCE_TOKENS)
                 if err is None:
                     ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
                 if err is not None:
-                    return False, err
+                    return {}, err
                 entry[key] = {"answer": ans, "y": anchor_outcome(ans, target)}
             controls[name] = entry
 
-        r["anchor"] = {
+        anchor_block = {
             "intervention_level": INTERVENTION_LEVEL,
             "outcome_scale": OUTCOME_SCALE,
             "target_option": target,
@@ -1249,8 +1399,22 @@ def arm_anchor(client, records, ctx):
             "cells": cells,
             "controls": controls,
         }
+        return {"anchor": anchor_block}, None
+
+    def _consume(i, r, result):
+        updates, err = result
+        if updates:
+            r.update(updates)
+        if err is not None:
+            state["err"] = err
+            return False
         print(f"      ... anchor {i + 1}/{len(records)}", end="\r", flush=True)
         _checkpoint(ctx, records, i)
+        return True
+
+    ok = map_in_order(records, _work, concurrency=ctx.concurrency, consume=_consume)
+    if not ok:
+        return False, state["err"]
     print()
     return True, None
 
@@ -1320,6 +1484,7 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
         client, items, n_choices, ctx.num_predict, ctx.backend, ctx.model,
         banked=banked, records=records,
         on_checkpoint=None if writer is None else writer.write, locked=locked,
+        concurrency=ctx.concurrency,
     )
     if not ok:
         return None, False
@@ -1329,36 +1494,50 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
     if writer is not None:
         writer.write()
 
-    for i, r in enumerate(correct):
+    state = {"ok": True}
+
+    def _work(i, r):
         if "placebo_cot" in r:
-            continue  # banked previously; its four false-alarm flags are restored
+            return None  # banked previously; its four false-alarm flags are restored
         it = r["item"]
         hint = it.wrong_label(rotate=i)  # designated would-be hint; NEVER planted
         cue_text = _HINT_TEMPLATES["strong"].format(hint=hint)
+        ans = None
         out, err = safe_generate(
             client, placebo_prompt(it, cue_text, rng_seed=i), ctx.num_predict
         )
         if err is None:
             ans, err = parse_or_force_checked(client, it, out, n_choices)
-        if err is not None:
+        return {"hint": hint, "cue_text": cue_text, "out": out, "ans": ans, "err": err}
+
+    def _consume(i, r, res):
+        if res is None:
+            return True
+        if res["err"] is not None:
             n_saved = write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct)
             if writer is not None:
                 writer.write()
             if n_saved:
                 print(f"  [saved] {n_saved} specificity transcripts banked before the stop "
                       f"-> {ctx.out_dir}")
-            print(fail_message(ctx.backend, ctx.model, err))
-            return None, False
+            print(fail_message(ctx.backend, ctx.model, res["err"]))
+            state["ok"] = False
+            return False
         r.update({
-            "hint_label": hint, "cue_text": cue_text,
-            "placebo_cot": out, "placebo_answer": ans,
-            **specificity_scores(r["clean_cot"], out, ans, hint),
+            "hint_label": res["hint"], "cue_text": res["cue_text"],
+            "placebo_cot": res["out"], "placebo_answer": res["ans"],
+            **specificity_scores(r["clean_cot"], res["out"], res["ans"], res["hint"]),
         })
         print(f"      ... specificity {i + 1}/{len(correct)}", end="\r", flush=True)
         if (i + 1) % CHECKPOINT_EVERY == 0:
             write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct)
             if writer is not None:
                 writer.write()
+        return True
+
+    map_in_order(correct, _work, concurrency=ctx.concurrency, consume=_consume)
+    if not state["ok"]:
+        return None, False
     print()
     write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct)
     if writer is not None:
@@ -1500,7 +1679,7 @@ def no_arms_hint() -> str:
 
 # --- Orchestration ---
 def _gate_client(backend, model, host, timeout, *, base_url=None,
-                 seed=None, chat_template_kwargs=None):
+                 seed=None, chat_template_kwargs=None, concurrency=1):
     """Build the backend client, or print the setup message and return None ($0 gate).
 
     ``max_wait`` is raised from GroqClient's 25s default for THIS runner only (05 and the
@@ -1521,6 +1700,9 @@ def _gate_client(backend, model, host, timeout, *, base_url=None,
         client = OpenAIClient(
             base_url=base_url, model=model, temperature=0.0, timeout=timeout,
             seed=seed, chat_template_kwargs=chat_template_kwargs,
+            # The client's own ceiling matches the runner's pool, so no code path can
+            # put more requests on the server than the run asked for.
+            max_in_flight=concurrency,
         )
         if not client.is_available():
             print(openai_setup_message(base_url, model))
@@ -1568,7 +1750,7 @@ def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_bloc
 def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         curve_cap=20, num_predict=320, timeout=120.0, backend="ollama",
         specificity_holdout=None, resume=False, *, base_url=None, seed=None,
-        chat_template_kwargs=None):
+        chat_template_kwargs=None, concurrency=1):
     arms = resolve_arms(arms)
     if not arms:
         print(no_arms_hint())
@@ -1628,7 +1810,8 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
                 return 0
 
     client = _gate_client(backend, model, host, timeout, base_url=base_url,
-                          seed=seed, chat_template_kwargs=chat_template_kwargs)
+                          seed=seed, chat_template_kwargs=chat_template_kwargs,
+                          concurrency=concurrency)
     if client is None:
         return 0
 
@@ -1650,6 +1833,7 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         client, items, n_choices, num_predict, backend, model,
         banked=banked, records=records, on_checkpoint=writer.write,
         locked=arms_resume.roster_locked((loaded or {}).get("records", [])),
+        concurrency=concurrency,
     )
     if not ok:
         return 0
@@ -1663,7 +1847,8 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         print(curve_coverage_warning(curve_cap, len(correct)))
 
     ctx = RunCtx(
-        n_choices, num_predict, out_dir, safe_model, backend, model, curve_cap, writer
+        n_choices, num_predict, out_dir, safe_model, backend, model, curve_cap, writer,
+        concurrency,
     )
     print(f"[2/3] Cue pass ({cue_kind}) on {len(correct)} clean-correct items")
     if not cue_pass(client, correct, ctx, taxonomy):
@@ -1739,6 +1924,11 @@ def build_parser() -> argparse.ArgumentParser:
                     help="fixed n=20 held-out set (ARC validation split, disjoint from the "
                          "main runs) for the A9 specificity arm; fetch with "
                          "fetch_arc.py --split validation --n 20")
+    ap.add_argument("--concurrency", type=int, default=1,
+                    help="requests in flight at once (default 1 = the sequential client "
+                         "every Phase-1 measurement was taken with). Above 1 the records "
+                         "are still written in item order and the checkpoint still holds "
+                         "a prefix; only the HTTP calls overlap.")
     ap.add_argument("--resume", action="store_true", default=False,
                     help="continue a run stopped mid-flight from its checkpoint "
                          "(arms_checkpoint_<model>.json in --out); re-spends at most the "
@@ -1757,10 +1947,13 @@ def main(argv: list[str] | None = None) -> int:
         print("[setup] --backend openai needs --base-url (e.g. http://127.0.0.1:8000/v1).")
         return 0
     template_kwargs = json.loads(a.chat_template_kwargs) if a.chat_template_kwargs else None
+    if a.concurrency < 1:
+        print("[setup] --concurrency must be at least 1.")
+        return 0
     return run(model, a.host, a.n_items, a.data, a.out, a.arm, a.taxonomy,
                a.curve_cap, a.num_predict, a.timeout, a.backend,
                a.specificity_holdout, a.resume, base_url=a.base_url, seed=a.seed,
-               chat_template_kwargs=template_kwargs)
+               chat_template_kwargs=template_kwargs, concurrency=a.concurrency)
 
 
 if __name__ == "__main__":
