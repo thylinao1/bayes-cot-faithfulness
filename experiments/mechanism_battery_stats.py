@@ -16,11 +16,11 @@ import math
 import numpy as np
 from scipy.stats import beta as beta_dist
 
-from bayes_cot_faithfulness.effects import posterior_natural_effects
 from bayes_cot_faithfulness.mediation import (
     extract_intercept_samples,
     extract_parameter_samples,
     fit_mediation_model,
+    natural_effects_from_trace,
 )
 from bayes_cot_faithfulness.sensitivity import fit_probit_mediation_map
 
@@ -199,11 +199,7 @@ def pymc_subset(
             x, m, y, n_samples=n_samples, n_tune=n_tune, n_chains=n_chains,
             random_seed=int(seed % 2**31), progressbar=False, intercepts=True,
         )
-        alpha, beta, gamma, sigma_m = extract_parameter_samples(trace)
-        mu_m, alpha0 = extract_intercept_samples(trace)
-        eff = posterior_natural_effects(
-            alpha, beta, gamma, sigma_m, mu_m_samples=mu_m, alpha0_samples=alpha0
-        )
+        eff = natural_effects_from_trace(trace)
         summary = az.summary(trace, var_names=["alpha", "beta", "gamma", "sigma_m"])
         per_dataset.append(
             {

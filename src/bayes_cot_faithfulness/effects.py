@@ -16,6 +16,12 @@ parameters of the data-generating process) and for posterior estimates
 estimator repair. Omit them and the computation is the pre-repair one, which is
 correct only when the mediator really is centred at zero in the control arm and
 the clean-arm answer rate really is 0.5.
+
+The structural model above is the logistic one used by ``synthetic.py``. The
+estimator of record is the probit one (``sensitivity``, ``closed_form``,
+``mediation.fit_mediation_model``), so ``posterior_natural_effects`` takes a
+``link`` and defaults to ``"probit"``; ``monte_carlo_true_effects`` stays
+logistic because the generator whose config it reads is logistic.
 """
 
 from __future__ import annotations
@@ -24,6 +30,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from bayes_cot_faithfulness.closed_form import probit_natural_effects_closed_form_samples
 from bayes_cot_faithfulness.synthetic import SyntheticCoTConfig, _sigmoid
 
 
@@ -96,12 +103,21 @@ def posterior_natural_effects(
     rng_seed: int = 0,
     mu_m_samples: np.ndarray | None = None,
     alpha0_samples: np.ndarray | None = None,
+    link: str = "probit",
 ) -> PosteriorEffects:
     """Compute posterior over NDE / NIE / TE from MCMC parameter samples.
 
-    For each posterior draw (alpha, beta, gamma, sigma_m, mu_m, alpha0), we do a
-    small Monte Carlo integration over the mediator distribution to convert from
-    the coefficients to the probability-scale effects.
+    ``link`` must be the link the draws were fitted under, and it is ``"probit"``
+    by default because that is the link of the pre-registered estimand and of
+    ``mediation.fit_mediation_model``. Prefer ``mediation.natural_effects_from_trace``,
+    which reads the link off the trace instead of trusting a call site.
+
+    Under ``"probit"`` the mediator integral is elementary, so the conversion is
+    the exact closed form in ``closed_form`` (the same function the maximum-likelihood
+    path uses, which is what keeps one definition of the estimand in the package)
+    and ``n_mc_per_draw`` is ignored. Under ``"logit"`` there is no elementary
+    integral, so each draw gets a small Monte Carlo integration over the mediator
+    distribution; that branch is for the logistic generator in ``synthetic.py``.
 
     ``mu_m_samples`` and ``alpha0_samples`` are the baseline-intercept draws from
     a model fitted with ``intercepts=True``; pass them whenever the fit had
@@ -110,6 +126,8 @@ def posterior_natural_effects(
     treats both intercepts as exactly zero, which is the pre-2026-09-07
     behaviour.
     """
+    if link not in ("probit", "logit"):
+        raise ValueError(f"link must be 'probit' or 'logit', got {link!r}.")
     rng = np.random.default_rng(rng_seed)
     n_draws = len(alpha_samples)
     if not (len(beta_samples) == len(gamma_samples) == len(sigma_m_samples) == n_draws):
@@ -120,6 +138,18 @@ def posterior_natural_effects(
     )
     if len(mu_m_samples) != n_draws or len(alpha0_samples) != n_draws:
         raise ValueError("Intercept sample arrays must match the other draws in length.")
+
+    if link == "probit":
+        nde_samples, nie_samples, _ = probit_natural_effects_closed_form_samples(
+            np.asarray(alpha_samples, dtype=float),
+            np.asarray(beta_samples, dtype=float),
+            np.asarray(gamma_samples, dtype=float),
+            np.asarray(sigma_m_samples, dtype=float),
+            rho=0.0,
+            mu_m=mu_m_samples,
+            alpha0=alpha0_samples,
+        )
+        return _summarise(nde_samples, nie_samples, cri)
 
     nde_samples = np.empty(n_draws)
     nie_samples = np.empty(n_draws)
@@ -142,6 +172,11 @@ def posterior_natural_effects(
         nde_samples[i] = py_x1_m0 - py_x0_m0
         nie_samples[i] = py_x1_m1 - py_x1_m0
 
+    return _summarise(nde_samples, nie_samples, cri)
+
+
+def _summarise(nde_samples: np.ndarray, nie_samples: np.ndarray, cri: float) -> PosteriorEffects:
+    """Means, equal-tailed credible intervals and the draws themselves."""
     te_samples = nde_samples + nie_samples
     lo_q = (1.0 - cri) / 2.0
     hi_q = 1.0 - lo_q

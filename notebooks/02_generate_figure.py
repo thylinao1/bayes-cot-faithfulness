@@ -38,9 +38,12 @@ def main() -> None:
         target_accept=0.95,
         random_seed=0,
         progressbar=False,
+        link="logit",
     )
     alpha_s, beta_s, gamma_s, sigma_s = extract_parameter_samples(trace)
-    pe = posterior_natural_effects(alpha_s, beta_s, gamma_s, sigma_s, n_mc_per_draw=2_000)
+    pe = posterior_natural_effects(
+        alpha_s, beta_s, gamma_s, sigma_s, n_mc_per_draw=2_000, link="logit"
+    )
 
     # Dark house style shared with the sensitivity figure and the project site.
     use_house_style()
