@@ -46,13 +46,11 @@
     const mde = mdeAt(n);
     nEl.textContent = 'n = ' + n;
     mdeEl.textContent = mde.toFixed(1) + '%';
-    if (mde <= TARGET) {
-      chip.textContent = 'adequately powered';
-      chip.className = 'chip chip-clear';
-    } else {
-      chip.textContent = 'underpowered';
-      chip.className = 'chip chip-flag';
-    }
+    // One narrow property: the smallest true rate at which a run of size n has an
+    // 80 percent chance of seeing at least one event (1 - 0.2^(1/n)). Not power for
+    // a mediation effect, a model difference, or a calibration estimate.
+    chip.textContent = 'detects at least one event at ' + mde.toFixed(1) + '% or above';
+    chip.className = 'chip chip-clear';
   }
 
   slider.addEventListener('input', () => update(posToN(parseFloat(slider.value))));
