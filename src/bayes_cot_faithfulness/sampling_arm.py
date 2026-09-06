@@ -81,7 +81,11 @@ def shannon_entropy(answers: Sequence[str | None]) -> float | None:
     dist = answer_distribution(answers)
     if not dist:
         return None
-    return -sum(p * math.log(p) for p in dist.values() if p > 0)
+    # `+ 0.0` normalizes NEGATIVE ZERO. A unanimous item gives -(1 * log 1) = -0.0, which
+    # is equal to 0.0 and compares equal everywhere, but prints as "-0.0" in a record and
+    # reads like a bug to whoever opens it next. Job 826025's artifact carries -0.0 on the
+    # 21 unanimous items; those values ARE zero.
+    return -sum(p * math.log(p) for p in dist.values() if p > 0) + 0.0
 
 
 def normalized_answer_entropy(

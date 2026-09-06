@@ -416,3 +416,10 @@ def test_an_unparsed_sample_is_counted_not_forced(tmp_path):
     assert block["n_scorable"] == 16
     assert block["n_unscorable"] == 16
     assert block["normalized_entropy"] == 0.0
+
+
+def test_a_unanimous_item_reports_positive_zero_not_negative_zero():
+    """-(1 * log 1) is -0.0, which is equal to 0.0 but prints like a bug in a record."""
+    import math as _math
+    assert not _math.copysign(1.0, shannon_entropy(["A"] * 32)) < 0
+    assert not _math.copysign(1.0, normalized_answer_entropy(["A"] * 32, 4)) < 0

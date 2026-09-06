@@ -55,3 +55,30 @@ tests/test_concurrency_probe.py .....                                    [100%]
 ============================== 5 passed in 0.42s ===============================
 exit=0
 
+
+=== FALSIFICATION PROOF: the hyphenated-arm-name check in bcf/throughput.py ===
+date: 2026-09-07T04:25:25+08:00
+Found by reading job 826025's own throughput.json, not by a test: the sampling arm
+was billed 1,710 calls when it made 28, because ARM_RE did not match repeat-curves.
+
+--- baseline ---
+tests/test_bcf_throughput.py ..........                                  [100%]
+
+============================== 10 passed in 0.04s ==============================
+exit=0
+
+--- the regex put back the way it was ([a-z]+, no hyphen) ---
+  reverted ARM_RE to the [a-z]+ form
+    assert "repeat-curves" in by_arm, sorted(by_arm)
+E   AssertionError: ['sampling']
+E   assert 'repeat-curves' in {'sampling': {'arm': 'sampling', 'seconds': 14.0, 'n_calls': 5, 'n_full_generations': 5, ...}}
+=========================== short test summary info ============================
+FAILED tests/test_bcf_throughput.py::test_a_hyphenated_arm_name_gets_its_own_interval
+========================= 1 failed, 9 passed in 0.04s ==========================
+exit=1
+
+--- restored ---
+tests/test_bcf_throughput.py ..........                                  [100%]
+
+============================== 10 passed in 0.02s ==============================
+exit=0
