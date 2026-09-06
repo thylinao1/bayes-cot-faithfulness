@@ -27,6 +27,10 @@
 # Fail proof (this is run and recorded, not assumed):
 #   BCF_WAVE_FAKE_CARDS="h200-141=1" bcf/jury_wave.sh --dry-run judges.tsv   -> exit 1
 
+# Runs on the CLUSTER, not on the Mac. It uses associative arrays, which macOS's bundled
+# bash 3.2.57 does not have, so on the Mac every invocation including --help dies with
+# "a100: unbound variable". That is the shell, not the script; the cluster runs bash 5.2.21.
+# bcf/wave.sh has the same property. Test it with `ssh soc` and --dry-run.
 set -uo pipefail
 
 MAX_SUBMIT_JOBS=32
