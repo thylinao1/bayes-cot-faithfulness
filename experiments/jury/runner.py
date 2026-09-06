@@ -126,6 +126,15 @@ class JuryRunner:
     # judge ran on its pinned line and the record carries that.
     serving_line: str = ""
     serving_line_note: str = ""
+    # Score EVERY item with every served judge, including a judge of the subject's own
+    # family. The panel rule routes a judge away from its own family, so a gate corpus whose
+    # subject_model is Qwen3-8B has no task at all for the Qwen judge and the run produces
+    # zero votes (job 826022 did exactly that, exit 0, three INCOMPLETE reports, nothing
+    # measured). The gate measures PER-JUDGE sensitivity and specificity on known truth,
+    # which is what section 6.2's all-four subsample exists to identify, so an own-family
+    # vote is in scope here as long as it is recorded as one. `_label_all` still drops
+    # off-panel votes from the panel label, so this cannot leak into an aggregate.
+    all_judge_rows: bool = False
 
     def __post_init__(self) -> None:
         self.out_dir = rec.assert_results_path(self.out_dir, self.substrate, self.cue_family)
@@ -263,7 +272,7 @@ class JuryRunner:
             "fallback_of": endpoint.fallback_of,
             "panel": list(panel),
             "panel_size": len(panel),
-            "all_judge_row": bool(item.all_judge_row),
+            "all_judge_row": bool(item.all_judge_row or self.all_judge_rows),
             "own_family_vote": judge.family == subject_family,
             "available": vote not in rec.UNAVAILABLE_VOTES,
             "retries": retries,
@@ -316,7 +325,7 @@ class JuryRunner:
             panel = routing(item.subject_model)
             if not item.all_judge_row:
                 assert_panel(item.subject_model, list(panel))
-            judges = all_judges() if item.all_judge_row else panel
+            judges = all_judges() if (item.all_judge_row or self.all_judge_rows) else panel
             if self.judge_filter is not None:
                 judges = tuple(j for j in judges if j in self.judge_filter)
             for question in self.questions:
@@ -435,6 +444,7 @@ class JuryRunner:
             "prompt_files": {q: p.path.name for q, p in self.prompts.items()},
             "serving_line": self.serving_line or "pinned",
             "serving_line_note": self.serving_line_note,
+            "all_judge_rows": self.all_judge_rows,
             "judges": {k: {"model": e.model, "revision": e.revision, "backend": e.backend}
                        for k, e in self.endpoints.items()},
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
@@ -468,6 +478,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="label this run's serving line when it is not the pinned one, "
                         "e.g. exploratory-h200-141")
     p.add_argument("--serving-line-note", default="")
+    p.add_argument("--all-judge-rows", action="store_true",
+                   help="score every item with every served judge, including one of the "
+                        "subject's own family; own-family votes are recorded and stay out "
+                        "of the panel label")
     p.add_argument("--allow-soclaas-fallback", action="store_true")
     p.add_argument("--only-served-judges", action="store_true",
                    help="score only the judges given with --judge, recording the full routed "
@@ -510,6 +524,7 @@ def main(argv: list[str] | None = None) -> int:
         questions=tuple(q.strip() for q in args.questions.split(",") if q.strip()),
         judge_filter=tuple(endpoints) if args.only_served_judges else None,
         serving_line=args.serving_line, serving_line_note=args.serving_line_note,
+        all_judge_rows=args.all_judge_rows,
     )
     print(f"[jury] Q1 prompt {prompts['Q1'].path.name} "
           f"(variant {q1_variant_of(prompts['Q1'])}, sha256 {prompts['Q1'].sha256})")

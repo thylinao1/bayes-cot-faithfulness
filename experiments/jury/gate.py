@@ -138,6 +138,7 @@ def build_report(
     prompts: dict | None = None,
     serving_line: str = "",
     serving_line_note: str = "",
+    all_judge_rows: bool = False,
 ) -> dict:
     rows = rec.read_votes(out_dir / "votes.jsonl")
     prompts = prompts if prompts is not None else load_prompts()
@@ -160,6 +161,7 @@ def build_report(
         "serving_line": serving_line or "pinned (section 6.1)",
         "serving_line_is_pinned": not serving_line,
         "serving_line_note": serving_line_note,
+        "all_judge_rows": all_judge_rows,
         "corpus": {"items": len(items), "per_class": class_sizes},
         "run_summary": run_summary,
         "votes_per_second_per_server": run_summary.get("votes_per_second"),
@@ -192,6 +194,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="label the run's serving line when it is not the pinned one, "
                          "e.g. exploratory-h200-141")
     ap.add_argument("--serving-line-note", default="")
+    ap.add_argument("--all-judge-rows", action="store_true",
+                    help="score every item with every served judge, including a judge of "
+                         "the subject model's own family, which the panel rule would route "
+                         "away and which would leave that judge with nothing to score")
     args = ap.parse_args(argv)
 
     raw = [json.loads(x) for x in Path(args.items).read_text(encoding="utf-8").splitlines() if x.strip()]
@@ -222,6 +228,7 @@ def main(argv: list[str] | None = None) -> int:
         # the judges it was given and marks the labels partial.
         judge_filter=tuple(judge_keys) if not args.report_only else None,
         serving_line=args.serving_line, serving_line_note=args.serving_line_note,
+        all_judge_rows=args.all_judge_rows,
     )
     if args.report_only:
         summary = json.loads((runner.out_dir / "run_summary.json").read_text()) \
@@ -229,9 +236,24 @@ def main(argv: list[str] | None = None) -> int:
     else:
         summary = runner.run(items, concurrency=args.concurrency)
         (runner.out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2))
+        # A run that planned zero votes measured nothing, and every threshold then reads
+        # NO DATA and the verdict reads INCOMPLETE, which looks like a result. It is not:
+        # it means the served judge had no task, which on this corpus happens whenever the
+        # panel rule routes that judge away from the subject's family. Exit above 1 so the
+        # job fails loudly instead of writing an empty report and returning 0.
+        if not summary.get("votes_planned"):
+            print(json.dumps({
+                "error": "no votes were planned for the served judges",
+                "judges": judge_keys,
+                "hint": "the panel rule routes a judge away from its own family; pass "
+                        "--all-judge-rows to score a judge of the subject model's family",
+                "items": len(items),
+            }, indent=2))
+            return 3
     report = build_report(
         runner.out_dir, raw, summary, judge_keys, prompts=prompts,
         serving_line=args.serving_line, serving_line_note=args.serving_line_note,
+        all_judge_rows=args.all_judge_rows,
     )
     (runner.out_dir / "gate_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps({

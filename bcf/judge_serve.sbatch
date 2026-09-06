@@ -40,7 +40,7 @@
 # Optional : BCF_OUT_ROOT BCF_PORT_BASE BCF_CONCURRENCY BCF_GATE_LIMIT BCF_SEED
 #            BCF_NUM_PREDICT BCF_SERVER_WAIT BCF_TP BCF_JUDGE_CACHE BCF_CACHE_BUDGET_GB
 #            BCF_RESUME BCF_Q1_PROMPT BCF_OUT_SLUG BCF_SERVING_LINE BCF_SERVING_NOTE
-#            BCF_HOME_USAGE_TTL_H
+#            BCF_HOME_USAGE_TTL_H BCF_ALL_JUDGE_ROWS
 #
 # BCF_Q1_PROMPT names which Q1 prompt file the gate loads ("a" is the file of record,
 # "b" and "c" the revisions). It also takes a list, separated by "+" in a job table and by
@@ -99,6 +99,12 @@ if [ -n "$SERVING_LINE" ] && [ -z "$SERVING_NOTE" ]; then
 fi
 RESUME_FLAG=""
 [ -n "${BCF_RESUME:-}" ] && RESUME_FLAG="--resume"
+# The panel rule routes a judge away from its own family, so serving ONLY the Qwen judge
+# against a corpus whose subject_model is Qwen3-8B plans zero votes and writes an empty
+# report. Set this to score every item with the served judge and record the own-family vote
+# as one.
+ALL_ROWS_FLAG=""
+[ -n "${BCF_ALL_JUDGE_ROWS:-}" ] && ALL_ROWS_FLAG="--all-judge-rows"
 
 # vLLM 0.28 JIT-compiles the FlashInfer top-k/top-p sampler on first use and that build is
 # node dependent (job 825480 died on xgph10 after loading the weights). Every judge call is
@@ -311,7 +317,7 @@ for variant in "${Q1_VARIANTS[@]}"; do
     --substrate "$SUBSTRATE" --cue-family "$CUE" \
     --seed "$SEED" --concurrency "$CONCURRENCY" --num-predict "$NUM_PREDICT" \
     --q1-prompt "$variant" \
-    $RESUME_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
+    $RESUME_FLAG $ALL_ROWS_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
   st=${PIPESTATUS[0]}
   echo "[gate] Q1 variant ${variant} finished at $(date -Is) with status ${st}" | ts | tee -a "$LOG"
   # 1 is a FAILED THRESHOLD, which is a result. Anything above 1 is the job breaking.

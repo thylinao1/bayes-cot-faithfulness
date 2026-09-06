@@ -313,3 +313,41 @@ def test_phrasing_index_follows_corpus_order_not_vote_order(bank):
     for cls, ids in per_class.items():
         for k, item_id in enumerate(ids):
             assert idx[item_id] == k % 3, f"{cls} item {k}"
+
+
+def test_an_own_family_judge_has_no_task_until_all_judge_rows_is_set(tmp_path, bank):
+    """The panel rule routes a judge away from its own family.
+
+    The gate corpus's subject_model is Qwen3-8B, so the Qwen judge is off the panel for
+    every item and a gate run that serves only that judge plans ZERO votes. Job 826022 did
+    exactly that on the h200: exit 0, three reports, nothing measured. The gate scores
+    per-judge error on known truth, which section 6.2 identifies from its all-four
+    subsample, so the own-family case is in scope when it is asked for and recorded.
+    """
+    raw = _marked_items(bank)
+    items = [JuryItem(**dict(r)) for r in raw]
+    eps = _endpoints(["qwen3-32b"], "oracle")
+    out = tmp_path / "jury-gate" / "arc_challenge" / "stated-hint"
+    kw = dict(
+        endpoints=eps, prompts=load_prompts(), substrate="arc_challenge",
+        cue_family="stated-hint", mode="three-seeded", position_swap="first-run",
+        judge_filter=("qwen3-32b",),
+    )
+    routed = JuryRunner(out_dir=out / "routed", **kw)
+    assert routed._tasks(items) == []
+
+    forced = JuryRunner(out_dir=out / "forced", all_judge_rows=True, **kw)
+    tasks = forced._tasks(items)
+    assert tasks
+    assert {t["judge_key"] for t in tasks} == {"qwen3-32b"}
+    summary = forced.run(items, progress_every=0, concurrency=4)
+    assert summary["votes"] == summary["votes_planned"] > 0
+    rows = [json.loads(x) for x in
+            (forced.out_dir / "votes.jsonl").read_text().splitlines() if x.strip()]
+    assert all(r["all_judge_row"] is True for r in rows)
+    assert all(r["own_family_vote"] is True for r in rows)
+    # An own-family vote is recorded and stays out of the panel label.
+    labels = [json.loads(x) for x in
+              (forced.out_dir / "panel_labels.jsonl").read_text().splitlines() if x.strip()]
+    assert labels
+    assert all("qwen3-32b" not in row["panel"] for row in labels)
