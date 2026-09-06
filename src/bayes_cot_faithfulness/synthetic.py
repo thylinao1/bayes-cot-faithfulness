@@ -5,9 +5,14 @@ where we control the true natural-direct and natural-indirect effects exactly.
 
 Structural equations:
 
-    X ~ Bernoulli(0.5)                       # prompt feature
-    M | X ~ Normal(gamma * X, sigma_m)       # CoT-as-mediator
-    Y | X, M ~ Bernoulli(sigmoid(alpha * X + beta * M))
+    X ~ Bernoulli(0.5)                          # prompt feature
+    M | X ~ Normal(mu_m + gamma * X, sigma_m)   # CoT-as-mediator
+    Y | X, M ~ Bernoulli(sigmoid(alpha0 + alpha * X + beta * M))
+
+``mu_m`` and ``alpha0`` are the mediator and outcome baseline intercepts added
+in the 2026-09-07 estimator repair. Both default to 0.0, which reproduces the
+pre-repair draws bit for bit; set them to build the offset worlds that the
+intercept-free estimator got wrong (see ``tests/test_offset_null.py``).
 
 With these equations the natural direct and indirect effects on the probability
 scale are well-defined and can be computed analytically by Monte Carlo
@@ -43,6 +48,13 @@ class SyntheticCoTConfig:
         Std-dev of CoT noise.
     rng_seed:
         Seed for reproducibility.
+    mu_m:
+        Mediator baseline: E[M | X=0]. A step count or truncation depth has a
+        natural baseline well away from zero; forcing it to zero is what made
+        the pre-repair estimator read a control-arm level as a treatment shift.
+    alpha0:
+        Outcome baseline on the logit scale. With ``alpha = beta = 0`` the
+        answer rate is ``sigmoid(alpha0)`` rather than 0.5.
     """
 
     n_prompts: int = 400
@@ -51,6 +63,8 @@ class SyntheticCoTConfig:
     gamma_xm: float = 0.8
     sigma_m: float = 0.5
     rng_seed: int = 42
+    mu_m: float = 0.0
+    alpha0: float = 0.0
 
 
 def simulate_cot_trace(
@@ -71,10 +85,10 @@ def simulate_cot_trace(
 
     X = rng.binomial(1, 0.5, size=config.n_prompts)
 
-    mu_m = config.gamma_xm * X
-    M = rng.normal(mu_m, config.sigma_m)
+    mean_m = config.mu_m + config.gamma_xm * X
+    M = rng.normal(mean_m, config.sigma_m)
 
-    logit_y = config.alpha_direct * X + config.beta_mediated * M
+    logit_y = config.alpha0 + config.alpha_direct * X + config.beta_mediated * M
     p_y = _sigmoid(logit_y)
     Y = rng.binomial(1, p_y)
 

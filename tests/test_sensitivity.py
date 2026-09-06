@@ -9,6 +9,7 @@ from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
     breakdown_frontier,
     fit_probit_mediation_map,
+    natural_effects_from_fit,
     partial_identification_bounds,
     probit_natural_effects,
     robustness_interval,
@@ -125,8 +126,8 @@ def test_breakdown_frontier_finds_positive_rho_star() -> None:
     assert bf.robustness == pytest.approx(abs(bf.rho_star_pos), abs=1e-6)
 
     # the effect is genuinely near zero at the reported crossing.
-    a, b, g, s = fit_probit_mediation_map(X, M, Y, bf.rho_star_pos)
-    _, nie_star, _ = probit_natural_effects(a, b, g, s, bf.rho_star_pos, n_mc=80_000, rng_seed=0)
+    fit_star = fit_probit_mediation_map(X, M, Y, bf.rho_star_pos)
+    _, nie_star, _ = natural_effects_from_fit(fit_star, bf.rho_star_pos, n_mc=80_000, rng_seed=0)
     assert abs(nie_star) < 0.01
 
 
@@ -146,8 +147,8 @@ def test_partial_id_bounds_bracket_and_sign_identify() -> None:
         gamma_xm=0.8, sigma_m=0.5, rho_confound=0.5, rng_seed=7,
     )
     X, M, Y = simulate_confounded_cot(cfg)
-    a0, b0, g0, s0 = fit_probit_mediation_map(X, M, Y, 0.0)
-    _, nie0, _ = probit_natural_effects(a0, b0, g0, s0, 0.0, n_mc=80_000, rng_seed=0)
+    fit0 = fit_probit_mediation_map(X, M, Y, 0.0)
+    _, nie0, _ = natural_effects_from_fit(fit0, 0.0, n_mc=80_000, rng_seed=0)
 
     tight = partial_identification_bounds(X, M, Y, rho_bar=0.5, n_mc=80_000, n_grid=21)
     assert tight.lower <= nie0 <= tight.upper
@@ -174,11 +175,11 @@ def test_ignorability_assumption_biases_nie_but_true_rho_recovers() -> None:
         cfg.rho_confound, n_mc=300_000, rng_seed=1,
     )
 
-    a0, b0, g0, s0 = fit_probit_mediation_map(X, M, Y, 0.0)
-    _, nie_ign, _ = probit_natural_effects(a0, b0, g0, s0, 0.0, n_mc=300_000, rng_seed=2)
+    fit0 = fit_probit_mediation_map(X, M, Y, 0.0)
+    _, nie_ign, _ = natural_effects_from_fit(fit0, 0.0, n_mc=300_000, rng_seed=2)
 
-    aT, bT, gT, sT = fit_probit_mediation_map(X, M, Y, cfg.rho_confound)
-    _, nie_true, _ = probit_natural_effects(aT, bT, gT, sT, cfg.rho_confound, n_mc=300_000, rng_seed=3)
+    fitT = fit_probit_mediation_map(X, M, Y, cfg.rho_confound)
+    _, nie_true, _ = natural_effects_from_fit(fitT, cfg.rho_confound, n_mc=300_000, rng_seed=3)
 
     bias_ignorability = abs(nie_ign - true_nie)
     err_true_rho = abs(nie_true - true_nie)
@@ -186,4 +187,4 @@ def test_ignorability_assumption_biases_nie_but_true_rho_recovers() -> None:
     assert err_true_rho < 0.02
     assert bias_ignorability > 0.03
     assert err_true_rho < bias_ignorability
-    assert bT == pytest.approx(cfg.beta_mediated, abs=0.1)
+    assert fitT.beta == pytest.approx(cfg.beta_mediated, abs=0.1)

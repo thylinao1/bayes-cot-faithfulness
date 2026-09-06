@@ -84,6 +84,13 @@ def test_hierarchical_recovers_mu_beta_and_shrinks() -> None:
     lo, hi = np.quantile(mu_beta, [0.025, 0.975])
     assert lo <= cfg.mu_beta <= hi
 
+    # The repaired model fits both baselines; on this process they are truly zero,
+    # so free intercepts must not cost the recovery above.
+    for name in ("mu_0", "mu_m"):
+        draws = post[name].values.flatten()
+        band = np.quantile(draws, [0.025, 0.975])
+        assert band[0] <= 0.0 <= band[1], f"{name} credible interval excludes truth 0"
+
     pooled_beta_g = post["beta_g"].values.reshape(-1, cfg.n_groups).mean(axis=0)
     nopool = no_pool_beta(group, X, M, Y)
     true_beta_g = truth["beta_g"]
@@ -153,11 +160,22 @@ def test_validate_rejects_noncontiguous_hint_type() -> None:
         build_hierarchical_model(group, X, M, Y, hint_type=hint_type)
 
 
-def test_build_model_baseline_matches_v1_named_vars() -> None:
+def test_build_model_without_intercepts_matches_v1_named_vars() -> None:
+    """``intercepts=False`` returns the pre-2026-09-07 graph, variable for variable."""
+    cfg = HierarchicalCoTConfig(n_groups=4, rng_seed=7)
+    group, X, M, Y, _ = simulate_hierarchical_cot(cfg)
+    model = build_hierarchical_model(group, X, M, Y, intercepts=False)
+    assert set(model.named_vars) == _V1_NAMED_VARS
+    for absent in ("delta", "alpha_h", "beta_h", "mu_0", "mu_m"):
+        assert absent not in model.named_vars
+
+
+def test_build_model_default_adds_only_the_two_intercepts() -> None:
+    """The repaired default is v1 plus a population intercept and a mediator one."""
     cfg = HierarchicalCoTConfig(n_groups=4, rng_seed=7)
     group, X, M, Y, _ = simulate_hierarchical_cot(cfg)
     model = build_hierarchical_model(group, X, M, Y)
-    assert set(model.named_vars) == _V1_NAMED_VARS
+    assert set(model.named_vars) - _V1_NAMED_VARS == {"mu_0", "mu_m"}
     for absent in ("delta", "alpha_h", "beta_h"):
         assert absent not in model.named_vars
 
@@ -188,7 +206,7 @@ def test_build_model_full_extension_has_all_new_vars() -> None:
     model = build_hierarchical_model(
         group, X, M, Y, covariates=cov, covariate_names=["clue_need"], hint_type=hint_type
     )
-    added = set(model.named_vars) - _V1_NAMED_VARS
+    added = set(model.named_vars) - _V1_NAMED_VARS - {"mu_0", "mu_m"}
     assert {"delta", "alpha_h", "beta_h", "z_alpha_h", "z_beta_h"} <= added
 
 

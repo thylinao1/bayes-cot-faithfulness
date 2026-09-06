@@ -49,8 +49,8 @@ from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
     breakdown_frontier,
     fit_probit_mediation_map,
+    natural_effects_from_fit,
     partial_identification_bounds,
-    probit_natural_effects,
     sensitivity_sweep,
     simulate_confounded_cot,
 )
@@ -224,10 +224,8 @@ def smoke_test(
     """
     X, M, Y = simulate_confounded_cot(config)
 
-    alpha, beta, gamma, sigma_m = fit_probit_mediation_map(X, M, Y, 0.0)
-    nde0, nie0, te0 = probit_natural_effects(
-        alpha, beta, gamma, sigma_m, 0.0, n_mc=n_mc, rng_seed=rng_seed
-    )
+    fit = fit_probit_mediation_map(X, M, Y, 0.0)
+    nde0, nie0, te0 = natural_effects_from_fit(fit, 0.0, n_mc=n_mc, rng_seed=rng_seed)
     bf = breakdown_frontier(X, M, Y, key="nie", n_mc=n_mc, rng_seed=rng_seed)
     pid = partial_identification_bounds(
         X, M, Y, rho_bar=rho_bar, key="nie", n_mc=n_mc, rng_seed=rng_seed
@@ -239,6 +237,7 @@ def smoke_test(
         "rho_star": bf.robustness,
         "rho_star_pos": bf.rho_star_pos,
         "survives_full_range": bf.survives_full_range,
+        "unresolved": bf.unresolved,
         "rho_bar": pid.rho_bar,
         "nie_lower": pid.lower,
         "nie_upper": pid.upper,

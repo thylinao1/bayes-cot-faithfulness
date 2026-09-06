@@ -23,6 +23,7 @@ import numpy as np
 from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
     fit_probit_mediation_map,
+    natural_effects_from_fit,
     partial_identification_bounds,
     probit_natural_effects,
     robustness_interval,
@@ -59,8 +60,8 @@ def main() -> None:
     print(f"        True TE  = {true_te:+.4f}")
 
     print("\n[3/4] What an analyst sees if they assume sequential ignorability (rho=0)")
-    a0, b0, g0, s0 = fit_probit_mediation_map(X, M, Y, 0.0)
-    nde0, nie0, _ = probit_natural_effects(a0, b0, g0, s0, 0.0, n_mc=300_000, rng_seed=2)
+    fit0 = fit_probit_mediation_map(X, M, Y, 0.0)
+    nde0, nie0, _ = natural_effects_from_fit(fit0, 0.0, n_mc=300_000, rng_seed=2)
     print(f"        NIE assuming rho=0:  {nie0:+.4f}   (true {true_nie:+.4f})")
     print(f"        bias from ignoring confounding: {nie0 - true_nie:+.4f}")
 
