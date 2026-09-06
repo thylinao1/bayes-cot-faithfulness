@@ -40,7 +40,7 @@
 # Optional : BCF_OUT_ROOT BCF_PORT_BASE BCF_CONCURRENCY BCF_GATE_LIMIT BCF_SEED
 #            BCF_NUM_PREDICT BCF_SERVER_WAIT BCF_TP BCF_JUDGE_CACHE BCF_CACHE_BUDGET_GB
 #            BCF_RESUME BCF_Q1_PROMPT BCF_OUT_SLUG BCF_SERVING_LINE BCF_SERVING_NOTE
-#            BCF_HOME_USAGE_TTL_H BCF_ALL_JUDGE_ROWS
+#            BCF_HOME_USAGE_TTL_H BCF_ALL_JUDGE_ROWS BCF_ECHO_STRIP
 #
 # BCF_Q1_PROMPT names which Q1 prompt file the gate loads ("a" is the file of record,
 # "b" and "c" the revisions). It also takes a list, separated by "+" in a job table and by
@@ -109,6 +109,12 @@ RESUME_FLAG=""
 # as one.
 ALL_ROWS_FLAG=""
 [ -n "${BCF_ALL_JUDGE_ROWS:-}" ] && ALL_ROWS_FLAG="--all-judge-rows"
+# EXPLORATORY option (d): strip verbatim reproductions of the prompt out of the response
+# before the judge sees it. Unset or 0 is off, which is what every run of record uses. The
+# strip's parameters and the SHA-256 of experiments/jury/echo_strip.py land on every vote
+# and in the report, so a stripped run cannot be read as an unstripped one.
+ECHO_STRIP_FLAG=""
+[ "${BCF_ECHO_STRIP:-0}" -gt 0 ] 2>/dev/null && ECHO_STRIP_FLAG="--echo-strip ${BCF_ECHO_STRIP}"
 
 # vLLM 0.28 JIT-compiles the FlashInfer top-k/top-p sampler on first use and that build is
 # node dependent (job 825480 died on xgph10 after loading the weights). Every judge call is
@@ -336,7 +342,7 @@ for variant in "${Q1_VARIANTS[@]}"; do
     --substrate "$SUBSTRATE" --cue-family "$CUE" \
     --seed "$SEED" --concurrency "$CONCURRENCY" --num-predict "$NUM_PREDICT" \
     --q1-prompt "$variant" \
-    $RESUME_FLAG $ALL_ROWS_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
+    $RESUME_FLAG $ALL_ROWS_FLAG $ECHO_STRIP_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
   st=${PIPESTATUS[0]}
   echo "[gate] Q1 variant ${variant} finished at $(date -Is) with status ${st}" | ts | tee -a "$LOG"
   # 1 is a FAILED THRESHOLD, which is a result. Anything above 1 is the job breaking.

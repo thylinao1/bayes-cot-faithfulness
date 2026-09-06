@@ -1,0 +1,19 @@
+# RUN OF RECORD, pinned a100-80 line (section 6.1), Qwen3-32B bf16 ALONE on one card.
+# A NEW file rather than an edit of bcf/judges_gate_a100.tsv, which is quoted on the record
+# as the unchanged run-of-record table and stays byte-identical. Three things differ and
+# each has a measured reason:
+#   BCF_ALL_JUDGE_ROWS=1  the panel rule routes the Qwen judge away from a corpus whose
+#                         subject_model is Qwen3-8B, so without this the job plans ZERO
+#                         votes and exits 0 with three INCOMPLETE reports (job 826022).
+#   BCF_NUM_PREDICT=1024  at the default 256 this judge spends its budget inside its
+#                         reasoning block and never emits the JSON: 161 of job 826023's
+#                         first 334 votes were malformed (Q1 69/90, Q2 56/120, gate 36/124),
+#                         against a ceiling of 0.05. num_predict is a RUN parameter; the
+#                         thresholds, the corpus, the prompt files and the panel rule are
+#                         untouched and the report records the value that ran.
+#   BCF_Q1_PROMPT=a+b+c   all three Q1 files on the one served judge, one gate run each.
+# MEM is 128G, not the 120G of the older row, to match the standing host-memory rule for a
+# 24B to 35B judge. Host RAM is a submission parameter and changes no measurement.
+# SUBMIT ONE AT A TIME through bcf/jury_wave.sh, which refuses when the live a100-80
+# headroom counting every campaign's jobs is zero.
+qwen3-32b	a100-80	08:00:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=qwen3-32b-a100	BCF_ALL_JUDGE_ROWS=1	BCF_NUM_PREDICT=1024

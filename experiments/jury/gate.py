@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 
 from . import records as rec
+from . import echo_strip as es
 from .aggregate import test_retest
 from .family_map import JUDGE_BY_KEY
 from .gate_thresholds import HIGHER_IS_BETTER, THRESHOLDS, thresholds_sha256
@@ -139,6 +140,7 @@ def build_report(
     serving_line: str = "",
     serving_line_note: str = "",
     all_judge_rows: bool = False,
+    input_transform: dict | None = None,
 ) -> dict:
     rows = rec.read_votes(out_dir / "votes.jsonl")
     prompts = prompts if prompts is not None else load_prompts()
@@ -162,6 +164,10 @@ def build_report(
         "serving_line_is_pinned": not serving_line,
         "serving_line_note": serving_line_note,
         "all_judge_rows": all_judge_rows,
+        # What was done to the item text before the judge saw it. Empty means the corpus as
+        # built. A run with the echo strip of option (d) carries the strip's parameters and
+        # its SHA-256 here and on every vote, so the two can never be confused.
+        "input_transform": dict(input_transform or {}),
         "corpus": {"items": len(items), "per_class": class_sizes},
         "run_summary": run_summary,
         "votes_per_second_per_server": run_summary.get("votes_per_second"),
@@ -194,6 +200,13 @@ def main(argv: list[str] | None = None) -> int:
                     help="label the run's serving line when it is not the pinned one, "
                          "e.g. exploratory-h200-141")
     ap.add_argument("--serving-line-note", default="")
+    ap.add_argument("--echo-strip", type=int, default=0, metavar="MIN_CHARS",
+                    help="EXPLORATORY option (d): before the judge sees an item, remove "
+                         "every contiguous span of at least MIN_CHARS characters that "
+                         "appears verbatim in the prompt the response was produced from. "
+                         "0 is off, which is the default and the only value any run of "
+                         "record has used. The parameters and the SHA-256 of "
+                         "experiments/jury/echo_strip.py land on every vote.")
     ap.add_argument("--all-judge-rows", action="store_true",
                     help="score every item with every served judge, including a judge of "
                          "the subject model's own family, which the panel rule would route "
@@ -203,6 +216,15 @@ def main(argv: list[str] | None = None) -> int:
     raw = [json.loads(x) for x in Path(args.items).read_text(encoding="utf-8").splitlines() if x.strip()]
     if args.limit:
         raw = raw[: args.limit]
+    input_transform: dict = {}
+    if args.echo_strip:
+        raw, strip_summary = es.strip_items(raw, args.echo_strip)
+        input_transform = es.parameters(args.echo_strip)
+        input_transform["per_class"] = strip_summary
+        input_transform["items_changed"] = sum(b["changed"] for b in strip_summary.values())
+        print(f"[gate] ECHO STRIP at {args.echo_strip} chars: "
+              f"{input_transform['items_changed']} of {len(raw)} items changed, "
+              f"echo_strip.py sha256 {input_transform['echo_strip_sha256']}")
     items = [JuryItem(**dict(r)) for r in raw]
     endpoints = {}
     judge_keys = []
@@ -229,6 +251,7 @@ def main(argv: list[str] | None = None) -> int:
         judge_filter=tuple(judge_keys) if not args.report_only else None,
         serving_line=args.serving_line, serving_line_note=args.serving_line_note,
         all_judge_rows=args.all_judge_rows,
+        input_transform=input_transform,
     )
     if args.report_only:
         summary = json.loads((runner.out_dir / "run_summary.json").read_text()) \
@@ -253,13 +276,14 @@ def main(argv: list[str] | None = None) -> int:
     report = build_report(
         runner.out_dir, raw, summary, judge_keys, prompts=prompts,
         serving_line=args.serving_line, serving_line_note=args.serving_line_note,
-        all_judge_rows=args.all_judge_rows,
+        all_judge_rows=args.all_judge_rows, input_transform=input_transform,
     )
     (runner.out_dir / "gate_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps({
         "verdict": report["verdict"],
         "q1_prompt": report["prompt_files"]["Q1"],
         "serving_line": report["serving_line"],
+        "input_transform": report["input_transform"].get("echo_strip_min_chars", "none"),
         "per_judge": {j["judge_key"]: {"verdict": j["verdict"], "failed": j["failed_metrics"]}
                       for j in report["per_judge"]},
         "votes_per_second": report["votes_per_second_per_server"],

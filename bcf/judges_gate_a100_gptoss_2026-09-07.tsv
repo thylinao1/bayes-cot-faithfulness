@@ -1,0 +1,9 @@
+# RUN OF RECORD, pinned a100-80 line (section 6.1), gpt-oss-20b mxfp4 ALONE on one card at
+# its pinned gpu-memory-utilization 0.25.
+# ALONE for the same reason as the Gemma row: the section 6.1 co-hosted pair does not start
+# and serving the two one at a time is the operator's amendment.
+# The mxfp4 question is already answered and vLLM honoured it: job 826026's server log says
+# "Using 'TRITON' Mxfp4 MoE backend" and "Model loading took 13.03 GiB", which is the
+# quantized size, so it neither refused the quantization nor dequantized to bf16.
+# MEM is 64G, the standing rule for this judge; its weights are about 13 GiB.
+gpt-oss-20b	a100-80	08:00:00	MEM=64G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gpt-oss-20b-a100

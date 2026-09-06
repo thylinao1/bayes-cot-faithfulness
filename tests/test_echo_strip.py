@@ -231,3 +231,69 @@ def test_projection_moves_only_the_restated_class():
         assert obs[name]["numerator"] == proj[name]["numerator"], name
     # even with a perfect strip this configuration still fails, on paraphrase recall
     assert proj["recall_paraphrased_disclosure"]["verdict"] == "FAIL"
+
+
+def test_a_stripped_run_records_the_transform_on_every_vote_and_in_the_report(tmp_path, items):
+    """A run made with the strip can never be read as a run without it: the parameters and
+    echo_strip.py's own SHA-256 are on every vote row and in the report."""
+    from experiments.jury import gate as gate_mod
+    from experiments.jury.family_map import routing
+    from experiments.jury.prompt_files import load_prompts
+    from experiments.jury.runner import JuryItem, JuryRunner
+    from tests.test_jury_gate import _endpoints
+
+    small = []
+    seen: dict[str, int] = {}
+    for item in items:
+        cls = item["meta"]["gate_class"]
+        if seen.get(cls, 0) >= 2:
+            continue
+        seen[cls] = seen.get(cls, 0) + 1
+        small.append(item)
+    raw, summary = es.strip_items(small, 200)
+    transform = es.parameters(200)
+    transform["items_changed"] = sum(b["changed"] for b in summary.values())
+    assert transform["items_changed"] == 0  # at 200 the strip is a no-op on this corpus
+
+    panel = list(routing("Qwen3-8B"))
+    out = tmp_path / "jury-gate" / "arc_challenge" / "stated-hint"
+    prompts = load_prompts(q1="b")
+    runner = JuryRunner(
+        endpoints=_endpoints(panel, "no"), prompts=prompts, out_dir=out,
+        substrate="arc_challenge", cue_family="stated-hint", mode="three-seeded",
+        position_swap="first-run", input_transform=transform,
+    )
+    run_summary = runner.run([JuryItem(**dict(r)) for r in raw], progress_every=0, concurrency=4)
+    rows = [json.loads(x) for x in (out / "votes.jsonl").read_text().splitlines() if x.strip()]
+    assert rows
+    for row in rows:
+        assert row["input_transform"]["echo_strip"] is True
+        assert row["input_transform"]["echo_strip_min_chars"] == 200
+        assert row["input_transform"]["echo_strip_sha256"] == es.module_sha256()
+    report = gate_mod.build_report(runner.out_dir, raw, run_summary, panel, prompts=prompts,
+                                   input_transform=transform)
+    assert report["input_transform"]["echo_strip_sha256"] == es.module_sha256()
+    assert report["prompt_files"]["Q1"] == "q1_mention_2026-09-07b.md"
+
+
+def test_an_unstripped_run_records_an_empty_transform(tmp_path, items):
+    from experiments.jury import gate as gate_mod
+    from experiments.jury.family_map import routing
+    from experiments.jury.prompt_files import load_prompts
+    from experiments.jury.runner import JuryItem, JuryRunner
+    from tests.test_jury_gate import _endpoints
+
+    raw = items[:4]
+    panel = list(routing("Qwen3-8B"))
+    out = tmp_path / "jury-gate" / "arc_challenge" / "stated-hint"
+    prompts = load_prompts(q1="b")
+    runner = JuryRunner(
+        endpoints=_endpoints(panel, "no"), prompts=prompts, out_dir=out,
+        substrate="arc_challenge", cue_family="stated-hint", mode="three-seeded",
+        position_swap="first-run",
+    )
+    run_summary = runner.run([JuryItem(**dict(r)) for r in raw], progress_every=0, concurrency=4)
+    rows = [json.loads(x) for x in (out / "votes.jsonl").read_text().splitlines() if x.strip()]
+    assert rows and all(row["input_transform"] == {} for row in rows)
+    report = gate_mod.build_report(runner.out_dir, raw, run_summary, panel, prompts=prompts)
+    assert report["input_transform"] == {}
