@@ -1,0 +1,60 @@
+{
+  "effects_curve_vs_sensitivity_sweep": {
+    "n_datasets": 33,
+    "n_rho_points_each": 6,
+    "n_rows": 3600,
+    "max_abs_nie_difference": 0.003346130580262674,
+    "mean_abs_nie_difference": 0.0016535997978885924
+  },
+  "rho_star_point_vs_breakdown_frontier": {
+    "n_comparisons": 33,
+    "n_rows": 3600,
+    "max_abs_difference": 0.0009649706926707635,
+    "mean_abs_difference": 8.659158576341145e-05,
+    "examples": [
+      [
+        "f1_no_cue_effect",
+        0.0351616760800709,
+        0.035040152973204154
+      ],
+      [
+        "f1_no_cue_effect",
+        0.05257695579917332,
+        0.052727411710291036
+      ],
+      [
+        "f1_no_cue_effect",
+        0.015364457491899054,
+        0.01546241630199405
+      ],
+      [
+        "f2_direct_bypass_alpha0",
+        0.6056856907747806,
+        0.6056783362250818
+      ],
+      [
+        "f2_direct_bypass_alpha0",
+        0.6534765924073219,
+        0.6535254773090706
+      ]
+    ]
+  },
+  "monte_carlo_truth_vs_analytic_truth": {
+    "n_conditions": 11,
+    "n_monte_carlo_rows": 2000000,
+    "max_abs_difference": 0.0006533610904333464,
+    "per_condition": {
+      "f1_no_cue_effect": 0.0,
+      "f2_direct_bypass_alpha0": 0.00013361207442441625,
+      "f2_direct_bypass_alpha0.5": 0.0002740619382622933,
+      "f2_direct_bypass_alpha1": 0.0003203374188136543,
+      "f2_direct_bypass_alpha2": 0.0004064063678141938,
+      "f2_direct_bypass_alpha3": 0.00043413111969914375,
+      "f3_shared_cause": 0.0002870610934767037,
+      "f4_rationalization": 0.0006533610904333464,
+      "f5_redundant_explanation": 0.00011460683741271183,
+      "f6_answer_copying": 0.00025725393145709097,
+      "f7_opposing_effects": 0.0003895446368422095
+    }
+  }
+}
