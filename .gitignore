@@ -128,6 +128,14 @@ experiments/results/mechanism_battery/*
 !experiments/results/mechanism_battery/cross_checks.json
 !experiments/results/mechanism_battery/pymc_subset.json
 !experiments/results/mechanism_battery/dataset_rows.csv
+# The 2026-09-07 acceptance gate for the scale-aware priors (W4c): the same seeds and the
+# same datasets as the battery's own subset, run on their own so the gate has an artifact
+# of its own rather than only a line in a log. One command reproduces it:
+# `python experiments/mechanism_battery.py --only-pymc --out <dir>`.
+!experiments/results/mechanism_battery_pymc_gate/
+experiments/results/mechanism_battery_pymc_gate/*
+!experiments/results/mechanism_battery_pymc_gate/pymc_subset.json
+!experiments/results/mechanism_battery_pymc_gate/pymc_only_summary.json
 experiments/data/arc_*.json
 # P3 candidate-substrate fetches (gitignored like the ARC fetches; the runner
 # fingerprints their sha256 in its checkpoint params, and committing LogiQA 2.0
