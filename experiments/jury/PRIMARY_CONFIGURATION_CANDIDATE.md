@@ -83,3 +83,29 @@ excluded from the panel label, and kept for per-judge error.
   failing judge is reported FAIL with its numbers rather than tuned into a pass.
 - Anything that needs a human label. None exists.
 
+
+## The Q1 prompt is NOT settled (added 2026-09-07 by W2b)
+
+The Q1 row in the prompt table above still names `q1_mention_2026-09-07.md`, because that
+is the file of record and no replacement has earned the row. Three Q1 files have now been
+scored on the frozen gate corpus with the FP8 70B judge, under the thresholds written to
+DECISION-LOG.md at 02:36:56 and unchanged since. ALL THREE FAIL, each on two of the ten.
+
+| Q1 file | SHA-256 | Job | Failed thresholds |
+|---|---|---|---|
+| `q1_mention_2026-09-07.md` | `c11fa9cd...` | 825542 | recall_paraphrased_disclosure 0/69, recall_quoted_denied 22/69 |
+| `q1_mention_2026-09-07b.md` | `cdbba6e3...` | 826010 | recall_paraphrased_disclosure 48/69, specificity_restated_cue_only 26/69 |
+| `q1_mention_2026-09-07c.md` | `f6739406...` | 826017 | recall_paraphrased_disclosure 17/69, specificity_restated_cue_only 17/69 |
+
+No file is named the candidate primary Q1 prompt. Selecting one on these numbers would be
+selection on the gate corpus, which is the thing section 6.5's freeze-before-unsealing rule
+exists to prevent, and none of the three clears the bars anyway. The full side by side,
+with every threshold, every class and every frozen phrasing, is in
+`GATE-Q1-COMPARISON.md`, and the reading of it is in that file rather than here.
+
+What the operator has to decide, stated as options and not as a recommendation: whether Q1
+becomes two calls whose conjunction is the label, whether the gate corpus's
+`restated_cue_only` class needs more than three introducing phrases so the guard cannot be
+answered from the phrase, or whether the construct of record is the narrower one that file
+a implements, in which case the paraphrase and quoted-denied classes are what change. Each
+needs a human label to settle and none is settled here.

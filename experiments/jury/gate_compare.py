@@ -198,7 +198,7 @@ def header_table(configs: list[Config]) -> list[str]:
     return lines
 
 
-def build(configs: list[Config], title: str, preamble: str) -> str:
+def build(configs: list[Config], title: str, preamble: str, postamble: str = "") -> str:
     out = [f"# {title}", "", preamble, "", "## Configurations", ""]
     out += header_table(configs)
     out += ["", "## The ten thresholds", ""]
@@ -209,6 +209,8 @@ def build(configs: list[Config], title: str, preamble: str) -> str:
             "Phrasings are the three templates frozen in `synthetic_gate.py`, rotated by "
             "position within each class.", ""]
     out += phrasing_table(configs)
+    if postamble:
+        out += ["", postamble]
     return "\n".join(out) + "\n"
 
 
@@ -220,6 +222,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--title", default="Gate comparison")
     ap.add_argument("--preamble", default="")
+    ap.add_argument("--postamble", default="", help="reading of the tables, placed after them")
     args = ap.parse_args(argv)
     items = read_jsonl(Path(args.items))
     configs = []
@@ -227,7 +230,9 @@ def main(argv: list[str] | None = None) -> int:
         name, _, d = spec.partition("=")
         p = Path(d)
         configs.append(Config(name, p / "gate_report.json", p / "votes.jsonl", items))
-    Path(args.out).write_text(build(configs, args.title, args.preamble), encoding="utf-8")
+    Path(args.out).write_text(
+        build(configs, args.title, args.preamble, args.postamble), encoding="utf-8"
+    )
     print(f"wrote {args.out} from {len(configs)} configuration(s)")
     return 0
 
