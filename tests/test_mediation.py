@@ -43,6 +43,10 @@ def test_recovers_coefficients_on_synthetic_data():
     """End-to-end smoke test: on synthetic data with known coefficients,
     the posterior means should land within 3 posterior-std-devs of truth.
 
+    ``simulate_cot_trace`` is a logistic generator, so this fit asks for the
+    logistic link. The estimator of record is the probit one; its recovery is
+    checked against the closed form in ``tests/test_link_agreement.py``.
+
     Marked slow because PyMC sampling takes ~30s.
     """
     config = SyntheticCoTConfig(
@@ -56,6 +60,7 @@ def test_recovers_coefficients_on_synthetic_data():
     X, M, Y = simulate_cot_trace(config)
     trace = fit_mediation_model(
         X, M, Y, n_samples=600, n_tune=600, n_chains=2, progressbar=False, random_seed=0,
+        link="logit",
     )
     alpha, beta, gamma, sigma_m = extract_parameter_samples(trace)
 

@@ -56,7 +56,7 @@ def test_posterior_effects_recover_truth_with_oracle_samples():
 
     pe = posterior_natural_effects(
         alpha_samples, beta_samples, gamma_samples, sigma_samples,
-        n_mc_per_draw=2_000, rng_seed=5,
+        n_mc_per_draw=2_000, rng_seed=5, link="logit",
     )
 
     # With oracle parameters and enough MC, the posterior point estimates
@@ -76,7 +76,7 @@ def test_contains_returns_correct_booleans():
 
     pe = posterior_natural_effects(
         alpha_samples, beta_samples, gamma_samples, sigma_samples,
-        n_mc_per_draw=1_000, rng_seed=99,
+        n_mc_per_draw=1_000, rng_seed=99, link="logit",
     )
 
     # Truth set to 0 should be contained; truth set to 100 should not.

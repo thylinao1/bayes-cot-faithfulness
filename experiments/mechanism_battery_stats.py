@@ -16,11 +16,11 @@ import math
 import numpy as np
 from scipy.stats import beta as beta_dist
 
-from bayes_cot_faithfulness.effects import posterior_natural_effects
 from bayes_cot_faithfulness.mediation import (
     extract_intercept_samples,
     extract_parameter_samples,
     fit_mediation_model,
+    natural_effects_from_trace,
 )
 from bayes_cot_faithfulness.sensitivity import fit_probit_mediation_map
 
@@ -99,6 +99,7 @@ def aggregate(mech, rows, truth_mc: tuple[float, float, float]) -> dict:
         "family": mech.family,
         "label": mech.label,
         "n_rows": rows[0].n_rows,
+        "mean_rows_analysed": float(np.mean([r.rows_analysed for r in rows])),
         "n_datasets": n,
         "truth_analytic": {
             "nde": mech.analytic_truth[0],
@@ -199,11 +200,7 @@ def pymc_subset(
             x, m, y, n_samples=n_samples, n_tune=n_tune, n_chains=n_chains,
             random_seed=int(seed % 2**31), progressbar=False, intercepts=True,
         )
-        alpha, beta, gamma, sigma_m = extract_parameter_samples(trace)
-        mu_m, alpha0 = extract_intercept_samples(trace)
-        eff = posterior_natural_effects(
-            alpha, beta, gamma, sigma_m, mu_m_samples=mu_m, alpha0_samples=alpha0
-        )
+        eff = natural_effects_from_trace(trace)
         summary = az.summary(trace, var_names=["alpha", "beta", "gamma", "sigma_m"])
         per_dataset.append(
             {
@@ -248,22 +245,16 @@ def pymc_subset(
     return out
 
 
-# The standard probit-to-logit coefficient scale factor: a probit slope b corresponds to a
-# logistic slope of about 1.702 b for the same fitted probabilities.
-LOGIT_SCALE = 1.702
-
-
 def prior_scale_probe(mechs, n_rows: int, dataset_index: int, dataset_seed) -> list[dict]:
-    """Why the posterior and the MAP path disagree on some families, on one dataset each.
+    """Where the posterior sits relative to the maximum-likelihood fit, one dataset each.
 
-    The PyMC model's outcome priors are fixed-scale (``alpha0 ~ Normal(0, 1.5)``,
-    ``beta ~ Normal(0, 2)``, as written in ``mediation.fit_mediation_model``), while the
-    mediator baseline got a scale-aware prior in the 2026-09-07 repair. On a mediator with
-    a large baseline level that also drives the answer, the implied outcome intercept sits
-    many prior standard deviations from zero, so the posterior shrinks it and the mediator
-    coefficient together. This probe records, for one seeded dataset per mechanism, the
-    posterior for those two parameters beside the probit MAP fit converted to the logit
-    scale, so the report can name the mechanism instead of describing a gap.
+    Both paths are probit since the 2026-09-07 link audit, and both outcome priors are now
+    stated relative to sd(M) with the mediator centred inside the outcome equation, so the
+    two fits are of the same model and the numbers below are directly comparable with no
+    scale conversion. The probe is kept as a standing check: it is where the fixed-scale
+    priors showed themselves (the posterior interval on alpha0 excluded the value the
+    maximum-likelihood fit implied on a mediator with a baseline near six), so it is the
+    cheapest place to see that failure return.
     """
     out = []
     for mech in mechs:
@@ -290,8 +281,11 @@ def prior_scale_probe(mechs, n_rows: int, dataset_index: int, dataset_seed) -> l
                 "map_beta": float(fit.beta),
                 "map_alpha0": float(fit.alpha0),
                 "map_mu_m": float(fit.mu_m),
-                "map_beta_on_logit_scale": float(fit.beta * LOGIT_SCALE),
-                "map_alpha0_on_logit_scale": float(fit.alpha0 * LOGIT_SCALE),
+                "posterior_interval_contains_map_alpha0": bool(
+                    float(np.quantile(alpha0, 0.025))
+                    <= float(fit.alpha0)
+                    <= float(np.quantile(alpha0, 0.975))
+                ),
             }
         )
     return out

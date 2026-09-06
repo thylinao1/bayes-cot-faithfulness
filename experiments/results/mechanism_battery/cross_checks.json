@@ -40,9 +40,9 @@
     ]
   },
   "monte_carlo_truth_vs_analytic_truth": {
-    "n_conditions": 11,
+    "n_conditions": 15,
     "n_monte_carlo_rows": 2000000,
-    "max_abs_difference": 0.0006533610904333464,
+    "max_abs_difference": 0.0007726605753649585,
     "per_condition": {
       "f1_no_cue_effect": 0.0,
       "f2_direct_bypass_alpha0": 0.00013361207442441625,
@@ -54,7 +54,11 @@
       "f4_rationalization": 0.0006533610904333464,
       "f5_redundant_explanation": 0.00011460683741271183,
       "f6_answer_copying": 0.00025725393145709097,
-      "f7_opposing_effects": 0.0003895446368422095
+      "f7_opposing_effects": 0.0003895446368422095,
+      "f8_nonlinear_depth": 0.0007726605753649585,
+      "f9_varying_variance": 0.00010148657625408397,
+      "f10_sparse_groups": 0.0006366187233425302,
+      "f11_mediator_missingness": 0.0006533610904333464
     }
   }
 }

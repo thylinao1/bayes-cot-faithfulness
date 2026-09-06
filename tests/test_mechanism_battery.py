@@ -45,11 +45,104 @@ TRUTH_MC_FAST = 400_000  # enough to resolve an effect to about 0.002
 # --------------------------------------------------------------------------- #
 # The families and their truths
 # --------------------------------------------------------------------------- #
-def test_battery_has_seven_families_and_eleven_conditions() -> None:
+def test_battery_has_eleven_families_and_fifteen_conditions() -> None:
+    """Seven original families plus the four added for element 12 part (iv)."""
     conditions = mb.build_conditions()
-    assert len(conditions) == 11
+    assert len(conditions) == 15
     assert {c.family for c in conditions} == set(mb.FAMILY_ORDER)
-    assert len({c.key for c in conditions}) == 11
+    assert len({c.key for c in conditions}) == 15
+    assert len(mb.PART_IV_FAMILIES) == 4
+
+
+# --------------------------------------------------------------------------- #
+# Element 12 part (iv): the misspecification list
+# --------------------------------------------------------------------------- #
+PART_IV_ITEMS = (
+    "baseline offsets",
+    "nonlinear depth response",
+    "varying variance",
+    "correlated errors",
+    "sparse groups",
+    "treatment-induced latent states",
+    "missingness",
+    "near-zero and cancelling effects",
+)
+
+
+def test_every_misspecification_on_the_list_has_a_generator() -> None:
+    """The list is section 13's, verbatim, and every entry names real code."""
+    # Arrange
+    keys = {c.key for c in mb.build_conditions()}
+
+    # Assert
+    assert tuple(mbr.PART_IV_LIST) == PART_IV_ITEMS
+    for item, entries in mbr.PART_IV_LIST.items():
+        assert entries, f"{item} has no generator"
+        for condition_key, class_name in entries:
+            assert condition_key in keys, f"{item} names an unknown condition {condition_key}"
+            assert hasattr(mb, class_name), f"{item} names an unknown class {class_name}"
+
+
+def test_the_generator_line_table_points_at_real_class_definitions() -> None:
+    """The mapping table's file and line are read from the source, not typed in."""
+    # Act
+    lines = mbr._generator_lines()
+    source = (REPO / "experiments" / "mechanism_battery.py").read_text().splitlines()
+
+    # Assert
+    for entries in mbr.PART_IV_LIST.values():
+        for _, class_name in entries:
+            assert source[lines[class_name] - 1].startswith(f"class {class_name}(")
+
+
+def test_part_iv_families_declare_their_own_gate_size() -> None:
+    """At least 400 datasets at n = 350 each, which is the pre-registered minimum."""
+    for mech in mb.build_conditions():
+        if mech.family in mb.PART_IV_FAMILIES:
+            assert mech.sample_sizes == (mb.PART_IV_ROWS,)
+            assert mech.min_datasets >= 400
+        else:
+            assert mech.sample_sizes is None and mech.min_datasets is None
+
+
+def test_missingness_family_drops_the_long_traces_and_keeps_the_full_truth() -> None:
+    """Complete-case data, population truth: the loss is measurement, not mechanism."""
+    # Arrange
+    mech = mb.MediatorMissingness()
+    n = 4_000
+
+    # Act
+    x, m, y = mech.draw(n, mb.dataset_seed(0, n))
+    full = probit_natural_effects_closed_form(
+        0.0, mb.RATIONALIZE_BETA, mb.RATIONALIZE_GAMMA, 1.0, 0.0,
+        mb.BASELINE_STEPS, mech.alpha0,
+    )
+
+    # Assert
+    assert len(x) < n, "no rows went missing"
+    assert 0.5 * n < len(x) < 0.95 * n, f"retention {len(x) / n:.3f} is not a partial loss"
+    assert m.mean() < mb.BASELINE_STEPS + 0.5 * mb.RATIONALIZE_GAMMA, (
+        "the surviving traces should be the shorter ones"
+    )
+    for got, want in zip(mech.analytic_truth, full):
+        assert got == pytest.approx(want, abs=1e-12)
+    assert len(m) == len(x) and len(y) == len(x)
+
+
+def test_sparse_groups_share_one_item_effect_across_each_block_of_rows() -> None:
+    """The item effect is constant within an item and independent across items."""
+    # Arrange
+    mech = mb.SparseGroups()
+    rng = np.random.default_rng(0)
+    n = mb.GROUP_SIZE * 40
+
+    # Act
+    z = mech.noise(rng, n)
+    per_row = z["u"].reshape(-1, mb.GROUP_SIZE)
+
+    # Assert
+    assert np.allclose(per_row.std(axis=1), 0.0), "an item's rows must share one effect"
+    assert per_row[:, 0].std() > 0.3, "items must actually differ"
 
 
 @pytest.mark.parametrize("mech", mb.build_conditions(), ids=lambda m: m.key)
@@ -295,7 +388,7 @@ def test_end_to_end_run_writes_a_report_with_the_three_required_outcomes(tmp_pat
         [
             "--out", str(out), "--n-datasets", "2", "--n-bootstrap", "8",
             "--n-rows", "350", "--workers", "1", "--crosscheck-datasets", "1",
-            "--skip-pymc",
+            "--part-iv-datasets", "2", "--skip-pymc",
         ]
     )
     report = (out / "report.md").read_text()
@@ -304,6 +397,11 @@ def test_end_to_end_run_writes_a_report_with_the_three_required_outcomes(tmp_pat
     assert code == 0
     for name in ("R1 direct bypass", "R2 shared cause", "R3 no cue effect"):
         assert name in report
+    assert "Element 12 part (iv): the misspecification list" in report
+    for item in PART_IV_ITEMS:
+        assert f"| {item} |" in report
+    for family in mb.PART_IV_FAMILIES:
+        assert family in report
     assert (out / "battery_results.json").exists()
     assert (out / "dataset_rows.csv").exists()
     assert chr(0x2014) not in report and chr(0x2013) not in report

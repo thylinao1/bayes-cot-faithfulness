@@ -1,12 +1,13 @@
 """Bayesian causal mediation analysis for LLM chain-of-thought faithfulness."""
 
+from bayes_cot_faithfulness.closed_form import (
+    probit_natural_effects_closed_form,
+    probit_natural_effects_closed_form_samples,
+)
 from bayes_cot_faithfulness.diagnostics import (
     SamplerHealth,
     assert_sampler_healthy,
     raise_if_unhealthy,
-)
-from bayes_cot_faithfulness.closed_form import (
-    probit_natural_effects_closed_form,
 )
 from bayes_cot_faithfulness.effects import (
     PosteriorEffects,
@@ -33,6 +34,7 @@ from bayes_cot_faithfulness.mediation import (
     extract_intercept_samples,
     extract_parameter_samples,
     fit_mediation_model,
+    natural_effects_from_trace,
 )
 from bayes_cot_faithfulness.positive_control import (
     DECORATIVE_CONFIG,
@@ -111,12 +113,14 @@ __all__ = [
     "minimum_detectable_rate",
     "monte_carlo_true_effects",
     "natural_effects_from_fit",
+    "natural_effects_from_trace",
     "nie_sensitivity_curve",
     "no_pool_beta",
     "posterior_natural_effects",
     "prior_sensitivity_sweep",
     "probit_natural_effects",
     "probit_natural_effects_closed_form",
+    "probit_natural_effects_closed_form_samples",
     "proportion_ci_upper",
     "raise_if_unhealthy",
     "robustness_interval",

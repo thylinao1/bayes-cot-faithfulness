@@ -81,6 +81,7 @@ def main() -> int:
         target_accept=0.95,
         random_seed=0,
         progressbar=True,
+        link="logit",
     )
     alpha_s, beta_s, gamma_s, sigma_s = extract_parameter_samples(trace)
     print(f"        alpha  posterior mean = {alpha_s.mean():+.3f}  (true {config.alpha_direct:+.3f})")
@@ -89,7 +90,9 @@ def main() -> int:
     print(f"        sigma  posterior mean = {sigma_s.mean():+.3f}  (true {config.sigma_m:+.3f})")
 
     print("\n[4/5] Posterior recovery on the probability scale")
-    pe = posterior_natural_effects(alpha_s, beta_s, gamma_s, sigma_s, n_mc_per_draw=2_000, rng_seed=0)
+    pe = posterior_natural_effects(
+        alpha_s, beta_s, gamma_s, sigma_s, n_mc_per_draw=2_000, rng_seed=0, link="logit"
+    )
     coverage = pe.contains(true_nde, true_nie, true_te)
     print(f"        NDE posterior:  {pe.nde_mean:+.3f}  [95% CrI: {pe.nde_lo:+.3f}, {pe.nde_hi:+.3f}]   contains truth: {coverage['nde']}")
     print(f"        NIE posterior:  {pe.nie_mean:+.3f}  [95% CrI: {pe.nie_lo:+.3f}, {pe.nie_hi:+.3f}]   contains truth: {coverage['nie']}")
@@ -134,6 +137,7 @@ def _offset_null_gate() -> bool:
 
     trace = fit_mediation_model(
         X, M, Y, n_samples=600, n_tune=600, n_chains=2, random_seed=0, progressbar=False,
+        link="logit",
     )
     alpha_s, beta_s, gamma_s, sigma_s = extract_parameter_samples(trace)
     mu_m_s, alpha0_s = extract_intercept_samples(trace)
@@ -141,17 +145,17 @@ def _offset_null_gate() -> bool:
     print(f"        gamma  posterior mean = {gamma_s.mean():+.3f}  (true {NULL_CONFIG.gamma_xm:+.3f})")
     pe = posterior_natural_effects(
         alpha_s, beta_s, gamma_s, sigma_s, n_mc_per_draw=1_000, rng_seed=0,
-        mu_m_samples=mu_m_s, alpha0_samples=alpha0_s,
+        mu_m_samples=mu_m_s, alpha0_samples=alpha0_s, link="logit",
     )
     print(f"        NIE posterior:  {pe.nie_mean:+.4f}  [95% CrI: {pe.nie_lo:+.4f}, {pe.nie_hi:+.4f}]")
     print(f"        TE  posterior:  {pe.te_mean:+.4f}  [95% CrI: {pe.te_lo:+.4f}, {pe.te_hi:+.4f}]")
 
     legacy = fit_mediation_model(
         X, M, Y, n_samples=600, n_tune=600, n_chains=2, random_seed=0,
-        progressbar=False, intercepts=False,
+        progressbar=False, intercepts=False, link="logit",
     )
     la, lb, lg, ls = extract_parameter_samples(legacy)
-    lpe = posterior_natural_effects(la, lb, lg, ls, n_mc_per_draw=1_000, rng_seed=0)
+    lpe = posterior_natural_effects(la, lb, lg, ls, n_mc_per_draw=1_000, rng_seed=0, link="logit")
     print(
         f"        for contrast, the pre-2026-09-07 intercept-free model reports "
         f"NIE {lpe.nie_mean:+.4f} [{lpe.nie_lo:+.4f}, {lpe.nie_hi:+.4f}]"

@@ -124,6 +124,20 @@ COPY_GAMMA_M = 0.3  # the cue also lengthens the text a little, carrying no answ
 OPPOSING_ALPHA = -BYPASS_BETA * BYPASS_GAMMA  # cancels the mediated path: total effect exactly 0
 OFFSET_TARGET = 0.2  # clean-arm latent offset, keeping the probit away from saturation
 
+# Element 12 part (iv) additions (2026-09-07, W4c). Each is family 4's world with
+# exactly one thing changed, so the comparison against f4_rationalization is clean.
+PART_IV_DATASETS = 400  # the pre-registered minimum per gate for these families
+PART_IV_ROWS = 350
+NONLINEAR_KAPPA = 1.5  # size of the saturating depth response
+NONLINEAR_TAU = 1.0  # depth scale over which that response saturates
+HETERO_SIGMA_CLEAN = 0.6  # mediator sd in the clean arm
+HETERO_SIGMA_CUED = 1.8  # and in the cued arm: the cue widens the spread threefold
+GROUP_SD = 0.8  # item-level random effect in the outcome, carried by no covariate
+GROUP_SIZE = 5  # rows per item: 70 items at n = 350, which is what makes them sparse
+MISSING_C0 = 1.2  # complete-case retention at the mediator baseline
+MISSING_C1 = 0.6  # how fast retention falls as the trace gets longer
+GAUSS_HERMITE_NODES = 200
+
 ALPHA0_BASELINE = float(norm.ppf(BASELINE_ACCURACY))
 
 
@@ -143,6 +157,10 @@ class Mechanism:
     family: str
     label: str
     analytic_truth: tuple[float, float, float]
+    # Families added for element 12 part (iv) run at one sample size and at their own
+    # dataset count; the seven original families leave both at None and are unaffected.
+    sample_sizes: tuple[int, ...] | None = None
+    min_datasets: int | None = None
 
     def noise(self, rng: np.random.Generator, n: int) -> dict[str, np.ndarray]:
         raise NotImplementedError
@@ -346,8 +364,165 @@ class OpposingEffects(Mechanism):
         ).astype(int)
 
 
+def _gauss_hermite(f, n_nodes: int = GAUSS_HERMITE_NODES) -> float:
+    """``E[f(Z)]`` for ``Z ~ Normal(0, 1)`` by Gauss-Hermite quadrature.
+
+    The analytic truth of a family whose outcome is nonlinear in the mediator is a
+    one-dimensional Gaussian integral with no elementary form. Quadrature is a second
+    route to it that shares no code with the family's Monte Carlo truth, which is the
+    point: the battery reports the difference between the two.
+    """
+    nodes, weights = np.polynomial.hermite_e.hermegauss(n_nodes)
+    return float(np.sum(weights * f(nodes)) / math.sqrt(2.0 * math.pi))
+
+
+class NonlinearDepthResponse(Mechanism):
+    """Family 4's world with a saturating depth response instead of a linear one."""
+
+    def __init__(self) -> None:
+        self.key = "f8_nonlinear_depth"
+        self.family = "f8_nonlinear_depth"
+        self.label = "saturating (tanh) depth response, estimator assumes linear"
+        self.sample_sizes = (PART_IV_ROWS,)
+        self.min_datasets = PART_IV_DATASETS
+        p0 = _gauss_hermite(lambda e: norm.cdf(self._index(0.0, e)))
+        p1 = _gauss_hermite(lambda e: norm.cdf(self._index(1.0, e)))
+        self.analytic_truth = (0.0, p1 - p0, p1 - p0)
+
+    def _index(self, x, e):
+        """The outcome index at depth ``BASELINE_STEPS + RATIONALIZE_GAMMA*x + e``."""
+        depth_above_baseline = RATIONALIZE_GAMMA * x + e
+        return OFFSET_TARGET + NONLINEAR_KAPPA * np.tanh(depth_above_baseline / NONLINEAR_TAU)
+
+    def noise(self, rng, n):
+        return {"m": rng.normal(0.0, 1.0, n), "y": rng.normal(0.0, 1.0, n)}
+
+    def m_of(self, x, z):
+        return BASELINE_STEPS + RATIONALIZE_GAMMA * x + z["m"]
+
+    def y_of(self, x, m, z):
+        return (self._index(0.0, m - BASELINE_STEPS) + z["y"] > 0.0).astype(int)
+
+
+class VaryingVariance(Mechanism):
+    """The cue widens the spread of the mediator as well as shifting its level."""
+
+    def __init__(self) -> None:
+        self.key = "f9_varying_variance"
+        self.family = "f9_varying_variance"
+        self.label = "arm-dependent mediator variance (0.6 clean, 1.8 cued)"
+        self.sample_sizes = (PART_IV_ROWS,)
+        self.min_datasets = PART_IV_DATASETS
+        self.alpha0 = OFFSET_TARGET - RATIONALIZE_BETA * BASELINE_STEPS
+        p0 = self._p(0.0)
+        p1 = self._p(1.0)
+        self.analytic_truth = (0.0, p1 - p0, p1 - p0)
+
+    def _sigma(self, x):
+        return HETERO_SIGMA_CLEAN + (HETERO_SIGMA_CUED - HETERO_SIGMA_CLEAN) * x
+
+    def _p(self, x: float) -> float:
+        """``P(Y(1, M(x)) = 1)``, exact: the mediator is Gaussian in each arm."""
+        mean_index = OFFSET_TARGET + RATIONALIZE_BETA * RATIONALIZE_GAMMA * x
+        sd = math.sqrt(1.0 + (RATIONALIZE_BETA * self._sigma(x)) ** 2)
+        return float(norm.cdf(mean_index / sd))
+
+    def noise(self, rng, n):
+        return {"m": rng.normal(0.0, 1.0, n), "y": rng.normal(0.0, 1.0, n)}
+
+    def m_of(self, x, z):
+        return BASELINE_STEPS + RATIONALIZE_GAMMA * x + self._sigma(x) * z["m"]
+
+    def y_of(self, x, m, z):
+        return (self.alpha0 + RATIONALIZE_BETA * m + z["y"] > 0.0).astype(int)
+
+
+class SparseGroups(Mechanism):
+    """An item-level effect in the answer, five rows per item, ignored by the estimator.
+
+    The item effect enters the outcome only, so the mediator equation and the marginal
+    outcome model are both correctly specified and the point estimate stays consistent.
+    What breaks is independence between rows, and therefore the row bootstrap.
+    """
+
+    def __init__(self) -> None:
+        self.key = "f10_sparse_groups"
+        self.family = "f10_sparse_groups"
+        self.label = "sparse item-level groups in the answer, five rows per item"
+        self.sample_sizes = (PART_IV_ROWS,)
+        self.min_datasets = PART_IV_DATASETS
+        self.alpha0 = OFFSET_TARGET - RATIONALIZE_BETA * BASELINE_STEPS
+        sd = math.sqrt(1.0 + GROUP_SD**2 + (RATIONALIZE_BETA * 1.0) ** 2)
+        p0 = float(norm.cdf(OFFSET_TARGET / sd))
+        p1 = float(norm.cdf((OFFSET_TARGET + RATIONALIZE_BETA * RATIONALIZE_GAMMA) / sd))
+        self.analytic_truth = (0.0, p1 - p0, p1 - p0)
+
+    def noise(self, rng, n):
+        n_groups = math.ceil(n / GROUP_SIZE)
+        per_group = rng.normal(0.0, GROUP_SD, n_groups)
+        group_of_row = np.arange(n) // GROUP_SIZE
+        return {
+            "m": rng.normal(0.0, 1.0, n),
+            "y": rng.normal(0.0, 1.0, n),
+            "u": per_group[group_of_row],
+        }
+
+    def m_of(self, x, z):
+        return BASELINE_STEPS + RATIONALIZE_GAMMA * x + z["m"]
+
+    def y_of(self, x, m, z):
+        return (self.alpha0 + RATIONALIZE_BETA * m + z["u"] + z["y"] > 0.0).astype(int)
+
+
+class MediatorMissingness(Mechanism):
+    """Family 4's world, analysed complete-case, where long traces go missing.
+
+    A trace that runs long is the one that fails to parse, so the rows that carry the
+    mediated signal are the rows that disappear. The truth is the full population's,
+    because the missingness is a property of the measurement and not of the world.
+    """
+
+    def __init__(self) -> None:
+        self.key = "f11_mediator_missingness"
+        self.family = "f11_mediator_missingness"
+        self.label = "complete-case analysis with mediator-dependent missingness"
+        self.sample_sizes = (PART_IV_ROWS,)
+        self.min_datasets = PART_IV_DATASETS
+        self.alpha0 = OFFSET_TARGET - RATIONALIZE_BETA * BASELINE_STEPS
+        self.analytic_truth = _probit_truth(
+            0.0, RATIONALIZE_BETA, RATIONALIZE_GAMMA, 1.0, BASELINE_STEPS, self.alpha0
+        )
+
+    def noise(self, rng, n):
+        return {
+            "m": rng.normal(0.0, 1.0, n),
+            "y": rng.normal(0.0, 1.0, n),
+            "r": rng.random(n),
+        }
+
+    def m_of(self, x, z):
+        return BASELINE_STEPS + RATIONALIZE_GAMMA * x + z["m"]
+
+    def y_of(self, x, m, z):
+        return (self.alpha0 + RATIONALIZE_BETA * m + z["y"] > 0.0).astype(int)
+
+    def retention(self, m: np.ndarray) -> np.ndarray:
+        """``P(the trace parses | M)``: falling in the mediator, so the loss is MNAR."""
+        return norm.cdf(MISSING_C0 - MISSING_C1 * (m - BASELINE_STEPS))
+
+    def draw(self, n: int, seed: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """The observed rows only. Truth stays the full population's, as it should."""
+        rng = np.random.default_rng(seed)
+        x = rng.binomial(1, 0.5, size=n).astype(int)
+        z = self.noise(rng, n)
+        m = np.asarray(self.m_of(x.astype(float), z), dtype=float)
+        y = np.asarray(self.y_of(x.astype(float), m, z), dtype=int)
+        observed = z["r"] < self.retention(m)
+        return x[observed], m[observed], y[observed]
+
+
 def build_conditions() -> list[Mechanism]:
-    """The 11 evaluated conditions: seven families, family 2 at five bypass strengths."""
+    """Every evaluated condition: eleven families, family 2 at five bypass strengths."""
     conditions: list[Mechanism] = [NoCueEffect()]
     conditions += [DirectBypass(a) for a in BYPASS_ALPHAS]
     conditions += [
@@ -356,9 +531,20 @@ def build_conditions() -> list[Mechanism]:
         RedundantExplanation(),
         AnswerCopying(),
         OpposingEffects(),
+        NonlinearDepthResponse(),
+        VaryingVariance(),
+        SparseGroups(),
+        MediatorMissingness(),
     ]
     return conditions
 
+
+PART_IV_FAMILIES = (
+    "f8_nonlinear_depth",
+    "f9_varying_variance",
+    "f10_sparse_groups",
+    "f11_mediator_missingness",
+)
 
 FAMILY_ORDER = (
     "f1_no_cue_effect",
@@ -368,7 +554,7 @@ FAMILY_ORDER = (
     "f5_redundant_explanation",
     "f6_answer_copying",
     "f7_opposing_effects",
-)
+) + PART_IV_FAMILIES
 
 
 # --------------------------------------------------------------------------- #
@@ -445,6 +631,7 @@ class DatasetResult:
     condition: str
     family: str
     n_rows: int
+    rows_analysed: int
     dataset_index: int
     converged: bool
     degenerate_bootstrap_redraws: int
@@ -483,6 +670,9 @@ def analyse_dataset(
 ) -> DatasetResult:
     """Fit one seeded dataset and return its effects, intervals, verdict and rho behaviour."""
     x, m, y = mech.draw(n_rows, dataset_seed(dataset_index, n_rows))
+    # Not the same as ``n_rows`` for a family whose rows can go missing; the bootstrap
+    # resamples what was actually analysed.
+    n_obs = len(x)
     fit = _fit_at_zero(x, m, y)
     nde, nie, te = probit_natural_effects_closed_form(
         fit.alpha, fit.beta, fit.gamma, fit.sigma_m, 0.0, fit.mu_m, fit.alpha0
@@ -496,7 +686,7 @@ def analyse_dataset(
     redraws = 0
     for b in range(n_bootstrap):
         for _ in range(MAX_BOOTSTRAP_REDRAWS):
-            idx = boot_rng.integers(0, n_rows, n_rows)
+            idx = boot_rng.integers(0, n_obs, n_obs)
             if _usable(x[idx], y[idx]):
                 break
             redraws += 1
@@ -531,6 +721,7 @@ def analyse_dataset(
         condition=mech.key,
         family=mech.family,
         n_rows=n_rows,
+        rows_analysed=n_obs,
         dataset_index=dataset_index,
         converged=bool(fit.converged),
         degenerate_bootstrap_redraws=redraws,
@@ -573,6 +764,8 @@ def cross_checks(conditions: list[Mechanism], n_rows: int, n_datasets: int) -> d
     frontier_diffs: list[float] = []
     frontier_pairs = []
     for mech in conditions:
+        if mech.sample_sizes is not None and n_rows not in mech.sample_sizes:
+            continue
         for i in range(n_datasets):
             x, m, y = mech.draw(n_rows, dataset_seed(i, n_rows))
             fit = _fit_at_zero(x, m, y)
@@ -687,12 +880,34 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--out", default="experiments/results/mechanism_battery")
     parser.add_argument("--n-datasets", type=int, default=N_DATASETS_DEFAULT)
+    parser.add_argument(
+        "--part-iv-datasets",
+        type=int,
+        default=PART_IV_DATASETS,
+        help=(
+            "Datasets per element 12 part (iv) family (families 8 to 11). The "
+            "pre-registered minimum is 400 and that is the default; a smaller value exists "
+            "so the end-to-end test can run the whole pipeline in seconds, and every report "
+            "prints the count it actually used beside every coverage number."
+        ),
+    )
     parser.add_argument("--n-bootstrap", type=int, default=N_BOOTSTRAP_DEFAULT)
     parser.add_argument("--n-pymc", type=int, default=N_PYMC_DEFAULT)
     parser.add_argument("--n-rows", type=int, nargs="+", default=list(N_ROWS_DEFAULT))
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--crosscheck-datasets", type=int, default=3)
     parser.add_argument("--skip-pymc", action="store_true")
+    parser.add_argument(
+        "--only-pymc",
+        action="store_true",
+        help=(
+            "Run only the PyMC subset (and the prior probe), on the same dataset indices "
+            "and seeds as a full run, and write pymc_subset.json plus a small summary. "
+            "This is the acceptance gate for a change to the posterior path; it does not "
+            "write a report, because a report without the bootstrap tables would invite "
+            "reading a partial run as the battery."
+        ),
+    )
     args = parser.parse_args(argv)
 
     # Children are spawned on macOS, so they inherit this and stay single-threaded:
@@ -709,12 +924,24 @@ def main(argv: list[str] | None = None) -> int:
     truths = {c.key: c.truth() for c in conditions}
     aggregates: list[dict] = []
     rows_out: list[dict] = []
-    executor = ProcessPoolExecutor(max_workers=args.workers) if args.workers > 1 else None
+    checks: dict = {}
+    executor = (
+        ProcessPoolExecutor(max_workers=args.workers)
+        if args.workers > 1 and not args.only_pymc
+        else None
+    )
     try:
+        if args.only_pymc:
+            args.n_rows = []
         for n_rows in args.n_rows:
             for mech in conditions:
+                if mech.sample_sizes is not None and n_rows not in mech.sample_sizes:
+                    continue
+                n_datasets = (
+                    args.part_iv_datasets if mech.min_datasets else args.n_datasets
+                )
                 t0 = time.time()
-                rows = run_condition(mech, n_rows, args.n_datasets, args.n_bootstrap, executor)
+                rows = run_condition(mech, n_rows, n_datasets, args.n_bootstrap, executor)
                 agg = stats_mod.aggregate(mech, rows, truths[mech.key])
                 agg["seconds"] = round(time.time() - t0, 1)
                 aggregates.append(agg)
@@ -733,8 +960,9 @@ def main(argv: list[str] | None = None) -> int:
         if executor is not None:
             executor.shutdown()
 
-    checks = cross_checks(conditions, max(args.n_rows), args.crosscheck_datasets)
-    (out_dir / "cross_checks.json").write_text(json.dumps(checks, indent=2))
+    if not args.only_pymc:
+        checks = cross_checks(conditions, max(args.n_rows), args.crosscheck_datasets)
+        (out_dir / "cross_checks.json").write_text(json.dumps(checks, indent=2))
 
     pymc_out: list[dict] = []
     if not args.skip_pymc and args.n_pymc > 0:
@@ -761,6 +989,22 @@ def main(argv: list[str] | None = None) -> int:
         probe = stats_mod.prior_scale_probe(
             [Rationalization(), SharedCause()], PYMC_N_ROWS, 0, dataset_seed
         )
+
+    if args.only_pymc:
+        (out_dir / "pymc_only_summary.json").write_text(
+            json.dumps(
+                {
+                    "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "runtime_seconds": round(time.time() - started, 1),
+                    "settings": vars(args),
+                    "pymc_subset": pymc_out,
+                    "prior_scale_probe": probe,
+                },
+                indent=2,
+            )
+        )
+        print(f"wrote {out_dir}/pymc_subset.json (subset only, no report)")
+        return 0
 
     payload = {
         "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
