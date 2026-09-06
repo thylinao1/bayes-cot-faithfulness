@@ -1,0 +1,38 @@
+[2026-09-07T03:58:32+08:00] === bcf trackg probe: job 826020 on xgph10 at 2026-09-07T03:58:32+08:00 ===
+[2026-09-07T03:58:32+08:00] model=Qwen/Qwen3-8B n_items=30 levels=1,8,32,64 data=/home/e/e1506804/bcf/repo-w3b/experiments/data/arc_challenge.json
+[2026-09-07T03:58:32+08:00] repo=/home/e/e1506804/bcf/repo-w3b out_dir=/home/e/e1506804/bcf/results/w3b-probe-bi
+[2026-09-07T03:58:32+08:00] VLLM_USE_FLASHINFER_SAMPLER=0
+[2026-09-07T03:58:32+08:00] BCF_BATCH_INVARIANT=1
+[2026-09-07T03:58:35+08:00] [devices] torch.cuda.device_count()=1; requested tensor-parallel size 1
+[2026-09-07T03:58:35+08:00] GPU 0: NVIDIA A100 80GB PCIe (UUID: GPU-26b89ee7-09f9-6990-2863-a45efd2d1a2f)
+[2026-09-07T03:58:35+08:00]   MIG 3g.40gb     Device  0: (UUID: MIG-a91aeb48-04c6-5459-bce7-c1383c7a8e3e)
+[2026-09-07T03:58:44+08:00] [revision] Qwen/Qwen3-8B @ b968826d9c46dd6066d109eabc6255188de91218 (vllm 0.28.0)
+[2026-09-07T03:58:44+08:00] [phase A] flag OFF, concurrency 1 only, writing the raw baseline
+[2026-09-07T03:58:44+08:00] [serve:off] VLLM_BATCH_INVARIANT=<unset>
+[2026-09-07T03:58:44+08:00] [serve:off] vllm serve Qwen/Qwen3-8B --revision b968826d9c46dd6066d109eabc6255188de91218 --served-model-name Qwen/Qwen3-8B --port 8000 --host 127.0.0.1 --tensor-parallel-size 1 --max-model-len 8192 --gpu-memory-utilization 0.90 --seed 7 --download-dir /tmp/826020/hf/download
+[2026-09-07T04:02:34+08:00] [serve:off] up at http://127.0.0.1:8000/v1
+[2026-09-07T04:02:34+08:00] [serve:off] (EngineCore pid=23401) INFO 09-07 04:00:16 [cuda.py:486] Using FLASH_ATTN attention backend out of potential backends: ['FLASH_ATTN', 'FLASHINFER', 'TRITON_ATTN', 'FLEX_ATTENTION'].
+[2026-09-07T04:02:36+08:00] [probe] concurrency 1: 30 generations then 30 forced-logprob items
+[2026-09-07T04:04:10+08:00] [probe]   0.3537 gen/s, 13.8848 logprob calls/s, retries 0, failed 0
+[2026-09-07T04:04:10+08:00] [probe] wrote /home/e/e1506804/bcf/results/w3b-probe-bi/probe_results_off.json
+[2026-09-07T04:04:10+08:00] [probe] wrote /home/e/e1506804/bcf/results/w3b-probe-bi/baseline_off_raw.json (concurrency-1 raw, for a later comparison)
+[2026-09-07T04:04:10+08:00] [phase A] finished with status 0
+[2026-09-07T04:04:30+08:00] [phase B] flag ON, levels 1,8,32,64
+[2026-09-07T04:04:30+08:00] [serve:bi] VLLM_BATCH_INVARIANT=1
+[2026-09-07T04:04:30+08:00] [serve:bi] vllm serve Qwen/Qwen3-8B --revision b968826d9c46dd6066d109eabc6255188de91218 --served-model-name Qwen/Qwen3-8B --port 8000 --host 127.0.0.1 --tensor-parallel-size 1 --max-model-len 8192 --gpu-memory-utilization 0.90 --seed 7 --download-dir /tmp/826020/hf/download
+[2026-09-07T04:06:40+08:00] [serve:bi] up at http://127.0.0.1:8000/v1
+[2026-09-07T04:06:40+08:00] [serve:bi] (EngineCore pid=23927) INFO 09-07 04:05:23 [cuda.py:486] Using FLASH_ATTN attention backend out of potential backends: ['FLASH_ATTN', 'TRITON_ATTN', 'FLEX_ATTENTION'].
+[2026-09-07T04:06:40+08:00] [serve:bi] (EngineCore pid=23927) /home/e/e1506804/miniconda3/envs/bcf/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py:2590: UserWarning: Dynamo detected a call to a `functools.lru_cache`-wrapped function at 'batch_invariant.py:141'. Dynamo ignores the cache wrapper and directly traces the wrapped function. Silent incorrectness is only a *potential* risk, not something we have observed. Enable TORCH_LOGS=+dynamo for a DEBUG stack trace.
+[2026-09-07T04:06:40+08:00] [serve:bi] (EngineCore pid=23927)   File "/home/e/e1506804/miniconda3/envs/bcf/lib/python3.12/site-packages/vllm/model_executor/layers/batch_invariant.py", line 141, in matmul_persistent
+[2026-09-07T04:06:42+08:00] [probe] concurrency 1: 30 generations then 30 forced-logprob items
+[2026-09-07T04:10:22+08:00] [probe]   0.1433 gen/s, 11.201 logprob calls/s, retries 0, failed 0
+[2026-09-07T04:10:22+08:00] [probe] concurrency 8: 30 generations then 30 forced-logprob items
+[2026-09-07T04:11:02+08:00] [probe]   0.8556 gen/s, 23.0426 logprob calls/s, retries 0, failed 0
+[2026-09-07T04:11:02+08:00] [probe] concurrency 32: 30 generations then 30 forced-logprob items
+[2026-09-07T04:11:16+08:00] [probe]   2.9196 gen/s, 30.7345 logprob calls/s, retries 0, failed 0
+[2026-09-07T04:11:16+08:00] [probe] concurrency 64: 30 generations then 30 forced-logprob items
+[2026-09-07T04:11:30+08:00] [probe]   2.9208 gen/s, 30.2832 logprob calls/s, retries 0, failed 0
+[2026-09-07T04:11:30+08:00] [probe] wrote /home/e/e1506804/bcf/results/w3b-probe-bi/probe_results.json
+[2026-09-07T04:11:30+08:00] [probe] wrote /home/e/e1506804/bcf/results/w3b-probe-bi/baseline_on_raw.json (concurrency-1 raw, for a later comparison)
+[2026-09-07T04:11:31+08:00] [probe] finished with status 0
+[2026-09-07T04:11:36+08:00] [done] exit_code=0 -> /home/e/e1506804/bcf/results/w3b-probe-bi/exit_code.txt
