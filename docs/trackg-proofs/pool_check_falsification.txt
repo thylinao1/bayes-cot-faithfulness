@@ -1,0 +1,32 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/maksimsilchenko/Developer/bcf-trackg
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 9 items
+
+tests/test_pool_manifest.py ......F..                                    [100%]
+
+=================================== FAILURES ===================================
+____ test_manifest_matches_the_local_pool_when_it_is_present[arc_challenge] ____
+tests/test_pool_manifest.py:85: in test_manifest_matches_the_local_pool_when_it_is_present
+    assert hashlib.sha256(raw).hexdigest() == pool["file_sha256"]
+E   AssertionError: assert 'af80acf6c1a2...f47f7e769c00a' == '0358128cbf4d...4e958b74c17bf'
+E     
+E     - 0358128cbf4d4419637c3bd2b41bcf134d39fe1dabe6508b4d34e958b74c17bf
+E     + af80acf6c1a2786047f481ea4b741d48c401437cc460f64f9e8f47f7e769c00a
+=========================== short test summary info ============================
+FAILED tests/test_pool_manifest.py::test_manifest_matches_the_local_pool_when_it_is_present[arc_challenge]
+========================= 1 failed, 8 passed in 0.06s ==========================
+pytest exit=1
+REFUSING: arc_challenge first 700 items hash 64679fc9d15798b2dca9c7c82993a125542310708647ee64ccd4a3e409848774, not the frozen a48a5bef74ef30d0be729ffb4c90453a8f2390a6bc9bfe05a1a7842200860eaa. The enlargement moved an item that Phase-1 artifacts already refer to by index.
+check exit=1
+REFUSING: arc_challenge first 700 items hash 64679fc9d15798b2dca9c7c82993a125542310708647ee64ccd4a3e409848774, not the frozen a48a5bef74ef30d0be729ffb4c90453a8f2390a6bc9bfe05a1a7842200860eaa. The enlargement moved an item that Phase-1 artifacts already refer to by index.
+regenerate exit=1
+
+PROOF OF FALSIFIABILITY, 2026-09-07 (Track G).
+Injection: items 3 and 4 of experiments/data/arc_challenge.json swapped, inside the
+frozen first-700 prefix. Results above: pytest 1 failed 8 passed exit 1; the manifest
+--check exit 1; and the manifest GENERATOR itself refused (exit 1) rather than writing a
+manifest that blessed the reshuffle. The file restored and re-run: 9 passed, exit 0,
+"manifest matches the pools on disk". The prefix pin therefore fails when an index moves.
