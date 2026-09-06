@@ -145,8 +145,9 @@ def test_malformed_output_is_retried_once_on_the_same_seed_then_recorded_malform
         assert row["vote"] == rec.MALFORMED
         assert row["retries"] == 1
         assert row["available"] is False
-    for ep in eps.values():
-        assert ep.client.calls == 2  # one try plus exactly one retry
+    # for_seed() hands each thread its own client copy, so count on the seeded copies.
+    calls = sum(ep.client.calls for ep in r._seeded.values())
+    assert calls == 6  # 3 judges x (one try plus exactly one retry)
 
 
 def test_a_second_attempt_that_parses_is_kept(tmp_path):
@@ -332,3 +333,76 @@ def test_soclaas_is_ineligible_without_the_decision_log_ruling(tmp_path):
         permissions_path=perms, decision_log_path=log, env={"SOCLAAS_API_KEY": "x"}
     )
     assert res.allowed is False and "ruling" in res.reason
+
+
+def test_concurrent_scoring_writes_every_vote_exactly_once(tmp_path):
+    panel = routing("Qwen3-8B")
+    eps = {k: _endpoint(k, []) for k in panel}
+    items = [
+        JuryItem(item_id=f"i{i}", subject_model="Qwen3-8B", question="q?",
+                 choices=["a", "b", "c", "d"], reasoning="steps", final_answer="B")
+        for i in range(20)
+    ]
+    out = tmp_path / "g" / "arc_challenge" / "stated-hint"
+    r = JuryRunner(
+        endpoints=eps, prompts=load_default_prompts(), out_dir=out,
+        substrate="arc_challenge", cue_family="stated-hint",
+        questions=("Q1",), mode="audit", position_swap="none",
+    )
+    summary = r.run(items, progress_every=0, concurrency=8)
+    rows = rec.read_votes(r.votes_path)
+    n_audit = len(audit_rows([i.item_id for i in items], seed=7))
+    expected = (len(items) - n_audit + n_audit * 3) * len(panel)
+    assert summary["votes"] == expected == len(rows)
+    keys = [rec.vote_key(row) for row in rows]
+    assert len(set(keys)) == len(keys)  # no duplicate work, no lost line
+    assert summary["votes_per_second"] > 0
+    assert len(r.labels_path.read_text().splitlines()) == 20
+
+
+class _FakeModelsClient:
+    def __init__(self, ids):
+        self.ids = ids
+        self.base_url = "http://fake/v1"
+
+    def _get(self, url):
+        return {"data": [{"id": i} for i in self.ids]}
+
+
+def test_the_soclaas_fallback_never_picks_a_coder_or_vision_variant():
+    from experiments.jury.backends import resolve_soclaas_model
+
+    live = [
+        "advanced-vision", "bge-m3", "coding", "default", "gemma4:26b", "llama3.1:8b",
+        "ornith1.0:35b", "qwen3-coder-next", "qwen3-vl:32b", "qwen3.5:9b", "qwen3.6:27b",
+        "qwen3.6:35b", "qwen3.8:27b", "test", "whisper-large-v3",
+    ]
+    client = _FakeModelsClient(live)
+    assert resolve_soclaas_model(client, "Qwen") == "qwen3.8:27b"
+    assert resolve_soclaas_model(client, "Gemma") == "gemma4:26b"
+    assert resolve_soclaas_model(client, "Llama") == "llama3.1:8b"
+    # No gpt-oss model is served, so there is no fallback rather than a wrong-family one.
+    assert resolve_soclaas_model(client, "gpt-oss") is None
+
+
+def test_the_soclaas_endpoint_raises_the_generation_floor_and_vllm_does_not():
+    from experiments.jury.backends import SOCLAAS_MIN_NUM_PREDICT
+
+    seen = {}
+
+    class _Recorder(_FakeClient):
+        def generate(self, prompt, *, num_predict=320):
+            seen["n"] = num_predict
+            return _ok()
+
+    vllm = _endpoint("qwen3-32b", [])
+    vllm.client = _Recorder([])
+    vllm.generate("p", num_predict=256)
+    assert seen["n"] == 256
+
+    fallback = _endpoint("qwen3-32b", [], backend="soclaas", fallback=True)
+    fallback.client = _Recorder([])
+    object.__setattr__(fallback, "min_num_predict", SOCLAAS_MIN_NUM_PREDICT)
+    fallback.generate("p", num_predict=256)
+    assert seen["n"] == SOCLAAS_MIN_NUM_PREDICT
+    assert fallback.for_seed(9).min_num_predict == SOCLAAS_MIN_NUM_PREDICT
