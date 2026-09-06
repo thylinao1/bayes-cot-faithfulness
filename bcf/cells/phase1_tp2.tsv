@@ -1,0 +1,24 @@
+# Phase 1 tensor-parallel-2 serving test. A PLUMBING test, not a memory-fit test: it
+# serves Qwen3-8B on two cards to prove that --nodes=1 --gpus-per-node=<type>:2 gives
+# two devices vLLM can form an NCCL tensor-parallel group across.
+#
+# Two live findings force the GPU type, both verified 2026-09-06:
+#
+# 1. NOT a100-80, though CONTRACT.md line 18 specifies it. Every a100-80 node carries
+#    exactly ONE card (sinfo -o "%n %G": 11 nodes, all gpu:a100-80:1), so
+#    --gpus-per-node=a100-80:2 is rejected at submit time with "Requested node
+#    configuration is not available". Confirmed by job 825233.
+#
+# 2. NOT a100-40 either, though its nodes do carry 2. Slurm serves a100-40 as MIG
+#    3g.40gb SLICES of an A100 80GB, and MIG instances have no peer-to-peer path, so
+#    NCCL cannot build a tensor-parallel group across them. Job 825248 was refused by
+#    the device assertion on exactly this.
+#
+# h100-96 is served as whole cards, 2 per node, 11 nodes: the only type on this cluster
+# that supports tensor parallelism within the account's caps (h200-141 has 4 per node
+# but a per-user cap of 1). At 2 x 96 = 192 GB it is also the right replacement serving
+# line for the 70B dense subjects, which need about 140 GB in bf16.
+# The 70B memory fit is a separate test when the Llama licence lands; this run serves an
+# 8B and never claims otherwise.
+# MODEL	SUBSTRATE	CUE	KEY=VALUE...
+Qwen/Qwen3-8B	arc_challenge	stated-hint	BCF_TP=2	BCF_PORT=8100	BCF_SERVE_MINUTES=20

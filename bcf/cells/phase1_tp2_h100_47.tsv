@@ -1,0 +1,7 @@
+# Same TP=2 plumbing test, on h100-47. h100-96 (the memory-correct 70B line) was
+# 100 percent allocated cluster-wide (every one of its 11 nodes at 2/2 GPUs), so job
+# 825253 could not start. h100-47 has 4 fully idle nodes and a per-user cap of 4.
+# The device assertion runs BEFORE the download, so if h100-47 turns out to be MIG
+# slices like a100-40, this refuses in seconds at zero download cost.
+# MODEL	SUBSTRATE	CUE	KEY=VALUE...
+Qwen/Qwen3-8B	arc_challenge	stated-hint	BCF_TP=2	BCF_PORT=8300	BCF_SERVE_MINUTES=20	BCF_OUT_DIR=/home/e/e1506804/bcf/results/phase1-skeleton/tp2-serving-test-h100-47

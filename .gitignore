@@ -96,6 +96,27 @@ experiments/results/p8_grader_code/*
 experiments/results/p3_powered_aqua/*
 !experiments/results/p3_powered_aqua/arms_summary_llama-3.1-8b-instant.json
 !experiments/results/p3_powered_aqua/numbers_table.txt
+# Phase-1 skeleton and anchor-validation cells on the cluster: the four small,
+# machine-generated artifacts per cell are committed so a verifier can recompute a rate
+# without cluster access; transcripts, checkpoints and server logs stay local like every
+# other run. Each level needs its own un-ignore because the parent rule ends in /*.
+!experiments/results/phase1-skeleton/
+experiments/results/phase1-skeleton/**
+!experiments/results/phase1-skeleton/**/
+!experiments/results/phase1-skeleton/**/arms_summary.json
+!experiments/results/phase1-skeleton/**/run_meta.json
+!experiments/results/phase1-skeleton/**/throughput.json
+!experiments/results/phase1-skeleton/**/logprob_check.json
+!experiments/results/phase1-skeleton/**/exit_code.txt
+!experiments/results/phase1-anchor-mig/
+experiments/results/phase1-anchor-mig/**
+!experiments/results/phase1-anchor-mig/**/
+!experiments/results/phase1-anchor-mig/**/arms_summary.json
+!experiments/results/phase1-anchor-mig/**/run_meta.json
+!experiments/results/phase1-anchor-mig/**/throughput.json
+!experiments/results/phase1-anchor-mig/**/logprob_check.json
+!experiments/results/phase1-anchor-mig/**/exit_code.txt
+
 experiments/data/arc_*.json
 # P3 candidate-substrate fetches (gitignored like the ARC fetches; the runner
 # fingerprints their sha256 in its checkpoint params, and committing LogiQA 2.0

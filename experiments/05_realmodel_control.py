@@ -33,6 +33,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # local sibling clients
 from groq_client import GroqClient  # noqa: E402
 from ollama_client import OllamaClient  # noqa: E402
+from openai_client import OpenAIClient, openai_setup_message  # noqa: E402
 
 from bayes_cot_faithfulness.interventions import (  # noqa: E402
     QAItem,
@@ -216,8 +217,19 @@ def _build_design(correct, client, n_choices, mediator, mediation_cap):
 def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
         hint_strength: str = "normal", mediator: str = "steps", mediation_cap: int = 40,
         num_predict: int = 320, timeout: float = 120.0, backend: str = "ollama",
-        require_stable: bool = False) -> int:
-    if backend == "groq":
+        require_stable: bool = False, *, base_url: str | None = None,
+        seed: int | None = None, chat_template_kwargs: dict | None = None) -> int:
+    if backend == "openai":
+        # Self-hosted vLLM. Returns before the groq and ollama branches, which are
+        # byte-for-byte unchanged.
+        client = OpenAIClient(
+            base_url=base_url, model=model, temperature=0.0, timeout=timeout,
+            seed=seed, chat_template_kwargs=chat_template_kwargs,
+        )
+        if not client.is_available():
+            print(openai_setup_message(base_url, model))
+            return 0
+    elif backend == "groq":
         client = GroqClient(model=model, temperature=0.0, timeout=timeout)
         if not client.is_available():
             print(groq_setup_message())
@@ -433,8 +445,18 @@ def main() -> int:
                     help="max tokens per generation (lower = faster, less load)")
     ap.add_argument("--timeout", type=float, default=120.0,
                     help="seconds to wait per model call before skipping it")
-    ap.add_argument("--backend", choices=["ollama", "groq"], default="ollama",
-                    help="'groq' = free hosted 70B (needs GROQ_API_KEY); 'ollama' = local")
+    ap.add_argument("--backend", choices=["ollama", "groq", "openai"], default="ollama",
+                    help="'openai' = a self-hosted OpenAI-compatible server (vLLM on the "
+                         "cluster; needs --base-url); 'groq' = free hosted 70B (needs "
+                         "GROQ_API_KEY); 'ollama' = local")
+    ap.add_argument("--base-url", default=None,
+                    help="OpenAI-compatible endpoint for --backend openai, including the "
+                         "/v1 suffix (e.g. http://127.0.0.1:8000/v1)")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="seed sent on every --backend openai call")
+    ap.add_argument("--chat-template-kwargs", default=None,
+                    help="JSON object forwarded to the server's chat template for "
+                         "--backend openai, e.g. '{\"enable_thinking\": false}'")
     ap.add_argument("--require-stable", action="store_true",
                     help="measure the positive control only on items the model answers "
                          "consistently (fixes a noisy negative control)")
@@ -442,8 +464,14 @@ def main() -> int:
     model = a.model
     if a.backend == "groq" and model == "llama3.2:3b":
         model = "llama-3.3-70b-versatile"  # sensible default for the groq backend
+    if a.backend == "openai" and not a.base_url:
+        print("[setup] --backend openai needs --base-url (e.g. http://127.0.0.1:8000/v1).")
+        return 0
+    template_kwargs = json.loads(a.chat_template_kwargs) if a.chat_template_kwargs else None
     return run(model, a.host, a.n_items, a.data, a.out, a.hint_strength,
-               a.mediator, a.mediation_cap, a.num_predict, a.timeout, a.backend, a.require_stable)
+               a.mediator, a.mediation_cap, a.num_predict, a.timeout, a.backend,
+               a.require_stable, base_url=a.base_url, seed=a.seed,
+               chat_template_kwargs=template_kwargs)
 
 
 if __name__ == "__main__":

@@ -142,10 +142,30 @@ def main(argv: list[str] | None = None) -> int:
     # utf-8-sig: identical to utf-8 on the (BOM-less) pinned files, and a future
     # pin update to a BOM-carrying file cannot silently drop row 1 (the BOM would
     # otherwise survive strip() and break json.loads on the first line).
-    items = parse_jsonl(raw.decode("utf-8-sig"))[: a.n]
+    # Deduplicate on the SAME key the resume merge uses (question plus choices) before
+    # slicing to --n. The shipped test split repeats four items verbatim, and a repeated
+    # key makes the by-key resume merge alias one banked record onto every duplicate
+    # position: arms_resume.duplicate_item_keys refuses such a pool outright, so a pool
+    # carrying them could never be resumed. First occurrence wins, so the surviving order
+    # is still the shipped file order.
+    parsed = parse_jsonl(raw.decode("utf-8-sig"))
+    items: list[dict] = []
+    seen: set[tuple[str, tuple[str, ...]]] = set()
+    n_dupes = 0
+    for item in parsed:
+        key = (item["question"], tuple(item["choices"]))
+        if key in seen:
+            n_dupes += 1
+            continue
+        seen.add(key)
+        items.append(item)
+        if len(items) >= a.n:
+            break
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(items, indent=1))
     print(f"wrote {len(items)} LogiQA 2.0 items ({a.split} split, fetch order) -> {a.out}")
+    print(f"  dropped {n_dupes} duplicate item keys (question plus choices) out of "
+          f"{len(parsed)} parsed rows")
     print(f"  source: commit {PINNED_COMMIT}, sha256 {hashlib.sha256(raw).hexdigest()}")
     return 0
 
