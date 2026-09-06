@@ -318,3 +318,98 @@ Scope. This amendment adds a substrate for the P3 arms only. It does not change 
 runs, the frozen thresholds, the golden-set labeling design, or any other P-item. The
 AQuA-RAT powered run's numbers are a separate, additively-registered result and are never
 pooled with the ARC data or with the exploratory pilots.
+
+## Amendment A2: the Column B contract, the human-anchored jury, and the 18-model scale study (added 2026-09-07)
+
+Reason. Phase 2 adds three things this document does not cover: a single binding definition of
+the mediated quantity (Column B), an LLM jury whose error is measured against the frozen human
+anchor and carried as a parameter, and an 18-model, 3-substrate, 4-cue-family scale study. None
+of them changes an existing P-item, threshold, instrument, substrate, or the golden-set
+labeling design. This amendment is prospective and additive, exactly as the Amendment protocol
+above requires.
+
+Approval. The operator approved the A2 freeze in advance on 2026-09-06, recorded verbatim in
+`~/Developer/bayes-cot-phase2/DECISION-LOG.md` and in `PERMISSIONS.md`. The review elements
+carried into it come from the binding chairman change list
+`~/Developer/bayes-cot-phase2/REVIEW-CHANGE-LIST.md` of 2026-09-07.
+
+Where the substance lives. The 24 elements of A2 (elements 0 through 23) are written in a new
+companion pre-registration, `experiments/PREREGISTRATION_jury_and_scale.md`. That file is
+frozen on the same terms as this one: its SHA-256 is pinned in `tests/test_frozen_guard.py` in
+the same commit as this amendment, it is read-only after that commit, and it changes only by a
+dated additive amendment with its own hash. Element 0 of that file, its section 1, is the
+Column B contract and is the only definition of the mediated quantity for Phase 2 reporting.
+
+Effect on this document, stated precisely so that nothing here is silently reinterpreted.
+
+- Nothing above this line is edited. The A1 amendment, the design constants, the sizing, the
+  pilot disclosure and P1 through P9 stand as frozen.
+- The Column B contract supersedes `experiments/05_realmodel_control.py`'s step-count mediator
+  and binary-correctness outcome FOR PHASE 2 REPORTING ONLY. The P7 paragraph above, which
+  makes curve area and commitment depth per-item covariates in the hierarchical model, stays
+  HISTORICAL and is not edited; for Phase 2 those two quantities are the mediator vector M, as
+  the contract states.
+- The Phase 1 pilot's step-count rho\* keeps its narrow historical reading and is never
+  reinterpreted as a semantic-text mediation estimate.
+- One new P-item is added below, P2b. It is additive: P2 is unchanged, is still computed and is
+  still reported.
+
+### Element 20. P2b (additive; P2 unchanged)
+
+P2 stays frozen, is still computed and is still reported, with this one-sentence note beside it:
+"The P2 criterion is degenerate at high carry-over and near-zero drift; on the banked p8 run it
+evaluates to minus 0.88 percent at 99.12 percent forward carry-over and 0.00 percent hinted
+replay drift, so a failure of P2 in that regime is a property of the criterion, not of the
+transport." P2b tests the intended condition by decomposition: (i) forward carry-over is tested
+against the clean-donor rate and the length-matched-filler rate in the same recipient context;
+(ii) where the question is preservation, a pre-registered noninferiority margin against
+self-replay; (iii) where the question is distortion, a separate two-sided native-versus-replay
+equivalence test; (iv) replay drift is reported descriptively and is never subtracted from
+another effect without an explicit measurement-error model. This amendment is prospective; its
+trigger is the banked p8_metadata value quoted above, which is on the record.
+
+Provenance of the two quoted values, so the trigger is checkable: the frozen P2 criterion is the
+one-sided Newcombe 95 percent CI for (forward carry-over) minus (1 minus hinted replay drift)
+excluding zero, stated in the P2 paragraph above; the banked run is
+`experiments/results/p8_metadata/numbers_table.txt`, which records forward carry-over 113/114 =
+99.12 percent and hinted replay drift 0/114 = 0.00 percent, giving a criterion value of
+99.12 minus 100.00 = minus 0.88 percent. P2b's contrasts are estimated inside the four-cell
+replay anchor analysis of element 21 in the companion file.
+
+### Element index of Amendment A2
+
+Full text of every element is in `experiments/PREREGISTRATION_jury_and_scale.md` at the section
+given here. Element 20 is the only element whose text lives in THIS document.
+
+| Element | Subject | Where |
+|---|---|---|
+| 0 | The Column B contract | companion section 1 |
+| 1 | The two cell estimands, the row estimand, the verdict | companion section 2 |
+| 2 | Ruling: the corrected column A is secondary; the human anchor is untouched | companion section 3 |
+| 3 | The human anchor statistics | companion section 4 |
+| 4 | The calibration frame | companion section 5 |
+| 5 | The jury, its panel rule, and its freeze | companion section 6 |
+| 6 | K1, K2, and the middle-case rule | companion section 7 |
+| 7 | Column B estimation, reporting order, the two rho scales, mediator noise | companion section 8 |
+| 8 | Arms and outcome scales | companion section 9 |
+| 9 | Substrates, item pools, n per cell | companion section 10 |
+| 10 | The canonical 18-model roster | companion section 11 |
+| 11 | The mechanism challenge | companion section 12 |
+| 12 | Deterministic seeded gates and the offset-null family | companion section 13 |
+| 13 | The A3 template | companion section 14 |
+| 14 | Ruling: the frontier-model element is NOT EVALUATED | companion section 15 |
+| 15 | Frozen controls, cue families, decoding constants | companion section 16 |
+| 16 | The compute degradation ladder | companion section 17 |
+| 17 | The rater timing pilot | companion section 18 |
+| 18 | The read-only rule | companion section 19 |
+| 19 | Claim status | companion section 20 |
+| 20 | P2b | THIS document, above |
+| 21 | The randomized replay anchor | companion section 22 |
+| 22 | The decision experiment | companion section 23 |
+| 23 | Adversarial evaluation of the frozen evaluator | companion section 24 |
+| Ranking rule | Cross-model column-A statements | companion section 25 |
+
+Scope. This amendment adds one P-item and one companion pre-registration. It does not change
+the ARC or AQuA-RAT runs already banked, the frozen thresholds, the golden-set labeling design,
+the instruments, or any other P-item. Amendment A3, a dated additive amendment filling the
+post-skeleton values, is scheduled by element 13 and is required before any powered job.
