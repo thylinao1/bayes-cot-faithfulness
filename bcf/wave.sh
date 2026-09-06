@@ -89,8 +89,19 @@ JOB_TYPE="sweep"
 JOB_NAME=""
 WALL_TIME=""      # overrides the sbatch header's --time when set
 DRY_RUN=0
-SBATCH_SCRIPT="${BCF_SBATCH:-$HOME/bcf/repo/bcf/serve_and_run.sbatch}"
+SBATCH_SCRIPT=""  # resolved from the synced tree below unless --sbatch overrides it
 CELLS=""
+
+# --- the tree a powered job reads ----------------------------------------------
+# DECISION-LOG 2026-09-07 03:58 ruling (b): a powered job NEVER reads ~/bcf/repo. Live
+# jobs read that path, and rsyncing a lane's worktree over it while a job is mid-arm
+# swaps the code under a running measurement. One immutable tree per planning commit
+# instead: ~/bcf/repo-<short sha>, synced from THE COMMIT (not the working tree) before
+# submission and not touched afterwards, with BCF_REPO pointing at it.
+SYNC_ROOT="${BCF_SYNC_ROOT:-$HOME/bcf}"
+FORBIDDEN_TREE="${SYNC_ROOT}/repo"
+REPO_TREE=""       # --repo-tree, for a tree already synced by an earlier wave
+SHA_LEN=12
 
 # Accept both `--opt value` and `--opt=value`, and REFUSE an unrecognised flag instead
 # of letting it fall through to the positional. The old catch-all swallowed
@@ -101,7 +112,7 @@ while [ $# -gt 0 ]; do
   val=""
   case "$arg" in
     --*=*) val="${arg#*=}"; arg="${arg%%=*}"; shift ;;
-    --type|--job-name|--time|--gpu-type|--sbatch) val="${2:-}"; shift 2 ;;
+    --type|--job-name|--time|--gpu-type|--sbatch|--repo-tree) val="${2:-}"; shift 2 ;;
     *) shift ;;
   esac
   case "$arg" in
@@ -110,6 +121,7 @@ while [ $# -gt 0 ]; do
     --time) WALL_TIME="$val" ;;
     --gpu-type) GPU_TYPE="$val" ;;
     --sbatch) SBATCH_SCRIPT="$val" ;;
+    --repo-tree) REPO_TREE="$val" ;;
     --dry-run|--check-only) DRY_RUN=1 ;;
     -h|--help) sed -n '2,40p' "$0"; exit 0 ;;
     -*) echo "unknown option '${arg}'" >&2; exit 2 ;;
@@ -142,6 +154,91 @@ if [ -n "$JOB_NAME" ] && [ "${JOB_NAME#bcf-${JOB_TYPE}-}" = "$JOB_NAME" ]; then
   echo "--job-name '$JOB_NAME' must start with 'bcf-${JOB_TYPE}-' or its cards go uncounted" >&2
   exit 2
 fi
+
+# --- the immutable tree for this planning commit --------------------------------
+# Resolved BEFORE any cap check, because a wave that cannot name the tree its jobs will
+# read has nothing to submit, and finding that out after the caps pass wastes the check.
+WAVE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SRC_ROOT="$(git -C "$WAVE_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+PLAN_SHA=""
+DIRTY=""
+if [ -n "$SRC_ROOT" ]; then
+  PLAN_SHA="$(git -C "$SRC_ROOT" rev-parse --short=${SHA_LEN} HEAD 2>/dev/null || true)"
+  DIRTY="$(git -C "$SRC_ROOT" status --porcelain 2>/dev/null | grep -v '^??' || true)"
+fi
+
+if [ -z "$REPO_TREE" ]; then
+  if [ -z "$PLAN_SHA" ]; then
+    echo "[wave] REFUSING: ${WAVE_DIR} is not inside a git checkout, so there is no"
+    echo "[wave]   planning commit to name the tree after. A powered job has to read a"
+    echo "[wave]   tree whose contents are pinned by a sha; pass --repo-tree explicitly"
+    echo "[wave]   if you have already synced one."
+    exit 1
+  fi
+  REPO_TREE="${SYNC_ROOT}/repo-${PLAN_SHA}"
+fi
+
+# The one path that is never the target, however it was arrived at.
+REPO_TREE_ABS="${REPO_TREE%/}"
+if [ "$REPO_TREE_ABS" = "${FORBIDDEN_TREE%/}" ]; then
+  echo "[wave] REFUSING: the target tree is ${REPO_TREE_ABS}, which is the shared"
+  echo "[wave]   ~/bcf/repo that LIVE JOBS READ. Syncing over it swaps the code under a"
+  echo "[wave]   running measurement (DECISION-LOG 2026-09-07 03:58 ruling (b))."
+  echo "[wave]   The target must be ${SYNC_ROOT}/repo-<short sha of the planning commit>."
+  exit 1
+fi
+if [ "${BCF_REPO:-}" = "${FORBIDDEN_TREE%/}" ]; then
+  echo "[wave] REFUSING: BCF_REPO is set to ${BCF_REPO}, the shared tree live jobs read."
+  echo "[wave]   Unset it; this script sets BCF_REPO to the tree it syncs."
+  exit 1
+fi
+if [ -n "$DIRTY" ]; then
+  echo "[wave] REFUSING: the checkout at ${SRC_ROOT} has uncommitted tracked changes, so"
+  echo "[wave]   ${PLAN_SHA} does not describe the code a job would run. Commit first."
+  echo "$DIRTY" | sed 's/^/[wave]     /'
+  exit 1
+fi
+
+SYNC_MARKER="${REPO_TREE_ABS}/.bcf_sync.json"
+echo "[wave] planning commit ${PLAN_SHA:-<none>} at ${SRC_ROOT:-<no checkout>}"
+echo "[wave] jobs will read BCF_REPO=${REPO_TREE_ABS}"
+
+sync_tree() {
+  # The CODE comes from the commit, via git archive, so a file edited after the commit
+  # cannot reach a powered job. The three substrate pools do NOT: they are gitignored
+  # for licence reasons, so they are copied from the working tree and then verified
+  # against the manifest that IS in the commit. A pool that does not match its committed
+  # hashes stops the wave here.
+  if [ -e "$SYNC_MARKER" ]; then
+    if grep -q "\"commit\": \"${PLAN_SHA}\"" "$SYNC_MARKER" 2>/dev/null; then
+      echo "[wave] ${REPO_TREE_ABS} already holds ${PLAN_SHA}; leaving it untouched"
+      return 0
+    fi
+    echo "[wave] REFUSING: ${REPO_TREE_ABS} exists and was synced from a DIFFERENT commit"
+    echo "[wave]   (see ${SYNC_MARKER}). A synced tree is never rewritten: a job may be"
+    echo "[wave]   reading it. Sync the new commit to its own ${SYNC_ROOT}/repo-<sha>."
+    return 1
+  fi
+  mkdir -p "$REPO_TREE_ABS" || return 1
+  git -C "$SRC_ROOT" archive --format=tar "$PLAN_SHA" | tar -x -C "$REPO_TREE_ABS" || return 1
+  local copied=0
+  for pool in arc_challenge aqua_rat logiqa2 specificity_holdout toy_mcq; do
+    if [ -f "${SRC_ROOT}/experiments/data/${pool}.json" ]; then
+      cp "${SRC_ROOT}/experiments/data/${pool}.json" \
+         "${REPO_TREE_ABS}/experiments/data/${pool}.json" || return 1
+      copied=$(( copied + 1 ))
+    fi
+  done
+  echo "[wave] copied ${copied} gitignored data file(s) into the tree"
+  ( cd "$REPO_TREE_ABS" && python scripts/write_pool_manifest.py --check ) || {
+    echo "[wave] REFUSING: the pools copied into ${REPO_TREE_ABS} do not match the"
+    echo "[wave]   manifest committed at ${PLAN_SHA}."
+    return 1
+  }
+  printf '{\n  "commit": "%s",\n  "source": "%s",\n  "synced_at": "%s",\n  "synced_by": "bcf/wave.sh"\n}\n' \
+    "$PLAN_SHA" "$SRC_ROOT" "$(date -Is)" > "$SYNC_MARKER"
+  echo "[wave] synced ${PLAN_SHA} -> ${REPO_TREE_ABS} (marker ${SYNC_MARKER})"
+}
 
 # --- read the cells ------------------------------------------------------------
 mapfile -t ROWS < <(grep -vE '^[[:space:]]*(#|$)' "$CELLS")
@@ -263,6 +360,20 @@ if [ -n "$REFUSE" ]; then
   exit 1
 fi
 
+# --- the tree ------------------------------------------------------------------
+if [ "$DRY_RUN" -eq 1 ]; then
+  if [ -e "$SYNC_MARKER" ]; then
+    echo "[wave] CHECK-ONLY would reuse the tree at ${REPO_TREE_ABS} (marker present)"
+  else
+    echo "[wave] CHECK-ONLY would sync ${SRC_ROOT} @ ${PLAN_SHA} -> ${REPO_TREE_ABS}"
+    echo "[wave]   (git archive of the commit, plus the gitignored pools verified"
+    echo "[wave]    against the manifest committed at ${PLAN_SHA}); nothing was written"
+  fi
+else
+  sync_tree || exit 1
+fi
+[ -n "$SBATCH_SCRIPT" ] || SBATCH_SCRIPT="${REPO_TREE_ABS}/bcf/serve_and_run.sbatch"
+
 # --- submit --------------------------------------------------------------------
 echo "[wave] all checks pass; $([ "$DRY_RUN" -eq 1 ] && echo 'would submit' || echo 'submitting') ${N_CELLS} job(s)"
 REJECTED=0
@@ -280,7 +391,9 @@ for row in "${ROWS[@]}"; do
   tp=1
   mem=""
   cpus=""
-  exports="ALL,BCF_MODEL=${MODEL},BCF_SUBSTRATE=${SUBSTRATE},BCF_CUE=${CUE}"
+  exports="ALL,BCF_REPO=${REPO_TREE_ABS},BCF_ENV_SH=${REPO_TREE_ABS}/bcf/env.sh"
+  exports="${exports},BCF_PLAN_COMMIT=${PLAN_SHA}"
+  exports="${exports},BCF_MODEL=${MODEL},BCF_SUBSTRATE=${SUBSTRATE},BCF_CUE=${CUE}"
   while IFS= read -r field; do
     [ -n "$field" ] || continue
     case "$field" in

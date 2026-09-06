@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import statistics
 import sys
 import time
@@ -140,6 +141,22 @@ def compare(baseline: dict, level: dict) -> dict:
     }
 
 
+def compare_raw(baseline_raw: dict, level: dict) -> dict:
+    """Same two comparisons, against a baseline loaded from a PREVIOUS server.
+
+    This is what makes the batch-invariant run readable: the flag-on rows have to be
+    compared against the flag-OFF concurrency-1 completions, and those live in another
+    server's process. Job 825548 wrote none (probe_results.json drops the underscore
+    keys), so the flag-off baseline is re-measured in the same job rather than quoted
+    across jobs, and the file it writes is what this reads.
+    """
+    return compare(
+        {"_completions": baseline_raw.get("completions", []),
+         "_logprobs": baseline_raw.get("logprobs", [])},
+        level,
+    )
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -153,6 +170,19 @@ def main(argv=None) -> int:
     ap.add_argument("--chat-template-kwargs", default='{"enable_thinking": false}')
     ap.add_argument("--timeout", type=float, default=600.0)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--raw-out", type=Path, default=None,
+                    help="write the concurrency-1 completions and letter logprobs to "
+                         "this file. Needed whenever a LATER run has to compare against "
+                         "this one: probe_results.json keeps only the summary, so a "
+                         "flag-on rerun cannot be compared with a flag-off run that did "
+                         "not write this.")
+    ap.add_argument("--baseline-raw", type=Path, default=None,
+                    help="a --raw-out file from an earlier server. Every level is then "
+                         "compared against it as well as against this run's own "
+                         "concurrency-1 row, and both comparisons are reported.")
+    ap.add_argument("--label", default=None,
+                    help="free-text label carried into the results (e.g. "
+                         "batch_invariant_on).")
     a = ap.parse_args(argv)
 
     levels = [int(x) for x in a.levels.split(",") if x.strip()]
@@ -166,6 +196,22 @@ def main(argv=None) -> int:
         print(f"[probe] REFUSING: {a.data} holds {len(items)} items, fewer than "
               f"--n-items {a.n_items}; a short set would make the levels incomparable.")
         return 2
+
+    # The baseline is checked BEFORE any level runs, not after: a missing or mismatched
+    # file discovered at the end would have already spent the card on a probe whose
+    # headline comparison cannot be made.
+    baseline_raw = None
+    if a.baseline_raw is not None:
+        if not a.baseline_raw.exists():
+            print(f"[probe] REFUSING: --baseline-raw {a.baseline_raw} does not exist; "
+                  f"without it the flag-off comparison would silently be missing.")
+            return 2
+        baseline_raw = json.loads(a.baseline_raw.read_text())
+        n_base = len(baseline_raw.get("completions", []))
+        if n_base != len(items):
+            print(f"[probe] REFUSING: --baseline-raw holds {n_base} completions, this "
+                  f"run has {len(items)} items; the comparison would be off by index.")
+            return 2
 
     def client_factory(level):
         return OpenAIClient(
@@ -202,14 +248,39 @@ def main(argv=None) -> int:
         ),
         "rows": [],
     }
+    payload["label"] = a.label
+    payload["batch_invariant_env"] = os.environ.get("VLLM_BATCH_INVARIANT")
+    payload["baseline_raw"] = str(a.baseline_raw) if a.baseline_raw else None
+    if baseline_raw is not None:
+        payload["baseline_raw_label"] = baseline_raw.get("label")
+        payload["baseline_raw_batch_invariant_env"] = baseline_raw.get(
+            "batch_invariant_env"
+        )
     for res in results:
         row = {k: v for k, v in res.items() if not k.startswith("_")}
         row["vs_concurrency_1"] = compare(baseline, res)
+        if baseline_raw is not None:
+            row["vs_baseline_raw_concurrency_1"] = compare_raw(baseline_raw, res)
         payload["rows"].append(row)
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(payload, indent=2))
     print(f"[probe] wrote {a.out}")
+    if a.raw_out is not None:
+        a.raw_out.parent.mkdir(parents=True, exist_ok=True)
+        a.raw_out.write_text(json.dumps({
+            "label": a.label,
+            "batch_invariant_env": os.environ.get("VLLM_BATCH_INVARIANT"),
+            "model": a.model,
+            "n_items": len(items),
+            "concurrency": levels[0],
+            "num_predict": a.num_predict,
+            "seed": a.seed,
+            "data": str(a.data),
+            "completions": baseline["_completions"],
+            "logprobs": baseline["_logprobs"],
+        }, indent=2))
+        print(f"[probe] wrote {a.raw_out} (concurrency-1 raw, for a later comparison)")
     return 0
 
 

@@ -118,6 +118,9 @@ class OpenAIClient:
         default_factory=threading.Lock, repr=False, compare=False
     )
     _gate: "threading.Semaphore | None" = field(default=None, repr=False, compare=False)
+    # Which path sample_completions resolved to for this client: "n_parameter" when the
+    # server honored n > 1, "seeded_calls" when it did not. None until the first draw.
+    _sampling_mode: str | None = field(default=None, repr=False, compare=False)
 
     def _bump(self, key: str) -> None:
         with self._stats_lock:
@@ -300,6 +303,72 @@ class OpenAIClient:
             return [c["message"]["content"] or "" for c in body["choices"]]
         except (KeyError, TypeError) as exc:
             raise OpenAIClientError(f"unexpected response shape: {str(body)[:300]}") from exc
+
+    def sample_completions(
+        self, prompt: str, *, k: int, temperature: float, seed: int | None = None,
+        num_predict: int = 320, system: str | None = None,
+        stop: list[str] | None = None,
+    ) -> tuple[list[str], str]:
+        """``k`` sampled completions of one prompt, and HOW they were drawn.
+
+        The element 9.2 uncertain-item arm needs k = 32 draws at temperature 0.7 from
+        the same clean prompt. Two ways exist and the run must record which one it got,
+        because they are not the same draw: the endpoint's ``n`` parameter returns k
+        samples from ONE request (one prefill, k sampler draws sharing one seed), while
+        the fallback issues k requests with seeds ``seed, seed + 1, ...``.
+
+        This tries ``n = k`` first and inspects the answer. A server that ignores ``n``
+        replies with one choice, which is indistinguishable from k = 1 unless it is
+        checked, so it is checked: fewer choices than asked for means the fallback runs
+        and the returned method says ``seeded_calls``. The decision is cached on the
+        client, so it costs at most one short request per run and every later item takes
+        the same path.
+
+        Returns ``(completions, method)`` with ``method`` in
+        {"n_parameter", "seeded_calls"}. ``completions`` always has k entries.
+        """
+        if k < 1:
+            raise ValueError(f"k must be >= 1, got {k}")
+        messages = ([{"role": "system", "content": system}] if system else [])
+        messages = messages + [{"role": "user", "content": prompt}]
+        extra: dict = {"temperature": temperature}
+        if stop:
+            extra["stop"] = stop
+
+        def _one(n: int, call_seed: int | None) -> list[str]:
+            body_extra = dict(extra, n=n)
+            if call_seed is not None:
+                body_extra["seed"] = call_seed
+            body = self._post("/chat/completions", self._chat_body(
+                messages, num_predict=num_predict, **body_extra))
+            try:
+                return [c["message"]["content"] or "" for c in body["choices"]]
+            except (KeyError, TypeError) as exc:
+                raise OpenAIClientError(
+                    f"unexpected response shape: {str(body)[:300]}") from exc
+
+        if self._sampling_mode != "seeded_calls":
+            outputs = _one(k, seed)
+            if len(outputs) >= k:
+                self._sampling_mode = "n_parameter"
+                return outputs[:k], "n_parameter"
+            # The server answered with fewer completions than n asked for. Everything
+            # it did return is discarded rather than topped up: mixing one n-parameter
+            # draw with seeded singles would make the k samples two different draws.
+            self._sampling_mode = "seeded_calls"
+
+        outputs = []
+        for j in range(k):
+            call_seed = None if seed is None else seed + j
+            got = _one(1, call_seed)
+            if not got:
+                raise OpenAIClientError("server returned zero choices for a sample")
+            outputs.append(got[0])
+        return outputs, "seeded_calls"
+
+    def sampling_mode(self) -> str | None:
+        """Which draw path ``sample_completions`` resolved to, or None if never called."""
+        return self._sampling_mode
 
     def generate(self, prompt: str, *, num_predict: int = 320,
                  system: str | None = None, stop: list[str] | None = None) -> str:

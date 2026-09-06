@@ -124,3 +124,27 @@ def test_main_writes_throughput_json_with_denominators(run_log, tmp_path, capsys
     assert payload["overall_generations_per_second"] == pytest.approx(3 / 400.0)
     out = capsys.readouterr().out
     assert "3 calls / 400.0 s" in out  # numerator and denominator, both printed
+
+
+def test_a_hyphenated_arm_name_gets_its_own_interval(tmp_path):
+    """"repeat-curves" is a real arm name and it must not fall into the arm before it.
+
+    The first version of ARM_RE was `running arm '([a-z]+)'`, which does not match a
+    name containing a hyphen. The line was therefore not a mark at all, the arm got no
+    interval, and its calls were billed to whichever arm was still open. Job 826025's
+    first throughput.json shows exactly that: the sampling arm at 1,710 calls when it
+    made 28, with the repeat-curve arm's 1,680 forced continuations folded in.
+    """
+    log = tmp_path / "run.log"
+    log.write_text("\n".join([
+        _line(0, "[3/3] Additive arms: sampling, repeat-curves"),
+        _line(1, "      running arm 'sampling'..."),
+        _line(11, "      running arm 'repeat-curves'..."),
+        _line(21, "[done] exit_code=0"),
+    ]) + "\n")
+    calls = [_call(off) for off in (2.0, 3.0, 12.0, 13.0, 14.0)]
+    report = throughput.measure(throughput.parse_boundaries(log), calls)
+    by_arm = {row["arm"]: row for row in report["arms"]}
+    assert "repeat-curves" in by_arm, sorted(by_arm)
+    assert by_arm["sampling"]["n_calls"] == 2
+    assert by_arm["repeat-curves"]["n_calls"] == 3

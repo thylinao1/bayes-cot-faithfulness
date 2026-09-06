@@ -50,6 +50,22 @@ MAX_LEN="${BCF_MAX_LEN:-8192}"
 GPU_UTIL="${BCF_GPU_UTIL:-0.90}"
 SERVER_WAIT="${BCF_SERVER_WAIT:-2400}"
 CONCURRENCY="${BCF_CONCURRENCY:-1}"
+# BCF_BATCH_INVARIANT=1 sets VLLM_BATCH_INVARIANT on the SERVER. vLLM 0.28.0 honors it
+# in the FlashAttention backend (num_splits forced to 1) with Triton batch-invariant
+# matmul and softmax kernels. It is a run parameter, not a default: whether it is worth
+# its throughput cost is the operator's ruling, and this records which way a run went.
+BATCH_INVARIANT="${BCF_BATCH_INVARIANT:-}"
+if [ "$BATCH_INVARIANT" = "1" ]; then
+  export VLLM_BATCH_INVARIANT=1
+else
+  unset VLLM_BATCH_INVARIANT
+fi
+# Element 9.2 and element 8.3 draw parameters. The defaults ARE the frozen values; they
+# are passed explicitly so a run's own command line carries them.
+SAMPLING_K="${BCF_SAMPLING_K:-32}"
+SAMPLING_TEMPERATURE="${BCF_SAMPLING_TEMPERATURE:-0.7}"
+CURVE_REPEATS="${BCF_CURVE_REPEATS:-3}"
+REPEAT_TEMPERATURES="${BCF_REPEAT_TEMPERATURES:-0.0,0.7}"
 TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}"
 OUT_ROOT="${BCF_OUT_ROOT:-$BCF_RESULTS}"
 
@@ -120,6 +136,15 @@ pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "backend": "openai", "backend_version": "vllm ${VLLM_VERSION}",
     "substrate": "${SUBSTRATE}", "cue_family": "${CUE}",
     "tensor_parallel_size": ${TP}, "seed": ${SEED}, "concurrency": ${CONCURRENCY},
+    # Which way the batch-determinism switch went, on the record. Job 825548 measured
+    # 11/30 identical completions at 8 in flight with the flag off, so a run's
+    # concurrency is meaningless without this beside it.
+    "batch_invariant": "${BATCH_INVARIANT}" == "1",
+    "vllm_batch_invariant_env": os.environ.get("VLLM_BATCH_INVARIANT"),
+    "sampling_k": ${SAMPLING_K}, "sampling_temperature": ${SAMPLING_TEMPERATURE},
+    "curve_repeats": ${CURVE_REPEATS},
+    "repeat_temperatures": [float(x) for x in "${REPEAT_TEMPERATURES}".split(",")],
+    "plan_commit": "${BCF_PLAN_COMMIT:-}", "bcf_repo": "${BCF_REPO}",
     "temperature": 0.0, "num_predict": ${NUM_PREDICT}, "curve_cap": ${CURVE_CAP},
     # CONTRACT record schema. Round-1 verification check 4 failed because
     # intervention_level was absent from every summary; it is written here AND by the
@@ -149,6 +174,7 @@ if [ -n "${BCF_QUANT:-}" ]; then VLLM_ARGS+=(--quantization "$BCF_QUANT"); fi
 # shellcheck disable=SC2206
 if [ -n "${BCF_EXTRA_VLLM:-}" ]; then VLLM_ARGS+=(${BCF_EXTRA_VLLM}); fi
 
+echo "[serve] VLLM_BATCH_INVARIANT=${VLLM_BATCH_INVARIANT:-<unset>}" | ts | tee -a "$LOG"
 echo "[serve] vllm serve ${MODEL} ${VLLM_ARGS[*]}" | ts | tee -a "$LOG"
 vllm serve "$MODEL" "${VLLM_ARGS[@]}" >> "${OUT_DIR}/server.log" 2>&1 &
 SERVER_PID=$!
@@ -168,6 +194,8 @@ until curl -sf "${BASE_URL}/models" > /dev/null; do
   fi
   sleep 10
 done
+grep -iE "attention backend|Using .* backend|batch.?invariant" "${OUT_DIR}/server.log" \
+  | tail -20 | sed 's/^/[serve] /' | ts | tee -a "$LOG" || true
 echo "[serve] up at ${BASE_URL} after $(( SERVER_WAIT - (DEADLINE - $(date +%s)) ))s" | ts | tee -a "$LOG"
 
 # --- 4. forced-logprob unit check on the live server ---------------------------
@@ -187,9 +215,27 @@ fi
 
 # --- 5. the arms ---------------------------------------------------------------
 ARM_FLAGS=()
-for arm in ${BCF_ARMS:-replay placebo direct twostep filler curves transplant anchor specificity}; do
+# PLUS signs, spaces, or commas. sbatch --export is itself a COMMA-separated list, so a
+# comma inside a value silently truncates it: BCF_ARMS=replay,placebo,direct arrives as
+# BCF_ARMS=replay and the rest are read as names of variables to inherit, which do not
+# exist and are dropped without an error. Job 826024 was submitted that way and would
+# have run the replay arm alone; it was cancelled by id before it generated anything.
+# A value carrying a SPACE breaks the export string a different way, so '+' is the
+# separator a multi-arm list has to travel under. All three are accepted here.
+for arm in $(echo "${BCF_ARMS:-replay placebo direct twostep filler curves transplant anchor specificity}" | tr '+,' '  '); do
   ARM_FLAGS+=(--arm "$arm")
 done
+echo "[arms] enabled: ${ARM_FLAGS[*]}" | ts | tee -a "$LOG"
+# A truncated arm list is indistinguishable from a deliberate short one, so a caller
+# that means N arms says so and this refuses on a mismatch. That is exactly the failure
+# job 826024 had: eleven arms asked for, one arrived.
+N_ARMS_SEEN=$(( ${#ARM_FLAGS[@]} / 2 ))
+if [ -n "${BCF_N_ARMS:-}" ] && [ "$N_ARMS_SEEN" -ne "${BCF_N_ARMS}" ]; then
+  echo "[arms] REFUSING: BCF_N_ARMS=${BCF_N_ARMS} but ${N_ARMS_SEEN} arm(s) arrived: ${ARM_FLAGS[*]}" \
+    | ts | tee -a "$LOG" >&2
+  echo "[arms]   sbatch --export is comma separated; use '+' between arm names." | ts | tee -a "$LOG" >&2
+  exit 9
+fi
 TAXONOMY_FLAGS=()
 if [ "$CUE" != "stated-hint" ]; then TAXONOMY_FLAGS=(--taxonomy "$CUE"); fi
 
@@ -202,6 +248,8 @@ python "${BCF_REPO}/experiments/08_additive_arms.py" \
   --specificity-holdout "${BCF_REPO}/experiments/data/specificity_holdout.json" \
   --n-items "$N_ITEMS" --num-predict "$NUM_PREDICT" --curve-cap "$CURVE_CAP" \
   --concurrency "$CONCURRENCY" \
+  --sampling-k "$SAMPLING_K" --sampling-temperature "$SAMPLING_TEMPERATURE" \
+  --curve-repeats "$CURVE_REPEATS" --repeat-temperatures "$REPEAT_TEMPERATURES" \
   --out "$OUT_DIR" --timeout 600 --resume \
   "${ARM_FLAGS[@]}" "${TAXONOMY_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
 ARMS_STATUS=${PIPESTATUS[0]}

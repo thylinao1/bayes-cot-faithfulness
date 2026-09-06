@@ -1,0 +1,5 @@
+JobID             State ExitCode     ReqMem     MaxRSS    Elapsed        NodeList 
+------------ ---------- -------- ---------- ---------- ---------- --------------- 
+826020          RUNNING      0:0        64G              00:13:10          xgph10 
+826020.batch    RUNNING      0:0                         00:13:10          xgph10 
+826020.exte+    RUNNING      0:0                         00:13:10          xgph10 

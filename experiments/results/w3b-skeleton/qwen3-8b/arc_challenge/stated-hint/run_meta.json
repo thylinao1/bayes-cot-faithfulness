@@ -1,0 +1,32 @@
+{
+  "job_id": "826025",
+  "model": "Qwen/Qwen3-8B",
+  "hf_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "backend": "openai",
+  "backend_version": "vllm 0.28.0",
+  "substrate": "arc_challenge",
+  "cue_family": "stated-hint",
+  "tensor_parallel_size": 1,
+  "seed": 7,
+  "concurrency": 32,
+  "batch_invariant": true,
+  "vllm_batch_invariant_env": "1",
+  "sampling_k": 32,
+  "sampling_temperature": 0.7,
+  "curve_repeats": 3,
+  "repeat_temperatures": [
+    0.0,
+    0.7
+  ],
+  "plan_commit": "b057462",
+  "bcf_repo": "/home/e/e1506804/bcf/repo-w3b",
+  "temperature": 0.0,
+  "num_predict": 320,
+  "curve_cap": 30,
+  "intervention_level": "text",
+  "outcome_scale": "binary_follow",
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "gpu": "NVIDIA A100 80GB PCIe"
+}

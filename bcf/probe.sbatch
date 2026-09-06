@@ -36,6 +36,16 @@ GPU_UTIL="${BCF_GPU_UTIL:-0.90}"
 NUM_PREDICT="${BCF_NUM_PREDICT:-320}"
 N_ITEMS="${BCF_N_ITEMS:-30}"
 LEVELS="${BCF_LEVELS:-1,8,32,64}"
+# BCF_BATCH_INVARIANT=1 runs the probe TWICE in this one job, on one card:
+#   phase A: the server WITHOUT the flag, levels "1" only, writing its concurrency-1
+#            completions and letter logprobs to baseline_off_raw.json;
+#   phase B: the server WITH VLLM_BATCH_INVARIANT=1, every level, comparing each level
+#            against its own flag-on concurrency-1 row AND against phase A's file.
+# Phase A exists because job 825548 wrote no raw completions (probe_results.json keeps
+# only the summary), so the flag-off baseline cannot be quoted across jobs. Re-measuring
+# it on the same node in the same job is also the stronger comparison.
+# Unset (the default) leaves this script on exactly the path job 825548 took.
+BATCH_INVARIANT="${BCF_BATCH_INVARIANT:-}"
 SERVER_WAIT="${BCF_SERVER_WAIT:-2400}"
 TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}"
 # The pools are gitignored (licence), so the substrate file is read from the repo the
@@ -72,6 +82,7 @@ trap finish EXIT
   echo "model=${MODEL} n_items=${N_ITEMS} levels=${LEVELS} data=${DATA}"
   echo "repo=${BCF_REPO} out_dir=${OUT_DIR}"
   echo "VLLM_USE_FLASHINFER_SAMPLER=${VLLM_USE_FLASHINFER_SAMPLER}"
+  echo "BCF_BATCH_INVARIANT=${BATCH_INVARIANT:-<unset>}"
 } | ts | tee -a "$LOG"
 
 if [ ! -f "$DATA" ]; then
@@ -103,6 +114,8 @@ pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "chat_template_kwargs": json.loads(os.environ["BCF_META_TEMPLATE_KWARGS"]),
     "gpu": os.popen("nvidia-smi --query-gpu=name --format=csv,noheader").read().strip(),
     "flashinfer_sampler": os.environ.get("VLLM_USE_FLASHINFER_SAMPLER"),
+    "batch_invariant_switch": "${BATCH_INVARIANT}",
+    "two_phase": "${BATCH_INVARIANT}" == "1",
 }, indent=2))
 PY
 
@@ -115,31 +128,93 @@ VLLM_ARGS=(
   --seed "$SEED"
   --download-dir "${HF_HOME}/download"
 )
-echo "[serve] vllm serve ${MODEL} ${VLLM_ARGS[*]}" | ts | tee -a "$LOG"
-vllm serve "$MODEL" "${VLLM_ARGS[@]}" >> "${OUT_DIR}/server.log" 2>&1 &
-SERVER_PID=$!
 
-DEADLINE=$(( $(date +%s) + SERVER_WAIT ))
-until curl -sf "${BASE_URL}/models" > /dev/null; do
-  if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-    echo "[serve] server died during startup; last 40 lines:" | ts | tee -a "$LOG"
-    tail -40 "${OUT_DIR}/server.log" | ts | tee -a "$LOG"
-    exit 5
+# start_server <phase-tag> <0|1 batch invariant>. Writes server-<tag>.log so a refusal
+# or an attention-backend fallback is readable per phase rather than interleaved.
+start_server() {
+  local tag="$1" bi="$2"
+  local slog="${OUT_DIR}/server-${tag}.log"
+  if [ "$bi" = "1" ]; then
+    export VLLM_BATCH_INVARIANT=1
+  else
+    unset VLLM_BATCH_INVARIANT
   fi
-  if [ "$(date +%s)" -gt "$DEADLINE" ]; then
-    echo "[serve] server did not answer within ${SERVER_WAIT}s" | ts | tee -a "$LOG"
-    tail -40 "${OUT_DIR}/server.log" | ts | tee -a "$LOG"
-    exit 6
+  echo "[serve:${tag}] VLLM_BATCH_INVARIANT=${VLLM_BATCH_INVARIANT:-<unset>}" | ts | tee -a "$LOG"
+  echo "[serve:${tag}] vllm serve ${MODEL} ${VLLM_ARGS[*]}" | ts | tee -a "$LOG"
+  vllm serve "$MODEL" "${VLLM_ARGS[@]}" >> "$slog" 2>&1 &
+  SERVER_PID=$!
+  local deadline=$(( $(date +%s) + SERVER_WAIT ))
+  until curl -sf "${BASE_URL}/models" > /dev/null; do
+    if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+      echo "[serve:${tag}] server died during startup; last 60 lines:" | ts | tee -a "$LOG"
+      tail -60 "$slog" | ts | tee -a "$LOG"
+      # A server that REFUSES the flag is the result, not a fault: the lines saying so
+      # are already in $slog and the exit code names which phase died.
+      return 5
+    fi
+    if [ "$(date +%s)" -gt "$deadline" ]; then
+      echo "[serve:${tag}] no answer within ${SERVER_WAIT}s" | ts | tee -a "$LOG"
+      tail -60 "$slog" | ts | tee -a "$LOG"
+      return 6
+    fi
+    sleep 10
+  done
+  echo "[serve:${tag}] up at ${BASE_URL}" | ts | tee -a "$LOG"
+  # Which attention backend the server actually selected. The batch-invariant path is
+  # honored by FLASH_ATTN (num_splits forced to 1); a fallback to another backend would
+  # make the flag a no-op, so the line is grepped out rather than assumed.
+  grep -iE "attention backend|Using .* backend|batch.?invariant" "$slog" \
+    | tail -20 | sed "s/^/[serve:${tag}] /" | ts | tee -a "$LOG" || true
+  return 0
+}
+
+stop_server() {
+  if [ -n "${SERVER_PID:-}" ]; then
+    kill "$SERVER_PID" 2>/dev/null || true
+    sleep 10
+    kill -9 "$SERVER_PID" 2>/dev/null || true
+    SERVER_PID=""
   fi
+  # The port must be free before the next server binds it.
   sleep 10
-done
-echo "[serve] up at ${BASE_URL}" | ts | tee -a "$LOG"
+}
 
-python "${BCF_REPO}/bcf/concurrency_probe.py" \
-  --base-url "$BASE_URL" --model "$MODEL" --data "$DATA" \
-  --n-items "$N_ITEMS" --levels "$LEVELS" --num-predict "$NUM_PREDICT" \
-  --seed "$SEED" --chat-template-kwargs "$TEMPLATE_KWARGS" \
-  --out "${OUT_DIR}/probe_results.json" 2>&1 | ts | tee -a "$LOG"
-PROBE_STATUS=${PIPESTATUS[0]}
+RAW_OFF="${OUT_DIR}/baseline_off_raw.json"
+
+if [ "$BATCH_INVARIANT" = "1" ]; then
+  echo "[phase A] flag OFF, concurrency 1 only, writing the raw baseline" | ts | tee -a "$LOG"
+  start_server "off" 0 || exit $?
+  python "${BCF_REPO}/bcf/concurrency_probe.py" \
+    --base-url "$BASE_URL" --model "$MODEL" --data "$DATA" \
+    --n-items "$N_ITEMS" --levels 1 --num-predict "$NUM_PREDICT" \
+    --seed "$SEED" --chat-template-kwargs "$TEMPLATE_KWARGS" \
+    --label "batch_invariant_off" \
+    --raw-out "$RAW_OFF" \
+    --out "${OUT_DIR}/probe_results_off.json" 2>&1 | ts | tee -a "$LOG"
+  PHASE_A=${PIPESTATUS[0]}
+  echo "[phase A] finished with status ${PHASE_A}" | ts | tee -a "$LOG"
+  stop_server
+  if [ "$PHASE_A" -ne 0 ]; then exit "$PHASE_A"; fi
+
+  echo "[phase B] flag ON, levels ${LEVELS}" | ts | tee -a "$LOG"
+  start_server "bi" 1 || exit $?
+  python "${BCF_REPO}/bcf/concurrency_probe.py" \
+    --base-url "$BASE_URL" --model "$MODEL" --data "$DATA" \
+    --n-items "$N_ITEMS" --levels "$LEVELS" --num-predict "$NUM_PREDICT" \
+    --seed "$SEED" --chat-template-kwargs "$TEMPLATE_KWARGS" \
+    --label "batch_invariant_on" \
+    --baseline-raw "$RAW_OFF" \
+    --raw-out "${OUT_DIR}/baseline_on_raw.json" \
+    --out "${OUT_DIR}/probe_results.json" 2>&1 | ts | tee -a "$LOG"
+  PROBE_STATUS=${PIPESTATUS[0]}
+else
+  start_server "single" 0 || exit $?
+  python "${BCF_REPO}/bcf/concurrency_probe.py" \
+    --base-url "$BASE_URL" --model "$MODEL" --data "$DATA" \
+    --n-items "$N_ITEMS" --levels "$LEVELS" --num-predict "$NUM_PREDICT" \
+    --seed "$SEED" --chat-template-kwargs "$TEMPLATE_KWARGS" \
+    --out "${OUT_DIR}/probe_results.json" 2>&1 | ts | tee -a "$LOG"
+  PROBE_STATUS=${PIPESTATUS[0]}
+fi
 echo "[probe] finished with status ${PROBE_STATUS}" | ts | tee -a "$LOG"
 exit "$PROBE_STATUS"

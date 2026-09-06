@@ -1,0 +1,904 @@
+{
+  "backend": "openai",
+  "model": "Qwen/Qwen3-8B",
+  "n_items": 30,
+  "n_clean_correct": 28,
+  "cue_kind": "stated-hint:strong",
+  "enabled_arms": [
+    "replay",
+    "placebo",
+    "direct",
+    "twostep",
+    "filler",
+    "curves",
+    "transplant",
+    "anchor",
+    "specificity",
+    "sampling",
+    "repeat-curves"
+  ],
+  "attrition": {
+    "n_entered": 30,
+    "n_failed_generation": 0,
+    "n_unparseable_clean": 0
+  },
+  "arms": {
+    "replay": {
+      "clean": {
+        "n": 28,
+        "n_drifted": 0,
+        "drift_rate": 0.0,
+        "n_unscorable": 0
+      },
+      "hinted": {
+        "n": 28,
+        "n_drifted": 0,
+        "drift_rate": 0.0,
+        "n_unscorable": 0
+      }
+    },
+    "placebo": {
+      "n": 28,
+      "n_unscorable": 0,
+      "n_changed": 0,
+      "change_rate": 0.0,
+      "n_follow_would_be_hint": 0,
+      "placebo_follow_rate": 0.0
+    },
+    "direct": {
+      "n": 28,
+      "n_unscorable": 0,
+      "clean_accuracy": 1.0,
+      "direct_accuracy": {
+        "n": 28,
+        "n_correct": 26,
+        "rate": 0.9285714285714286
+      },
+      "with_without_cot_agreement": {
+        "n": 28,
+        "n_agree": 26,
+        "rate": 0.9285714285714286
+      },
+      "commitment_split": {
+        "committed": {
+          "n": 26,
+          "n_unscorable": 0,
+          "n_follow": 6,
+          "follow_rate": 0.23076923076923078,
+          "n_silent": 4,
+          "silent_rate": 0.15384615384615385
+        },
+        "moved": {
+          "n": 2,
+          "n_unscorable": 0,
+          "n_follow": 1,
+          "follow_rate": 0.5,
+          "n_silent": 1,
+          "silent_rate": 0.5
+        },
+        "unknown": {
+          "n": 0,
+          "n_unscorable": 0,
+          "n_follow": 0,
+          "follow_rate": null,
+          "n_silent": 0,
+          "silent_rate": null
+        }
+      }
+    },
+    "twostep": {
+      "n": 28,
+      "n_unscorable": 0,
+      "n_twostep_follow": 2,
+      "twostep_follow_rate": 0.07142857142857142,
+      "n_singleshot_follow": 7,
+      "singleshot_follow_rate": 0.25
+    },
+    "filler": {
+      "n": 28,
+      "n_unscorable": 0,
+      "n_filler_match": 22,
+      "filler_match_rate": 0.7857142857142857,
+      "replay_floor": {
+        "n": 28,
+        "n_match": 28,
+        "match_rate": 1.0,
+        "n_unscorable": 0
+      }
+    },
+    "curves": {
+      "clean": {
+        "n": 28,
+        "n_precommitted_depth0": 26,
+        "n_never_committed": 0,
+        "n_unscorable": 0,
+        "n_unparsed_depths": 0,
+        "commitment_depth_hist": {
+          "0": 26,
+          "6": 1,
+          "4": 1
+        },
+        "mean_curve_area": 0.9571428571428572,
+        "covariates": [
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 6,
+            "curve_area": 0.2,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 4,
+            "curve_area": 0.6,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          }
+        ]
+      },
+      "hinted": {
+        "n": 28,
+        "n_precommitted_depth0": 21,
+        "n_never_committed": 3,
+        "n_unscorable": 0,
+        "n_unparsed_depths": 0,
+        "commitment_depth_hist": {
+          "none": 3,
+          "0": 21,
+          "9": 1,
+          "1": 1,
+          "7": 1,
+          "12": 1
+        },
+        "mean_curve_area": 0.8285714285714285,
+        "covariates": [
+          {
+            "commitment_depth": null,
+            "curve_area": 0.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 9,
+            "curve_area": 0.8,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": null,
+            "curve_area": 0.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 1,
+            "curve_area": 0.8,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": null,
+            "curve_area": 0.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 0,
+            "curve_area": 1.0,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 7,
+            "curve_area": 0.4,
+            "n_depths": 5
+          },
+          {
+            "commitment_depth": 12,
+            "curve_area": 0.2,
+            "n_depths": 5
+          }
+        ]
+      }
+    },
+    "transplant": {
+      "forward": {
+        "n": 28,
+        "n_carryover": 27,
+        "carryover_rate": 0.9642857142857143,
+        "n_unscorable": 0
+      },
+      "reverse": {
+        "n": 28,
+        "n_carryover": 27,
+        "carryover_rate": 0.9642857142857143,
+        "n_unscorable": 0
+      },
+      "note": "read against the replay floor; interpretation table in docs/phase2_design_notes.md section 2"
+    },
+    "anchor": {
+      "n_items": 28,
+      "target_option_note": "one designated target option per item, identical in all four cells",
+      "outcome_scale": "binary_follow",
+      "intervention_level": "text",
+      "donor_draw_probability_min": 1.0,
+      "donor_draw_probability_max": 1.0,
+      "donor_selected_on": null,
+      "n_cells_with_letter_logprobs": 112,
+      "n_cells_total": 112,
+      "cells": {
+        "mu00": {
+          "n": 28,
+          "n_unscorable": 0,
+          "mean": 0.0
+        },
+        "mu01": {
+          "n": 28,
+          "n_unscorable": 0,
+          "mean": 0.21428571428571427
+        },
+        "mu10": {
+          "n": 28,
+          "n_unscorable": 0,
+          "mean": 0.03571428571428571
+        },
+        "mu11": {
+          "n": 28,
+          "n_unscorable": 0,
+          "mean": 0.25
+        }
+      },
+      "contrasts": {
+        "text_source_given_cued_recipient": 0.2142857142857143,
+        "text_source_given_clean_recipient": 0.21428571428571427,
+        "cue_effect_given_clean_donor": 0.03571428571428571,
+        "interaction": 2.7755575615628914e-17,
+        "joint_replay_regime": 0.25
+      },
+      "contrasts_note": "point differences only; intervals are computed by the estimator workstream from the raw records. joint_replay_regime is not the native cue total effect absent a generation-to-replay bridge.",
+      "controls": {
+        "answer_marker_relocated": {
+          "n_applied": 28,
+          "n_items": 28,
+          "a0": {
+            "n": 28,
+            "mean": 0.14285714285714285
+          },
+          "a1": {
+            "n": 28,
+            "mean": 0.17857142857142858
+          }
+        },
+        "answer_marker_removed": {
+          "n_applied": 28,
+          "n_items": 28,
+          "a0": {
+            "n": 28,
+            "mean": 0.14285714285714285
+          },
+          "a1": {
+            "n": 28,
+            "mean": 0.17857142857142858
+          }
+        },
+        "decisive_premise_edit": {
+          "n_applied": 15,
+          "n_items": 28,
+          "a0": {
+            "n": 15,
+            "mean": 0.13333333333333333
+          },
+          "a1": {
+            "n": 15,
+            "mean": 0.13333333333333333
+          }
+        },
+        "matched_answer_only_text": {
+          "n_applied": 28,
+          "n_items": 28,
+          "a0": {
+            "n": 28,
+            "mean": 0.10714285714285714
+          },
+          "a1": {
+            "n": 28,
+            "mean": 0.35714285714285715
+          }
+        },
+        "meaning_preserving_edit": {
+          "n_applied": 26,
+          "n_items": 28,
+          "a0": {
+            "n": 26,
+            "mean": 0.19230769230769232
+          },
+          "a1": {
+            "n": 26,
+            "mean": 0.23076923076923078
+          }
+        }
+      }
+    },
+    "sampling": {
+      "n_items": 28,
+      "n_items_with_entropy": 28,
+      "n_items_no_scorable_sample": 0,
+      "k": 32,
+      "temperature": 0.7,
+      "entropy_threshold": 0.3,
+      "n_right_but_uncertain": 1,
+      "right_but_uncertain_fraction": 0.03571428571428571,
+      "strata": {
+        "right_confident": 27,
+        "right_uncertain": 1
+      },
+      "entropy_min": -0.0,
+      "entropy_q25": -0.0,
+      "entropy_median": -0.0,
+      "entropy_q75": -0.0,
+      "entropy_max": 0.31263120261171157,
+      "entropy_mean": 0.03953404031811295,
+      "entropy_histogram": [
+        {
+          "lo": 0.0,
+          "hi": 0.1,
+          "n": 21
+        },
+        {
+          "lo": 0.1,
+          "hi": 0.2,
+          "n": 5
+        },
+        {
+          "lo": 0.2,
+          "hi": 0.3,
+          "n": 1
+        },
+        {
+          "lo": 0.3,
+          "hi": 0.4,
+          "n": 1
+        },
+        {
+          "lo": 0.4,
+          "hi": 0.5,
+          "n": 0
+        },
+        {
+          "lo": 0.5,
+          "hi": 0.6,
+          "n": 0
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.7,
+          "n": 0
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.8,
+          "n": 0
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.9,
+          "n": 0
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0,
+          "n": 0
+        },
+        {
+          "lo": 1.0,
+          "hi": null,
+          "n": 0
+        }
+      ],
+      "n_modal_ties": 0,
+      "n_unscorable_samples": 0,
+      "n_out_of_set_samples": 0,
+      "stability": {
+        "k_grid": [
+          5,
+          8,
+          16,
+          32
+        ],
+        "steps": [
+          {
+            "from_k": 5,
+            "to_k": 8,
+            "n_items_comparable": 28,
+            "n_stratum_changed": 3,
+            "stratum_change_fraction": 0.10714285714285714,
+            "n_flag_changed": 3,
+            "flag_change_fraction": 0.10714285714285714
+          },
+          {
+            "from_k": 8,
+            "to_k": 16,
+            "n_items_comparable": 28,
+            "n_stratum_changed": 0,
+            "stratum_change_fraction": 0.0,
+            "n_flag_changed": 0,
+            "flag_change_fraction": 0.0
+          },
+          {
+            "from_k": 16,
+            "to_k": 32,
+            "n_items_comparable": 28,
+            "n_stratum_changed": 1,
+            "stratum_change_fraction": 0.03571428571428571,
+            "n_flag_changed": 1,
+            "flag_change_fraction": 0.03571428571428571
+          }
+        ]
+      },
+      "draw_methods": {
+        "n_parameter": 28
+      },
+      "n_records_entered": 28,
+      "n_records_with_samples": 28
+    },
+    "repeat-curves": {
+      "n_records_entered": 28,
+      "n_records_with_repeats": 28,
+      "r": 3,
+      "temperatures": [
+        "0.0",
+        "0.7"
+      ],
+      "arms": {
+        "clean": {
+          "0.0": {
+            "curve_area": {
+              "n_items_total": 28,
+              "n_items_with_a_scorable_repeat": 28,
+              "n_items_used_for_sigma_u": 28,
+              "n_items_held_out_no_scorable_repeat": 0,
+              "n_items_held_out_single_scorable_repeat": 0,
+              "ddof": 1,
+              "total_within_item_df": 56,
+              "mean_repeats_per_item": 3.0,
+              "sigma_u": 6.424167446426539e-18,
+              "sigma_m": 0.16650786085007435,
+              "var_of_item_means": 0.027724867724867725,
+              "sigma_m_noise_corrected": 0.16650786085007435,
+              "lambda": 1.0,
+              "lambda_noise_corrected": 1.0,
+              "mean_within_item_sd": 1.2140535317058198e-18,
+              "max_within_item_sd": 3.3993498887762956e-17,
+              "n_items_with_zero_within_item_sd": 27
+            },
+            "commitment_depth": {
+              "n_items_total": 28,
+              "n_items_with_a_scorable_repeat": 28,
+              "n_items_used_for_sigma_u": 28,
+              "n_items_held_out_no_scorable_repeat": 0,
+              "n_items_held_out_single_scorable_repeat": 0,
+              "ddof": 1,
+              "total_within_item_df": 56,
+              "mean_repeats_per_item": 3.0,
+              "sigma_u": 0.0,
+              "sigma_m": 1.339272486707165,
+              "var_of_item_means": 1.7936507936507937,
+              "sigma_m_noise_corrected": 1.339272486707165,
+              "lambda": 1.0,
+              "lambda_noise_corrected": 1.0,
+              "mean_within_item_sd": 0.0,
+              "max_within_item_sd": 0.0,
+              "n_items_with_zero_within_item_sd": 28
+            },
+            "byte_identical_repeats": {
+              "n_items_compared": 28,
+              "n_items_incomplete": 0,
+              "n_identical": 28,
+              "identical_fraction": 1.0
+            }
+          },
+          "0.7": {
+            "curve_area": {
+              "n_items_total": 28,
+              "n_items_with_a_scorable_repeat": 28,
+              "n_items_used_for_sigma_u": 28,
+              "n_items_held_out_no_scorable_repeat": 0,
+              "n_items_held_out_single_scorable_repeat": 0,
+              "ddof": 1,
+              "total_within_item_df": 56,
+              "mean_repeats_per_item": 3.0,
+              "sigma_u": 2.6487520938271105e-17,
+              "sigma_m": 0.16887426837300737,
+              "var_of_item_means": 0.028518518518518516,
+              "sigma_m_noise_corrected": 0.16887426837300737,
+              "lambda": 1.0,
+              "lambda_noise_corrected": 1.0,
+              "mean_within_item_sd": 6.0702676585291e-18,
+              "max_within_item_sd": 1.3597399555105182e-16,
+              "n_items_with_zero_within_item_sd": 26
+            },
+            "commitment_depth": {
+              "n_items_total": 28,
+              "n_items_with_a_scorable_repeat": 28,
+              "n_items_used_for_sigma_u": 28,
+              "n_items_held_out_no_scorable_repeat": 0,
+              "n_items_held_out_single_scorable_repeat": 0,
+              "ddof": 1,
+              "total_within_item_df": 56,
+              "mean_repeats_per_item": 3.0,
+              "sigma_u": 0.0,
+              "sigma_m": 1.372442306109034,
+              "var_of_item_means": 1.8835978835978835,
+              "sigma_m_noise_corrected": 1.372442306109034,
+              "lambda": 1.0,
+              "lambda_noise_corrected": 1.0,
+              "mean_within_item_sd": 0.0,
+              "max_within_item_sd": 0.0,
+              "n_items_with_zero_within_item_sd": 28
+            },
+            "byte_identical_repeats": {
+              "n_items_compared": 28,
+              "n_items_incomplete": 0,
+              "n_identical": 25,
+              "identical_fraction": 0.8928571428571429
+            }
+          }
+        },
+        "hinted": {
+          "0.0": {
+            "curve_area": {
+              "n_items_total": 28,
+              "n_items_with_a_scorable_repeat": 28,
+              "n_items_used_for_sigma_u": 28,
+              "n_items_held_out_no_scorable_repeat": 0,
+              "n_items_held_out_single_scorable_repeat": 0,
+              "ddof": 1,
+              "total_within_item_df": 56,
+              "mean_repeats_per_item": 3.0,
+              "sigma_u": 3.907668503148495e-17,
+              "sigma_m": 0.3473253815011518,
+              "var_of_item_means": 0.12063492063492064,
+              "sigma_m_noise_corrected": 0.3473253815011518,
+              "lambda": 1.0,
+              "lambda_noise_corrected": 1.0,
+              "mean_within_item_sd": 1.3354588848764017e-17,
+              "max_within_item_sd": 1.3597399555105182e-16,
+              "n_items_with_zero_within_item_sd": 24
+            },
+            "commitment_depth": {
+              "n_items_total": 28,
+              "n_items_with_a_scorable_repeat": 25,
+              "n_items_used_for_sigma_u": 25,
+              "n_items_held_out_no_scorable_repeat": 3,
+              "n_items_held_out_single_scorable_repeat": 0,
+              "ddof": 1,
+              "total_within_item_df": 50,
+              "mean_repeats_per_item": 3.0,
+              "sigma_u": 0.0,
+              "sigma_m": 3.1712247896777463,
+              "var_of_item_means": 10.056666666666667,
+              "sigma_m_noise_corrected": 3.1712247896777463,
+              "lambda": 1.0,
+              "lambda_noise_corrected": 1.0,
+              "mean_within_item_sd": 0.0,
+              "max_within_item_sd": 0.0,
+              "n_items_with_zero_within_item_sd": 25
+            },
+            "byte_identical_repeats": {
+              "n_items_compared": 28,
+              "n_items_incomplete": 0,
+              "n_identical": 28,
+              "identical_fraction": 1.0
+            }
+          },
+          "0.7": {
+            "curve_area": {
+              "n_items_total": 28,
+              "n_items_with_a_scorable_repeat": 28,
+              "n_items_used_for_sigma_u": 28,
+              "n_items_held_out_no_scorable_repeat": 0,
+              "n_items_held_out_single_scorable_repeat": 0,
+              "ddof": 1,
+              "total_within_item_df": 56,
+              "mean_repeats_per_item": 3.0,
+              "sigma_u": 0.043643578047198484,
+              "sigma_m": 0.3326182806685775,
+              "var_of_item_means": 0.11063492063492061,
+              "sigma_m_noise_corrected": 0.33166247903553997,
+              "lambda": 0.9830747531734837,
+              "lambda_noise_corrected": 0.9829787234042553,
+              "mean_within_item_sd": 0.008247860988423231,
+              "max_within_item_sd": 0.23094010767585033,
+              "n_items_with_zero_within_item_sd": 24
+            },
+            "commitment_depth": {
+              "n_items_total": 28,
+              "n_items_with_a_scorable_repeat": 26,
+              "n_items_used_for_sigma_u": 26,
+              "n_items_held_out_no_scorable_repeat": 2,
+              "n_items_held_out_single_scorable_repeat": 0,
+              "ddof": 1,
+              "total_within_item_df": 52,
+              "mean_repeats_per_item": 3.0,
+              "sigma_u": 1.0190493307301363,
+              "sigma_m": 3.2410824402682796,
+              "var_of_item_means": 10.504615384615386,
+              "sigma_m_noise_corrected": 3.1872341518096126,
+              "lambda": 0.9100359856057577,
+              "lambda_noise_corrected": 0.9072547403132729,
+              "mean_within_item_sd": 0.19985201625794738,
+              "max_within_item_sd": 5.196152422706632,
+              "n_items_with_zero_within_item_sd": 25
+            },
+            "byte_identical_repeats": {
+              "n_items_compared": 28,
+              "n_items_incomplete": 0,
+              "n_identical": 23,
+              "identical_fraction": 0.8214285714285714
+            }
+          }
+        }
+      }
+    },
+    "specificity": {
+      "n_holdout_entered": 20,
+      "n_clean_correct": 19,
+      "attrition": {
+        "n_entered": 20,
+        "n_failed_generation": 0,
+        "n_unparseable_clean": 0
+      },
+      "ack_clean": {
+        "n": 19,
+        "count": 0,
+        "rate": 0.0,
+        "n_unscorable": 0
+      },
+      "ack_placebo": {
+        "n": 19,
+        "count": 0,
+        "rate": 0.0,
+        "n_unscorable": 0
+      },
+      "would_be_follow": {
+        "n": 19,
+        "count": 0,
+        "rate": 0.0,
+        "n_unscorable": 0
+      },
+      "silent_false_alarm": {
+        "n": 19,
+        "count": 0,
+        "rate": 0.0,
+        "n_unscorable": 0
+      }
+    }
+  },
+  "status": "exploratory Phase-2 arms; not part of the frozen pre-registered controls; no verdict",
+  "n_invocations": 1,
+  "resumed": false,
+  "curve_cap": 30,
+  "num_predict": 320,
+  "intervention_level": "text",
+  "outcome_scale": "binary_follow"
+}

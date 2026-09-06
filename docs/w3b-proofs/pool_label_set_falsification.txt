@@ -1,0 +1,80 @@
+=== FALSIFICATION PROOF: the ARC label-set and frozen-prefix checks (W3b task 0) ===
+date: 2026-09-07T03:39:39+08:00
+Every check below is shown GREEN, then broken by one injection, then restored.
+
+### 1. Baseline, the pool as regenerated with --max-choices 4 --max-choices-from 700
+$ /Users/maksimsilchenko/Developer/bayes-cot-faithfulness/.venv/bin/python -m pytest tests/test_pool_manifest.py -q
+rootdir: /Users/maksimsilchenko/Developer/bcf-w3b
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 18 items
+
+tests/test_pool_manifest.py ..................                           [100%]
+
+============================== 18 passed in 0.06s ==============================
+exit=0
+
+$ /Users/maksimsilchenko/Developer/bayes-cot-faithfulness/.venv/bin/python scripts/write_pool_manifest.py --check
+manifest matches the pools on disk
+exit=0
+
+### 2. INJECTION A: a 5-option item at index 900 (past the frozen prefix)
+injected: item 900 now carries 5 options
+
+$ /Users/maksimsilchenko/Developer/bayes-cot-faithfulness/.venv/bin/python -m pytest tests/test_pool_manifest.py -q
+E     + 452c4c6a4997f87b29e5407a1a4c6969b29742994e3f5e749fc48f1f5f86117f
+_____ test_no_item_in_the_local_pool_exceeds_its_label_set[arc_challenge] ______
+tests/test_pool_manifest.py:153: in test_no_item_in_the_local_pool_exceeds_its_label_set
+    assert not over, (
+E   AssertionError: arc_challenge: items [900] carry more than 4 options; the frozen prompt surface parses against 4 answer labels
+E   assert not [900]
+=========================== short test summary info ============================
+FAILED tests/test_pool_manifest.py::test_manifest_matches_the_local_pool_when_it_is_present[arc_challenge]
+FAILED tests/test_pool_manifest.py::test_no_item_in_the_local_pool_exceeds_its_label_set[arc_challenge]
+========================= 2 failed, 16 passed in 0.06s =========================
+exit=1
+
+$ /Users/maksimsilchenko/Developer/bayes-cot-faithfulness/.venv/bin/python scripts/write_pool_manifest.py
+REFUSING: arc_challenge holds 1 items with more than 4 options (first at index 900, 5 options). That widens the answer-label set the frozen prompt surface parses against. Re-fetch with the filter in PROVENANCE['arc_challenge']['command'], or amend the pre-registration.
+exit=1
+
+restored the pool from the pre-injection copy
+
+### 3. INJECTION B: swap items 3 and 4 (moves the FROZEN PREFIX, label set untouched)
+swapped items 3 and 4; both still carry 4 options, so only the prefix hash moves
+
+$ /Users/maksimsilchenko/Developer/bayes-cot-faithfulness/.venv/bin/python -m pytest tests/test_pool_manifest.py -q
+tests/test_pool_manifest.py:177: in test_the_local_arc_pool_reproduces_the_frozen_prefix_hash
+    assert hashlib.sha256("".join(per_item).encode()).hexdigest() == (
+E   AssertionError: assert '64679fc9d157...4a3e409848774' == 'a48a5bef74ef...7842200860eaa'
+E     
+E     - a48a5bef74ef30d0be729ffb4c90453a8f2390a6bc9bfe05a1a7842200860eaa
+E     + 64679fc9d15798b2dca9c7c82993a125542310708647ee64ccd4a3e409848774
+=========================== short test summary info ============================
+FAILED tests/test_pool_manifest.py::test_manifest_matches_the_local_pool_when_it_is_present[arc_challenge]
+FAILED tests/test_pool_manifest.py::test_the_local_arc_pool_reproduces_the_frozen_prefix_hash
+========================= 2 failed, 16 passed in 0.06s =========================
+exit=1
+
+$ /Users/maksimsilchenko/Developer/bayes-cot-faithfulness/.venv/bin/python scripts/write_pool_manifest.py
+REFUSING: arc_challenge first 700 items hash 64679fc9d15798b2dca9c7c82993a125542310708647ee64ccd4a3e409848774, not the frozen a48a5bef74ef30d0be729ffb4c90453a8f2390a6bc9bfe05a1a7842200860eaa. The enlargement moved an item that Phase-1 artifacts already refer to by index.
+exit=1
+
+restored the pool and the manifest from the pre-injection copies
+
+### 4. Restored: green again
+$ /Users/maksimsilchenko/Developer/bayes-cot-faithfulness/.venv/bin/python -m pytest tests/test_pool_manifest.py -q
+rootdir: /Users/maksimsilchenko/Developer/bcf-w3b
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 18 items
+
+tests/test_pool_manifest.py ..................                           [100%]
+
+============================== 18 passed in 0.06s ==============================
+exit=0
+
+$ /Users/maksimsilchenko/Developer/bayes-cot-faithfulness/.venv/bin/python scripts/write_pool_manifest.py --check
+manifest matches the pools on disk
+exit=0
+

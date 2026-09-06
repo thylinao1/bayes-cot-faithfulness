@@ -31,6 +31,7 @@ Run (from the repo root):
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import sys
@@ -85,6 +86,18 @@ from bayes_cot_faithfulness.curves import (  # noqa: E402
     curve_covariates,
     curve_prompts,
     summarize_curve,
+)
+from bayes_cot_faithfulness.sampling_arm import (  # noqa: E402
+    SAMPLING_K,
+    SAMPLING_TEMPERATURE,
+    STABILITY_K_GRID,
+    UNCERTAIN_ENTROPY_THRESHOLD,
+    summarize_item_samples,
+    summarize_sampling as summarize_sampling_block,
+)
+from bayes_cot_faithfulness.repeat_curves import (  # noqa: E402
+    identical_repeat_fraction,
+    variance_components,
 )
 
 CONTROL_SCRIPT = HERE / "05_realmodel_control.py"
@@ -165,6 +178,18 @@ class RunCtx:
     # code path (see map_in_order), and it is the default so an existing call site that
     # builds a RunCtx positionally keeps the behavior it had.
     concurrency: int = 1
+    # Element 9.2, the uncertain-item sampling arm. The defaults ARE the frozen values;
+    # they are fields rather than constants only so a smoke run can shorten k, and every
+    # one of them is written into the arm block and the run meta.
+    sampling_k: int = SAMPLING_K
+    sampling_temperature: float = SAMPLING_TEMPERATURE
+    sampling_seed: int | None = None
+    # Element 8.3 / PF-13, the repeated truncation curves. r repeats per item at each
+    # temperature in repeat_temperatures. 0.0 is the determinism measurement under this
+    # run's own concurrency; the sampled temperature is the mediator-noise measurement.
+    curve_repeats: int = 3
+    repeat_temperatures: tuple[float, ...] = (0.0, 0.7)
+    repeat_seed: int = 9101
 
 
 # --- Small pure helpers -----------------------------------------------------
@@ -531,6 +556,72 @@ def summarize_curves(records: list[dict]) -> dict:
     return out
 
 
+def summarize_sampling(records: list[dict]) -> dict:
+    """Element 9.2: the entropy distribution, the uncertain fraction, k stability.
+
+    Draw methods are counted rather than assumed: a run that fell back to seeded calls
+    on one item and used the n parameter on the rest would show both here.
+    """
+    blocks = [r["sampling"] for r in records if "sampling" in r]
+    out = summarize_sampling_block(blocks)
+    methods: dict[str, int] = {}
+    for b in blocks:
+        key = str(b.get("draw_method"))
+        methods[key] = methods.get(key, 0) + 1
+    out["draw_methods"] = dict(sorted(methods.items()))
+    out["n_records_entered"] = len(records)
+    out["n_records_with_samples"] = len(blocks)
+    return out
+
+
+def _repeat_values(blocks: list[dict], arm: str, temp_key: str, field: str):
+    """One list of per-repeat values per item, for one arm and one temperature."""
+    rows = []
+    for b in blocks:
+        reps = (b.get("arms", {}).get(arm) or {}).get(temp_key)
+        if not reps:
+            continue
+        rows.append([rep.get(field) for rep in reps])
+    return rows
+
+
+def summarize_repeat_curves(records: list[dict]) -> dict:
+    """Element 8.3 (PF-13): sigma_u, sigma_m and lambda per arm and per temperature.
+
+    ``curve_area`` is the primary scalar: it is continuous, and it is the per-item
+    covariate the hierarchical model conditions on. ``commitment_depth`` is reported
+    beside it as an integer secondary; an item that never commits carries None there and
+    drops out of that component's denominator, which is why the two have different n.
+    """
+    blocks = [r["repeat_curves"] for r in records if "repeat_curves" in r]
+    temps: list[str] = []
+    for b in blocks:
+        for arm in b.get("arms", {}).values():
+            for key in arm:
+                if key not in temps:
+                    temps.append(key)
+    out: dict = {
+        "n_records_entered": len(records),
+        "n_records_with_repeats": len(blocks),
+        "r": blocks[0].get("r") if blocks else None,
+        "temperatures": sorted(temps, key=float),
+        "arms": {},
+    }
+    for arm in ("clean", "hinted"):
+        per_temp: dict = {}
+        for temp_key in out["temperatures"]:
+            areas = _repeat_values(blocks, arm, temp_key, "curve_area")
+            depths = _repeat_values(blocks, arm, temp_key, "commitment_depth")
+            shas = _repeat_values(blocks, arm, temp_key, "completions_sha256")
+            per_temp[temp_key] = {
+                "curve_area": variance_components(areas),
+                "commitment_depth": variance_components(depths),
+                "byte_identical_repeats": identical_repeat_fraction(shas),
+            }
+        out["arms"][arm] = per_temp
+    return out
+
+
 def _transplant_direction(records: list[dict], got_key: str, want_key: str) -> dict:
     """Carry-over for one transplant direction over the SCORABLE pairs only.
 
@@ -691,6 +782,8 @@ def build_blocks(records: list[dict], arms: list[str]) -> dict:
         "twostep": summarize_twostep,
         "filler": summarize_filler,
         "curves": summarize_curves,
+        "sampling": summarize_sampling,
+        "repeat-curves": summarize_repeat_curves,
         "transplant": summarize_transplant,
         "anchor": summarize_anchor,
     }
@@ -781,8 +874,9 @@ def serialize_arm_record(r: dict) -> dict:
         ckey = f"{arm}_curve"
         if ckey in r:
             out[ckey] = _curve_to_dict(r[ckey])
-    if "anchor" in r:
-        out["anchor"] = r["anchor"]
+    for block in ("anchor", "sampling", "repeat_curves"):
+        if block in r:
+            out[block] = r[block]
     return out
 
 
@@ -1220,6 +1314,196 @@ def arm_curves(client, records, ctx):
     return ok, state["err"]
 
 
+SAMPLING_CAPABILITY_REFUSAL = (
+    "the sampling arm needs a backend that can draw k completions at a chosen "
+    "temperature (OpenAIClient.sample_completions). The ollama and groq clients in this "
+    "repo are pinned to temperature 0 with one completion per call, so running element "
+    "9.2 through them would silently produce k copies of one greedy answer and an "
+    "entropy of exactly 0 on every item. Use --backend openai against the served model."
+)
+
+
+def _sha16(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def arm_sampling(client, records, ctx):
+    """Element 9.2: k sampled answers on the CLEAN prompt, per clean-correct item.
+
+    The prompt is the CLEAN one, not the cued one: the uncertain-item stratum is a
+    property of the item and the model, and reading it off a cued prompt would define
+    the stratum with the manipulation already applied.
+
+    The seed is per item (``sampling_seed + i * k``) so two items never share a draw and
+    a resumed leg redraws the same samples for the item it stopped on. Whether the k
+    draws came from one request with ``n = k`` or from k seeded requests is decided by
+    the server, recorded per item as ``draw_method``, and reported in the arm block.
+    """
+    if not hasattr(client, "sample_completions"):
+        return False, RuntimeError(SAMPLING_CAPABILITY_REFUSAL)
+
+    def _work(i, r):
+        if "sampling" in r:
+            return {}, None  # banked on an earlier leg; do not redraw
+        it = r["item"]
+        seed = None if ctx.sampling_seed is None else ctx.sampling_seed + i * ctx.sampling_k
+        try:
+            outs, method = client.sample_completions(
+                clean_prompt(it), k=ctx.sampling_k,
+                temperature=ctx.sampling_temperature, seed=seed,
+                num_predict=ctx.num_predict,
+            )
+        except Exception as exc:  # noqa: BLE001 - same discipline as safe_generate
+            return {}, exc
+        # No forced-answer fallback here. parse_or_force would spend a SECOND call on an
+        # unparsed sample and fold its answer into the distribution, which would make the
+        # entropy a property of two different generations. An unparsed sample is counted
+        # as unscorable instead.
+        answers = [parse_answer(o, ctx.n_choices) for o in outs]
+        block = summarize_item_samples(
+            answers,
+            n_options=len(it.choices),
+            answer_label=it.answer_label,
+            item_labels=list(it.labels),
+            threshold=UNCERTAIN_ENTROPY_THRESHOLD,
+            k_grid=STABILITY_K_GRID,
+        )
+        block["draw_method"] = method
+        block["seed"] = seed
+        block["temperature"] = ctx.sampling_temperature
+        block["prompt"] = "clean"
+        block["samples"] = [
+            {"index": j, "answer": a, "parsed": a is not None, "completion": o}
+            for j, (o, a) in enumerate(zip(outs, answers))
+        ]
+        return {"sampling": block}, None
+
+    return _run_record_arm(records, _work, ctx)
+
+
+def _one_repeat_curve(client, ctx, it, cot, final_answer, temperature, seed,
+                      keep_text=False):
+    """One truncation curve over the frozen depth grid. Returns (repeat_dict, err).
+
+    At temperature 0 the calls go through ``safe_generate``, which is byte for byte the
+    path ``arm_curves`` uses, so the repeats measure this run's own determinism rather
+    than a second code path's. Above 0 they go through ``sample_completions`` with k = 1
+    and this repeat's seed.
+    """
+    depths: list[int] = []
+    answers: list[str | None] = []
+    texts: list[str] = []
+    for depth, prompt in curve_prompts(it, cot):
+        if temperature == 0.0:
+            out, err = safe_generate(client, prompt, FORCE_TOKENS)
+            if err is not None:
+                return None, err
+        else:
+            try:
+                got, _method = client.sample_completions(
+                    prompt, k=1, temperature=temperature, seed=seed,
+                    num_predict=FORCE_TOKENS,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return None, exc
+            out = got[0]
+        depths.append(depth)
+        answers.append(parse_answer(out, ctx.n_choices))
+        texts.append(out)
+    curve = summarize_curve(depths, answers, final_answer)
+    joined = "\x1e".join(texts)
+    row = {
+        "seed": seed,
+        "temperature": temperature,
+        "depths": depths,
+        "answers": answers,
+        "commitment_depth": curve.commitment_depth,
+        "curve_area": curve.curve_area,
+        "n_unscorable_depths": curve.n_unscorable_depths,
+        # The determinism measurement is on the generated TEXT, not on the parsed answer:
+        # two depth answers can agree while the continuations differ. Hashes rather than
+        # the text itself so a 1,500-item cell's transcript stays readable; repeat 0
+        # keeps its full completions so a difference can be looked at.
+        "completions_sha256": _sha16(joined),
+        "depth_sha256": [_sha16(t) for t in texts],
+        "n_chars": len(joined),
+    }
+    if keep_text:
+        row["completions"] = texts
+    return row, None
+
+
+def arm_repeat_curves(client, records, ctx):
+    """Element 8.3 (PF-13): r repeats of each truncation curve at each temperature.
+
+    Both the clean and the hinted curve are repeated, because the estimand the noise
+    correction is applied to is read off both. The per-item, per-temperature spread of
+    ``curve_area`` across the repeats is sigma_u; the spread of the item means is
+    sigma_m. The temperature-0 repeats double as a determinism check under this run's
+    concurrency (see ``identical_repeat_fraction``).
+    """
+    capped = records[: ctx.curve_cap]
+    if any(t != 0.0 for t in ctx.repeat_temperatures) and not hasattr(
+        client, "sample_completions"
+    ):
+        return False, RuntimeError(SAMPLING_CAPABILITY_REFUSAL)
+    state = {"err": None}
+
+    def _work(i, r):
+        if "repeat_curves" in r:
+            return {}, None
+        it = r["item"]
+        block: dict = {
+            "r": ctx.curve_repeats,
+            "temperatures": [float(t) for t in ctx.repeat_temperatures],
+            "arms": {},
+        }
+        for cot_key, ans_key, arm_name in (
+            ("clean_cot", "clean_answer", "clean"),
+            ("hinted_cot", "hinted_answer", "hinted"),
+        ):
+            per_temp: dict = {}
+            for t_idx, temperature in enumerate(ctx.repeat_temperatures):
+                reps = []
+                for rep in range(ctx.curve_repeats):
+                    # One seed per (item, arm, temperature, repeat). Distinct across
+                    # repeats is the requirement; distinct across items and arms keeps
+                    # two curves from sharing a sampler stream by accident.
+                    seed = (ctx.repeat_seed
+                            + i * 1000
+                            + (0 if arm_name == "clean" else 500)
+                            + t_idx * 100
+                            + rep)
+                    row, err = _one_repeat_curve(
+                        client, ctx, it, r[cot_key], r[ans_key], float(temperature),
+                        seed, keep_text=(rep == 0),
+                    )
+                    if err is not None:
+                        return {}, err
+                    row["repeat"] = rep
+                    reps.append(row)
+                per_temp[f"{float(temperature)}"] = reps
+            block["arms"][arm_name] = per_temp
+        return {"repeat_curves": block}, None
+
+    def _consume(i, r, result):
+        updates, err = result
+        if updates:
+            r.update(updates)
+        if err is not None:
+            state["err"] = err
+            return False
+        _checkpoint(ctx, records, i)
+        # Same per-ITEM banking as arm_curves: one item here costs r * len(temps) * 2
+        # curves worth of forced-answer calls, so a hard kill re-spends at most one item.
+        if ctx.checkpoint is not None:
+            ctx.checkpoint.write()
+        return True
+
+    ok = map_in_order(capped, _work, concurrency=ctx.concurrency, consume=_consume)
+    return ok, state["err"]
+
+
 def arm_transplant(client, records, ctx):
     """T3: forward (hinted CoT, cue STRIPPED) and reverse (clean CoT, cue ADDED) crossing.
 
@@ -1552,6 +1836,8 @@ ARM_RUNNERS = {
     "twostep": arm_twostep,
     "filler": arm_filler,
     "curves": arm_curves,
+    "sampling": arm_sampling,
+    "repeat-curves": arm_repeat_curves,
     "transplant": arm_transplant,
     "anchor": arm_anchor,
 }
@@ -1612,6 +1898,43 @@ def report_blocks(blocks: dict) -> None:
                   f"never={x['n_never_committed']} unscorable={x['n_unscorable']} "
                   f"unparsed-depths={x['n_unparsed_depths']} mean-area={area} "
                   f"hist={x['commitment_depth_hist']}")
+    if "sampling" in blocks:
+        b = blocks["sampling"]
+        num = lambda x: "n/a" if x is None else f"{x:.3f}"
+        print(f"[sampling 9.2] k={b['k']} T={b['temperature']} on the clean prompt; "
+              f"{b['n_items_with_entropy']}/{b['n_records_entered']} items scored "
+              f"(draw {b['draw_methods']})")
+        print("    normalized entropy: min " + num(b["entropy_min"])
+              + " q25 " + num(b["entropy_q25"])
+              + " median " + num(b["entropy_median"])
+              + " q75 " + num(b["entropy_q75"])
+              + " max " + num(b["entropy_max"]))
+        print(f"    right-but-uncertain at {b['entropy_threshold']}: "
+              f"{b['n_right_but_uncertain']}/{b['n_records_entered']} "
+              f"({_pct(b['right_but_uncertain_fraction'])}); strata {b['strata']}; "
+              f"modal ties {b['n_modal_ties']}; unscorable samples "
+              f"{b['n_unscorable_samples']}; out-of-set {b['n_out_of_set_samples']}")
+        for step in b["stability"]["steps"]:
+            print(f"    stability k {step['from_k']} to {step['to_k']}: stratum changed "
+                  f"{step['n_stratum_changed']}/{step['n_items_comparable']}, flag changed "
+                  f"{step['n_flag_changed']}/{step['n_items_comparable']}")
+    if "repeat-curves" in blocks:
+        b = blocks["repeat-curves"]
+        print(f"[repeat-curves 8.3/PF-13] r={b['r']} repeats at "
+              f"{', '.join(b['temperatures'])} on "
+              f"{b['n_records_with_repeats']}/{b['n_records_entered']} items")
+        for arm in ("clean", "hinted"):
+            for temp_key, cell in b["arms"][arm].items():
+                v = cell["curve_area"]
+                ident = cell["byte_identical_repeats"]
+                fmt = lambda x: "n/a" if x is None else f"{x:.4f}"
+                print(f"    {arm} T={temp_key} curve_area: sigma_u {fmt(v['sigma_u'])} "
+                      f"(df {v['total_within_item_df']}, {v['n_items_used_for_sigma_u']} "
+                      f"items), sigma_m {fmt(v['sigma_m'])} "
+                      f"({v['n_items_with_a_scorable_repeat']} items), lambda "
+                      f"{fmt(v['lambda'])} (corrected {fmt(v['lambda_noise_corrected'])})"
+                      f"; byte-identical {ident['n_identical']}/"
+                      f"{ident['n_items_compared']}")
     if "transplant" in blocks:
         b = blocks["transplant"]
         f, rv = b["forward"], b["reverse"]
@@ -1750,7 +2073,10 @@ def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_bloc
 def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         curve_cap=20, num_predict=320, timeout=120.0, backend="ollama",
         specificity_holdout=None, resume=False, *, base_url=None, seed=None,
-        chat_template_kwargs=None, concurrency=1):
+        chat_template_kwargs=None, concurrency=1,
+        sampling_k=SAMPLING_K, sampling_temperature=SAMPLING_TEMPERATURE,
+        sampling_seed=None, curve_repeats=3, repeat_temperatures=(0.0, 0.7),
+        repeat_seed=9101):
     arms = resolve_arms(arms)
     if not arms:
         print(no_arms_hint())
@@ -1766,10 +2092,24 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
     safe_model = model.replace(":", "_").replace("/", "_")
     checkpoint_path = out_dir / f"arms_checkpoint_{safe_model}.json"
     holdout_path = Path(specificity_holdout)
+    # The sampling and repeated-curve DRAW parameters ride in the fingerprint only when
+    # their own arm is enabled, so a run without them writes the same None a pre-existing
+    # checkpoint carries and stays resumable.
+    sampling_params = (
+        {"k": sampling_k, "temperature": sampling_temperature, "seed": sampling_seed,
+         "threshold": UNCERTAIN_ENTROPY_THRESHOLD, "prompt": "clean"}
+        if "sampling" in arms else None
+    )
+    repeat_params = (
+        {"r": curve_repeats, "temperatures": [float(t) for t in repeat_temperatures],
+         "seed": repeat_seed}
+        if "repeat-curves" in arms else None
+    )
     params = arms_resume.build_params(
         model, backend, n_items, data_path, taxonomy, arms, curve_cap, num_predict,
         holdout_path, arms_resume.file_sha256(data_path),
         arms_resume.file_sha256(holdout_path),
+        sampling=sampling_params, repeat_curves=repeat_params,
     )
     # Resume gate BEFORE the backend gate: an unreadable version, a parameter mismatch,
     # or a data file whose duplicate keys would alias banked records must refuse with
@@ -1849,6 +2189,10 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
     ctx = RunCtx(
         n_choices, num_predict, out_dir, safe_model, backend, model, curve_cap, writer,
         concurrency,
+        sampling_k=sampling_k, sampling_temperature=sampling_temperature,
+        sampling_seed=sampling_seed, curve_repeats=curve_repeats,
+        repeat_temperatures=tuple(float(t) for t in repeat_temperatures),
+        repeat_seed=repeat_seed,
     )
     print(f"[2/3] Cue pass ({cue_kind}) on {len(correct)} clean-correct items")
     if not cue_pass(client, correct, ctx, taxonomy):
@@ -1924,6 +2268,25 @@ def build_parser() -> argparse.ArgumentParser:
                     help="fixed n=20 held-out set (ARC validation split, disjoint from the "
                          "main runs) for the A9 specificity arm; fetch with "
                          "fetch_arc.py --split validation --n 20")
+    ap.add_argument("--sampling-k", type=int, default=SAMPLING_K,
+                    help="element 9.2: samples per item on the clean prompt "
+                         f"(frozen at {SAMPLING_K}). Lower it only for a smoke run; the "
+                         "value is written into the arm block and the checkpoint params.")
+    ap.add_argument("--sampling-temperature", type=float, default=SAMPLING_TEMPERATURE,
+                    help=f"element 9.2 sampling temperature (frozen at "
+                         f"{SAMPLING_TEMPERATURE}).")
+    ap.add_argument("--sampling-seed", type=int, default=None,
+                    help="base seed for the sampling arm; item i draws with "
+                         "seed + i * k. Defaults to --seed.")
+    ap.add_argument("--curve-repeats", type=int, default=3,
+                    help="element 8.3 (PF-13): repeats of each truncation curve per "
+                         "item per temperature (default 3).")
+    ap.add_argument("--repeat-temperatures", default="0.0,0.7",
+                    help="comma-separated temperatures for the repeated curves. 0.0 is "
+                         "the determinism measurement under this run's concurrency; the "
+                         "sampled one is the mediator-noise measurement.")
+    ap.add_argument("--repeat-seed", type=int, default=9101,
+                    help="base seed for the repeated-curve draws.")
     ap.add_argument("--concurrency", type=int, default=1,
                     help="requests in flight at once (default 1 = the sequential client "
                          "every Phase-1 measurement was taken with). Above 1 the records "
@@ -1950,10 +2313,31 @@ def main(argv: list[str] | None = None) -> int:
     if a.concurrency < 1:
         print("[setup] --concurrency must be at least 1.")
         return 0
+    if a.sampling_k < 1:
+        print("[setup] --sampling-k must be at least 1.")
+        return 0
+    if a.curve_repeats < 1:
+        print("[setup] --curve-repeats must be at least 1.")
+        return 0
+    try:
+        repeat_temperatures = tuple(
+            float(x) for x in a.repeat_temperatures.split(",") if x.strip()
+        )
+    except ValueError:
+        print(f"[setup] --repeat-temperatures must be comma-separated numbers, got "
+              f"{a.repeat_temperatures!r}.")
+        return 0
+    if not repeat_temperatures:
+        print("[setup] --repeat-temperatures must name at least one temperature.")
+        return 0
     return run(model, a.host, a.n_items, a.data, a.out, a.arm, a.taxonomy,
                a.curve_cap, a.num_predict, a.timeout, a.backend,
                a.specificity_holdout, a.resume, base_url=a.base_url, seed=a.seed,
-               chat_template_kwargs=template_kwargs, concurrency=a.concurrency)
+               chat_template_kwargs=template_kwargs, concurrency=a.concurrency,
+               sampling_k=a.sampling_k, sampling_temperature=a.sampling_temperature,
+               sampling_seed=(a.sampling_seed if a.sampling_seed is not None else a.seed),
+               curve_repeats=a.curve_repeats,
+               repeat_temperatures=repeat_temperatures, repeat_seed=a.repeat_seed)
 
 
 if __name__ == "__main__":

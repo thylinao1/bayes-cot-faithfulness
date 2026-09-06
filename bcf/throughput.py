@@ -24,7 +24,11 @@ from pathlib import Path
 
 # The sbatch script prefixes every stdout line with an ISO-8601 timestamp in brackets.
 TS_RE = re.compile(r"^\[(\d{4}-\d{2}-\d{2}T[\d:+\-.]+)\]\s?(.*)$")
-ARM_RE = re.compile(r"running arm '([a-z]+)'")
+# Hyphens are part of an arm name ("repeat-curves"), and [a-z]+ silently did not match
+# one: the whole regex failed on that line, the arm got no interval, and its 1,682 calls
+# were billed to the arm before it. Job 826025's first throughput.json shows the sampling
+# arm at 1,710 calls when it made 28. Found by reading the run, not by a test.
+ARM_RE = re.compile(r"running arm '([a-z][a-z0-9-]*)'")
 PHASE_RE = re.compile(r"\[(\d)/3\]\s+(Clean substrate|Cue pass|Additive arms)")
 
 

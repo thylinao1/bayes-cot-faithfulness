@@ -116,6 +116,20 @@ experiments/results/phase1-anchor-mig/**
 !experiments/results/phase1-anchor-mig/**/throughput.json
 !experiments/results/phase1-anchor-mig/**/logprob_check.json
 !experiments/results/phase1-anchor-mig/**/exit_code.txt
+# The W3b skeleton (job 826025): the first run carrying the element 9.2 sampling arm and
+# the element 8.3 repeated curves. The per-item RECORDS are kept, not just the summary,
+# because A3.3 to A3.5 are recomputed from them and a 30-item cell's transcripts are a
+# few megabytes. The three substrate pools stay gitignored; nothing here redistributes
+# ARC items beyond the 30 this cell used, which is fair-use quotation of a CC BY-SA set
+# inside a run record rather than a copy of the dataset.
+!experiments/results/w3b-skeleton/
+experiments/results/w3b-skeleton/**
+!experiments/results/w3b-skeleton/**/
+!experiments/results/w3b-skeleton/**/*.json
+!experiments/results/w3b-skeleton/**/*.jsonl
+!experiments/results/w3b-skeleton/**/exit_code.txt
+!experiments/results/w3b-skeleton/**/run.log
+!experiments/results/w3b-skeleton/**/server-backend-lines.txt
 
 # CPU mechanism battery (A2 element 11(a)): the report, the aggregated results, the
 # cross-checks, the PyMC subset and the per-dataset rows are all committed, because the

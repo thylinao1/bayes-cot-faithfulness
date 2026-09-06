@@ -27,6 +27,21 @@ MANIFEST = REPO / "experiments" / "data" / "pool_manifest.json"
 CONTRACT_MIN_POOL = 700
 A3_MIN_POOL = 1500
 
+# The answer-label set each substrate's frozen prompt surface parses against. ARC's cap
+# is 4 because the 700-item pool every Phase-1 artifact was measured on holds at most 4
+# options, and a 1,500-item pool that reached 5 would make an ARC cell parse against five
+# labels: a change to the frozen prompt surface, not a bigger sample of the same one.
+# DECISION-LOG 2026-09-07 03:58 ruling (a).
+MAX_CHOICES = {"arc_challenge": 4, "aqua_rat": 5, "logiqa2": 4}
+
+# The sequence hash of the first 700 ARC items, copied from the manifest that shipped
+# with the 700-item pool (W3, 2026-09-07). It is written out here rather than read from
+# the manifest so that a regenerated manifest agreeing with a MOVED pool still fails:
+# the manifest cannot vouch for itself.
+ARC_FROZEN_PREFIX_SHA = (
+    "a48a5bef74ef30d0be729ffb4c90453a8f2390a6bc9bfe05a1a7842200860eaa"
+)
+
 
 @pytest.fixture(scope="module")
 def manifest() -> dict:
@@ -104,4 +119,61 @@ def test_manifest_matches_the_local_pool_when_it_is_present(manifest, name):
     assert prefix == pool["frozen_prefix_sha256"], (
         f"{name}: the first {n} items moved; every index-seeded draw in the runner "
         f"would be re-seeded against different items"
+    )
+
+
+def test_no_arc_item_carries_more_than_four_choices(manifest):
+    """The ARC label set is four letters, at 700 items and at 1,500.
+
+    The enlargement to 1,500 reached four 5-option items in the ARC-Challenge test
+    split (old pool indices 836, 868, 1037, 1382), all of them past the frozen prefix.
+    Keeping them would have widened the answer-label set the frozen prompt surface
+    parses against, which is an amendment-sized change and not a sampling change.
+    """
+    assert manifest["pools"]["arc_challenge"]["choices_max"] <= MAX_CHOICES[
+        "arc_challenge"
+    ]
+
+
+@pytest.mark.parametrize("name", ["arc_challenge", "aqua_rat", "logiqa2"])
+def test_every_pool_stays_inside_its_own_label_set(manifest, name):
+    pool = manifest["pools"][name]
+    assert pool["choices_max"] <= MAX_CHOICES[name], name
+    assert pool["max_choices_allowed"] == MAX_CHOICES[name], name
+
+
+@pytest.mark.parametrize("name", ["arc_challenge", "aqua_rat", "logiqa2"])
+def test_no_item_in_the_local_pool_exceeds_its_label_set(name):
+    """The manifest field above is a summary; this reads every item on disk."""
+    path = REPO / "experiments" / "data" / f"{name}.json"
+    if not path.exists():
+        pytest.skip(f"{path.name} is gitignored and not present in this checkout")
+    items = json.loads(path.read_text())
+    over = [i for i, it in enumerate(items) if len(it["choices"]) > MAX_CHOICES[name]]
+    assert not over, (
+        f"{name}: items {over[:10]} carry more than {MAX_CHOICES[name]} options; the "
+        f"frozen prompt surface parses against {MAX_CHOICES[name]} answer labels"
+    )
+
+
+def test_the_arc_frozen_prefix_hash_is_the_one_phase_1_was_measured_on(manifest):
+    """The filter must not have moved a single item of the first 700."""
+    assert manifest["pools"]["arc_challenge"]["frozen_prefix_sha256"] == (
+        ARC_FROZEN_PREFIX_SHA
+    )
+
+
+def test_the_local_arc_pool_reproduces_the_frozen_prefix_hash():
+    path = REPO / "experiments" / "data" / "arc_challenge.json"
+    if not path.exists():
+        pytest.skip("arc_challenge.json is gitignored and not present in this checkout")
+    items = json.loads(path.read_text())
+    per_item = [
+        hashlib.sha256(
+            json.dumps(it, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        for it in items[:700]
+    ]
+    assert hashlib.sha256("".join(per_item).encode()).hexdigest() == (
+        ARC_FROZEN_PREFIX_SHA
     )
