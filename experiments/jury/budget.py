@@ -35,6 +35,17 @@ BUILT_VOTES_PER_TRANSCRIPT_PER_JUDGE = (
 )
 BUILT_VOTES = CELLS * TRANSCRIPTS_PER_CELL * PANEL_MEAN * BUILT_VOTES_PER_TRANSCRIPT_PER_JUDGE
 
+# The one h200-141 node, xgpk0, is in partition `gpu` alone and `gpu` caps the wall at 3
+# hours, so the FP8 70B judge's server-hours are a SEQUENCE of jobs, not a job. These are
+# measured, not assumed: the warm start is job 826010 (serve line 03:35:30, gate start
+# 03:37:20, weights already in the persistent cache) and the cold one is job 825542, which
+# fetched 74 GB to node scratch first.
+H200_PARTITION_WALL_H = 3.0
+H200_JOB_WALL = "02:50:00"             # submitted under the ceiling
+H200_JOB_WALL_H = 2 + 50 / 60.0        # 2.8333 h
+H200_START_WARM_S = 110.0              # job 826010, weights already in the cache
+H200_START_COLD_MIN = 26.0             # job 825542, 74 GB fetched to node scratch
+
 
 def wall_hours(votes: float, rate: float, servers: int) -> float:
     return votes / (rate * servers) / 3600.0
@@ -89,6 +100,16 @@ def build_markdown(measured: dict) -> str:
     a(f"So a single-run transcript costs {VOTES_SINGLE_RUN} votes per judge, not 3, and an audited one costs")
     a(f"{VOTES_AUDITED} (runs 1 and 2 are unswapped). The mean is {BUILT_VOTES_PER_TRANSCRIPT_PER_JUDGE:.2f}.")
     a("")
+    a(f"**The multiplier against CONTRACT.md line 23 is {BUILT_VOTES / CONTRACT_VOTES:.3f}.** It is the whole of the")
+    a("difference: the cells, the transcripts per cell, the mean panel size and the audit fraction")
+    a("are line 23's own numbers, unchanged. Confirmed on the run of record, where 483 gate items")
+    a(f"produced 5,313 votes for one judge, which is 11 per item, the audited case ({VOTES_AUDITED} = 4 gate +")
+    a("3 Q1 + 4 Q2) because the gate scores every item in three-seeded mode.")
+    a("")
+    a("The correction is appended to CONTRACT.md as a dated line rather than edited into line 23,")
+    a("because line 23 is what the estimate said and the record of an estimate being wrong is")
+    a("worth more than a tidy document.")
+    a("")
     a("## Wall clock under the corrected card budget")
     a("")
     a("CARD BUDGET of record (CONTRACT.md line 149, live sacctmgr 2026-09-07): a100-80 = 4,")
@@ -105,6 +126,50 @@ def build_markdown(measured: dict) -> str:
     a("")
     a(f"For comparison, the contract's own assumption of {CONTRACT_ASSUMED_RATE} votes per second across")
     a(f"{CONTRACT_SERVERS} servers on its own vote count gives {wall_hours(CONTRACT_VOTES, CONTRACT_ASSUMED_RATE, CONTRACT_SERVERS):,.1f} h.")
+    a("")
+    a("### The h200 judge cannot hold its server")
+    a("")
+    a("xgpk0 is the ONLY h200-141 node on the cluster and it sits in partition `gpu` alone, not")
+    a(f"in `gpu-long`. `gpu` caps the wall at {H200_PARTITION_WALL_H:.0f} hours. So the single-server row above is not a")
+    a("job for this judge. It is a sequence of jobs, and the sequence has a cost the hours column")
+    a("hides. Measured, from the two runs on the record:")
+    a("")
+    a("| Quantity | Value | Source |")
+    a("|---|---|---|")
+    a(f"| server start, weights in the persistent cache | {H200_START_WARM_S:.0f} s | job 826010: serve 03:35:30, gate start 03:37:20 |")
+    a(f"| server start, weights fetched to node scratch | {H200_START_COLD_MIN:.0f} min | job 825542: job start 02:39, first vote 03:05:48 |")
+    a("| home-usage preflight, memo cold | 123 s | job 826010 run.log, `full home scan took 123s` |")
+    a("| home-usage preflight, memo warm | about 1 s | measures the judge cache only |")
+    a(f"| wall a job may ask for in `gpu` | {H200_JOB_WALL} | under the {H200_PARTITION_WALL_H:.0f} h ceiling |")
+    a("")
+    h1 = wall_hours(BUILT_VOTES, rate, 1)
+    warm_usable = H200_JOB_WALL_H - H200_START_WARM_S / 3600.0
+    cold_usable = H200_JOB_WALL_H - H200_START_COLD_MIN / 60.0
+    a(f"{h1:,.1f} h of scoring at {rate:.3f} votes per second therefore needs, for the FP8 70B judge alone:")
+    a("")
+    a(f"- **at least {int(h1 // H200_JOB_WALL_H)} submissions** even if the server start were free ({h1:,.1f} / {H200_JOB_WALL_H:.2f} h of wall)")
+    a(f"- **{-(-h1 // warm_usable):.0f} submissions** at the measured warm start ({h1:,.1f} / {warm_usable:.2f} h of usable wall per job)")
+    a(f"- **{-(-h1 // cold_usable):.0f} submissions** if every job refetches its weights ({h1:,.1f} / {cold_usable:.2f} h), which is")
+    a(f"  {-(-h1 // cold_usable) * H200_START_COLD_MIN / 60.0:,.1f} h of h200 time spent loading the same weights")
+    a("")
+    a("What follows from that, none of it a change to the pre-registration:")
+    a("")
+    a("1. `--resume` is not a convenience on this judge, it is the only way the work completes.")
+    a("   The vote file IS the checkpoint: `records.completed_keys` reads it back and the runner")
+    a("   skips what is already there, so a job killed at the wall loses at most the votes in")
+    a("   flight. Every h200 judge row carries `BCF_RESUME=1`.")
+    a("2. The judge weight cache has to stay persistent for this judge, or those submissions pay")
+    a("   a 72 GB download each and the warm start becomes the cold one. It currently is: home")
+    a("   stands at 433 GB of the 450 GB working ceiling and the FP8 copy is already inside the")
+    a("   73 GB cache, so the net need is 0. The moment another campaign adds 17 GB to home, the")
+    a("   same preflight sends this judge to node scratch. That is the intended behaviour and the")
+    a("   ceiling is not to be raised to avoid it.")
+    a("3. The `du -sBG $HOME` in that preflight cost 90 to 120 s per job. Over a dozen")
+    a("   submissions that is a quarter of an hour of h200 time counting files. It is now split:")
+    a("   the part of home outside the judge cache is memoised with a 24 hour TTL, the cache")
+    a("   itself is measured fresh every job. Same number, same ceiling, about 1 s warm.")
+    a("4. The other three judges are pinned to a100-80, which lives in `gpu-long` with a 72 hour")
+    a("   ceiling, so none of this applies to them. It is a property of the one card.")
     a("")
     a("### What the card budget actually allows")
     a("")
