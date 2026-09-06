@@ -189,7 +189,10 @@ python "${BCF_REPO}/experiments/08_additive_arms.py" \
 ARMS_STATUS=${PIPESTATUS[0]}
 echo "[arms] finished at $(date -Is) with status ${ARMS_STATUS}" | ts | tee -a "$LOG"
 
-# --- 6. throughput, measured from this run's own log ---------------------------
+# --- 6. CONTRACT filenames -----------------------------------------------------
+python "${BCF_REPO}/bcf/contract_layout.py" --out-dir "$OUT_DIR" 2>&1 | ts | tee -a "$LOG"
+
+# --- 7. throughput, measured from this run's own log ---------------------------
 python "${BCF_REPO}/bcf/throughput.py" --run-log "$LOG" --out-dir "$OUT_DIR" \
   2>&1 | ts | tee -a "$LOG" || true
 

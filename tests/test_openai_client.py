@@ -357,3 +357,57 @@ def test_08_parser_accepts_the_openai_backend_flags():
     assert args.base_url == "http://127.0.0.1:8000/v1"
     assert args.seed == 7
     assert args.chat_template_kwargs == '{"enable_thinking": false}'
+
+
+# --- request log: the input to the measured-throughput reducer ---
+def test_no_request_log_is_written_when_the_field_is_unset(fake_server, tmp_path):
+    state, base = fake_server
+    state.responses.append(_chat_response("ok"))
+    OpenAIClient(base_url=base, model="m", request_log=None).generate("q")
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_each_call_appends_one_line_with_a_timestamp_and_token_budget(fake_server, tmp_path):
+    state, base = fake_server
+    log = tmp_path / "requests.jsonl"
+    state.responses.append(_chat_response("hello there"))
+    state.responses.append(_chat_response("x"))
+    client = OpenAIClient(base_url=base, model="m", request_log=str(log))
+    client.generate("q", num_predict=320)
+    client.generate("q2", num_predict=24)
+
+    rows = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
+    assert len(rows) == 2
+    assert [r["max_tokens"] for r in rows] == [320, 24]
+    assert all(r["t_end"] >= r["t_start"] for r in rows)
+    assert rows[0]["completion_chars"] == len("hello there")
+    assert rows[0]["n_choices"] == 1
+    assert rows[0]["path"] == "/chat/completions"
+
+
+def test_failed_calls_are_not_logged_as_generations(fake_server, tmp_path):
+    state, base = fake_server
+    log = tmp_path / "requests.jsonl"
+    state.status = 400
+    client = OpenAIClient(base_url=base, model="m", request_log=str(log),
+                          max_retries=1, retry_wait=0.0)
+    with pytest.raises(OpenAIClientError):
+        client.generate("q")
+    assert not log.exists(), "a failed call must not inflate the throughput numerator"
+
+
+def test_an_unwritable_request_log_never_kills_a_sweep(fake_server, tmp_path):
+    state, base = fake_server
+    state.responses.append(_chat_response("ok"))
+    unwritable = tmp_path / "no-such-dir" / "requests.jsonl"
+    client = OpenAIClient(base_url=base, model="m", request_log=str(unwritable))
+    assert client.generate("q") == "ok"  # diagnostics failing must not stop generation
+
+
+def test_request_log_defaults_to_the_env_var(fake_server, tmp_path, monkeypatch):
+    state, base = fake_server
+    log = tmp_path / "from_env.jsonl"
+    monkeypatch.setenv("BCF_REQUEST_LOG", str(log))
+    state.responses.append(_chat_response("ok"))
+    OpenAIClient(base_url=base, model="m").generate("q")
+    assert len(log.read_text().splitlines()) == 1

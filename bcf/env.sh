@@ -56,15 +56,21 @@ bcf_assert_devices() {
   got="$(bcf_visible_devices)"
   echo "[devices] torch.cuda.device_count()=${got}; requested tensor-parallel size ${want}"
   nvidia-smi -L || true
-  if [ "$got" -ne "$want" ]; then
-    echo "[devices] REFUSING: visible device count ${got} != requested tensor-parallel size ${want}" >&2
+  if [ "$want" -gt 1 ] && bcf_is_mig; then
+    echo "[devices] REFUSING: this allocation is MIG slices, not whole cards." >&2
+    nvidia-smi -L | sed 's/^/[devices]   /' >&2
+    echo "[devices]   CUDA exposes at most ONE MIG instance to a process, so" >&2
+    echo "[devices]   torch.cuda.device_count() reports ${got} even though Slurm granted" >&2
+    echo "[devices]   ${SLURM_GPUS_PER_NODE:-?} and CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-?}." >&2
+    echo "[devices]   Tensor parallelism across MIG slices is impossible, not merely slow." >&2
+    echo "[devices]   Verified 2026-09-06: a100-40 is MIG 3g.40gb of an A100 80GB (job" >&2
+    echo "[devices]   825248) and h100-47 is MIG 3g.47gb of an H100 NVL (job 825283)." >&2
+    echo "[devices]   h100-96 is the only whole-card multi-GPU type within this account's" >&2
+    echo "[devices]   caps (2 per node, per-user cap 2)." >&2
     return 1
   fi
-  if [ "$want" -gt 1 ] && bcf_is_mig; then
-    echo "[devices] REFUSING: this allocation is MIG slices (nvidia-smi -L shows MIG devices)." >&2
-    echo "[devices]   MIG instances have no peer-to-peer path, so NCCL cannot form a" >&2
-    echo "[devices]   tensor-parallel group across them. Use a GPU type served as whole" >&2
-    echo "[devices]   cards (h100-96) for any tensor-parallel size above 1." >&2
+  if [ "$got" -ne "$want" ]; then
+    echo "[devices] REFUSING: visible device count ${got} != requested tensor-parallel size ${want}" >&2
     return 1
   fi
   return 0
