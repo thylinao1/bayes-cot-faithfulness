@@ -1,0 +1,9 @@
+{
+  "llama-3.3-70b-fp8":     {"job": "825542", "kind": "MEASURED", "note": "Q1 file a, complete"},
+  "llama-3.3-70b-fp8-q1b": {"job": "826010", "kind": "MEASURED", "note": "Q1 file b, complete"},
+  "llama-3.3-70b-fp8-q1c": {"job": "826017", "kind": "MEASURED", "note": "Q1 file c, complete"},
+  "qwen3-32b-h200-q1a":    {"job": "826023", "kind": "PARTIAL",  "note": "cancelled by explicit id after 342 of 15,939 planned votes; num_predict 256 malformed 161 of the first 334"},
+  "gemma-3-27b-it-h200-q1a": {"job": "826029", "kind": "MEASURED", "note": "exploratory h200"},
+  "gemma-3-27b-it-h200-q1b": {"job": "826029", "kind": "MEASURED", "note": "exploratory h200"},
+  "gemma-3-27b-it-h200-q1c": {"job": "826029", "kind": "MEASURED", "note": "exploratory h200, in flight at the 05:00 outage"}
+}

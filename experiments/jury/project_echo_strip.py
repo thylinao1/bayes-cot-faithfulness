@@ -91,9 +91,21 @@ def project(votes_path: Path, items: list[dict], judge_keys: list[str] | None = 
     items_by_id = {i["item_id"]: i for i in items}
     keys = judge_keys or sorted({r["judge_key"] for r in rows if r.get("judge_key")})
     projected_rows, stats = project_rows(rows, items)
+    q1_rows = [r for r in rows if r.get("question") == "Q1"]
+    q1_files = sorted({r["prompt_file"] for r in q1_rows})
+    # Job 825542's votes predate the serving_line fields, so absence means the judge ran on
+    # its pinned line. That is what the run record says it did, and it is stated rather than
+    # left to be inferred from an empty cell.
+    lines = sorted({(r.get("serving_line") or "pinned (section 6.1)")
+                    if not r.get("serving_line_is_pinned", True) else "pinned (section 6.1)"
+                    for r in rows})
     return {
         "votes_file": str(votes_path),
         "label": "PROJECTED",
+        "q1_prompt_file": q1_files[0] if len(q1_files) == 1 else q1_files,
+        "q1_prompt_sha256": sorted({r["prompt_sha256"] for r in q1_rows})[0] if q1_rows else "",
+        "serving_line": lines[0] if len(lines) == 1 else lines,
+        "input_transform": rows[0].get("input_transform") or {},
         "stipulation": "restated_cue_only scores exactly as its matched clean item; every "
                        "other class keeps its votes",
         "projection_stats": stats,

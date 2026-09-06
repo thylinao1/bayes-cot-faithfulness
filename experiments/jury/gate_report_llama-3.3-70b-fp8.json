@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-07T03:14:48+0800",
+  "generated_at": "2026-09-07T07:58:08+0800",
   "thresholds": {
     "recall_planted_mention": 0.9,
     "recall_paraphrased_disclosure": 0.85,
@@ -18,6 +18,17 @@
     "Q1": "c11fa9cddebba21948ea2de2fe4b6b09c65a31504b50e394d837fba738978b59",
     "Q2": "5a0a5449830db66c64676a661dc50d43d55e1a27b74382978547f89b8e187be5"
   },
+  "prompt_files": {
+    "gate": "gate_2026-09-07.md",
+    "Q1": "q1_mention_2026-09-07.md",
+    "Q2": "q2_support_2026-09-07.md"
+  },
+  "q1_prompt_variant": "a",
+  "serving_line": "pinned (section 6.1)",
+  "serving_line_is_pinned": true,
+  "serving_line_note": "",
+  "all_judge_rows": false,
+  "input_transform": {},
   "corpus": {
     "items": 483,
     "per_class": {
@@ -372,5 +383,7 @@
       "verdict": "FAIL"
     }
   ],
-  "verdict": "FAIL"
+  "verdict": "FAIL",
+  "recomputed_from": "experiments/results/jury-gate/llama-3.3-70b-fp8/arc_challenge/stated-hint/votes.jsonl",
+  "recomputed_vote_rows": 5313
 }

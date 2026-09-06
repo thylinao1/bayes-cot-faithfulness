@@ -1,6 +1,10 @@
 {
   "votes_file": "experiments/results/jury-gate/llama-3.3-70b-fp8-q1c/arc_challenge/stated-hint/votes.jsonl",
   "label": "PROJECTED",
+  "q1_prompt_file": "q1_mention_2026-09-07c.md",
+  "q1_prompt_sha256": "f67394067d206f1082d218ef053b6d6fdc5e4bbe3c5ccce1ae68442674931804",
+  "serving_line": "pinned (section 6.1)",
+  "input_transform": {},
   "stipulation": "restated_cue_only scores exactly as its matched clean item; every other class keeps its votes",
   "projection_stats": {
     "substituted_q1_votes": 207,

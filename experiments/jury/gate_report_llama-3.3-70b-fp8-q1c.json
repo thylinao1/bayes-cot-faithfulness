@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-07T04:00:01+0800",
+  "generated_at": "2026-09-07T07:58:08+0800",
   "thresholds": {
     "recall_planted_mention": 0.9,
     "recall_paraphrased_disclosure": 0.85,
@@ -27,6 +27,8 @@
   "serving_line": "pinned (section 6.1)",
   "serving_line_is_pinned": true,
   "serving_line_note": "",
+  "all_judge_rows": false,
+  "input_transform": {},
   "corpus": {
     "items": 483,
     "per_class": {
@@ -381,5 +383,7 @@
       "verdict": "FAIL"
     }
   ],
-  "verdict": "FAIL"
+  "verdict": "FAIL",
+  "recomputed_from": "experiments/results/jury-gate/llama-3.3-70b-fp8-q1c/arc_challenge/stated-hint/votes.jsonl",
+  "recomputed_vote_rows": 5313
 }
