@@ -77,6 +77,10 @@ RANK_SPREAD_STRESS = (0.70, 0.90)
 RANK_THRESHOLD = 0.90
 RANK_FOLLOW_SIZES = (100, 300)
 N_REPLICATES_RANK = 200
+# Below this replicate count check C16's coverage gap is not measurable
+# (the standard error of a coverage estimate at nominal 0.95 is 0.049 at 20
+# replicates and 0.010 at 500, against a gap of about 0.06).
+C16_MIN_REPLICATES = 200
 # CONTRACT.md family map, in stratum order, then the four uncalibrated models.
 FAMILY_SIZES_CALIBRATED = (4, 4, 2, 2, 2)  # Qwen, Llama, Gemma, gpt-oss, OLMo.
 N_UNCALIBRATED = 4  # Mistral x2, Phi, GLM.

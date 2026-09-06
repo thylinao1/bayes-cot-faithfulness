@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-07T01:21:04",
+  "generated": "2026-09-07T01:27:05",
   "smoke": false,
-  "elapsed_seconds": 41.5,
+  "elapsed_seconds": 38.9,
   "constants": {
     "cal_rows_per_stratum": 200,
     "n_strata": 5,
@@ -1036,81 +1036,97 @@
     {
       "name": "C1 Rogan-Gladen inverts the population rate",
       "ok": true,
+      "skipped": false,
       "detail": "aggregate se=0.907122 sp=0.991748; RG(0.727348) = 0.8000000000 vs truth 0.8"
     },
     {
       "name": "C2 Gauss-Hermite aggregate matches Monte Carlo",
       "ok": true,
+      "skipped": false,
       "detail": "se 0.90712 vs 0.90714, sp 0.99175 vs 0.99187 (denominator 400000 simulated items per class)"
     },
     {
       "name": "C3 the no-pooling sampler matches the Beta posterior up to its predicted bias",
       "ok": true,
+      "skipped": false,
       "detail": "no-pooling mean 0.8271 against the delta-method prediction 0.8268; exact Beta mean 0.8331, so the logit-normal approximation displaces the mean by -0.0063 at 42 of 50. sd 0.0534 vs exact 0.0517 (denominator 200000 draws each)"
     },
     {
       "name": "C4 partial pooling narrows the stratum interval",
       "ok": true,
+      "skipped": false,
       "detail": "pooled sd 0.02745 < no-pooling sd 0.05336 (denominator 200000 draws each; five strata of 50)"
     },
     {
       "name": "C5 clustered Bernoulli keeps its marginal and its implied ICC",
       "ok": true,
+      "skipped": false,
       "detail": "mean 0.29861 vs 0.3; recovered ICC 0.1843 against the 0.1816 implied by a tetrachoric 0.3 at p=0.3 (denominator 400000 items)"
     },
     {
       "name": "C6 contrast width is monotone in the follow stratum",
       "ok": true,
+      "skipped": false,
       "detail": "follow sizes [20, 50, 98, 100, 300, 1625]; same-family [0.3342, 0.2222, 0.1621, 0.16, 0.0933, 0.041], different-family [0.3357, 0.225, 0.1673, 0.1647, 0.1017, 0.0571] (denominator 500 replicates per cell)"
     },
     {
       "name": "C7 the different-family contrast never beats its calibration-only floor",
       "ok": true,
+      "skipped": false,
       "detail": "widths [0.3357, 0.225, 0.1673, 0.1647, 0.1017, 0.0571] against floors [0.0426, 0.0413, 0.0423, 0.0423, 0.0422, 0.0419]"
     },
     {
       "name": "C8 sharing a calibration stratum narrows the contrast",
       "ok": true,
+      "skipped": false,
       "detail": "same-family [0.3342, 0.2222, 0.1621, 0.16, 0.0933, 0.041] <= different-family [0.3357, 0.225, 0.1673, 0.1647, 0.1017, 0.0571] at every follow size"
     },
     {
       "name": "C9 contrast coverage is near nominal across the design region",
       "ok": true,
+      "skipped": false,
       "detail": "coverage over the 10 cells at follow sizes [20, 50, 98, 100, 300] runs 0.930 to 0.970, inside the three-sigma window [0.921, 0.979] at 500 replicates per cell"
     },
     {
       "name": "C16 past the design region the same-family interval stops covering at nominal",
       "ok": true,
+      "skipped": false,
       "detail": "at 1625 followed items, far past the 20 to 300 the design uses, the same-family contrast covers 0.916 and the different-family one 0.974 against nominal 0.95 (denominator 500 replicates). Decomposition: the posterior mean is 0.1545 against a truth of 0.15000000000000002, a displacement of +0.0045; the mean posterior sd is 0.0209 while the across-replicate sd of that mean is 0.0226, a ratio of 1.081. Both together, not either alone, are the size of the shortfall; the interval at this width is approaching the 0.0091 same-family floor, where the pooled logit-normal approximation's own displacement (C3) is no longer negligible beside it"
     },
     {
       "name": "C10 the stress judge widens every contrast",
       "ok": true,
+      "skipped": false,
       "detail": "assumed [0.3357, 0.225, 0.1673, 0.1647, 0.1017, 0.0571] vs stress [0.3632, 0.2474, 0.1846, 0.185, 0.1144, 0.0695]"
     },
     {
       "name": "C11 clustering widens the J interval at both levels",
       "ok": true,
+      "skipped": false,
       "detail": "judge_assumed: aggregate J half-width 0.0504 clustered vs 0.0495 naive, per-judge J 0.0404 vs 0.0380 (denominator 500 replicates); judge_stress: aggregate J half-width 0.0603 clustered vs 0.0591 naive, per-judge J 0.0477 vs 0.0440 (denominator 500 replicates)"
     },
     {
       "name": "C12 the two frontier axes cross at the design point",
       "ok": true,
+      "skipped": false,
       "detail": "label sweep contains labels=1000 at traces=5000"
     },
     {
       "name": "C13 ranking resolution rises with the follow stratum and falls with a narrow spread",
       "ok": true,
+      "skipped": false,
       "detail": "0.6211 at n_follow 100 -> 0.7742 at 300 on spread (0.55, 0.95); 0.4182 on the narrower (0.7, 0.9) (denominators 30600, 30600, 30600 pair decisions)"
     },
     {
       "name": "C14 the 0.90 rule's declared orderings keep their nominal error rate",
       "ok": true,
+      "skipped": false,
       "detail": "accuracy of resolved pairs against the rule's nominal 0.9 floor: judge_assumed/n_follow 100/spread (0.55, 0.95) = 0.9812 on 19006 resolved, judge_assumed/n_follow 300/spread (0.55, 0.95) = 0.9938 on 23689 resolved, judge_assumed/n_follow 100/spread (0.7, 0.9) = 0.9301 on 12798 resolved, judge_assumed/n_follow 300/spread (0.7, 0.9) = 0.9780 on 17525 resolved, judge_stress/n_follow 100/spread (0.55, 0.95) = 0.9757 on 17757 resolved"
     },
     {
       "name": "C15 an uncalibrated family's pairs resolve less often",
       "ok": true,
+      "skipped": false,
       "detail": "judge_assumed/100/(0.55, 0.95): both calibrated 0.6453 (denominator 18200) vs has-uncalibrated 0.5856 (denominator 12400); judge_assumed/300/(0.55, 0.95): both calibrated 0.7951 (denominator 18200) vs has-uncalibrated 0.7435 (denominator 12400); judge_assumed/100/(0.7, 0.9): both calibrated 0.4397 (denominator 18200) vs has-uncalibrated 0.3867 (denominator 12400); judge_assumed/300/(0.7, 0.9): both calibrated 0.5975 (denominator 18200) vs has-uncalibrated 0.5363 (denominator 12400); judge_stress/100/(0.55, 0.95): both calibrated 0.6042 (denominator 18200) vs has-uncalibrated 0.5452 (denominator 12400)"
     }
   ],
