@@ -1,0 +1,11 @@
+# EXPLORATORY, NOT THE RUN OF RECORD. Second attempt at Qwen3-32B, after job 826023 found
+# that the run-of-record's BCF_NUM_PREDICT=256 is not enough for this judge: it is a
+# thinking model, it spends the budget inside its reasoning block and never emits the JSON,
+# and 161 of its first 334 votes were malformed (Q1 69/90, Q2 56/120, gate 36/124) against
+# a ceiling of 0.05. num_predict is a RUN parameter, not one of the frozen ones: the
+# thresholds, the corpus, the three prompt files and the panel rule are untouched, and the
+# report records the value it ran at. 1024 is the smallest round number that leaves room
+# for a reasoning block plus a four-key JSON object.
+# BCF_ALL_JUDGE_ROWS=1 for the same reason as the first attempt: the panel rule routes the
+# Qwen judge away from a corpus whose subject_model is Qwen3-8B.
+qwen3-32b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=qwen3-32b-h200-np1024	BCF_SERVING_LINE=exploratory-h200-141	BCF_ALL_JUDGE_ROWS=1	BCF_NUM_PREDICT=1024
