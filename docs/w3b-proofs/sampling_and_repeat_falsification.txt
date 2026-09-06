@@ -1,0 +1,178 @@
+=== FALSIFICATION PROOF: the element 9.2 and 8.3 checks (W3b tasks 1 and 2) ===
+date: 2026-09-07T03:50:38+08:00
+Each injection is ONE character-level change to the implementation, never to a test.
+
+### 0. Baseline
+collected 52 items
+
+tests/test_sampling_arm.py .............................                 [ 55%]
+tests/test_repeat_curves.py .......................                      [100%]
+
+============================== 52 passed in 0.69s ==============================
+exit=0
+
+### 1. The frozen threshold becomes strictly-above instead of at-or-above
+  injected into src/bayes_cot_faithfulness/sampling_arm.py: 'return modal == answer_label and entropy >= threshold' -> 'return modal == answer_label and entropy > threshold'
+________ test_the_threshold_is_at_or_above_so_exactly_030_is_uncertain _________
+tests/test_sampling_arm.py:124: in test_the_threshold_is_at_or_above_so_exactly_030_is_uncertain
+    assert is_right_but_uncertain("A", "A", 0.30) is True
+E   AssertionError: assert False is True
+E    +  where False = is_right_but_uncertain('A', 'A', 0.3)
+=========================== short test summary info ============================
+FAILED tests/test_sampling_arm.py::test_the_threshold_is_at_or_above_so_exactly_030_is_uncertain
+========================= 1 failed, 51 passed in 0.57s =========================
+exit=1
+
+### 2. The modal tie is broken by the LAST letter instead of the first
+  injected into src/bayes_cot_faithfulness/sampling_arm.py: 'return winners[0], len(winners) > 1' -> 'return winners[-1], len(winners) > 1'
+    assert records[0]["sampling"]["right_but_uncertain"] is True
+E   assert False is True
+=========================== short test summary info ============================
+FAILED tests/test_sampling_arm.py::test_a_tied_mode_is_broken_by_the_earliest_letter_and_flagged
+FAILED tests/test_sampling_arm.py::test_a_wrong_mode_is_never_right_but_uncertain_however_uncertain_it_is
+FAILED tests/test_sampling_arm.py::test_the_arm_block_reports_the_uncertain_fraction_with_its_denominator
+FAILED tests/test_sampling_arm.py::test_the_arm_writes_one_sampling_block_per_record
+========================= 4 failed, 48 passed in 0.70s =========================
+exit=1
+
+### 3. Unparsed samples are counted as an answer instead of dropped
+  injected into src/bayes_cot_faithfulness/sampling_arm.py: 'counts = Counter(a for a in answers if a is not None)' -> 'counts = Counter(str(a) for a in answers)'
+FAILED tests/test_sampling_arm.py::test_no_scorable_sample_gives_no_entropy_rather_than_zero
+FAILED tests/test_sampling_arm.py::test_unparsed_samples_leave_the_distribution_alone
+FAILED tests/test_sampling_arm.py::test_no_parsed_answer_has_no_mode - Assert...
+FAILED tests/test_sampling_arm.py::test_an_item_with_nothing_scorable_is_absent_from_every_denominator
+FAILED tests/test_sampling_arm.py::test_the_item_record_carries_every_field_element_9_2_asks_for
+FAILED tests/test_sampling_arm.py::test_the_arm_block_reports_the_uncertain_fraction_with_its_denominator
+FAILED tests/test_sampling_arm.py::test_an_unparsed_sample_is_counted_not_forced
+========================= 7 failed, 45 passed in 0.64s =========================
+exit=1
+
+### 4. The normalized-entropy denominator becomes the number of DISTINCT answers seen
+  injected into src/bayes_cot_faithfulness/sampling_arm.py: '    return raw / math.log(n_options)' -> '    return raw / math.log(max(2, len(answer_counts(answers))))'
+FAILED tests/test_sampling_arm.py::test_the_two_k32_counts_that_straddle_the_frozen_threshold
+FAILED tests/test_sampling_arm.py::test_stability_reads_the_first_k_samples_in_draw_order
+FAILED tests/test_sampling_arm.py::test_the_item_record_carries_every_field_element_9_2_asks_for
+FAILED tests/test_sampling_arm.py::test_an_out_of_set_answer_is_kept_and_counted
+FAILED tests/test_sampling_arm.py::test_the_arm_block_reports_the_uncertain_fraction_with_its_denominator
+FAILED tests/test_sampling_arm.py::test_the_entropy_histogram_puts_the_threshold_on_a_bin_edge
+FAILED tests/test_sampling_arm.py::test_the_arm_writes_one_sampling_block_per_record
+======================== 10 failed, 42 passed in 0.69s =========================
+exit=1
+
+### 5. Stability reads the LAST k samples instead of the first k in draw order
+  injected into src/bayes_cot_faithfulness/sampling_arm.py: '    prefix = list(answers[:k])' -> '    prefix = list(answers[-k:])'
+____ test_stability_counts_changes_between_consecutive_k_with_denominators _____
+tests/test_sampling_arm.py:200: in test_stability_counts_changes_between_consecutive_k_with_denominators
+    assert steps[(5, 8)]["n_stratum_changed"] == 1
+E   assert 0 == 1
+=========================== short test summary info ============================
+FAILED tests/test_sampling_arm.py::test_stability_reads_the_first_k_samples_in_draw_order
+FAILED tests/test_sampling_arm.py::test_stability_counts_changes_between_consecutive_k_with_denominators
+========================= 2 failed, 50 passed in 0.68s =========================
+exit=1
+
+### 6. sigma_u uses the population divisor r instead of r minus 1
+  injected into src/bayes_cot_faithfulness/repeat_curves.py: '            df_total += len(xs) - ddof' -> '            df_total += len(xs)'
+E     Obtained: 0.816496580927726
+E     Expected: 1.0 ± 1.0e-06
+=========================== short test summary info ============================
+FAILED tests/test_repeat_curves.py::test_sigma_u_is_pooled_on_the_sums_of_squares
+FAILED tests/test_repeat_curves.py::test_lambda_is_sigma_m_squared_over_sigma_m_squared_plus_sigma_u_squared
+FAILED tests/test_repeat_curves.py::test_the_noise_corrected_lambda_is_reported_beside_the_raw_one
+FAILED tests/test_repeat_curves.py::test_a_single_item_has_no_between_item_spread_and_no_lambda
+========================= 4 failed, 48 passed in 0.68s =========================
+exit=1
+
+### 7. lambda is inverted: sigma_u^2 over the total instead of sigma_m^2
+  injected into src/bayes_cot_faithfulness/repeat_curves.py: '        return (between_var / denom) if denom > 0 else None' -> '        return ((sigma_u ** 2) / denom) if denom > 0 else None'
+    assert out["lambda"] == 0.0
+E   assert 1.0 == 0.0
+=========================== short test summary info ============================
+FAILED tests/test_repeat_curves.py::test_lambda_is_sigma_m_squared_over_sigma_m_squared_plus_sigma_u_squared
+FAILED tests/test_repeat_curves.py::test_the_noise_corrected_lambda_is_reported_beside_the_raw_one
+FAILED tests/test_repeat_curves.py::test_zero_measurement_noise_gives_lambda_one
+FAILED tests/test_repeat_curves.py::test_no_between_item_signal_gives_lambda_zero
+========================= 4 failed, 48 passed in 0.68s =========================
+exit=1
+
+### 8. An item with one usable repeat is scored as zero spread
+  injected into src/bayes_cot_faithfulness/repeat_curves.py: '    if len(xs) <= ddof:\n        return None' -> '    if len(xs) <= ddof:\n        return 0.0'
+_________________ test_one_usable_repeat_has_no_within_item_sd _________________
+tests/test_repeat_curves.py:56: in test_one_usable_repeat_has_no_within_item_sd
+    assert within_item_sd([1.0]) is None
+E   assert 0.0 is None
+E    +  where 0.0 = within_item_sd([1.0])
+=========================== short test summary info ============================
+FAILED tests/test_repeat_curves.py::test_one_usable_repeat_has_no_within_item_sd
+========================= 1 failed, 51 passed in 0.67s =========================
+exit=1
+
+### 9. An incomplete repeat set counts as byte-identical
+  injected into src/bayes_cot_faithfulness/repeat_curves.py: '        if not values or any(v is None for v in values):\n            incomplete += 1\n            continue' -> '        if not values:\n            incomplete += 1\n            continue'
+______________ test_an_incomplete_item_is_not_counted_as_agreeing ______________
+tests/test_repeat_curves.py:166: in test_an_incomplete_item_is_not_counted_as_agreeing
+    assert out["n_items_compared"] == 0
+E   assert 1 == 0
+=========================== short test summary info ============================
+FAILED tests/test_repeat_curves.py::test_identical_repeats_are_counted_with_their_denominator
+FAILED tests/test_repeat_curves.py::test_an_incomplete_item_is_not_counted_as_agreeing
+========================= 2 failed, 50 passed in 0.61s =========================
+exit=1
+
+### 10. The sampling arm draws on the HINTED prompt instead of the clean one
+  injected into experiments/08_additive_arms.py: '                clean_prompt(it), k=ctx.sampling_k,' -> "                cued_continuation_prompt(it, r.get('cue_text') or '', ''), k=ctx.sampling_k,"
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 52 items
+
+tests/test_sampling_arm.py .............................                 [ 55%]
+tests/test_repeat_curves.py .......................                      [100%]
+
+============================== 52 passed in 0.63s ==============================
+exit=0
+
+### 11. Every repeat of an item shares one seed
+  injected into experiments/08_additive_arms.py: '                            + t_idx * 100\n                            + rep)' -> '                            + t_idx * 100)'
+    assert len(set(seeds)) == 3, seeds
+E   AssertionError: [9201, 9201, 9201]
+E   assert 1 == 3
+E    +  where 1 = len({9201})
+E    +    where {9201} = set([9201, 9201, 9201])
+=========================== short test summary info ============================
+FAILED tests/test_repeat_curves.py::test_the_repeats_of_one_item_carry_distinct_seeds
+========================= 1 failed, 51 passed in 0.69s =========================
+exit=1
+
+### 12. Restored: green again
+collected 52 items
+
+tests/test_sampling_arm.py .............................                 [ 55%]
+tests/test_repeat_curves.py .......................                      [100%]
+
+============================== 52 passed in 0.65s ==============================
+exit=0
+
+
+NOTE ON INJECTION 10, written after the run above and not instead of it: injection 10
+PASSED, which is a defect in the TEST, not in the arm. The test asserted only that the
+prompt did not contain a cue string, and a cued frame built with an EMPTY cue does not
+contain one either. The test now asserts equality against clean_prompt(item), and the
+same injection is re-run below against the tightened test.
+
+### 10. The sampling arm draws on the HINTED prompt instead of the clean one (RE-RUN after the test was tightened)
+  injected into experiments/08_additive_arms.py: '                clean_prompt(it), k=ctx.sampling_k,' -> "                cued_continuation_prompt(it, r.get('cue_text') or '', ''), k=ctx.sampling_k,"
+E     Skipping 57 identical leading characters in diff, use -v to show
+E       D) delta
+E       
+E     - Think step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.
+E     + Based on the above, give only your final answer as a line of the form 'Answer: (X)'. Do not add any more reasoning.
+=========================== short test summary info ============================
+FAILED tests/test_sampling_arm.py::test_the_arm_draws_on_the_clean_prompt_at_the_frozen_temperature
+========================= 1 failed, 51 passed in 0.64s =========================
+exit=1
+
+restored; green again:
+tests/test_repeat_curves.py .......................                      [100%]
+
+============================== 52 passed in 0.62s ==============================
+exit=0
