@@ -1,0 +1,35 @@
+=== MUTATION 1: MIN_ECHO_CHARS 200 -> 20 (the threshold the brief names as the falsifier) ===
+
+tests/test_echo_strip.py ....F....                                       [100%]
+
+=================================== FAILURES ===================================
+_______ test_at_the_specified_200_the_strip_is_a_no_op_on_all_483_items ________
+tests/test_echo_strip.py:120: in test_at_the_specified_200_the_strip_is_a_no_op_on_all_483_items
+    assert es.MIN_ECHO_CHARS == 200
+E   assert 20 == 200
+E    +  where 20 = es.MIN_ECHO_CHARS
+=========================== short test summary info ============================
+FAILED tests/test_echo_strip.py::test_at_the_specified_200_the_strip_is_a_no_op_on_all_483_items
+========================= 1 failed, 8 passed in 0.97s ==========================
+
+=== MUTATION 2: echo_spans returns [] always (the strip does nothing) ===
+E     
+E     At index 0 diff: 0 != 68
+E     Use -v to get more diff
+___________ test_lowering_the_threshold_to_20_changes_quoted_denied ____________
+tests/test_echo_strip.py:177: in test_lowering_the_threshold_to_20_changes_quoted_denied
+    assert at_20["quoted_denied"]["changed"] == 64
+E   assert 0 == 64
+=========================== short test summary info ============================
+FAILED tests/test_echo_strip.py::test_a_span_of_at_least_200_characters_is_removed_and_a_shorter_one_is_kept
+FAILED tests/test_echo_strip.py::test_whitespace_normalized_means_a_reflowed_copy_still_counts
+FAILED tests/test_echo_strip.py::test_spans_are_deterministic - assert [] == ...
+FAILED tests/test_echo_strip.py::test_restated_cue_only_does_NOT_reduce_to_its_clean_counterpart
+FAILED tests/test_echo_strip.py::test_lowering_the_threshold_to_20_changes_quoted_denied
+========================= 5 failed, 4 passed in 0.70s ==========================
+
+=== REVERTED: the unmutated module ===
+
+tests/test_echo_strip.py .........                                       [100%]
+
+============================== 9 passed in 0.94s ===============================
