@@ -94,20 +94,29 @@ Reporting uses a breakdown scalar and a confounding-agnostic interval. Two summa
 We fit a joint model:
 
 $$
-M \mid X \sim \mathcal{N}(\gamma X,\; \sigma_M^2)
+M \mid X \sim \mathcal{N}(\mu_M + \gamma X,\; \sigma_M^2)
 $$
 
 $$
-Y \mid X, M \sim \mathrm{Bernoulli}(\sigma(\alpha X + \beta M))
+Y \mid X, M \sim \mathrm{Bernoulli}(\Phi(\alpha_0 + \alpha X + \beta M))
 $$
 
-Priors are weakly informative:
-- $\alpha, \beta, \gamma \sim \mathcal{N}(0, \tau^2)$ with $\tau \in \{1.5, 2.0\}$
-- $\sigma_M \sim \mathrm{HalfNormal}(1)$
+The outcome link is **probit**, the same link as the sensitivity model in section 3, the maximum-likelihood fit and the closed form. Until 7 September 2026 this model used a logistic link while every other path used a probit one; the audit, the size of the disagreement and the repair are in [`docs/ESTIMATOR-PRIORS-2026-09-07.md`](ESTIMATOR-PRIORS-2026-09-07.md). `link="logit"` still fits the logistic model for the logistic generator in `synthetic.py`.
+
+$\mu_M$ and $\alpha_0$ are the baseline intercepts added in the 7 September 2026 estimator repair; without them the model asserts $E[M \mid X=0] = 0$ and a clean-arm answer rate of one half, and reports mediation on a world that has none.
+
+Priors are weakly informative and **stated relative to the mediator's own spread**, so the model says the same thing whether the mediator is counted in reasoning steps or in tokens. Writing $\bar M$ and $s$ for the sample mean and standard deviation of $M$, and centring the mediator inside the outcome equation:
+
+- $\alpha \sim \mathcal{N}(0, 1.5^2)$ and $\alpha_0^{\text{centred}} \sim \mathcal{N}(0, 1.5^2)$, the direct effect and the index at the mean mediator
+- $\beta \sim \mathcal{N}(0, (2/s)^2)$, so the implied index contribution $\beta s$ of one mediator standard deviation is $\mathcal{N}(0, 2^2)$ in any unit
+- $\gamma \sim \mathcal{N}(0, (1.5 s)^2)$ and $\sigma_M \sim \mathrm{HalfNormal}(s)$
+- $\mu_M \sim \mathcal{N}(\bar M, s^2)$
+
+The reported $\alpha_0$ is the un-centred $\alpha_0^{\text{centred}} - \beta \bar M$, so the natural-effect converters see the parameterisation they always saw. Centring and rescaling leave the estimand unchanged and `tests/test_scale_aware_priors.py` asserts both invariances.
 
 Sampling: 4 chains, 1500 tuning + 1500 posterior draws, NUTS with `target_accept = 0.95`.
 
-Posterior samples over $(\alpha, \beta, \gamma, \sigma_M)$ are converted into a posterior over $(\text{NDE}, \text{NIE}, \text{TE})$ on the probability scale by Monte Carlo integration over the mediator distribution (see [`effects.posterior_natural_effects`](../src/bayes_cot_faithfulness/effects.py)).
+Posterior samples over $(\alpha, \beta, \gamma, \sigma_M, \mu_M, \alpha_0)$ are converted into a posterior over $(\text{NDE}, \text{NIE}, \text{TE})$ on the probability scale by the exact probit closed form, the same function the maximum-likelihood path uses (see [`mediation.natural_effects_from_trace`](../src/bayes_cot_faithfulness/mediation.py), which reads the link off the trace rather than assuming one).
 
 Why Bayesian:
 

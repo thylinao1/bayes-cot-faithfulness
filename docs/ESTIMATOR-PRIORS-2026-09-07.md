@@ -156,3 +156,114 @@ first run after the last code change.
 |---|---|---|---|
 | 1 | `tests/test_link_agreement.py` + `tests/test_scale_aware_priors.py` + `test_effects` + `test_closed_form` + `test_suppressor_sign` | **1 failed, 32 passed** (80.3 s). `test_the_gate_fails_when_the_conversion_drops_the_intercepts` failed: dropping *both* intercepts from the conversion moved the NIE by only 0.0160, not the > 0.2 the assertion demanded. Cause is the test's own generator, not the estimator: this world has `alpha0 + beta*mu_m = 0.2`, so the two intercepts nearly cancel and assuming both are zero is nearly harmless *here*. | first run of the new files |
 | 2 | `tests/test_link_agreement.py` | **7 passed** (40.8 s) | the tripwire now drops the mediator baseline alone (the pre-2026-09-07 defect shape), and the test records why dropping both is not a tripwire in this world |
+| 1 | Acceptance (a) and (c): `test_offset_null` + `test_rho_star_semantics` + `test_closed_form` + `test_frozen_guard` + `test_mechanism_battery` + `test_sensitivity` + the two new files + `test_effects` + `test_mediation` + `test_suppressor_sign` | **111 passed, 2 skipped** (89.4 s), exit 0 | the priors commit `ea5b1c6`, plus `--only-pymc` added to the battery |
+| 1 | Acceptance (b): the battery's PyMC subset, same seeds and datasets | **PASS**, exit 0, table below | same tree |
+| 1 | `tests/test_mechanism_battery.py` with the four part (iv) families | **1 failed, 34 passed** (22.2 s): the new missingness test called the closed form with `rho` omitted from its positional arguments and got `ValueError: |rho| must be <= 0.95` | the part (iv) families |
+| 2 | `tests/test_mechanism_battery.py` | **35 passed** (25.2 s) | the missing `rho` argument in that test |
+
+---
+
+## 4 · Acceptance gates
+
+### (a) The offset-null gate, and (c) the closed form and rho\* semantics
+
+One command, `pytest` over ten targeted files, first run after the last code change:
+**111 passed, 2 skipped in 89.4 s, exit 0.** Per file: `test_offset_null` 11/11,
+`test_rho_star_semantics` 19/19, `test_closed_form` 11/11, `test_frozen_guard` 5/5,
+`test_mechanism_battery` 26/26 (before the part (iv) families were added),
+`test_sensitivity` 14 passed 1 skipped, `test_scale_aware_priors` 5/5,
+`test_link_agreement` 7/7, `test_effects` 5/5, `test_mediation` 3 passed 1 skipped,
+`test_suppressor_sign` 5/5. The count-offset and Gaussian-offset nulls at seed 731,
+n 10,000, and the model-implied total effect against the randomized arm difference, are
+inside `test_offset_null`; the four frozen files are byte-identical to main.
+
+### (b) The battery's PyMC subset, same seeds and the same datasets
+
+`python experiments/mechanism_battery.py --only-pymc --out experiments/results/mechanism_battery_pymc_gate`,
+which reuses `pymc_indices` and `dataset_seed`, so every dataset is the one the earlier run
+fitted. 20 datasets per family at n = 350, 140 datasets, 4 chains of 1,000 draws after 1,000
+tuning steps each. Exit 0.
+
+**Criterion, from the W4c brief and therefore fixed before the run:** the NIE coverage
+Clopper-Pearson interval must contain 0.95 in families 4 and 7, and coverage must not fall in
+any family.
+
+| family | NIE coverage before | after | Clopper-Pearson after | NIE bias before | after | mean posterior NIE width after |
+|---|---:|---:|---|---:|---:|---:|
+| f1_no_cue_effect | 20/20 | 20/20 | [0.832, 1.000] | +0.0002 | +0.0004 | 0.0165 |
+| f2_direct_bypass | 19/20 | 19/20 | [0.751, 0.999] | −0.0007 | −0.0027 | 0.0971 |
+| f3_shared_cause | 0/20 | 0/20 | [0.000, 0.168] | +0.2513 | +0.2513 | 0.1253 |
+| **f4_rationalization** | **7/20** | **20/20** | **[0.832, 1.000]** | **−0.0790** | **−0.0092** | 0.1362 |
+| f5_redundant_explanation | 0/20 | 0/20 | [0.000, 0.168] | +0.2397 | +0.2405 | 0.1287 |
+| f6_answer_copying | 20/20 | 20/20 | [0.832, 1.000] | +0.0001 | +0.0001 | 0.0227 |
+| **f7_opposing_effects** | **12/20** | **19/20** | **[0.751, 0.999]** | **−0.0473** | **−0.0078** | 0.1157 |
+
+**PASS.** Families 4 and 7 both reach an interval containing 0.95, and no family's coverage
+count is lower than it was: the five other families are unchanged to the dataset. Maximum
+r_hat is 1.0000 across all 140 fits (it was 1.0100 before) and there are zero divergences.
+
+Families 3 and 5 stay at 0/20 by construction and that is the correct behaviour, not a
+residual defect: both worlds have a shared hidden cause, the estimator assumes rho = 0, and
+the battery's whole point is that a confounded world is reported confidently wrong at rho = 0.
+Their bias is unchanged to four decimals, which is the check that the prior change did not
+quietly move a number it had no business moving.
+
+The before column is `experiments/results/mechanism_battery/pymc_subset.json` at `5840afc`;
+the after column is `experiments/results/mechanism_battery_pymc_gate/pymc_subset.json`.
+
+
+---
+
+## 5 · Element 12 part (iv): the misspecification list
+
+Section 13 of `experiments/PREREGISTRATION_jury_and_scale.md` (lines 857 to 906) names eight
+misspecifications the offset-null family has to cover. Four were already carried by the
+original seven battery families; the other four had no generator anywhere in the repository
+and were written for this branch. The table is regenerated inside `report.md` on every run,
+with the line numbers read from the source rather than typed in, so it cannot go stale
+silently.
+
+| list item | family | generator, file and line |
+| --- | --- | --- |
+| baseline offsets | `f1_no_cue_effect`, `f4_rationalization`, `f6_answer_copying`, `f7_opposing_effects` | `NoCueEffect` (mechanism_battery.py:206), `Rationalization` (mechanism_battery.py:270), `AnswerCopying` (mechanism_battery.py:322), `OpposingEffects` (mechanism_battery.py:342) |
+| nonlinear depth response | `f8_nonlinear_depth` | `NonlinearDepthResponse` (mechanism_battery.py:379) |
+| varying variance | `f9_varying_variance` | `VaryingVariance` (mechanism_battery.py:407) |
+| correlated errors | `f3_shared_cause`, `f5_redundant_explanation` | `SharedCause` (mechanism_battery.py:250), `RedundantExplanation` (mechanism_battery.py:292) |
+| sparse groups | `f10_sparse_groups` | `SparseGroups` (mechanism_battery.py:440) |
+| treatment-induced latent states | `f5_redundant_explanation`, `f6_answer_copying` | `RedundantExplanation` (mechanism_battery.py:292), `AnswerCopying` (mechanism_battery.py:322) |
+| missingness | `f11_mediator_missingness` | `MediatorMissingness` (mechanism_battery.py:477) |
+| near-zero and cancelling effects | `f7_opposing_effects`, `f2_direct_bypass_alpha3`, `f1_no_cue_effect` | `OpposingEffects` (mechanism_battery.py:342), `DirectBypass` (mechanism_battery.py:225), `NoCueEffect` (mechanism_battery.py:206) |
+
+The four new families are each family 4's world with exactly one thing changed, so the
+comparison against family 4 at the same sample size isolates the misspecification rather than
+mixing it with a different effect size:
+
+- **f8_nonlinear_depth** replaces the linear depth response with a saturating one,
+  `kappa*tanh((M - baseline)/tau)` at `kappa = 1.5`, `tau = 1`, against an estimator whose
+  outcome equation is linear in the mediator. Its truth is computed twice, by 200-node
+  Gauss-Hermite quadrature and by the battery's own 2,000,000-row Monte Carlo, which share no
+  code.
+- **f9_varying_variance** has the cue widen the mediator from sd 0.6 to sd 1.8 as well as
+  shifting it, while the model fits one `sigma_m` for both arms. Truth is exact.
+- **f10_sparse_groups** puts an item-level effect (sd 0.8) in the answer only, five rows per
+  item, so 70 items at n = 350. The mediator equation and the marginal outcome model are both
+  still correctly specified, so the point estimate stays consistent and the casualty is the
+  row bootstrap's independence assumption. Truth is exact.
+- **f11_mediator_missingness** analyses complete cases where the probability that a trace
+  parses falls with its length, `Phi(1.2 - 0.6*(M - baseline))`. The truth stays the full
+  population's, because the loss is a property of the measurement and not of the world.
+
+Each runs 400 seeded datasets at n = 350 for the maximum-likelihood path, the pre-registered
+minimum, plus the standard 20-dataset PyMC subset. Their results are in the run below and in
+`experiments/results/mechanism_battery/report.md`.
+
+### Every new check, shown failing once
+
+| check | how it was made to fail | what it printed |
+|---|---|---|
+| `test_posterior_natural_effects_agree_with_the_closed_form` | the companion test in the same file converts the same draws with the mediator baseline dropped | NIE off by more than 0.2 against a tolerance of 0.02; and the file's own attempt 1 failed for a different reason, recorded above |
+| `test_effects_are_invariant_to_shifting_the_mediator` | run against `fit_mediation_model` from `5840afc` | NIE moved 0.0238, NDE 0.0153, tolerance 0.0100 |
+| `test_effects_are_invariant_to_rescaling_the_mediator` | run against `fit_mediation_model` from `5840afc` | NIE moved 0.1434, TE 0.1345, and the fit reported 400 divergences after tuning |
+| `test_every_misspecification_on_the_list_has_a_generator` | one entry pointed at a class name that does not exist | `AssertionError: missingness names an unknown class MissingnessFamily` |
+| `test_missingness_family_drops_the_long_traces_and_keeps_the_full_truth` | `retention` replaced by a function returning 1 | `len(x) = 4000 == n = 4000`, so `len(x) < n` is False. As written it keeps 0.765 of 4,000 rows with a surviving mean mediator of 6.307 against a population mean of 6.600 |
+| `test_sparse_groups_share_one_item_effect_across_each_block_of_rows` | per-row noise instead of a per-item effect | within-item sd 1.147 against the required 0. As written the within-item sd is 0.000000 and the between-item sd is 0.630 |
