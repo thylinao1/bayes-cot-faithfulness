@@ -123,6 +123,12 @@ _OPTIONAL_SCALAR_FIELDS = (
     "replay_clean_answer", "replay_hinted_answer", "placebo_answer",
     "direct_answer", "pre_cot_committed", "twostep_answer", "filler_answer",
     "transplant_forward_answer", "transplant_reverse_answer",
+    # The anchor arm's output is a JSON-safe nested dict rather than a scalar, but it
+    # round-trips through the same present-or-absent copy, and it has to be banked: the
+    # arm costs four fresh generations plus five controls under two recipient frames plus
+    # a letter-logprob pass per item, so an unbanked anchor makes a resume redo the most
+    # expensive arm in the run from scratch.
+    "anchor",
 )
 _CURVE_FIELDS = ("clean_curve", "hinted_curve")
 
