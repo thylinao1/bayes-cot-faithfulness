@@ -1,5 +1,6 @@
-# JUDGE_KEYS	GPU_TYPE	WALLTIME	extra exports
+# JUDGE_KEYS	GPU_TYPE	WALLTIME	extra fields (MEM= and CPUS= become sbatch flags, the rest are exports)
 # The FP8 70B judge on the single h200-141 card (per-user cap 1). xgpk0 is the only
 # h200-141 node and it is in partition `gpu` only, whose wall ceiling is 3 hours, so this
 # runs at 02:50:00 with --resume and continues in a follow-up job if the gate is unfinished.
-llama-3.3-70b-fp8	h200-141	02:50:00	BCF_CONCURRENCY=12	BCF_RESUME=1
+# MEM=160G because Slurm's default 3G OOM-killed the engine core in job 825536.
+llama-3.3-70b-fp8	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1

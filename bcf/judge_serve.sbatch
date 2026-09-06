@@ -2,6 +2,8 @@
 #SBATCH --job-name=bcf-jury-serve
 #SBATCH --partition=gpu-long
 #SBATCH --gpus=a100-80
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=96G
 #SBATCH --time=05:00:00
 #SBATCH --output=%x-%j.out
 #SBATCH --mail-type=FAIL,TIME_LIMIT_90
@@ -11,6 +13,14 @@
 # Serve one or two jury judges on the allocated card, run the synthetic judge gate against
 # them, and EXIT. No idle server: the gate is the job, and when it finishes the card goes
 # back to the pool.
+#
+# --mem is in the header because leaving it out is fatal here and looks like something
+# else. Slurm's default on this cluster is 3G of host RAM and 1 CPU. Job 825536 asked for
+# an h200-141, got 3G, and its vLLM EngineCore was OOM-killed at 02:42 with no traceback
+# in the server log, only "Engine core initialization failed"; sacct is where the truth was
+# (State=OUT_OF_MEMORY, ExitCode 0:125, ReqMem=3G, MaxRSS=6.3G). A 70B needs tens of GB of
+# host RAM to stream its shards to the card, so the judge jobs ask for 96G and the 70B row
+# asks for more through jury_wave.sh's MEM= field.
 #
 # xgpj0 is excluded in the header, not left to the shell: that node's conda entrypoints are
 # broken (NUS-COMPUTE 1.8), CUDA reports no device on it, and job 825479 spent an a100-80

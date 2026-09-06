@@ -151,15 +151,24 @@ for row in "${ROWS[@]}"; do
   name="bcf-jury-${slug}"
   exports="ALL,BCF_JUDGES=${KEYS},BCF_GATE_ITEMS=${GATE_ITEMS}"
   tp=1
+  # MEM= and CPUS= are sbatch flags, not exports. Slurm's default here is 3G of host RAM
+  # and 1 CPU, which OOM-kills a vLLM engine core with no message in the server log
+  # (job 825536; sacct said OUT_OF_MEMORY while the log said "initialization failed").
+  mem_flag=()
+  cpus_flag=()
   for field in $(printf '%s\n' "${REST:-}" | tr '\t' '\n'); do
     [ -n "$field" ] || continue
+    case "$field" in
+      MEM=*)  mem_flag=(--mem="${field#MEM=}"); continue ;;
+      CPUS=*) cpus_flag=(--cpus-per-task="${field#CPUS=}"); continue ;;
+    esac
     exports="${exports},${field}"
     case "$field" in BCF_TP=*) tp="${field#BCF_TP=}" ;; esac
   done
   gpus_flag="--gpus=${GPU_TYPE}"
   [ "$tp" -gt 1 ] && gpus_flag="--nodes=1 --gpus-per-node=${GPU_TYPE}:${tp}"
   part="${PARTITION_FOR[$GPU_TYPE]:-gpu-long}"
-  cmd=(sbatch --job-name="$name" --partition="$part" $gpus_flag --time="$WALL" --export="$exports" "$SBATCH_SCRIPT")
+  cmd=(sbatch --job-name="$name" --partition="$part" $gpus_flag "${mem_flag[@]}" "${cpus_flag[@]}" --time="$WALL" --export="$exports" "$SBATCH_SCRIPT")
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "[wave] DRY-RUN ${cmd[*]}"
     N_SUBMITTED=$(( N_SUBMITTED + 1 ))
