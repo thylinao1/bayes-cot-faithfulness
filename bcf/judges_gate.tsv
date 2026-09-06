@@ -1,0 +1,3 @@
+# JUDGE_KEYS	GPU_TYPE	WALLTIME	extra exports
+# The FP8 70B judge on the single h200-141 card (per-user cap 1).
+llama-3.3-70b-fp8	h200-141	05:00:00	BCF_CONCURRENCY=8

@@ -18,9 +18,12 @@ Both are counted per judge and per stratum.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -106,6 +109,9 @@ class JuryRunner:
         self.checkpoint_path = self.out_dir / "checkpoint.json"
         self.rerun_path = self.out_dir / "rerun_queue.jsonl"
         self.done: set[str] = rec.completed_keys(self.votes_path) if self.resume else set()
+        self._write_lock = threading.Lock()
+        self._ep_lock = threading.Lock()
+        self._seeded: dict[tuple[str, int], JudgeEndpoint] = {}
         if not self.run_id:
             self.run_id = time.strftime("%Y%m%dT%H%M%S")
         if self.mode not in ("three-seeded", "audit"):
@@ -115,18 +121,31 @@ class JuryRunner:
 
     # --- one vote -----------------------------------------------------------
 
-    def _endpoint_for(self, judge_key: str, subject_family: str) -> JudgeEndpoint:
-        ep = self.endpoints.get(judge_key)
-        if ep is not None and ep.is_available():
-            return ep
-        if not self.soclaas_ok:
-            raise BackendError(
-                f"judge {judge_key} is unreachable and the SoCLaaS fallback is not permitted "
-                f"(no key in the environment, or no eligibility ruling on the record)"
-            )
-        fallback = soclaas_endpoint(judge_key, seed=self.seed, subject_family=subject_family)
-        self.endpoints[f"{judge_key}::fallback"] = fallback
-        return fallback
+    def _endpoint_for(self, judge_key: str, subject_family: str, seed: int) -> JudgeEndpoint:
+        """One endpoint per (judge, seed).
+
+        Seeded per endpoint rather than mutated on a shared client: the runner scores votes
+        concurrently, and a shared `client.seed` written from several threads would put the
+        wrong seed on the wire and then record the intended one.
+        """
+        cache_key = (judge_key, seed)
+        with self._ep_lock:
+            cached = self._seeded.get(cache_key)
+            if cached is not None:
+                return cached
+        base = self.endpoints.get(judge_key)
+        if base is not None and base.is_available():
+            seeded = base.for_seed(seed)
+        else:
+            if not self.soclaas_ok:
+                raise BackendError(
+                    f"judge {judge_key} is unreachable and the SoCLaaS fallback is not permitted "
+                    f"(no key in the environment, or no eligibility ruling on the record)"
+                )
+            seeded = soclaas_endpoint(judge_key, seed=seed, subject_family=subject_family)
+        with self._ep_lock:
+            self._seeded[cache_key] = seeded
+        return seeded
 
     def _one_vote(
         self,
@@ -150,8 +169,7 @@ class JuryRunner:
             final_answer=item.final_answer if prompt.sees_final_answer else None,
             position_swap=swap,
         )
-        endpoint = self._endpoint_for(judge_key, subject_family)
-        endpoint.client.seed = seed
+        endpoint = self._endpoint_for(judge_key, subject_family, seed)
         vote = rec.MALFORMED
         rationale = ""
         parsed: dict | None = None
@@ -210,7 +228,7 @@ class JuryRunner:
 
     def _queue_rerun(self, record: dict) -> None:
         """A fallback vote always queues a re-run on the intended judge."""
-        with open(self.rerun_path, "a", encoding="utf-8") as fh:
+        with self._write_lock, open(self.rerun_path, "a", encoding="utf-8") as fh:
             fh.write(json.dumps({
                 "item_id": record["item_id"],
                 "question": record["question"],
@@ -236,50 +254,94 @@ class JuryRunner:
             return [False, True]
         return [False]
 
-    def run(self, items: list[JuryItem], *, progress_every: int = 25) -> dict:
+    def _tasks(self, items: list[JuryItem]) -> list[dict]:
+        """Every vote this run owes, as flat task rows, before anything is sent."""
         audit = (
             audit_rows([i.item_id for i in items], seed=self.seed)
             if self.mode == "audit" else set()
         )
-        n_votes = 0
-        n_skipped = 0
-        started = time.time()
-        for idx, item in enumerate(items):
+        tasks: list[dict] = []
+        for item in items:
             panel = routing(item.subject_model)
-            judges = all_judges() if item.all_judge_row else panel
             if not item.all_judge_row:
                 assert_panel(item.subject_model, list(panel))
-            item_votes: dict[str, dict[str, str]] = {q: {} for q in self.questions}
+            judges = all_judges() if item.all_judge_row else panel
             for question in self.questions:
                 for run_idx, seed in self._seeds_for(item.item_id, audit):
                     for swap in self._swaps_for(question, run_idx):
-                        probe = {
-                            "item_id": item.item_id, "question": question,
-                            "run_idx": run_idx, "position_swap": swap, "fallback": False,
-                        }
                         for judge_key in judges:
-                            probe["judge_key"] = judge_key
-                            if self.resume and rec.vote_key(probe) in self.done:
-                                n_skipped += 1
-                                continue
-                            record = self._one_vote(
-                                item, question, judge_key,
-                                run_idx=run_idx, seed=seed, swap=swap, panel=panel,
-                            )
-                            rec.append_vote(self.votes_path, record)
-                            n_votes += 1
-                            # The label uses run 0, unswapped, panel judges only.
-                            if run_idx == 0 and not swap and judge_key in panel:
-                                item_votes[question][judge_key] = record["vote"]
-            self._write_labels(item, item_votes, panel)
-            if progress_every and (idx + 1) % progress_every == 0:
-                self._checkpoint(idx + 1, len(items), n_votes, n_skipped, started)
-        self._checkpoint(len(items), len(items), n_votes, n_skipped, started)
+                            tasks.append({
+                                "item": item, "question": question, "judge_key": judge_key,
+                                "run_idx": run_idx, "seed": seed, "swap": swap, "panel": panel,
+                            })
+        return tasks
+
+    def run(self, items: list[JuryItem], *, progress_every: int = 200, concurrency: int = 1) -> dict:
+        """Score every item. Votes go out concurrently; labels are aggregated at the end."""
+        tasks = self._tasks(items)
+        pending = []
+        n_skipped = 0
+        for t in tasks:
+            probe = {
+                "item_id": t["item"].item_id, "question": t["question"],
+                "judge_key": t["judge_key"], "run_idx": t["run_idx"],
+                "position_swap": t["swap"], "fallback": False,
+            }
+            if self.resume and rec.vote_key(probe) in self.done:
+                n_skipped += 1
+                continue
+            pending.append(t)
+        started = time.time()
+        state = {"n": 0}
+
+        def work(t: dict) -> None:
+            record = self._one_vote(
+                t["item"], t["question"], t["judge_key"],
+                run_idx=t["run_idx"], seed=t["seed"], swap=t["swap"], panel=t["panel"],
+            )
+            with self._write_lock:
+                rec.append_vote(self.votes_path, record)
+                state["n"] += 1
+                n = state["n"]
+            if progress_every and n % progress_every == 0:
+                self._checkpoint(n, len(pending), n, n_skipped, started)
+
+        if concurrency <= 1:
+            for t in pending:
+                work(t)
+        else:
+            with ThreadPoolExecutor(max_workers=concurrency) as pool:
+                for _ in pool.map(work, pending):
+                    pass
+        self._label_all(items)
+        elapsed = max(time.time() - started, 1e-9)
+        self._checkpoint(len(pending), len(pending), state["n"], n_skipped, started)
         return {
-            "items": len(items), "votes": n_votes, "skipped_resumed": n_skipped,
-            "seconds": round(time.time() - started, 1),
-            "votes_per_second": round(n_votes / max(time.time() - started, 1e-9), 3),
+            "items": len(items),
+            "votes": state["n"],
+            "votes_planned": len(tasks),
+            "skipped_resumed": n_skipped,
+            "seconds": round(elapsed, 1),
+            "votes_per_second": round(state["n"] / elapsed, 4),
+            "concurrency": concurrency,
         }
+
+    def _label_all(self, items: list[JuryItem]) -> None:
+        """Aggregate panel labels from the vote file, so a resumed run labels everything."""
+        rows = rec.read_votes(self.votes_path)
+        by_item: dict[str, dict[str, dict[str, str]]] = {}
+        for row in rows:
+            if row.get("run_idx") != 0 or row.get("position_swap"):
+                continue
+            if row.get("judge_key") not in (row.get("panel") or []):
+                continue
+            by_item.setdefault(row["item_id"], {}).setdefault(row["question"], {})[
+                row["judge_key"]
+            ] = row["vote"]
+        if self.labels_path.exists():
+            self.labels_path.unlink()
+        for item in items:
+            self._write_labels(item, by_item.get(item.item_id, {}), routing(item.subject_model))
 
     def _write_labels(self, item: JuryItem, item_votes: dict[str, dict[str, str]], panel: tuple[str, ...]) -> None:
         gate = aggregate(item_votes.get("gate", {}))
@@ -340,6 +402,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--num-predict", type=int, default=DEFAULT_NUM_PREDICT)
     p.add_argument("--limit", type=int, default=0)
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--concurrency", type=int, default=1,
+                   help="votes in flight at once; the measured votes/second scales with it")
     p.add_argument("--allow-soclaas-fallback", action="store_true")
     p.add_argument("--permissions", default=str(
         Path.home() / "Developer" / "bayes-cot-phase2" / "PERMISSIONS.md"))
@@ -378,7 +442,7 @@ def main(argv: list[str] | None = None) -> int:
         resume=args.resume, soclaas_ok=soclaas_ok,
         questions=tuple(q.strip() for q in args.questions.split(",") if q.strip()),
     )
-    summary = runner.run(items)
+    summary = runner.run(items, concurrency=args.concurrency)
     print(json.dumps(summary, indent=2))
     (runner.out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     return 0

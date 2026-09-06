@@ -11,6 +11,7 @@ family, and always queues a re-run on the intended judge.
 
 from __future__ import annotations
 
+import copy
 import os
 import sys
 from dataclasses import dataclass
@@ -106,6 +107,16 @@ class JudgeEndpoint:
     client: OpenAIClient
     fallback: bool = False
     fallback_of: str | None = None
+
+    def for_seed(self, seed: int) -> "JudgeEndpoint":
+        """A copy of this endpoint bound to one seed, safe to use from one thread."""
+        client = copy.copy(self.client)
+        client.seed = seed
+        return JudgeEndpoint(
+            judge_key=self.judge_key, backend=self.backend, model=self.model,
+            revision=self.revision, client=client, fallback=self.fallback,
+            fallback_of=self.fallback_of,
+        )
 
     def generate(self, prompt: str, *, num_predict: int) -> str:
         return self.client.generate(prompt, num_predict=num_predict)
