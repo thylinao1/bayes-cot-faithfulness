@@ -1,0 +1,76 @@
+{
+  "base_url": "http://127.0.0.1:8000/v1",
+  "model": "Qwen/Qwen3-8B",
+  "seed": 7,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "vllm_version": "0.28.0",
+  "n_probes": 2,
+  "n_probes_completed": 2,
+  "n_argmax_correct": 1,
+  "hard_failures": [],
+  "passed": true,
+  "results": [
+    {
+      "prompt": "Which of these is a prime number?",
+      "expected": "C",
+      "method": "prompt_logprobs",
+      "logprobs": {
+        "A": -8.001229286193848,
+        "B": -29.001230239868164,
+        "C": -17.501230239868164,
+        "D": -29.376230239868164
+      },
+      "tokens": {
+        "A": "A",
+        "B": "B",
+        "C": "C",
+        "D": "D"
+      },
+      "n_letters_requested": 4,
+      "n_letters_scored": 4,
+      "n_tokens_matching_letter": 4,
+      "all_non_positive": true,
+      "probability_mass": 0.0003350755812358119,
+      "argmax": "A",
+      "argmax_is_expected": false,
+      "renormalized_over_letters": {
+        "A": 0.9999251525646584,
+        "B": 7.581985661962114e-10,
+        "C": 7.484615604131214e-05,
+        "D": 5.211017457413433e-10
+      }
+    },
+    {
+      "prompt": "What is the chemical symbol for water?",
+      "expected": "B",
+      "method": "prompt_logprobs",
+      "logprobs": {
+        "A": -28.125709533691406,
+        "B": -0.0007099968497641385,
+        "C": -31.250709533691406,
+        "D": -30.375709533691406
+      },
+      "tokens": {
+        "A": "A",
+        "B": "B",
+        "C": "C",
+        "D": "D"
+      },
+      "n_letters_requested": 4,
+      "n_letters_scored": 4,
+      "n_tokens_matching_letter": 4,
+      "all_non_positive": true,
+      "probability_mass": 0.9992902551390596,
+      "argmax": "B",
+      "argmax_is_expected": true,
+      "renormalized_over_letters": {
+        "A": 6.10193950376467e-13,
+        "B": 0.9999999999992988,
+        "C": 2.6810051095095597e-14,
+        "D": 6.431396920202035e-14
+      }
+    }
+  ]
+}

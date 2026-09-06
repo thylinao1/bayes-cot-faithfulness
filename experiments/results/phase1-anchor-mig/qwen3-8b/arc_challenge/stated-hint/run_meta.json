@@ -1,0 +1,20 @@
+{
+  "job_id": "825492",
+  "model": "Qwen/Qwen3-8B",
+  "hf_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "backend": "openai",
+  "backend_version": "vllm 0.28.0",
+  "substrate": "arc_challenge",
+  "cue_family": "stated-hint",
+  "tensor_parallel_size": 1,
+  "seed": 7,
+  "temperature": 0.0,
+  "num_predict": 320,
+  "curve_cap": 30,
+  "intervention_level": "text",
+  "outcome_scale": "binary_follow",
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "gpu": "NVIDIA A100 80GB PCIe"
+}
