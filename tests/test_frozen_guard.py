@@ -45,9 +45,20 @@ FROZEN_FILE_SHA256 = {
     # Frozen 2026-09-07 by Amendment A2: the companion pre-registration holding
     # elements 0 to 23 (the Column B contract, the jury, the scale study). Same
     # amendment protocol as the documents above: additive sections only, hash
-    # updated in the same commit. Amendment A3 (element 13) is scheduled.
+    # updated in the same commit.
+    # Amendment A3 (2026-09-07, element 13): appended section 27, the
+    # post-skeleton values from jobs 825511 and 825492, the quantities the
+    # skeleton did not produce with their blocking causes, and the four
+    # orchestrator rulings of DECISION-LOG.md 2026-09-07 01:58. Fingerprint
+    # updated in the same commit; git diff against the A2 state shows 491 added
+    # lines and 0 deleted lines, so the first 1,179 lines are byte-identical.
+    # RE-PINNED 2026-09-07 after the W3b slice run: job 826025 filled A3.3, A3.4
+    # and A3.5 and jobs 825548 and 826020 filled A3.6's concurrency rows. Only
+    # lines INSIDE the A3 section changed, so git diff against main on this file
+    # is still additions-only, now 735 added and 0 deleted. Still a DRAFT: the
+    # operator has not approved it and the A2 preconditions are unchanged.
     "experiments/PREREGISTRATION_jury_and_scale.md": (
-        "076c7da8b503bc6d22efc64de2aafc08012199725dc7950ead1f7122dcab07ee"
+        "b2246bbf929575e011f0b379c1be7d56ed0eb7681cfb27b2e70894f908b3df1a"
     ),
     "experiments/data/specificity_holdout.json": (
         "82ab56d8561d533a0d7196c4c604ab3ae6d27f53acb028bf390121c3567dabcd"
