@@ -1,0 +1,57 @@
+=== FALSIFICATION PROOF: the probe's flag-off baseline checks (W3b task 3) ===
+date: 2026-09-07T03:56:17+08:00
+
+### 0. Baseline
+plugins: cov-7.1.0
+collected 5 items
+
+tests/test_concurrency_probe.py .....                                    [100%]
+
+============================== 5 passed in 0.46s ===============================
+exit=0
+
+### 1. A missing --baseline-raw is tolerated instead of refused
+  injected: '        if not a.baseline_raw.exists():' -> '        if False:'
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pathlib/_local.py:537: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/m7/3b38xcb97vq1rhp8j68wynn80000gn/T/pytest-of-maksimsilchenko/pytest-113/test_a_missing_baseline_file_r0/does_not_exist.json'
+=========================== short test summary info ============================
+FAILED tests/test_concurrency_probe.py::test_a_missing_baseline_file_refuses_before_any_model_call
+========================= 1 failed, 4 passed in 0.48s ==========================
+exit=1
+
+### 2. A baseline of the wrong length is tolerated instead of refused
+  injected: '        if n_base != len(items):' -> '        if False:'
+experiments/openai_client.py:243: in _post_inner
+    raise last or OpenAIClientError(f"request to {url} failed")
+E   openai_client.OpenAIClientError: could not reach http://127.0.0.1:1/v1/chat/completions: <urlopen error [Errno 61] Connection refused>
+----------------------------- Captured stdout call -----------------------------
+[probe] concurrency 1: 2 generations then 2 forced-logprob items
+=========================== short test summary info ============================
+FAILED tests/test_concurrency_probe.py::test_a_baseline_of_the_wrong_length_refuses_before_any_model_call
+========================= 1 failed, 4 passed in 35.54s =========================
+exit=1
+
+### 3. compare_raw silently drops the letters the level never produced
+  injected: '                missing += 1\n                continue' -> '                continue'
+=================================== FAILURES ===================================
+__________ test_compare_raw_counts_a_letter_the_level_never_produced ___________
+tests/test_concurrency_probe.py:64: in test_compare_raw_counts_a_letter_the_level_never_produced
+    assert out["n_letter_logprobs_missing"] == 1
+E   assert 0 == 1
+=========================== short test summary info ============================
+FAILED tests/test_concurrency_probe.py::test_compare_raw_counts_a_letter_the_level_never_produced
+========================= 1 failed, 4 passed in 0.54s ==========================
+exit=1
+
+### 4. Restored: green again
+plugins: cov-7.1.0
+collected 5 items
+
+tests/test_concurrency_probe.py .....                                    [100%]
+
+============================== 5 passed in 0.42s ===============================
+exit=0
+
