@@ -26,6 +26,16 @@ Each arm maps to a pre-registered Phase-2 design point:
                                     protocol, so direct-answer and CoT arms are comparable.
 - ``filler_prompt``          (U3): a length-matched content-free chain, the mediated
                                     effect of real CoT must exceed it.
+- ``anchor_prompts``         (A2 element 21): the four-cell randomized replay anchor,
+                                    recipient cue crossed with donor source, built out of
+                                    ``replay_prompt`` and ``cued_continuation_prompt`` so
+                                    the anchor is the banked frame re-read rather than a
+                                    second frame that can drift.
+- ``falsifier_donor_texts``  (A2 element 21): the required falsifier controls on the donor
+                                    chain (decisive-premise edit, meaning-preserving edit,
+                                    answer-marker removal and relocation, matched
+                                    answer-only text), which is what separates
+                                    donor-source dependence from semantic dependence.
 """
 
 from __future__ import annotations
