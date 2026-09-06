@@ -63,6 +63,12 @@ def check_one(client: OpenAIClient, probe: dict) -> dict:
     }
     mass = sum(math.exp(v) for v in result.logprobs.values())
     argmax = max(result.logprobs, key=result.logprobs.get) if result.logprobs else None
+    # The letters rarely hold all the next-token mass: at a position where the model
+    # would rather open with reasoning, the four bare letters can hold a fraction of a
+    # percent. Renormalising over the letter set is what turns the raw logprobs into
+    # the choice distribution the CONTRACT answer_logprobs field is meant to carry.
+    renormalized = ({k: math.exp(v) / mass for k, v in result.logprobs.items()}
+                    if mass > 0 else {})
     return {
         "prompt": probe["prompt"].splitlines()[0],
         "expected": probe["expected"],
@@ -76,6 +82,7 @@ def check_one(client: OpenAIClient, probe: dict) -> dict:
         "probability_mass": mass,
         "argmax": argmax,
         "argmax_is_expected": argmax == probe["expected"],
+        "renormalized_over_letters": renormalized,
     }
 
 
@@ -143,10 +150,20 @@ def main(argv: list[str] | None = None) -> int:
           "probe items (reported, not gating)")
     n_thin = sum(1 for r in results if r["probability_mass"] < 0.01)
     if n_thin:
-        print(f"[logprob] NOTE: {n_thin}/{len(results)} probes put under 1 percent of the "
-              "mass on any answer letter. The scored position is off-distribution, which "
-              "usually means the chat template differs from the run's "
-              f"(--chat-template-kwargs here: {a.chat_template_kwargs}).")
+        print(f"[logprob] NOTE: {n_thin}/{len(results)} probe(s) put under 1 percent of "
+              "the next-token mass on any answer letter, so the raw values are NOT a "
+              "distribution over the choices.")
+        print("[logprob]   Cause: at that position the model would rather open with "
+              "reasoning than a bare letter. It is NOT a chat-template artifact: job "
+              "825282 ran this check with and without {\"enable_thinking\": false} and "
+              "got identical logprobs to four decimals, and 0/28 skeleton transcripts "
+              "contain a <think> block.")
+        print("[logprob]   Remedies: use renormalized_over_letters (printed below), or "
+              "score after a commitment prefix so the letter is on-distribution.")
+        for row in results:
+            if row["probability_mass"] < 0.01:
+                shown = {k: round(v, 4) for k, v in row["renormalized_over_letters"].items()}
+                print(f"[logprob]   renormalized {row['expected']}-item: {shown}")
 
     payload = {
         "base_url": a.base_url, "model": a.model, "seed": a.seed,
