@@ -3,8 +3,16 @@
 # from the rate that run measured. Read-only on the cluster side.
 #
 #   bcf/fetch_gate_results.sh llama-3.3-70b-fp8
+#   bcf/fetch_gate_results.sh llama-3.3-70b-fp8-q1b --no-budget
+#
+# The first argument is the RESULTS SLUG, which is the judge key for a run of record and
+# carries a suffix when one judge is scored under more than one prompt. --no-budget skips
+# the budget recomputation: experiments/jury/budget.md is pinned to the rate of the run of
+# record (job 825542) and a prompt-comparison run must not silently retitle it.
 set -euo pipefail
-JUDGE="${1:?usage: fetch_gate_results.sh <judge_key>}"
+JUDGE="${1:?usage: fetch_gate_results.sh <results slug> [--no-budget]}"
+NO_BUDGET=0
+[ "${2:-}" = "--no-budget" ] && NO_BUDGET=1
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE="bcf/results/jury-gate/${JUDGE}/arc_challenge/stated-hint"
 LOCAL="${REPO}/experiments/results/jury-gate/${JUDGE}/arc_challenge/stated-hint"
@@ -16,7 +24,9 @@ rsync -a \
   "soc:${REMOTE}/" "${LOCAL}/"
 echo "[fetch] into ${LOCAL}"
 ls -la "$LOCAL"
-if [ -f "${LOCAL}/gate_report.json" ]; then
+if [ "$NO_BUDGET" -eq 1 ]; then
+  echo "[fetch] --no-budget: leaving experiments/jury/budget.md alone"
+elif [ -f "${LOCAL}/gate_report.json" ]; then
   python -m experiments.jury.budget --gate-report "${LOCAL}/gate_report.json" \
     --out "${REPO}/experiments/jury/budget.md"
 elif [ -f "${LOCAL}/checkpoint.json" ]; then
