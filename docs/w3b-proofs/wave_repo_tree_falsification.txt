@@ -1,0 +1,177 @@
+=== PROOF: wave.sh syncs one immutable tree per planning commit (W3b task 5) ===
+date: 2026-09-07T04:17:14+08:00   host: xlogin2   bash 5.2.21(1)-release
+
+Setup: ~/w3b-wavetest/src is a throwaway git init of the w3b worktree that mirrors
+the real repo's tracking (pool_manifest.json and the A9 holdout tracked, the three
+substrate pools gitignored and untracked). BCF_SYNC_ROOT points at a scratch dir so
+nothing in this transcript can touch ~/bcf. One cell, so the card caps pass and the
+tree lines are reachable. sbatch is a stub on PATH, so no job is ever submitted.
+planning commit: 8aae3b128e56
+
+### 1. CHECK-ONLY names the tree it would sync, and writes nothing
+$ BCF_SYNC_ROOT=/home/e/e1506804/w3b-wavetest/sync BCF_SKIP_TEST_ONLY=1 bash bcf/wave.sh --type sweep --gpu-type a100-40 --check-only /tmp/one_cell.tsv
+  [wave] planning commit 8aae3b128e56 at /home/e/e1506804/w3b-wavetest/src
+  [wave] jobs will read BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56
+  [wave] file /tmp/one_cell.tsv: 1 cell(s), 1 card(s), max tp 1
+  [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+  [wave] jobs in system: 8/32; this wave adds 1 -> 9/32
+  [wave] a100-40 cards RUNNING, ALL campaigns: 1/8 (0 more pending, not counted)
+  [wave] gpu cards RUNNING, ALL types, ALL campaigns: 5/12
+  [wave] a100-40 cards in use, bcf-sweep: 0/8 (CONTRACT.md split)
+  [wave] this wave wants 1 card(s) across 1 job(s)
+  [wave] CHECK-ONLY would sync /home/e/e1506804/w3b-wavetest/src @ 8aae3b128e56 -> /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56
+  [wave]   (git archive of the commit, plus the gitignored pools verified
+  [wave]    against the manifest committed at 8aae3b128e56); nothing was written
+  [wave] all checks pass; would submit 1 job(s)
+  [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-qwen3-8b-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --export=ALL\,BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56\,BCF_ENV_SH=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/bcf/env.sh\,BCF_PLAN_COMMIT=8aae3b128e56\,BCF_MODEL=Qwen/Qwen3-8B\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=stated-hint\,BCF_TP=1 /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/bcf/serve_and_run.sbatch
+  [wave] done (check-only, nothing submitted)
+  exit=0
+
+  the sync root afterwards:
+    ls: cannot access '/home/e/e1506804/w3b-wavetest/sync': No such file or directory
+
+### 2. REFUSAL: the target tree would be ~/bcf/repo, the tree live jobs read
+$ BCF_SYNC_ROOT=/home/e/e1506804/bcf BCF_SKIP_TEST_ONLY=1 bash bcf/wave.sh --type sweep --gpu-type a100-40 --check-only --repo-tree /home/e/e1506804/bcf/repo /tmp/one_cell.tsv
+  [wave] REFUSING: the target tree is /home/e/e1506804/bcf/repo, which is the shared
+  [wave]   ~/bcf/repo that LIVE JOBS READ. Syncing over it swaps the code under a
+  [wave]   running measurement (DECISION-LOG 2026-09-07 03:58 ruling (b)).
+  [wave]   The target must be /home/e/e1506804/bcf/repo-<short sha of the planning commit>.
+  exit=1
+
+### 3. REFUSAL: BCF_REPO already points at ~/bcf/repo
+$ BCF_SYNC_ROOT=/home/e/e1506804/bcf BCF_REPO=/home/e/e1506804/bcf/repo BCF_SKIP_TEST_ONLY=1 bash bcf/wave.sh --type sweep --gpu-type a100-40 --check-only /tmp/one_cell.tsv
+  [wave] REFUSING: BCF_REPO is set to /home/e/e1506804/bcf/repo, the shared tree live jobs read.
+  [wave]   Unset it; this script sets BCF_REPO to the tree it syncs.
+  exit=1
+
+### 4. REFUSAL: the checkout has uncommitted tracked changes, so the sha does not
+###    describe the code a job would run
+$ BCF_SYNC_ROOT=/home/e/e1506804/w3b-wavetest/sync BCF_SKIP_TEST_ONLY=1 bash bcf/wave.sh --type sweep --gpu-type a100-40 --check-only /tmp/one_cell.tsv
+  [wave] REFUSING: the checkout at /home/e/e1506804/w3b-wavetest/src has uncommitted tracked changes, so
+  [wave]   8aae3b128e56 does not describe the code a job would run. Commit first.
+  [wave]      M bcf/env.sh
+  exit=1
+
+  restored bcf/env.sh
+
+### 5. REAL sync into the scratch root
+$ BCF_SYNC_ROOT=/home/e/e1506804/w3b-wavetest/sync PATH=/tmp/nosbatch:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin bash bcf/wave.sh --type sweep --gpu-type a100-40 /tmp/one_cell.tsv
+  [wave] planning commit 8aae3b128e56 at /home/e/e1506804/w3b-wavetest/src
+  [wave] jobs will read BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56
+  [wave] file /tmp/one_cell.tsv: 1 cell(s), 1 card(s), max tp 1
+  [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+  [wave] jobs in system: 8/32; this wave adds 1 -> 9/32
+  [wave] a100-40 cards RUNNING, ALL campaigns: 1/8 (0 more pending, not counted)
+  [wave] gpu cards RUNNING, ALL types, ALL campaigns: 5/12
+  [wave] a100-40 cards in use, bcf-sweep: 0/8 (CONTRACT.md split)
+  [wave] this wave wants 1 card(s) across 1 job(s)
+  [wave] copied 5 gitignored data file(s) into the tree
+  manifest matches the pools on disk
+  [wave] synced 8aae3b128e56 -> /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56 (marker /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/.bcf_sync.json)
+  [wave] all checks pass; submitting 1 job(s)
+  STUB sbatch (nothing was submitted): --job-name=bcf-sweep-qwen3-8b-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --export=ALL,BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56,BCF_ENV_SH=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/bcf/env.sh,BCF_PLAN_COMMIT=8aae3b128e56,BCF_MODEL=Qwen/Qwen3-8B,BCF_SUBSTRATE=arc_challenge,BCF_CUE=stated-hint,BCF_TP=1 /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/bcf/serve_and_run.sbatch
+  [wave] done (1 submitted)
+  exit=0
+
+  marker:
+    {
+      "commit": "8aae3b128e56",
+      "source": "/home/e/e1506804/w3b-wavetest/src",
+      "synced_at": "2026-09-07T04:17:17+08:00",
+      "synced_by": "bcf/wave.sh"
+    }
+  the tree holds the committed code AND the untracked pools:
+    aqua_rat.json
+    arc_challenge.json
+    logiqa2.json
+    pool_manifest.json
+    specificity_holdout.json
+    toy_mcq.json
+  the synced pool is byte-identical to the working-tree pool:
+    7dbf9616004dce8877fc20ee97ec7831c79622c295cee90c9ed9209947947e98  experiments/data/arc_challenge.json
+    7dbf9616004dce8877fc20ee97ec7831c79622c295cee90c9ed9209947947e98  experiments/data/arc_challenge.json
+  BCF_REPO on the (stubbed) sbatch command line above is /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56
+
+### 6. A SECOND run at the same commit reuses the tree instead of rewriting it
+$ BCF_SYNC_ROOT=/home/e/e1506804/w3b-wavetest/sync PATH=/tmp/nosbatch:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin bash bcf/wave.sh --type sweep --gpu-type a100-40 /tmp/one_cell.tsv
+  [wave] planning commit 8aae3b128e56 at /home/e/e1506804/w3b-wavetest/src
+  [wave] jobs will read BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56
+  [wave] file /tmp/one_cell.tsv: 1 cell(s), 1 card(s), max tp 1
+  [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+  [wave] jobs in system: 8/32; this wave adds 1 -> 9/32
+  [wave] a100-40 cards RUNNING, ALL campaigns: 1/8 (0 more pending, not counted)
+  [wave] gpu cards RUNNING, ALL types, ALL campaigns: 5/12
+  [wave] a100-40 cards in use, bcf-sweep: 0/8 (CONTRACT.md split)
+  [wave] this wave wants 1 card(s) across 1 job(s)
+  [wave] /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56 already holds 8aae3b128e56; leaving it untouched
+  [wave] all checks pass; submitting 1 job(s)
+  STUB sbatch (nothing was submitted): --job-name=bcf-sweep-qwen3-8b-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --export=ALL,BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56,BCF_ENV_SH=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/bcf/env.sh,BCF_PLAN_COMMIT=8aae3b128e56,BCF_MODEL=Qwen/Qwen3-8B,BCF_SUBSTRATE=arc_challenge,BCF_CUE=stated-hint,BCF_TP=1 /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/bcf/serve_and_run.sbatch
+  [wave] done (1 submitted)
+  exit=0
+
+### 7. REFUSAL: a tree synced from a DIFFERENT commit is never rewritten
+  rewrote /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/.bcf_sync.json to claim commit 000000000000
+
+$ BCF_SYNC_ROOT=/home/e/e1506804/w3b-wavetest/sync PATH=/tmp/nosbatch:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin bash bcf/wave.sh --type sweep --gpu-type a100-40 /tmp/one_cell.tsv
+  [wave] planning commit 8aae3b128e56 at /home/e/e1506804/w3b-wavetest/src
+  [wave] jobs will read BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56
+  [wave] file /tmp/one_cell.tsv: 1 cell(s), 1 card(s), max tp 1
+  [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+  [wave] jobs in system: 8/32; this wave adds 1 -> 9/32
+  [wave] a100-40 cards RUNNING, ALL campaigns: 1/8 (0 more pending, not counted)
+  [wave] gpu cards RUNNING, ALL types, ALL campaigns: 5/12
+  [wave] a100-40 cards in use, bcf-sweep: 0/8 (CONTRACT.md split)
+  [wave] this wave wants 1 card(s) across 1 job(s)
+  [wave] REFUSING: /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56 exists and was synced from a DIFFERENT commit
+  [wave]   (see /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/.bcf_sync.json). A synced tree is never rewritten: a job may be
+  [wave]   reading it. Sync the new commit to its own /home/e/e1506804/w3b-wavetest/sync/repo-<sha>.
+  exit=1
+
+### 8. REFUSAL: the untracked pools on disk do not match the manifest committed at
+###    that sha, so the tree would carry an item set the commit does not describe
+  injected a 5-option item at index 900 of the WORKING-TREE pool. It is
+  gitignored, so the commit and git status are both unchanged and only the
+  copied file differs.
+  git status on tracked files (should be empty):
+    (none)
+
+$ BCF_SYNC_ROOT=/home/e/e1506804/w3b-wavetest/sync PATH=/tmp/nosbatch:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin bash bcf/wave.sh --type sweep --gpu-type a100-40 /tmp/one_cell.tsv
+  [wave] planning commit 8aae3b128e56 at /home/e/e1506804/w3b-wavetest/src
+  [wave] jobs will read BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56
+  [wave] file /tmp/one_cell.tsv: 1 cell(s), 1 card(s), max tp 1
+  [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+  [wave] jobs in system: 8/32; this wave adds 1 -> 9/32
+  [wave] a100-40 cards RUNNING, ALL campaigns: 1/8 (0 more pending, not counted)
+  [wave] gpu cards RUNNING, ALL types, ALL campaigns: 5/12
+  [wave] a100-40 cards in use, bcf-sweep: 0/8 (CONTRACT.md split)
+  [wave] this wave wants 1 card(s) across 1 job(s)
+  [wave] copied 5 gitignored data file(s) into the tree
+  REFUSING: arc_challenge holds 1 items with more than 4 options (first at index 900, 5 options). That widens the answer-label set the frozen prompt surface parses against. Re-fetch with the filter in PROVENANCE['arc_challenge']['command'], or amend the pre-registration.
+  [wave] REFUSING: the pools copied into /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56 do not match the
+  [wave]   manifest committed at 8aae3b128e56.
+  exit=1
+
+  the refused tree was left without a marker, so nothing can mistake it for synced:
+    ls: cannot access '/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/.bcf_sync.json': No such file or directory
+
+### 9. Restore the pool and go green again
+  (the pool was re-copied from the w3b worktree, so it matches the manifest again)
+$ BCF_SYNC_ROOT=/home/e/e1506804/w3b-wavetest/sync PATH=/tmp/nosbatch:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin bash bcf/wave.sh --type sweep --gpu-type a100-40 /tmp/one_cell.tsv
+  [wave] planning commit 8aae3b128e56 at /home/e/e1506804/w3b-wavetest/src
+  [wave] jobs will read BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56
+  [wave] file /tmp/one_cell.tsv: 1 cell(s), 1 card(s), max tp 1
+  [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+  [wave] jobs in system: 8/32; this wave adds 1 -> 9/32
+  [wave] a100-40 cards RUNNING, ALL campaigns: 1/8 (0 more pending, not counted)
+  [wave] gpu cards RUNNING, ALL types, ALL campaigns: 5/12
+  [wave] a100-40 cards in use, bcf-sweep: 0/8 (CONTRACT.md split)
+  [wave] this wave wants 1 card(s) across 1 job(s)
+  [wave] copied 5 gitignored data file(s) into the tree
+  manifest matches the pools on disk
+  [wave] synced 8aae3b128e56 -> /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56 (marker /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/.bcf_sync.json)
+  [wave] all checks pass; submitting 1 job(s)
+  STUB sbatch (nothing was submitted): --job-name=bcf-sweep-qwen3-8b-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --export=ALL,BCF_REPO=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56,BCF_ENV_SH=/home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/bcf/env.sh,BCF_PLAN_COMMIT=8aae3b128e56,BCF_MODEL=Qwen/Qwen3-8B,BCF_SUBSTRATE=arc_challenge,BCF_CUE=stated-hint,BCF_TP=1 /home/e/e1506804/w3b-wavetest/sync/repo-8aae3b128e56/bcf/serve_and_run.sbatch
+  [wave] done (1 submitted)
+  exit=0
+
+  scratch sync root removed; nothing under ~/bcf was touched by this transcript.
