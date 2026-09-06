@@ -67,6 +67,10 @@ if [ ! -d "${BCF_REPO}/experiments/jury" ]; then
   exit 10
 fi
 
+# The exit-code guard. Slurm runs this file from its own spool directory, so $0 is not in
+# the repo and the guard is sourced by absolute path like env.sh is.
+source "${BCF_EXIT_GUARD_SH:-${BCF_REPO}/bcf/exit_guard.sh}"
+
 ts() { while IFS= read -r line; do printf '[%s] %s\n' "$(date -Is)" "$line"; done; }
 
 JUDGES="${BCF_JUDGES:?BCF_JUDGES is required, e.g. qwen3-32b or gemma-3-27b-it+gpt-oss-20b}"
@@ -121,10 +125,15 @@ esac
 mkdir -p "$OUT_DIR"
 LOG="${OUT_DIR}/run.log"
 EXIT_FILE="${OUT_DIR}/exit_code.txt"
+# Written NON-ZERO here, before anything can go wrong, and overwritten by finish() only
+# with a code that the guard has checked. Job 826023 was cancelled mid-variant and its
+# EXIT trap wrote 0; nothing downstream could tell 2 percent of a run from all of it.
+bcf_exit_guard_init "$EXIT_FILE"
 
 SERVER_PIDS=()
 finish() {
-  local code=$?
+  local raw=$?
+  local code
   for pid in "${SERVER_PIDS[@]:-}"; do
     [ -n "$pid" ] || continue
     kill "$pid" 2>/dev/null || true
@@ -134,7 +143,14 @@ finish() {
     [ -n "$pid" ] || continue
     kill -9 "$pid" 2>/dev/null || true
   done
-  echo "$code" > "$EXIT_FILE"
+  # A cancel, a kill or an unwind that never reached the completion marker cannot record a
+  # zero: 128+signal for a trapped signal, 250 for a zero that skipped the marker, and the
+  # 255 already on disk for anything that never got here at all.
+  code="$(bcf_exit_guard_code "$raw")"
+  bcf_exit_guard_write "$code"
+  if [ "$code" != "$raw" ]; then
+    echo "[done] raw status ${raw} recorded as ${code} (signal=${BCF_EXIT_SIGNAL}, completed=${BCF_EXIT_COMPLETE})" | ts | tee -a "$LOG"
+  fi
   echo "[done] exit_code=${code} -> ${EXIT_FILE}" | ts | tee -a "$LOG"
   exit "$code"
 }
@@ -312,6 +328,9 @@ for variant in "${Q1_VARIANTS[@]}"; do
     RUN_OUT="$OUT_DIR"
   fi
   echo "[gate] Q1 variant ${variant} starting at $(date -Is) -> ${RUN_OUT}" | ts | tee -a "$LOG"
+  # Same rule one level down: the variant's own exit file starts at 255, so a run
+  # cancelled inside variant c leaves c non-zero and does not disturb a and b.
+  bcf_exit_guard_open_stage "${RUN_OUT}/exit_code.txt"
   python -m experiments.jury.gate \
     --items "$GATE_ITEMS" --out "$RUN_OUT" \
     --substrate "$SUBSTRATE" --cue-family "$CUE" \
@@ -329,6 +348,7 @@ echo "[gate] all variants finished at $(date -Is), worst status ${GATE_STATUS}" 
 # Exit 0 when the gate RAN, whatever its verdict: a judge failing a threshold is a result,
 # not a job failure, and mailing FAIL on it would train the operator to ignore the mail.
 # The verdict lives in gate_report.json.
+bcf_exit_guard_complete
 if [ "$GATE_STATUS" -gt 1 ]; then
   exit "$GATE_STATUS"
 fi
