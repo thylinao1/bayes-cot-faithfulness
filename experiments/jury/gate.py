@@ -188,6 +188,9 @@ def main(argv: list[str] | None = None) -> int:
         substrate=args.substrate, cue_family=args.cue_family, seed=args.seed,
         mode="three-seeded", position_swap="first-run", num_predict=args.num_predict,
         resume=args.resume or args.report_only,
+        # The gate serves one judge at a time under the card budget, so it scores exactly
+        # the judges it was given and marks the labels partial.
+        judge_filter=tuple(judge_keys) if not args.report_only else None,
     )
     if args.report_only:
         summary = json.loads((runner.out_dir / "run_summary.json").read_text()) \

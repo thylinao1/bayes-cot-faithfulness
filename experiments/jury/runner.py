@@ -100,6 +100,16 @@ class JuryRunner:
     resume: bool = False
     soclaas_ok: bool = False
     questions: tuple[str, ...] = ("gate", "Q1", "Q2")
+    # Which of the routed panel this run actually scores. None means the whole panel.
+    #
+    # The gate runs one judge at a time, because the card budget serializes the judges: on
+    # 2026-09-07 the a100-80 pool was at 5 of 4 committed and only the h200 judge could be
+    # served. Without this, the runner routed to all three panel judges of the gate
+    # corpus's subject and refused on the first unreachable one (job 825539, which had a
+    # healthy server and still produced zero votes). The `panel` field on every record
+    # still carries the FULL routed panel, so the panel rule stays auditable and a partial
+    # run is visibly partial rather than looking like a three-judge panel of size one.
+    judge_filter: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
         self.out_dir = rec.assert_results_path(self.out_dir, self.substrate, self.cue_family)
@@ -118,6 +128,13 @@ class JuryRunner:
             raise ValueError(f"unknown mode {self.mode!r}")
         if self.position_swap not in ("none", "first-run", "all-runs"):
             raise ValueError(f"unknown position_swap {self.position_swap!r}")
+        if self.judge_filter is not None:
+            missing = [k for k in self.judge_filter if k not in self.endpoints]
+            if missing:
+                raise ValueError(
+                    f"judge_filter names {missing} with no endpoint; refusing to start a run "
+                    f"that would fail on the first vote"
+                )
 
     # --- one vote -----------------------------------------------------------
 
@@ -266,6 +283,8 @@ class JuryRunner:
             if not item.all_judge_row:
                 assert_panel(item.subject_model, list(panel))
             judges = all_judges() if item.all_judge_row else panel
+            if self.judge_filter is not None:
+                judges = tuple(j for j in judges if j in self.judge_filter)
             for question in self.questions:
                 for run_idx, seed in self._seeds_for(item.item_id, audit):
                     for swap in self._swaps_for(question, run_idx):
@@ -365,6 +384,8 @@ class JuryRunner:
                 "unavailable": res.unavailable,
             }
         row["bucket"] = "silent_override" if gate.label == "silent_override" else "scored"
+        row["judges_scored"] = sorted(self.judge_filter) if self.judge_filter is not None else list(panel)
+        row["partial_panel"] = self.judge_filter is not None and set(self.judge_filter) != set(panel)
         with open(self.labels_path, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
 
@@ -405,6 +426,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--concurrency", type=int, default=1,
                    help="votes in flight at once; the measured votes/second scales with it")
     p.add_argument("--allow-soclaas-fallback", action="store_true")
+    p.add_argument("--only-served-judges", action="store_true",
+                   help="score only the judges given with --judge, recording the full routed "
+                        "panel on every row and marking the labels partial")
     p.add_argument("--permissions", default=str(
         Path.home() / "Developer" / "bayes-cot-phase2" / "PERMISSIONS.md"))
     p.add_argument("--decision-log", default=str(
@@ -441,6 +465,7 @@ def main(argv: list[str] | None = None) -> int:
         mode=args.mode, position_swap=args.position_swap, num_predict=args.num_predict,
         resume=args.resume, soclaas_ok=soclaas_ok,
         questions=tuple(q.strip() for q in args.questions.split(",") if q.strip()),
+        judge_filter=tuple(endpoints) if args.only_served_judges else None,
     )
     summary = runner.run(items, concurrency=args.concurrency)
     print(json.dumps(summary, indent=2))

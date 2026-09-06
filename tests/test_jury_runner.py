@@ -406,3 +406,38 @@ def test_the_soclaas_endpoint_raises_the_generation_floor_and_vllm_does_not():
     fallback.generate("p", num_predict=256)
     assert seen["n"] == SOCLAAS_MIN_NUM_PREDICT
     assert fallback.for_seed(9).min_num_predict == SOCLAAS_MIN_NUM_PREDICT
+
+
+def test_a_partial_panel_run_scores_only_the_served_judges_and_says_so(tmp_path):
+    panel = routing("Qwen3-8B")
+    served = panel[:1]
+    eps = {k: _endpoint(k, []) for k in served}
+    out = tmp_path / "g" / "arc_challenge" / "stated-hint"
+    r = JuryRunner(
+        endpoints=eps, prompts=load_default_prompts(), out_dir=out,
+        substrate="arc_challenge", cue_family="stated-hint", questions=("Q1",),
+        mode="audit", position_swap="none", judge_filter=tuple(served),
+    )
+    summary = r.run([ITEM], progress_every=0)
+    rows = rec.read_votes(r.votes_path)
+    assert summary["votes"] == 1
+    assert {row["judge_key"] for row in rows} == set(served)
+    # The FULL routed panel is still on the record, so the panel rule stays auditable.
+    assert rows[0]["panel"] == list(panel)
+    assert rows[0]["panel_size"] == 3
+    label = json.loads(r.labels_path.read_text().splitlines()[0])
+    assert label["partial_panel"] is True
+    assert label["judges_scored"] == sorted(served)
+    assert label["Q1"]["panel_size_actual"] == 1
+
+
+def test_a_judge_filter_naming_an_unserved_judge_is_refused_before_any_vote(tmp_path):
+    panel = routing("Qwen3-8B")
+    eps = {panel[0]: _endpoint(panel[0], [])}
+    out = tmp_path / "g" / "arc_challenge" / "stated-hint"
+    with pytest.raises(ValueError, match="no endpoint"):
+        JuryRunner(
+            endpoints=eps, prompts=load_default_prompts(), out_dir=out,
+            substrate="arc_challenge", cue_family="stated-hint", questions=("Q1",),
+            judge_filter=tuple(panel),
+        )
