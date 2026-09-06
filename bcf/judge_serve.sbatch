@@ -142,13 +142,31 @@ for key in $(echo "$JUDGES" | tr ',' ' '); do
     *) NEED_GB=$(( NEED_GB + 80 )) ;;
   esac
 done
-echo "[cache] home used ${HOME_USED_GB} GB of a ${CACHE_BUDGET_GB} GB working ceiling; headroom ${HEADROOM_GB} GB; this job needs about ${NEED_GB} GB" | ts | tee -a "$LOG"
-if [ "$NEED_GB" -le "$HEADROOM_GB" ]; then
+# What is ALREADY in the persistent cache for these judges does not need downloading
+# again, and home usage already counts it, so the decision has to be made on the NET need.
+# Without this the preflight re-downloads a model it is already holding: job 825542 found
+# home at 439 GB (365 plus the 74 GB it had just cached), computed 11 GB of headroom
+# against a 72 GB gross need, and fell back to scratch to fetch the same 74 GB again.
+HAVE_GB=0
+for key in $(echo "$JUDGES" | tr ',' ' '); do
+  if eval "$(python "${BCF_REPO}/bcf/judge_spec.py" "$key" 2>/dev/null)"; then
+    # Replace the SLASH with "--", not the first hyphen: an org name may itself contain a
+    # hyphen (meta-llama), and "tr / - | sed s/-/--/" would then double the wrong one.
+    pattern="models--$(echo "$JUDGE_HF_ID" | sed 's|/|--|')"
+    have=$(du -sBG "$JUDGE_CACHE"/*/"${pattern}"* "$JUDGE_CACHE/${pattern}"* 2>/dev/null \
+      | awk '{gsub("G","",$1); s+=$1+0} END {print s+0}')
+    HAVE_GB=$(( HAVE_GB + have ))
+  fi
+done
+NET_GB=$(( NEED_GB - HAVE_GB ))
+[ "$NET_GB" -lt 0 ] && NET_GB=0
+echo "[cache] home used ${HOME_USED_GB} GB of a ${CACHE_BUDGET_GB} GB working ceiling; headroom ${HEADROOM_GB} GB; gross need ${NEED_GB} GB, already cached ${HAVE_GB} GB, net need ${NET_GB} GB" | ts | tee -a "$LOG"
+if [ "$NET_GB" -le "$HEADROOM_GB" ]; then
   export HF_HOME="$JUDGE_CACHE"
   mkdir -p "$HF_HOME"
   echo "[cache] PERSISTENT: HF_HOME=${HF_HOME} (weights survive the job, restarts are free)" | ts | tee -a "$LOG"
 else
-  echo "[cache] SCRATCH: not enough home headroom, falling back to ${SCRATCH}/hf. The download repeats next run; the quota does not blow up." | ts | tee -a "$LOG"
+  echo "[cache] SCRATCH: net need ${NET_GB} GB exceeds ${HEADROOM_GB} GB of headroom, falling back to ${SCRATCH}/hf. The download repeats next run; the quota does not blow up." | ts | tee -a "$LOG"
 fi
 
 # --- 3. serve every judge in this job ------------------------------------------
