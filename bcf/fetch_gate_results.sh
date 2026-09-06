@@ -9,7 +9,7 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE="bcf/results/jury-gate/${JUDGE}/arc_challenge/stated-hint"
 LOCAL="${REPO}/experiments/results/jury-gate/${JUDGE}/arc_challenge/stated-hint"
 mkdir -p "$LOCAL"
-rsync -a --info=stats1 \
+rsync -a \
   --include='votes.jsonl' --include='panel_labels.jsonl' --include='gate_report.json' \
   --include='run_summary.json' --include='checkpoint.json' --include='run.log' \
   --include='exit_code.txt' --include='rerun_queue.jsonl' --exclude='*' \

@@ -1,0 +1,31 @@
+{
+  "note": "The vote file is 5.8 MB of derived data under the gitignored results tree, so its hash is committed and the file itself lives on disk here and at ~/bcf/results/jury-gate/ on the cluster. gate_report.json IS committed beside this.",
+  "job_id": "825542",
+  "judge": "llama-3.3-70b-fp8",
+  "files": {
+    "votes.jsonl": {
+      "bytes": 5842846,
+      "sha256": "7ddb3d9583bfb47fe2fde2967cbaf9faa006397ab95a23229b07c0f8936f2e68"
+    },
+    "panel_labels.jsonl": {
+      "bytes": 380937,
+      "sha256": "cb2e3076715d50143a825c17d9ae4a9d9e27d15afd52a96a115de3d8f15ecbbc"
+    },
+    "gate_report.json": {
+      "bytes": 9631,
+      "sha256": "ec02798867855f9df2d831a997f74f8e148cf84333cfd7de86a51b4254378f40"
+    },
+    "run_summary.json": {
+      "bytes": 154,
+      "sha256": "b09556fc570608f5a4db57fd37a7258d0e1cb2f1e84b88a48f42640d08df15bd"
+    },
+    "checkpoint.json": {
+      "bytes": 824,
+      "sha256": "e4b4e1c73d52e02f933423f34c7aa5586b2bfe7980f6cde01bb224c9a293debd"
+    }
+  },
+  "lines": {
+    "votes.jsonl": 5313,
+    "panel_labels.jsonl": 483
+  }
+}
