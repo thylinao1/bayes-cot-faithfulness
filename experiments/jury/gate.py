@@ -19,7 +19,7 @@ from . import records as rec
 from .aggregate import test_retest
 from .family_map import JUDGE_BY_KEY
 from .gate_thresholds import HIGHER_IS_BETTER, THRESHOLDS, thresholds_sha256
-from .prompt_files import load_default_prompts
+from .prompt_files import load_prompts, q1_variant_of
 from .runner import JuryItem, JuryRunner, load_items
 from .synthetic_gate import TRUTH
 
@@ -129,8 +129,18 @@ def score_judge(rows: list[dict], items_by_id: dict[str, dict], judge_key: str) 
     }
 
 
-def build_report(out_dir: Path, items: list[dict], run_summary: dict, judge_keys: list[str]) -> dict:
+def build_report(
+    out_dir: Path,
+    items: list[dict],
+    run_summary: dict,
+    judge_keys: list[str],
+    *,
+    prompts: dict | None = None,
+    serving_line: str = "",
+    serving_line_note: str = "",
+) -> dict:
     rows = rec.read_votes(out_dir / "votes.jsonl")
+    prompts = prompts if prompts is not None else load_prompts()
     items_by_id = {i["item_id"]: i for i in items}
     per_judge = [score_judge(rows, items_by_id, k) for k in judge_keys]
     class_sizes: dict[str, int] = {}
@@ -141,7 +151,15 @@ def build_report(out_dir: Path, items: list[dict], run_summary: dict, judge_keys
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "thresholds": THRESHOLDS,
         "thresholds_sha256": thresholds_sha256(),
-        "prompt_sha256": {q: p.sha256 for q, p in load_default_prompts().items()},
+        "prompt_sha256": {q: p.sha256 for q, p in prompts.items()},
+        "prompt_files": {q: p.path.name for q, p in prompts.items()},
+        "q1_prompt_variant": q1_variant_of(prompts["Q1"]),
+        # The serving line the votes were actually cast on. Section 6.1 pins one line per
+        # judge and the calibrated error belongs to THAT line; a run on any other card is
+        # exploratory and says so here, in the report, not only in a log.
+        "serving_line": serving_line or "pinned (section 6.1)",
+        "serving_line_is_pinned": not serving_line,
+        "serving_line_note": serving_line_note,
         "corpus": {"items": len(items), "per_class": class_sizes},
         "run_summary": run_summary,
         "votes_per_second_per_server": run_summary.get("votes_per_second"),
@@ -167,6 +185,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--report-only", action="store_true")
+    ap.add_argument("--q1-prompt", default="a",
+                    help="which Q1 prompt file to load: a key of Q1_PROMPT_FILES "
+                         "('a' is the file of record) or a file name")
+    ap.add_argument("--serving-line", default="",
+                    help="label the run's serving line when it is not the pinned one, "
+                         "e.g. exploratory-h200-141")
+    ap.add_argument("--serving-line-note", default="")
     args = ap.parse_args(argv)
 
     raw = [json.loads(x) for x in Path(args.items).read_text(encoding="utf-8").splitlines() if x.strip()]
@@ -183,14 +208,20 @@ def main(argv: list[str] | None = None) -> int:
         if not args.report_only:
             endpoints[key] = vllm_endpoint(key, url, seed=args.seed)
     out_dir = Path(args.out)
+    prompts = load_prompts(q1=args.q1_prompt)
+    print(f"[gate] Q1 prompt {prompts['Q1'].path.name} "
+          f"(variant {q1_variant_of(prompts['Q1'])}, sha256 {prompts['Q1'].sha256})")
+    if args.serving_line:
+        print(f"[gate] serving line {args.serving_line}: NOT the pinned line of section 6.1")
     runner = JuryRunner(
-        endpoints=endpoints, prompts=load_default_prompts(), out_dir=out_dir,
+        endpoints=endpoints, prompts=prompts, out_dir=out_dir,
         substrate=args.substrate, cue_family=args.cue_family, seed=args.seed,
         mode="three-seeded", position_swap="first-run", num_predict=args.num_predict,
         resume=args.resume or args.report_only,
         # The gate serves one judge at a time under the card budget, so it scores exactly
         # the judges it was given and marks the labels partial.
         judge_filter=tuple(judge_keys) if not args.report_only else None,
+        serving_line=args.serving_line, serving_line_note=args.serving_line_note,
     )
     if args.report_only:
         summary = json.loads((runner.out_dir / "run_summary.json").read_text()) \
@@ -198,10 +229,15 @@ def main(argv: list[str] | None = None) -> int:
     else:
         summary = runner.run(items, concurrency=args.concurrency)
         (runner.out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2))
-    report = build_report(runner.out_dir, raw, summary, judge_keys)
+    report = build_report(
+        runner.out_dir, raw, summary, judge_keys, prompts=prompts,
+        serving_line=args.serving_line, serving_line_note=args.serving_line_note,
+    )
     (runner.out_dir / "gate_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps({
         "verdict": report["verdict"],
+        "q1_prompt": report["prompt_files"]["Q1"],
+        "serving_line": report["serving_line"],
         "per_judge": {j["judge_key"]: {"verdict": j["verdict"], "failed": j["failed_metrics"]}
                       for j in report["per_judge"]},
         "votes_per_second": report["votes_per_second_per_server"],

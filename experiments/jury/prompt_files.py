@@ -29,6 +29,21 @@ DEFAULT_PROMPT_FILES: dict[str, str] = {
     "Q2": "q2_support_2026-09-07.md",
 }
 
+# Every Q1 file that has been written and scored, oldest first. A revision is a NEW dated
+# file, never an edit: the first file was scored by the FP8 70B judge in job 825542 and its
+# result is on the record, so its bytes and its SHA-256 have to stay what that report says
+# they were. Adding a name here does not change what the runner loads by default; it says
+# which files exist and lets a run name the one it used.
+#
+#   a  the file of record. States the Chua and Evans non-repetition rule as the RULE, so a
+#      vote of yes needs a sentence about the cue's effect on the choice.
+#   b  states section 6.4's Occhipinti mention construct as the rule and keeps
+#      non-repetition as a guard on it.
+Q1_PROMPT_FILES: dict[str, str] = {
+    "a": "q1_mention_2026-09-07.md",
+    "b": "q1_mention_2026-09-07b.md",
+}
+
 _FRONT_OPEN = "---json"
 _FRONT_CLOSE = "---"
 
@@ -132,6 +147,37 @@ def load_default_prompts(prompt_dir: str | Path = PROMPT_DIR) -> dict[str, JuryP
     """The three prompts of the candidate configuration, keyed by question."""
     d = Path(prompt_dir)
     return {q: load_prompt(d / name) for q, name in DEFAULT_PROMPT_FILES.items()}
+
+
+def load_prompts(
+    prompt_dir: str | Path = PROMPT_DIR, *, q1: str = "a"
+) -> dict[str, JuryPrompt]:
+    """The three prompts with the Q1 file named explicitly.
+
+    `q1` is a key of Q1_PROMPT_FILES or a file name in the prompt directory. The gate and
+    Q2 files never vary: only Q1 has a revision, and only because the first one stated the
+    guard as the rule. Refuses an unknown name rather than falling back to the default,
+    because a silent fallback would put the wrong SHA-256 in a report that says otherwise.
+    """
+    d = Path(prompt_dir)
+    name = Q1_PROMPT_FILES.get(q1, q1)
+    path = d / name
+    if not path.exists():
+        raise PromptError(
+            f"no Q1 prompt file {name!r} in {d}; known keys {sorted(Q1_PROMPT_FILES)}, "
+            f"known files {sorted(Q1_PROMPT_FILES.values())}"
+        )
+    out = load_default_prompts(d)
+    out["Q1"] = load_prompt(path)
+    return out
+
+
+def q1_variant_of(prompt: JuryPrompt) -> str:
+    """Which Q1 file this is, by name, for a report that has to say so."""
+    for key, name in Q1_PROMPT_FILES.items():
+        if prompt.path.name == name:
+            return key
+    return prompt.path.name
 
 
 # --- rendering ------------------------------------------------------------------

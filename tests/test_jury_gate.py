@@ -16,7 +16,7 @@ from experiments.jury import synthetic_gate as sg
 from experiments.jury.backends import JudgeEndpoint
 from experiments.jury.family_map import JUDGE_BY_KEY, routing
 from experiments.jury.gate_thresholds import THRESHOLDS
-from experiments.jury.prompt_files import load_default_prompts
+from experiments.jury.prompt_files import load_prompts
 from experiments.jury.runner import JuryItem, JuryRunner
 
 REPO_BANK = [
@@ -164,18 +164,25 @@ def _endpoints(judge_keys, q1_vote="oracle"):
     return eps
 
 
-def _run_gate(tmp_path, bank, q1_vote):
+def _run_gate(tmp_path, bank, q1_vote, *, q1="a", serving_line=""):
     raw = _marked_items(bank)
     items = [JuryItem(**dict(r)) for r in raw]
     panel = list(routing("Qwen3-8B"))
     out = tmp_path / "jury-gate" / "arc_challenge" / "stated-hint"
+    prompts = load_prompts(q1=q1)
     runner = JuryRunner(
-        endpoints=_endpoints(panel, q1_vote), prompts=load_default_prompts(), out_dir=out,
+        endpoints=_endpoints(panel, q1_vote), prompts=prompts, out_dir=out,
         substrate="arc_challenge", cue_family="stated-hint", mode="three-seeded",
-        position_swap="first-run",
+        position_swap="first-run", serving_line=serving_line,
+        serving_line_note="the run of record is the pinned line" if serving_line else "",
     )
     summary = runner.run(items, progress_every=0, concurrency=4)
-    return gate_mod.build_report(runner.out_dir, raw, summary, panel), runner
+    report = gate_mod.build_report(
+        runner.out_dir, raw, summary, panel, prompts=prompts,
+        serving_line=serving_line,
+        serving_line_note="the run of record is the pinned line" if serving_line else "",
+    )
+    return report, runner
 
 
 def test_an_oracle_judge_passes_every_threshold(tmp_path, bank):
@@ -234,3 +241,40 @@ def test_corpus_manifest_matches_a_fresh_build(bank):
     seq = hashlib.sha256("\n".join(i["item_id"] for i in items).encode()).hexdigest()
     assert manifest["item_sequence_sha256"] == seq
     assert manifest["bank_rows_usable"] == len(bank)
+
+
+def test_the_report_names_the_q1_file_it_scored(tmp_path, bank):
+    """A report that does not name its Q1 file cannot be compared with another one."""
+    a, _ = _run_gate(tmp_path / "a", bank, "oracle", q1="a")
+    b, _ = _run_gate(tmp_path / "b", bank, "oracle", q1="b")
+    assert a["prompt_files"]["Q1"] == "q1_mention_2026-09-07.md"
+    assert b["prompt_files"]["Q1"] == "q1_mention_2026-09-07b.md"
+    assert a["q1_prompt_variant"] == "a" and b["q1_prompt_variant"] == "b"
+    assert a["prompt_sha256"]["Q1"] != b["prompt_sha256"]["Q1"]
+    # The gate and Q2 instruments never move with the Q1 choice.
+    assert a["prompt_sha256"]["gate"] == b["prompt_sha256"]["gate"]
+    assert a["prompt_sha256"]["Q2"] == b["prompt_sha256"]["Q2"]
+    assert a["thresholds"] == b["thresholds"] == THRESHOLDS
+
+
+def test_an_off_line_run_is_labelled_exploratory_on_every_vote_and_in_the_report(tmp_path, bank):
+    report, runner = _run_gate(
+        tmp_path, bank, "oracle", serving_line="exploratory-h200-141",
+    )
+    assert report["serving_line"] == "exploratory-h200-141"
+    assert report["serving_line_is_pinned"] is False
+    rows = [json.loads(x) for x in
+            (runner.out_dir / "votes.jsonl").read_text().splitlines() if x.strip()]
+    assert rows
+    assert all(r["serving_line"] == "exploratory-h200-141" for r in rows)
+    assert all(r["serving_line_is_pinned"] is False for r in rows)
+
+
+def test_a_pinned_run_records_the_judge_own_serving_line(tmp_path, bank):
+    report, runner = _run_gate(tmp_path, bank, "oracle")
+    assert report["serving_line_is_pinned"] is True
+    rows = [json.loads(x) for x in
+            (runner.out_dir / "votes.jsonl").read_text().splitlines() if x.strip()]
+    for r in rows:
+        assert r["serving_line"] == JUDGE_BY_KEY[r["judge_key"]].serving_line
+        assert r["serving_line_is_pinned"] is True

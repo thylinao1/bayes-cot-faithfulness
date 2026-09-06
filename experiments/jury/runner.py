@@ -37,7 +37,14 @@ from .family_map import (
     family_of,
     routing,
 )
-from .prompt_files import JuryPrompt, load_default_prompts, render, validate_output
+from .prompt_files import (
+    JuryPrompt,
+    load_default_prompts,
+    load_prompts,
+    q1_variant_of,
+    render,
+    validate_output,
+)
 
 AUDIT_FRACTION = 0.10
 DEFAULT_NUM_PREDICT = 320
@@ -110,6 +117,15 @@ class JuryRunner:
     # still carries the FULL routed panel, so the panel rule stays auditable and a partial
     # run is visibly partial rather than looking like a three-judge panel of size one.
     judge_filter: tuple[str, ...] | None = None
+    # What line this run actually served the judge on, when it is not the pinned one.
+    #
+    # Section 6.1 pins a serving line per judge and the calibrated error belongs to that
+    # line. A run on a different card is still worth having, because it says whether the
+    # prompt works at all before a scarce card is spent, but it is NOT the run of record
+    # and a report that does not say so invites the two being merged later. Empty means the
+    # judge ran on its pinned line and the record carries that.
+    serving_line: str = ""
+    serving_line_note: str = ""
 
     def __post_init__(self) -> None:
         self.out_dir = rec.assert_results_path(self.out_dir, self.substrate, self.cue_family)
@@ -232,6 +248,9 @@ class JuryRunner:
             "judge_revision": endpoint.revision,
             "prompt_file": prompt.path.name,
             "prompt_sha256": prompt.sha256,
+            "serving_line": self.serving_line or judge.serving_line,
+            "serving_line_is_pinned": not self.serving_line,
+            "serving_line_note": self.serving_line_note,
             "question": question,
             "run_idx": run_idx,
             "seed": seed,
@@ -413,6 +432,9 @@ class JuryRunner:
             "substrate": self.substrate, "cue_family": self.cue_family,
             "position_swap": self.position_swap,
             "prompt_sha256": {q: p.sha256 for q, p in self.prompts.items()},
+            "prompt_files": {q: p.path.name for q, p in self.prompts.items()},
+            "serving_line": self.serving_line or "pinned",
+            "serving_line_note": self.serving_line_note,
             "judges": {k: {"model": e.model, "revision": e.revision, "backend": e.backend}
                        for k, e in self.endpoints.items()},
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
@@ -440,6 +462,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--resume", action="store_true")
     p.add_argument("--concurrency", type=int, default=1,
                    help="votes in flight at once; the measured votes/second scales with it")
+    p.add_argument("--q1-prompt", default="a",
+                   help="which Q1 prompt file to load: a key of Q1_PROMPT_FILES or a file name")
+    p.add_argument("--serving-line", default="",
+                   help="label this run's serving line when it is not the pinned one, "
+                        "e.g. exploratory-h200-141")
+    p.add_argument("--serving-line-note", default="")
     p.add_argument("--allow-soclaas-fallback", action="store_true")
     p.add_argument("--only-served-judges", action="store_true",
                    help="score only the judges given with --judge, recording the full routed "
@@ -455,7 +483,7 @@ def main(argv: list[str] | None = None) -> int:
     from .backends import soclaas_eligibility, vllm_endpoint
 
     args = build_parser().parse_args(argv)
-    prompts = load_default_prompts()
+    prompts = load_prompts(q1=args.q1_prompt)
     endpoints: dict[str, JudgeEndpoint] = {}
     for spec in args.judge:
         if "=" not in spec:
@@ -481,7 +509,10 @@ def main(argv: list[str] | None = None) -> int:
         resume=args.resume, soclaas_ok=soclaas_ok,
         questions=tuple(q.strip() for q in args.questions.split(",") if q.strip()),
         judge_filter=tuple(endpoints) if args.only_served_judges else None,
+        serving_line=args.serving_line, serving_line_note=args.serving_line_note,
     )
+    print(f"[jury] Q1 prompt {prompts['Q1'].path.name} "
+          f"(variant {q1_variant_of(prompts['Q1'])}, sha256 {prompts['Q1'].sha256})")
     summary = runner.run(items, concurrency=args.concurrency)
     print(json.dumps(summary, indent=2))
     (runner.out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
