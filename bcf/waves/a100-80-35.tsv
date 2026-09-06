@@ -1,0 +1,8 @@
+# wave a100-80-35  pool a100-80  2 card(s) of the 4 per-user cap (2 planned as sweep slots)
+# submit with:  bcf/wave.sh --type sweep --gpu-type a100-80 bcf/waves/a100-80-35.tsv
+# longest cell in this wave: 2.902 h; card-hours: 5.804
+# columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
+#   mistralai/Magistral-Small-2509 @ a31cc96ab10cf19bc42c628fedf1e359e0853c49 | logiqa2 / metadata | n 570 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool a100-80 tp 1 quant none flags none | 2.902 h at concurrency 1 (2.902 h sequential)
+#   mistralai/Mistral-Small-3.2-24B-Instruct-2506 @ 95a6d26c4bfb886c58daf9d3f7332c857cb27b43 | logiqa2 / metadata | n 570 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool a100-80 tp 1 quant none flags none | 2.902 h at concurrency 1 (2.902 h sequential)
+mistralai/Magistral-Small-2509	logiqa2	metadata	BCF_REVISION=a31cc96ab10cf19bc42c628fedf1e359e0853c49	BCF_N_ITEMS=570	BCF_CURVE_CAP=570	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=1	MEM=128G	CPUS=8	BCF_EXPECTED_HOURS=2.902
+mistralai/Mistral-Small-3.2-24B-Instruct-2506	logiqa2	metadata	BCF_REVISION=95a6d26c4bfb886c58daf9d3f7332c857cb27b43	BCF_N_ITEMS=570	BCF_CURVE_CAP=570	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=1	MEM=128G	CPUS=8	BCF_EXPECTED_HOURS=2.902

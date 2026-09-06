@@ -1,0 +1,20 @@
+{
+  "job_id": "825548",
+  "model": "Qwen/Qwen3-8B",
+  "hf_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "backend": "openai",
+  "backend_version": "vllm 0.28.0",
+  "purpose": "track G concurrency probe; NOT a cell, NOT a powered run",
+  "tensor_parallel_size": 1,
+  "seed": 7,
+  "temperature": 0.0,
+  "num_predict": 320,
+  "n_items": 30,
+  "levels": "1,8,32,64",
+  "data": "/home/e/e1506804/bcf/repo/experiments/data/arc_challenge.json",
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "gpu": "NVIDIA A100 80GB PCIe",
+  "flashinfer_sampler": "0"
+}
