@@ -18,7 +18,14 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 MANIFEST = REPO / "experiments" / "data" / "pool_manifest.json"
-CONTRACT_MIN_POOL = 700  # CONTRACT.md: "Item pools at least 700 each"
+# CONTRACT.md and PREREGISTRATION_jury_and_scale element 9 say "at least 700". The
+# DECISION-LOG ruling of 2026-09-07 (b) raises it: a cross-model column-A contrast needs
+# about 300 followed items per cell, which at the banked follow rate means 1,500 entered
+# for stated-hint and professor, so the pools those cells draw from are at least 1,500.
+# The older 700 stays satisfied by construction, and the first 700 items keep their
+# indices (frozen_prefix_sha256 below).
+CONTRACT_MIN_POOL = 700
+A3_MIN_POOL = 1500
 
 
 @pytest.fixture(scope="module")
@@ -33,6 +40,25 @@ def test_manifest_covers_the_three_contract_substrates(manifest):
 def test_every_pool_meets_the_contract_minimum(manifest):
     for name, pool in manifest["pools"].items():
         assert pool["n_items"] >= CONTRACT_MIN_POOL, name
+
+
+def test_every_pool_meets_the_a3_minimum(manifest):
+    """DECISION-LOG 2026-09-07 ruling (b): 1,500 entered per high-follow cell."""
+    for name, pool in manifest["pools"].items():
+        assert pool["n_items"] >= A3_MIN_POOL, name
+
+
+def test_every_pool_pins_the_frozen_first_700_prefix(manifest):
+    """The enlargement must be a pure append: item k stays item k for k < 700.
+
+    A banked Phase-1 record is merged back by (question, choices), but every position
+    seeded quantity in the runner (wrong_label(rotate=i), placebo rng_seed=i, the anchor
+    donor seed) is keyed on the INDEX, so a pool that reshuffled its first 700 would
+    silently re-seed them.
+    """
+    for name, pool in manifest["pools"].items():
+        assert pool["frozen_prefix_n"] == 700, name
+        assert len(pool["frozen_prefix_sha256"]) == 64, name
 
 
 def test_every_pool_is_resume_safe(manifest):
@@ -73,3 +99,9 @@ def test_manifest_matches_the_local_pool_when_it_is_present(manifest, name):
     ]
     assert per_item[0] == pool["first_item_sha256"]
     assert per_item[-1] == pool["last_item_sha256"]
+    n = pool["frozen_prefix_n"]
+    prefix = hashlib.sha256("".join(per_item[:n]).encode()).hexdigest()
+    assert prefix == pool["frozen_prefix_sha256"], (
+        f"{name}: the first {n} items moved; every index-seeded draw in the runner "
+        f"would be re-seeded against different items"
+    )

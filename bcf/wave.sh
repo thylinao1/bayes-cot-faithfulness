@@ -1,36 +1,49 @@
 #!/bin/bash
 # The ONLY thing that should call sbatch on serve_and_run.sbatch.
 #
-# Two independent caps have to hold before a wave goes out, and they fail differently:
+# Four independent caps have to hold before a wave goes out, and they fail differently:
 #
 #   1. MaxSubmitJobs=32 jobs in system, account-wide (NUS-COMPUTE.md 1.4). The 33rd
 #      sbatch is REJECTED at submit time, not queued, and a fire-and-forget loop drops
 #      the rest silently. Array elements count individually.
-#   2. The CONTRACT.md a100-80 split (sweep 4, judges 2, probe/ladder 1, reserve 1)
-#      inside a per-user concurrency cap of 8 that counts EVERY campaign on the
-#      account. Going over does not reject; it makes this campaign's jobs queue behind
-#      another campaign's, which is worse because it is invisible.
+#   2. The per-user MaxTRESPU cap for the GPU TYPE, which counts EVERY campaign on the
+#      account (a100-40 8, a100-80 4, h100-96 2, h100-47 4, h200-141 1). Going over does
+#      not reject; it makes this campaign's jobs queue behind another campaign's, which
+#      is worse because it is invisible. Re-verified live 2026-09-07.
+#   3. The per-user TOTAL gpu cap of 12 across all types. A wave can fit its own pool and
+#      still be held by cards this account is spending somewhere else.
+#   4. The CONTRACT.md pool split by job type, so the sweep cannot eat the judges' cards.
 #
-# This script refuses on either, prints both denominators, and never cancels anything.
+# Two things it refuses BEFORE any of that, because no amount of waiting fixes them:
+# a tensor-parallel size larger than the cards on one node of that type, and a wall
+# clock longer than the partition's own ceiling.
 #
-#   bcf/wave.sh --type sweep --dry-run  cells.tsv
-#   bcf/wave.sh --type sweep            cells.tsv
+# This script refuses on any of them, prints every denominator, and never cancels
+# anything.
+#
+#   bcf/wave.sh --type sweep --gpu-type a100-40 --check-only  bcf/waves/a100-40-01.tsv
+#   bcf/wave.sh --type sweep --gpu-type a100-40               bcf/waves/a100-40-01.tsv
 #
 # cells.tsv: tab-separated, one cell per line, '#' comments allowed
 #   MODEL <tab> SUBSTRATE <tab> CUE [<tab> KEY=VALUE ...]
-#   Qwen/Qwen3-8B	arc_challenge	stated-hint	BCF_TP=1	BCF_N_ITEMS=500
+#   Qwen/Qwen3-8B	arc_challenge	stated-hint	BCF_TP=1	BCF_N_ITEMS=1500
+#
+# KEY=VALUE fields are exported to the job, EXCEPT MEM= and CPUS=, which become sbatch
+# --mem and --cpus-per-task flags. That distinction is load bearing: Slurm's default on
+# this account is 3G of host RAM and 1 CPU, a vLLM engine core dies under it with only
+# "Engine core initialization failed" and no root cause in the server log, and the
+# evidence is only legible in sacct (job 825536, State=OUT_OF_MEMORY, ReqMem=3G,
+# MaxRSS=6.3G). Exporting a MEM variable would not have reserved a byte.
 
-set -euo pipefail
+set -uo pipefail
 
 MAX_SUBMIT_JOBS=32          # Slurm association limit, verified live 2026-07-31
 
-# QOS MaxTRESPU per GPU type. Re-verified live 2026-09-06 with
+# QOS MaxTRESPU per GPU type. Re-verified live 2026-09-06 and again 2026-09-07 with
 #   sacctmgr show qos normal format=Name,MaxTRESPU
-# and it is TIGHTER than NUS-COMPUTE.md 1.4 and CONTRACT.md record. The live line is:
+# and it is TIGHTER than NUS-COMPUTE.md 1.4 and CONTRACT.md's original record:
 #   cpu=1024, a100-40=8, a100-80=4, h100-47=4, h100-96=2, h200-141=1, h200-71=1,
 #   nv=8, gpu=12 (total across all types)
-# CONTRACT.md's a100-80 split (sweep 4 + judges 2 + probe 1 + reserve 1 = 8) and its
-# "h200-141 (cap 2)" line both assume the old, looser numbers and do not fit.
 declare -A USER_CAP=( [a100-40]=8 [a100-80]=4 [h100-47]=4 [h100-96]=2 [h200-141]=1 [nv]=8 )
 GPU_TOTAL_CAP=12
 
@@ -42,15 +55,35 @@ GPU_TOTAL_CAP=12
 #   h100-96  11 nodes x 2     h100-47  10 x 4      h200-141  1 node x 4
 declare -A CARDS_PER_NODE=( [a100-40]=2 [a100-80]=1 [h100-47]=4 [h100-96]=2 [h200-141]=4 )
 
+# Partition per GPU type and that partition's wall ceiling, from `sinfo -o "%P|%n|%G"`
+# and `sinfo -o "%P %l"` on 2026-09-07. xgpk0 is the ONLY h200-141 node and it sits in
+# partition `gpu` alone, whose wall is 3 hours; an h200 job submitted to gpu-long is
+# rejected with "Requested node configuration is not available", which reads like a busy
+# cluster and is not. A cell longer than the ceiling has to run with --resume across
+# several jobs, and this script says so instead of letting sbatch refuse it.
+declare -A PARTITION=( [a100-40]=gpu-long [a100-80]=gpu-long [h100-47]=gpu-long \
+                       [h100-96]=gpu-long [h200-141]=gpu )
+declare -A PARTITION_WALL_HOURS=( [gpu-long]=72 [gpu]=3 [test]=72 )
+# The --time this script asks for when the caller gives none. It must sit UNDER the
+# partition ceiling: serve_and_run.sbatch's own header says 24:00:00, and submitting that
+# to partition `gpu` (the only partition the single h200-141 node is in) is rejected with
+# "Requested node configuration is not available", which reads like a busy cluster and is
+# not. Verified with sbatch --test-only on 2026-09-07: the identical h200 request is
+# ACCEPTED at --time=02:50:00 and REJECTED at the header's 24 h.
+declare -A PARTITION_DEFAULT_WALL=( [gpu-long]=48:00:00 [gpu]=02:50:00 [test]=48:00:00 )
+
 GPU_TYPE="a100-80"
 
-# CONTRACT.md a100-80 card budget by job type. Cards, not jobs: a TP=2 job takes two.
-declare -A TYPE_BUDGET=( [sweep]=4 [judge]=2 [probe]=1 [ladder]=1 [reserve]=1 )
-# Phase 1 only. 'skel' is CARVED OUT of the sweep's 4 cards (1 for the skeleton cell,
-# 2 for the tensor-parallel-2 serving test), never additional to them: the skeleton and
-# the sweep do not run at the same time. The account-wide check below is what actually
-# stops the two budgets from being spent together.
-TYPE_BUDGET[skel]=3
+# CONTRACT.md card budget by job type, CORRECTED 2026-09-07 for the live caps. Cards,
+# not jobs: a TP=2 job takes two. The a100-80 sweep figure is 2, not 4, because the two
+# a100-80 judge servers hold the other 2 of that pool's 4 whenever they are up.
+declare -A TYPE_BUDGET=( [sweep_a100-40]=8 [sweep_a100-80]=2 [sweep_h100-96]=2 \
+                         [sweep_h200-141]=1 \
+                         [judge_a100-80]=2 [judge_h200-141]=1 \
+                         [probe_a100-40]=1 [probe_a100-80]=1 \
+                         [ladder_a100-40]=1 [ladder_a100-80]=1 \
+                         [skel_a100-40]=3 [skel_a100-80]=3 [skel_h100-96]=2 )
+KNOWN_TYPES="sweep judge probe ladder skel"
 
 JOB_TYPE="sweep"
 JOB_NAME=""
@@ -59,26 +92,50 @@ DRY_RUN=0
 SBATCH_SCRIPT="${BCF_SBATCH:-$HOME/bcf/repo/bcf/serve_and_run.sbatch}"
 CELLS=""
 
+# Accept both `--opt value` and `--opt=value`, and REFUSE an unrecognised flag instead
+# of letting it fall through to the positional. The old catch-all swallowed
+# `--time=24:00:00` as the cells file and then overwrote it with the real one, so an
+# explicit wall clock was silently dropped and the header's 24 h was used.
 while [ $# -gt 0 ]; do
-  case "$1" in
-    --type) JOB_TYPE="$2"; shift 2 ;;
-    --job-name) JOB_NAME="$2"; shift 2 ;;
-    --time) WALL_TIME="$2"; shift 2 ;;
-    --gpu-type) GPU_TYPE="$2"; shift 2 ;;
-    --dry-run) DRY_RUN=1; shift ;;
-    --sbatch) SBATCH_SCRIPT="$2"; shift 2 ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
-    *) CELLS="$1"; shift ;;
+  arg="$1"
+  val=""
+  case "$arg" in
+    --*=*) val="${arg#*=}"; arg="${arg%%=*}"; shift ;;
+    --type|--job-name|--time|--gpu-type|--sbatch) val="${2:-}"; shift 2 ;;
+    *) shift ;;
+  esac
+  case "$arg" in
+    --type) JOB_TYPE="$val" ;;
+    --job-name) JOB_NAME="$val" ;;
+    --time) WALL_TIME="$val" ;;
+    --gpu-type) GPU_TYPE="$val" ;;
+    --sbatch) SBATCH_SCRIPT="$val" ;;
+    --dry-run|--check-only) DRY_RUN=1 ;;
+    -h|--help) sed -n '2,40p' "$0"; exit 0 ;;
+    -*) echo "unknown option '${arg}'" >&2; exit 2 ;;
+    *) CELLS="$arg" ;;
   esac
 done
 
-[ -n "$CELLS" ] || { echo "usage: wave.sh [--type sweep] [--dry-run] cells.tsv" >&2; exit 2; }
+[ -n "$CELLS" ] || { echo "usage: wave.sh [--type sweep] [--gpu-type a100-40] [--check-only] cells.tsv" >&2; exit 2; }
 [ -f "$CELLS" ] || { echo "no such cells file: $CELLS" >&2; exit 2; }
-[ -n "${TYPE_BUDGET[$JOB_TYPE]:-}" ] || {
-  echo "unknown --type '$JOB_TYPE'; known: ${!TYPE_BUDGET[*]}" >&2; exit 2; }
+case " $KNOWN_TYPES " in
+  *" $JOB_TYPE "*) : ;;
+  *) echo "unknown --type '$JOB_TYPE'; known: $KNOWN_TYPES" >&2; exit 2 ;;
+esac
 [ -n "${USER_CAP[$GPU_TYPE]:-}" ] || {
   echo "unknown --gpu-type '$GPU_TYPE'; known: ${!USER_CAP[*]}" >&2; exit 2; }
+BUDGET_KEY="${JOB_TYPE}_${GPU_TYPE}"
+[ -n "${TYPE_BUDGET[$BUDGET_KEY]:-}" ] || {
+  echo "REFUSING: no CONTRACT budget for --type ${JOB_TYPE} on ${GPU_TYPE}." >&2
+  echo "  Known pairs: ${!TYPE_BUDGET[*]}" >&2
+  echo "  A pool with no stated split for this job type is a planning gap, not a default." >&2
+  exit 2; }
 GPU_USER_CAP=${USER_CAP[$GPU_TYPE]}
+BUDGET=${TYPE_BUDGET[$BUDGET_KEY]}
+PART=${PARTITION[$GPU_TYPE]}
+PART_WALL=${PARTITION_WALL_HOURS[$PART]}
+
 # The per-type card count below is a grep over job names, so an override that does not
 # carry the type prefix would make its own cards invisible to the next wave's check.
 if [ -n "$JOB_NAME" ] && [ "${JOB_NAME#bcf-${JOB_TYPE}-}" = "$JOB_NAME" ]; then
@@ -87,24 +144,39 @@ if [ -n "$JOB_NAME" ] && [ "${JOB_NAME#bcf-${JOB_TYPE}-}" = "$JOB_NAME" ]; then
 fi
 
 # --- read the cells ------------------------------------------------------------
-mapfile -t ROWS < <(grep -vE '^\s*(#|$)' "$CELLS")
+mapfile -t ROWS < <(grep -vE '^[[:space:]]*(#|$)' "$CELLS")
 N_CELLS=${#ROWS[@]}
 [ "$N_CELLS" -gt 0 ] || { echo "cells file has no rows" >&2; exit 2; }
 
+# Split a row on TABS only. `for f in $(... | tr '\t' '\n')` also splits on spaces, which
+# silently shatters a value like `BCF_EXTRA_VLLM=--max-num-seqs 64` into two fields and
+# exports a variable named `64`.
+row_fields() { printf '%s' "$1" | tr '\t' '\n'; }
+
 CARDS_WANTED=0
 MAX_TP=1
+MAX_HOURS=0
 for row in "${ROWS[@]}"; do
   tp=1
-  for field in $(printf '%s\n' "$row" | tr '\t' '\n'); do
-    case "$field" in BCF_TP=*) tp="${field#BCF_TP=}" ;; esac
-  done
+  hours=0
+  while IFS= read -r field; do
+    case "$field" in
+      BCF_TP=*) tp="${field#BCF_TP=}" ;;
+      BCF_EXPECTED_HOURS=*) hours="${field#BCF_EXPECTED_HOURS=}" ;;
+    esac
+  done < <(row_fields "$row")
   CARDS_WANTED=$(( CARDS_WANTED + tp ))
   [ "$tp" -gt "$MAX_TP" ] && MAX_TP=$tp
+  # Integer compare on the whole-hours part; this is a ceiling check, not accounting.
+  h_int="${hours%%.*}"
+  [ -z "$h_int" ] && h_int=0
+  [ "$h_int" -gt "$MAX_HOURS" ] && MAX_HOURS=$h_int
 done
 
-# Refuse a physically impossible request HERE, with the reason, rather than letting
-# sbatch answer "Requested node configuration is not available" and leave you guessing
-# whether the cluster is merely busy.
+echo "[wave] file ${CELLS}: ${N_CELLS} cell(s), ${CARDS_WANTED} card(s), max tp ${MAX_TP}"
+echo "[wave] type ${JOB_TYPE} on ${GPU_TYPE}, partition ${PART} (wall ceiling ${PART_WALL} h)"
+
+# --- refusal 1: physically impossible tensor-parallel request -------------------
 PER_NODE=${CARDS_PER_NODE[$GPU_TYPE]:-1}
 if [ "$MAX_TP" -gt "$PER_NODE" ]; then
   echo "[wave] REFUSING: a cell asks for tensor-parallel ${MAX_TP} on ${GPU_TYPE}, but"
@@ -116,24 +188,51 @@ if [ "$MAX_TP" -gt "$PER_NODE" ]; then
   exit 1
 fi
 
-# --- check 1: jobs in system ---------------------------------------------------
+# --- wall clock: set it, cap it at the partition ceiling, and say what that costs
+# A cell longer than the partition ceiling is NOT refused: serve_and_run.sbatch always
+# passes --resume, so such a cell runs across several jobs and picks up where it stopped.
+# What is refused is an explicit --time above the ceiling, because that is silently
+# rejected by sbatch with a message about node configuration.
+if [ -n "$WALL_TIME" ]; then
+  req_h="${WALL_TIME%%:*}"
+  case "$req_h" in *-*) req_h=$(( ${req_h%%-*} * 24 + ${req_h#*-} )) ;; esac
+  if [ "$req_h" -gt "$PART_WALL" ]; then
+    echo "[wave] REFUSING: --time ${WALL_TIME} is above partition ${PART}'s ceiling of ${PART_WALL} h."
+    echo "[wave]   sbatch answers that with 'Requested node configuration is not available',"
+    echo "[wave]   which looks like a busy cluster and is not."
+    exit 1
+  fi
+else
+  WALL_TIME="${PARTITION_DEFAULT_WALL[$PART]}"
+fi
+if [ "$MAX_HOURS" -ge "$PART_WALL" ]; then
+  legs=$(( (MAX_HOURS + PART_WALL - 1) / PART_WALL ))
+  echo "[wave] NOTE: the longest cell here is projected at ${MAX_HOURS} h and ${GPU_TYPE} lives"
+  echo "[wave]   in partition ${PART}, ceiling ${PART_WALL} h, so it needs about ${legs} --resume"
+  echo "[wave]   legs. serve_and_run.sbatch always passes --resume, so this is a resubmit"
+  echo "[wave]   count, not a blocker. Wall requested: ${WALL_TIME}."
+fi
+
+# --- check 3: jobs in system ---------------------------------------------------
 IN_SYSTEM=$(squeue --me -h -t RUNNING,PENDING | wc -l | tr -d ' ')
 AFTER=$(( IN_SYSTEM + N_CELLS ))
 echo "[wave] jobs in system: ${IN_SYSTEM}/${MAX_SUBMIT_JOBS}; this wave adds ${N_CELLS} -> ${AFTER}/${MAX_SUBMIT_JOBS}"
 
-# --- check 2: a100-80 cards, account-wide and by type --------------------------
+# --- check 4: cards, account-wide, by total, and by type -----------------------
 # The per-user cap is a CONCURRENCY limit, so it is measured on RUNNING allocations.
 # Exceeding it does not reject anything: the extra jobs sit PENDING and Slurm starts
 # them as cards free (NUS-COMPUTE.md 1.4). Pending array elements are reported too, but
 # not counted: a `--array=0-9%2` shows its remaining elements as one PENDING row that
 # holds no card and cannot start until a running sibling exits, so counting it as a full
 # card refuses waves that would have fitted.
-CARDS_ALL=$({ squeue --me -h -t RUNNING -O "tres-alloc:200" \
-  | tr ',' '\n' | grep -o "gres/gpu:${GPU_TYPE}=[0-9]*" || true; } \
-  | awk -F= '{s+=$2} END {print s+0}')
-CARDS_PENDING=$({ squeue --me -h -t PENDING -O "tres-alloc:200" \
-  | tr ',' '\n' | grep -o "gres/gpu:${GPU_TYPE}=[0-9]*" || true; } \
-  | awk -F= '{s+=$2} END {print s+0}')
+count_cards() {  # $1 = squeue state list, $2 = gres pattern
+  { squeue --me -h -t "$1" -O "tres-alloc:200" \
+    | tr ',' '\n' | grep -o "$2=[0-9]*" || true; } \
+    | awk -F= '{s+=$2} END {print s+0}'
+}
+CARDS_ALL=$(count_cards RUNNING "gres/gpu:${GPU_TYPE}")
+CARDS_PENDING=$(count_cards PENDING "gres/gpu:${GPU_TYPE}")
+GPU_ALL=$(count_cards RUNNING "gres/gpu")
 # This campaign's own cards of this type, identified by job name (bcf-<type>-...).
 # Job names carry the prefix precisely so ownership is readable from squeue. This count
 # DOES include PENDING: the CONTRACT split exists to stop this campaign over-committing
@@ -142,9 +241,9 @@ CARDS_THIS_TYPE=$({ squeue --me -h -t RUNNING,PENDING -O "Name:80,tres-alloc:200
   | grep -E "^bcf-${JOB_TYPE}-" \
   | tr ',' '\n' | grep -o "gres/gpu:${GPU_TYPE}=[0-9]*" || true; } \
   | awk -F= '{s+=$2} END {print s+0}')
-BUDGET=${TYPE_BUDGET[$JOB_TYPE]}
 
 echo "[wave] ${GPU_TYPE} cards RUNNING, ALL campaigns: ${CARDS_ALL}/${GPU_USER_CAP} (${CARDS_PENDING} more pending, not counted)"
+echo "[wave] gpu cards RUNNING, ALL types, ALL campaigns: ${GPU_ALL}/${GPU_TOTAL_CAP}"
 echo "[wave] ${GPU_TYPE} cards in use, bcf-${JOB_TYPE}: ${CARDS_THIS_TYPE}/${BUDGET} (CONTRACT.md split)"
 echo "[wave] this wave wants ${CARDS_WANTED} card(s) across ${N_CELLS} job(s)"
 
@@ -153,8 +252,10 @@ REFUSE=""
   jobs in system would reach ${AFTER} > ${MAX_SUBMIT_JOBS}; the excess sbatch calls are REJECTED, not queued"
 [ $(( CARDS_ALL + CARDS_WANTED )) -gt "$GPU_USER_CAP" ] && REFUSE="${REFUSE}
   ${GPU_TYPE} cards would reach $(( CARDS_ALL + CARDS_WANTED )) > ${GPU_USER_CAP} (per-user cap, all campaigns)"
+[ $(( GPU_ALL + CARDS_WANTED )) -gt "$GPU_TOTAL_CAP" ] && REFUSE="${REFUSE}
+  total gpu cards would reach $(( GPU_ALL + CARDS_WANTED )) > ${GPU_TOTAL_CAP} (per-user cap across ALL types, all campaigns)"
 [ $(( CARDS_THIS_TYPE + CARDS_WANTED )) -gt "$BUDGET" ] && REFUSE="${REFUSE}
-  bcf-${JOB_TYPE} cards would reach $(( CARDS_THIS_TYPE + CARDS_WANTED )) > ${BUDGET} (CONTRACT.md ${JOB_TYPE} budget)"
+  bcf-${JOB_TYPE} cards on ${GPU_TYPE} would reach $(( CARDS_THIS_TYPE + CARDS_WANTED )) > ${BUDGET} (CONTRACT.md ${JOB_TYPE} budget)"
 
 if [ -n "$REFUSE" ]; then
   echo "[wave] REFUSING to submit:${REFUSE}"
@@ -163,27 +264,80 @@ if [ -n "$REFUSE" ]; then
 fi
 
 # --- submit --------------------------------------------------------------------
-echo "[wave] both checks pass; submitting ${N_CELLS} job(s)"
+echo "[wave] all checks pass; $([ "$DRY_RUN" -eq 1 ] && echo 'would submit' || echo 'submitting') ${N_CELLS} job(s)"
+REJECTED=0
+NOT_PLACEABLE=0
 for row in "${ROWS[@]}"; do
   IFS=$'\t' read -r MODEL SUBSTRATE CUE REST <<< "$row"
-  slug="$(echo "$MODEL" | tr '/' '-' | tr '[:upper:]' '[:lower:]' | sed 's/^.*-//')"
-  name="${JOB_NAME:-bcf-${JOB_TYPE}-${slug}-${SUBSTRATE}}"
+  # The FULL basename, lowercased, non-alphanumerics folded to '-'. The old slug kept
+  # only the text after the last hyphen, so Qwen3-8B, DeepSeek-R1-0528-Qwen3-8B and
+  # DeepSeek-R1-Distill-Llama-8B all became "8b" and three jobs in one wave carried the
+  # same name. Job names are how ownership is read out of squeue, so a collision makes
+  # the next wave's per-type card count unreadable.
+  slug="$(echo "${MODEL##*/}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-' \
+          | sed 's/-\{2,\}/-/g; s/^-//; s/-$//')"
+  name="${JOB_NAME:-bcf-${JOB_TYPE}-${slug}-${SUBSTRATE}-${CUE}}"
   tp=1
+  mem=""
+  cpus=""
   exports="ALL,BCF_MODEL=${MODEL},BCF_SUBSTRATE=${SUBSTRATE},BCF_CUE=${CUE}"
-  for field in $(printf '%s\n' "$REST" | tr '\t' '\n'); do
+  while IFS= read -r field; do
     [ -n "$field" ] || continue
+    case "$field" in
+      MEM=*)  mem="${field#MEM=}";  continue ;;
+      CPUS=*) cpus="${field#CPUS=}"; continue ;;
+      BCF_TP=*) tp="${field#BCF_TP=}" ;;
+    esac
     exports="${exports},${field}"
-    case "$field" in BCF_TP=*) tp="${field#BCF_TP=}" ;; esac
-  done
-  gpus_flag="--gpus=${GPU_TYPE}"
-  [ "$tp" -gt 1 ] && gpus_flag="--nodes=1 --gpus-per-node=${GPU_TYPE}:${tp}"
-  time_flag=()
-  [ -n "$WALL_TIME" ] && time_flag=(--time="$WALL_TIME")
-  cmd=(sbatch --job-name="$name" $gpus_flag "${time_flag[@]}" --export="$exports" "$SBATCH_SCRIPT")
+  done < <(row_fields "$REST")
+  gpus_flag=(--gpus="${GPU_TYPE}")
+  [ "$tp" -gt 1 ] && gpus_flag=(--nodes=1 --gpus-per-node="${GPU_TYPE}:${tp}")
+  extra=(--time="$WALL_TIME")
+  [ -n "$mem" ] && extra+=(--mem="$mem")
+  [ -n "$cpus" ] && extra+=(--cpus-per-task="$cpus")
+  cmd=(sbatch --job-name="$name" --partition="$PART" --exclude=xgpj0 \
+       "${gpus_flag[@]}" "${extra[@]}" --export="$exports" "$SBATCH_SCRIPT")
   if [ "$DRY_RUN" -eq 1 ]; then
-    echo "[wave] DRY-RUN ${cmd[*]}"
+    printf '[wave] CHECK-ONLY would run:'
+    printf ' %q' "${cmd[@]}"
+    printf '\n'
+    # Hand the exact command line to Slurm's own validator. --test-only parses every
+    # flag, resolves the partition, the GRES and the excluded node, and estimates a start
+    # time WITHOUT allocating anything. It is the difference between "this looks right"
+    # and "sbatch accepts this": a --export value carrying a space, an --exclude naming a
+    # node outside the partition, or a GRES the partition cannot satisfy all fail here
+    # rather than at 3 a.m. on the first real wave.
+    if [ "${BCF_SKIP_TEST_ONLY:-0}" != "1" ] && command -v sbatch >/dev/null 2>&1; then
+      # ADVISORY, deliberately not fatal. Slurm answers both "this command line is
+      # invalid" and "no node can hold this right now" with the same string,
+      # "Requested node configuration is not available". Proven on 2026-09-07: the
+      # tensor-parallel-2 h100-96 line failed that way while every h100-96 node had both
+      # cards allocated, and the same line is what job 825253 is sitting PENDING on. So
+      # a failure here is reported and counted, and the wave's exit code stays with the
+      # caps and the physical refusals, which are unambiguous.
+      if out=$(sbatch --test-only "${cmd[@]:1}" 2>&1); then
+        echo "[wave]   sbatch --test-only ACCEPTS it: ${out}"
+      else
+        echo "[wave]   sbatch --test-only CANNOT PLACE IT NOW: ${out}"
+        echo "[wave]   (that message covers both an invalid line and a full pool; check"
+        echo "[wave]    the pool with sinfo before reading it as a configuration error)"
+        NOT_PLACEABLE=$(( NOT_PLACEABLE + 1 ))
+      fi
+    fi
   else
-    "${cmd[@]}"
+    # Check sbatch's own status per row: printing "N submitted" when sbatch rejected a
+    # job is how a wave silently loses cells.
+    if ! "${cmd[@]}"; then
+      echo "[wave] sbatch REJECTED the row for ${MODEL} ${SUBSTRATE} ${CUE}" >&2
+      REJECTED=$(( REJECTED + 1 ))
+    fi
   fi
 done
-echo "[wave] done ($([ "$DRY_RUN" -eq 1 ] && echo 'dry run, nothing submitted' || echo "${N_CELLS} submitted"))"
+if [ "$REJECTED" -gt 0 ]; then
+  echo "[wave] ${REJECTED} of ${N_CELLS} row(s) were REJECTED by sbatch" >&2
+  exit 1
+fi
+if [ "$NOT_PLACEABLE" -gt 0 ]; then
+  echo "[wave] ${NOT_PLACEABLE} of ${N_CELLS} row(s) could not be placed right now (advisory)"
+fi
+echo "[wave] done ($([ "$DRY_RUN" -eq 1 ] && echo 'check-only, nothing submitted' || echo "${N_CELLS} submitted"))"

@@ -1,0 +1,6 @@
+# wave h100-96-tp2-14  pool h100-96  2 card(s) of the 2 per-user cap (2 planned as sweep slots)
+# submit with:  bcf/wave.sh --type sweep --gpu-type h100-96 bcf/waves/h100-96-tp2-14.tsv
+# longest cell in this wave: 7.585 h; card-hours: 15.17
+# columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
+#   meta-llama/Llama-3.3-70B-Instruct @ 6f6073b423013f6a7d4d9f39144961bfbfbc386b | arc_challenge / professor | n 1500 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool h100-96 tp 2 quant none flags none | 7.585 h at concurrency 1 (7.585 h sequential)
+meta-llama/Llama-3.3-70B-Instruct	arc_challenge	professor	BCF_REVISION=6f6073b423013f6a7d4d9f39144961bfbfbc386b	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=2	BCF_CONCURRENCY=1	MEM=192G	CPUS=16	BCF_EXPECTED_HOURS=7.585

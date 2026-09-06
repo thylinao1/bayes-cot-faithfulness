@@ -1,0 +1,11 @@
+[wave] file bcf/waves/a100-80-09.tsv: 2 cell(s), 2 card(s), max tp 1
+[wave] type sweep on a100-80, partition gpu-long (wall ceiling 72 h)
+[wave] jobs in system: 6/32; this wave adds 2 -> 8/32
+[wave] a100-80 cards RUNNING, ALL campaigns: 3/4 (2 more pending, not counted)
+[wave] gpu cards RUNNING, ALL types, ALL campaigns: 3/12
+[wave] a100-80 cards in use, bcf-sweep: 0/2 (CONTRACT.md split)
+[wave] this wave wants 2 card(s) across 2 job(s)
+[wave] REFUSING to submit:
+  a100-80 cards would reach 5 > 4 (per-user cap, all campaigns)
+[wave] nothing was submitted and nothing was cancelled. Wait for jobs to drain, or split the wave.
+exit_code=1

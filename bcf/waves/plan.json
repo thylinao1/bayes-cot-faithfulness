@@ -1,0 +1,1615 @@
+{
+  "n_models": 18,
+  "n_substrates": 3,
+  "n_cue_families": 4,
+  "n_cells": 216,
+  "n_waves": 96,
+  "n_items_per_cell": {
+    "stated-hint": 1500,
+    "professor": 1500,
+    "metadata": 570,
+    "grader-code": 570
+  },
+  "arms": [
+    "replay",
+    "placebo",
+    "direct",
+    "twostep",
+    "filler",
+    "curves",
+    "transplant",
+    "anchor",
+    "specificity"
+  ],
+  "clean_correct_retention": {
+    "choice": "run_a",
+    "value": 0.9666666666666667
+  },
+  "measured_cost_model": {
+    "source": "bcf/measured/run-a-825511/throughput.json",
+    "job": "825511",
+    "total_calls": 1520,
+    "total_seconds": 660.0,
+    "n_full_generations": 156,
+    "n_forced_continuations": 1364,
+    "seconds_per_full_generation": 2.9610078910304645,
+    "seconds_per_forced_continuation": 0.145221971407073,
+    "specificity_calls_fixed": 44,
+    "specificity_full_fixed": 39,
+    "per_entered_full": 1.0,
+    "per_clean_correct_full": 3.0,
+    "per_clean_correct_forced": 46.86206896551724
+  },
+  "concurrency": {
+    "speedup": 1.0,
+    "concurrency": 1,
+    "baseline_generations_per_second": 0.3539,
+    "generations_per_second": 0.3539,
+    "identical_completions": "30/30",
+    "max_abs_letter_logprob_diff": 0.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_exactly_zero_diff": "120/120",
+    "probed_levels": [
+      {
+        "concurrency": 1,
+        "generations_per_second": 0.3539,
+        "speedup_vs_concurrency_1": 1.0,
+        "identical_completions": "30/30",
+        "max_abs_letter_logprob_diff": 0.0,
+        "n_letter_logprobs_exactly_zero_diff": "120/120"
+      },
+      {
+        "concurrency": 8,
+        "generations_per_second": 1.8868,
+        "speedup_vs_concurrency_1": 5.331,
+        "identical_completions": "11/30",
+        "max_abs_letter_logprob_diff": 0.625,
+        "n_letter_logprobs_exactly_zero_diff": "52/120"
+      },
+      {
+        "concurrency": 32,
+        "generations_per_second": 5.965,
+        "speedup_vs_concurrency_1": 16.855,
+        "identical_completions": "13/30",
+        "max_abs_letter_logprob_diff": 0.875,
+        "n_letter_logprobs_exactly_zero_diff": "28/120"
+      },
+      {
+        "concurrency": 64,
+        "generations_per_second": 5.9647,
+        "speedup_vs_concurrency_1": 16.854,
+        "identical_completions": "13/30",
+        "max_abs_letter_logprob_diff": 0.875,
+        "n_letter_logprobs_exactly_zero_diff": "28/120"
+      }
+    ],
+    "no_ruling": "The probe reports these numbers and makes no ruling on them. Levels above 1 change the completions and the letter logprobs on this card; whether a pre-registered cell may be run that way is the operator's call, not this script's.",
+    "source": "bcf/measured/trackg-probe-825548/probe_results.json"
+  },
+  "caps_counting_all_campaigns": {
+    "a100-40": 8,
+    "a100-80": 4,
+    "h100-96": 2,
+    "h200-141": 1
+  },
+  "gpu_total_cap": 12,
+  "sweep_slots_planned": {
+    "a100-40": 8,
+    "a100-80": 2,
+    "h100-96": 2,
+    "h200-141": 1
+  },
+  "card_hours_by_pool": {
+    "a100-40": {
+      "cells": 96,
+      "card_hours": 503.4,
+      "sequential_card_hours": 503.4
+    },
+    "a100-80": {
+      "cells": 72,
+      "card_hours": 377.5,
+      "sequential_card_hours": 377.5
+    },
+    "h100-96": {
+      "cells": 36,
+      "card_hours": 314.6,
+      "sequential_card_hours": 314.6
+    },
+    "h200-141": {
+      "cells": 12,
+      "card_hours": 62.9,
+      "sequential_card_hours": 62.9
+    }
+  },
+  "cost_basis": "Every per-cell hour is the 8B cost measured on ONE MIG 3g.40gb slice by job 825511 (Qwen/Qwen3-8B, arc_challenge, stated-hint, exit 0), scaled by item count and divided by the probed concurrency speedup. The 24B-to-35B, 70B and 120B classes have NO throughput measurement of their own, so their rows are a FLOOR, not a forecast, and are marked measured_for_this_class false. The whole-a100-80 rerun is job 825510, still PENDING with reason Resources, so the a100-80-versus-MIG ratio is unmeasured too.",
+  "total_card_hours": 1258.4,
+  "total_sequential_card_hours": 1258.4,
+  "dependency_order": [
+    {
+      "pool_key": "a100-40",
+      "why": "First. The pool is free tonight (0 of 8 in use at 03:00) and it carries the eight small subjects, so it needs nothing from any other lane."
+    },
+    {
+      "pool_key": "a100-80",
+      "why": "Second, and only 2 cards at a time: the other 2 of the 4 belong to the judge servers W2 is building on branch jury/build. A wave here waits on the alta campaign draining, which held all 4 cards on 2026-09-07."
+    },
+    {
+      "pool_key": "h100-96-single",
+      "why": "Third. gpt-oss-120b on ONE h100-96 card, mxfp4. Runs only when no 70B tensor-parallel job holds the pool."
+    },
+    {
+      "pool_key": "h100-96-tp2",
+      "why": "Fourth, and BLOCKED until the TP=2 serving test (job 825253) reports. That job is still PENDING with reason ReqNodeNotAvail and 0 of 22 h100-96 cards free; the two 70B rows have no demonstrated serving line until it runs, and element 16's roster step is the fallback."
+    },
+    {
+      "pool_key": "h200-141",
+      "why": "Last, cap 1 card, serialized against the FP8 Llama-3.3-70B judge. GLM-4.5-Air runs only in a window when that judge is down."
+    }
+  ],
+  "waves": [
+    {
+      "wave_id": "a100-40-01",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 7.585,
+      "card_hours": 60.68,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-02",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 7.585,
+      "card_hours": 60.68,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-03",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 2.902,
+      "card_hours": 23.216,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-04",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 2.902,
+      "card_hours": 23.216,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-05",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 7.585,
+      "card_hours": 60.68,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-06",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 7.585,
+      "card_hours": 60.68,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-07",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 2.902,
+      "card_hours": 23.216,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-08",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 2.902,
+      "card_hours": 23.216,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-09",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 7.585,
+      "card_hours": 60.68,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-10",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 7.585,
+      "card_hours": 60.68,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-11",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 2.902,
+      "card_hours": 23.216,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-40-12",
+      "gpu_type": "a100-40",
+      "pool_key": "a100-40",
+      "cards": 8,
+      "cap": 8,
+      "sweep_slots": 8,
+      "wall_hours": 2.902,
+      "card_hours": 23.216,
+      "n_cells": 8,
+      "models": [
+        "Qwen/Qwen3-8B",
+        "allenai/Olmo-3-7B-Think",
+        "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "google/gemma-2-9b-it",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "microsoft/Phi-4-reasoning",
+        "openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "wave_id": "a100-80-01",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-02",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-03",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-04",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-05",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-06",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-07",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-08",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-09",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-10",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-11",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-12",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "Qwen/Qwen3-32B",
+        "Qwen/Qwen3.6-35B-A3B"
+      ]
+    },
+    {
+      "wave_id": "a100-80-13",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-14",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-15",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-16",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-17",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-18",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-19",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-20",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-21",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-22",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-23",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-24",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "allenai/Olmo-3-32B-Think",
+        "google/gemma-3-27b-it"
+      ]
+    },
+    {
+      "wave_id": "a100-80-25",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-26",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-27",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-28",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-29",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-30",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-31",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-32",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-33",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-34",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-35",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "a100-80-36",
+      "gpu_type": "a100-80",
+      "pool_key": "a100-80",
+      "cards": 2,
+      "cap": 4,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 2,
+      "models": [
+        "mistralai/Magistral-Small-2509",
+        "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-01",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-02",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-03",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-04",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-05",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-06",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-07",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-08",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-09",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-10",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-11",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-single-12",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-single",
+      "cards": 1,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "openai/gpt-oss-120b"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-01",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-02",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-03",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-04",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-05",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-06",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-07",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-08",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-09",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-10",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-11",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-12",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-13",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-14",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-15",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-16",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-17",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-18",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-19",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-20",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-21",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-22",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 7.585,
+      "card_hours": 15.17,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-23",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h100-96-tp2-24",
+      "gpu_type": "h100-96",
+      "pool_key": "h100-96-tp2",
+      "cards": 2,
+      "cap": 2,
+      "sweep_slots": 2,
+      "wall_hours": 2.902,
+      "card_hours": 5.804,
+      "n_cells": 1,
+      "models": [
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ]
+    },
+    {
+      "wave_id": "h200-141-01",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-02",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-03",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-04",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-05",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-06",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-07",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-08",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-09",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-10",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 7.585,
+      "card_hours": 7.585,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-11",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    },
+    {
+      "wave_id": "h200-141-12",
+      "gpu_type": "h200-141",
+      "pool_key": "h200-141",
+      "cards": 1,
+      "cap": 1,
+      "sweep_slots": 1,
+      "wall_hours": 2.902,
+      "card_hours": 2.902,
+      "n_cells": 1,
+      "models": [
+        "zai-org/GLM-4.5-Air"
+      ]
+    }
+  ]
+}

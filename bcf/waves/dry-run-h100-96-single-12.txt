@@ -1,0 +1,12 @@
+[wave] file bcf/waves/h100-96-single-12.tsv: 1 cell(s), 1 card(s), max tp 1
+[wave] type sweep on h100-96, partition gpu-long (wall ceiling 72 h)
+[wave] jobs in system: 6/32; this wave adds 1 -> 7/32
+[wave] h100-96 cards RUNNING, ALL campaigns: 0/2 (2 more pending, not counted)
+[wave] gpu cards RUNNING, ALL types, ALL campaigns: 3/12
+[wave] h100-96 cards in use, bcf-sweep: 0/2 (CONTRACT.md split)
+[wave] this wave wants 1 card(s) across 1 job(s)
+[wave] all checks pass; would submit 1 job(s)
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-gpt-oss-120b-logiqa2-grader-code --partition=gpu-long --exclude=xgpj0 --gpus=h100-96 --time=48:00:00 --mem=192G --cpus-per-task=16 --export=ALL\,BCF_MODEL=openai/gpt-oss-120b\,BCF_SUBSTRATE=logiqa2\,BCF_CUE=grader-code\,BCF_REVISION=b5c939de8f754692c1647ca79fbf85e8c1e70f8a\,BCF_N_ITEMS=570\,BCF_CURVE_CAP=570\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=1\,BCF_EXPECTED_HOURS=2.902 /home/e/e1506804/bcf/repo/bcf/serve_and_run.sbatch
+[wave]   sbatch --test-only ACCEPTS it: sbatch: Job 825967 to start at 2026-09-08T17:23:27 a using 16 processors on nodes xgpi6 in partition gpu-long
+[wave] done (check-only, nothing submitted)
+exit_code=0

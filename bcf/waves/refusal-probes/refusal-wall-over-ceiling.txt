@@ -1,0 +1,6 @@
+[wave] file bcf/waves/h200-141-07.tsv: 1 cell(s), 1 card(s), max tp 1
+[wave] type sweep on h200-141, partition gpu (wall ceiling 3 h)
+[wave] REFUSING: --time 24:00:00 is above partition gpu's ceiling of 3 h.
+[wave]   sbatch answers that with 'Requested node configuration is not available',
+[wave]   which looks like a busy cluster and is not.
+exit_code=1

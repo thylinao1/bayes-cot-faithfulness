@@ -1,0 +1,116 @@
+{
+  "model": "Qwen/Qwen3-8B",
+  "n_items": 30,
+  "num_predict": 320,
+  "temperature": 0.0,
+  "seed": 7,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "data": "/home/e/e1506804/bcf/repo/experiments/data/arc_challenge.json",
+  "levels": [
+    1,
+    8,
+    32,
+    64
+  ],
+  "note": "Every generations-per-second figure recorded before this probe came from a client that issued one request at a time. The concurrency-1 row here is that same sequential rate, measured on this card, and it is the baseline the other rows are compared against. No ruling is made on the differences.",
+  "rows": [
+    {
+      "concurrency": 1,
+      "n_generations": 30,
+      "generation_seconds": 84.768,
+      "generations_per_second": 0.3539,
+      "n_logprob_items": 30,
+      "n_logprob_calls": 120,
+      "logprob_seconds": 8.58,
+      "logprob_calls_per_second": 13.9855,
+      "client_stats": {
+        "requests_ok": 150,
+        "retries": 0,
+        "requests_failed": 0
+      },
+      "vs_concurrency_1": {
+        "identical_completions": "30/30",
+        "identical_completion_fraction": 1.0,
+        "n_letter_logprobs_compared": 120,
+        "n_letter_logprobs_missing": 0,
+        "max_abs_letter_logprob_diff": 0.0,
+        "median_abs_letter_logprob_diff": 0.0,
+        "n_exactly_zero_diff": 120
+      }
+    },
+    {
+      "concurrency": 8,
+      "n_generations": 30,
+      "generation_seconds": 15.9,
+      "generations_per_second": 1.8868,
+      "n_logprob_items": 30,
+      "n_logprob_calls": 120,
+      "logprob_seconds": 3.974,
+      "logprob_calls_per_second": 30.1927,
+      "client_stats": {
+        "requests_ok": 150,
+        "retries": 0,
+        "requests_failed": 0
+      },
+      "vs_concurrency_1": {
+        "identical_completions": "11/30",
+        "identical_completion_fraction": 0.3667,
+        "n_letter_logprobs_compared": 120,
+        "n_letter_logprobs_missing": 0,
+        "max_abs_letter_logprob_diff": 0.625,
+        "median_abs_letter_logprob_diff": 0.125,
+        "n_exactly_zero_diff": 52
+      }
+    },
+    {
+      "concurrency": 32,
+      "n_generations": 30,
+      "generation_seconds": 5.029,
+      "generations_per_second": 5.965,
+      "n_logprob_items": 30,
+      "n_logprob_calls": 120,
+      "logprob_seconds": 2.749,
+      "logprob_calls_per_second": 43.6545,
+      "client_stats": {
+        "requests_ok": 150,
+        "retries": 0,
+        "requests_failed": 0
+      },
+      "vs_concurrency_1": {
+        "identical_completions": "13/30",
+        "identical_completion_fraction": 0.4333,
+        "n_letter_logprobs_compared": 120,
+        "n_letter_logprobs_missing": 0,
+        "max_abs_letter_logprob_diff": 0.875,
+        "median_abs_letter_logprob_diff": 0.125,
+        "n_exactly_zero_diff": 28
+      }
+    },
+    {
+      "concurrency": 64,
+      "n_generations": 30,
+      "generation_seconds": 5.03,
+      "generations_per_second": 5.9647,
+      "n_logprob_items": 30,
+      "n_logprob_calls": 120,
+      "logprob_seconds": 2.78,
+      "logprob_calls_per_second": 43.1726,
+      "client_stats": {
+        "requests_ok": 150,
+        "retries": 0,
+        "requests_failed": 0
+      },
+      "vs_concurrency_1": {
+        "identical_completions": "13/30",
+        "identical_completion_fraction": 0.4333,
+        "n_letter_logprobs_compared": 120,
+        "n_letter_logprobs_missing": 0,
+        "max_abs_letter_logprob_diff": 0.875,
+        "median_abs_letter_logprob_diff": 0.125,
+        "n_exactly_zero_diff": 28
+      }
+    }
+  ]
+}

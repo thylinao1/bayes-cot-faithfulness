@@ -1,0 +1,16 @@
+[wave] file bcf/waves/h200-141-06.tsv: 1 cell(s), 1 card(s), max tp 1
+[wave] type sweep on h200-141, partition gpu (wall ceiling 3 h)
+[wave] NOTE: the longest cell here is projected at 7 h and h200-141 lives
+[wave]   in partition gpu, ceiling 3 h, so it needs about 3 --resume
+[wave]   legs. serve_and_run.sbatch always passes --resume, so this is a resubmit
+[wave]   count, not a blocker. Wall requested: 02:50:00.
+[wave] jobs in system: 6/32; this wave adds 1 -> 7/32
+[wave] h200-141 cards RUNNING, ALL campaigns: 0/1 (0 more pending, not counted)
+[wave] gpu cards RUNNING, ALL types, ALL campaigns: 3/12
+[wave] h200-141 cards in use, bcf-sweep: 0/1 (CONTRACT.md split)
+[wave] this wave wants 1 card(s) across 1 job(s)
+[wave] all checks pass; would submit 1 job(s)
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-glm-4-5-air-aqua_rat-professor --partition=gpu --exclude=xgpj0 --gpus=h200-141 --time=02:50:00 --mem=192G --cpus-per-task=16 --export=ALL\,BCF_MODEL=zai-org/GLM-4.5-Air\,BCF_SUBSTRATE=aqua_rat\,BCF_CUE=professor\,BCF_REVISION=a24ceef6ce4f3536971efe9b778bdaa1bab18daa\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=1\,BCF_EXPECTED_HOURS=7.585 /home/e/e1506804/bcf/repo/bcf/serve_and_run.sbatch
+[wave]   sbatch --test-only ACCEPTS it: sbatch: Job 825997 to start at 2026-09-07T04:07:58 a using 16 processors on nodes xgpk0 in partition gpu
+[wave] done (check-only, nothing submitted)
+exit_code=0

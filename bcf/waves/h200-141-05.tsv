@@ -1,0 +1,6 @@
+# wave h200-141-05  pool h200-141  1 card(s) of the 1 per-user cap (1 planned as sweep slots)
+# submit with:  bcf/wave.sh --type sweep --gpu-type h200-141 bcf/waves/h200-141-05.tsv
+# longest cell in this wave: 7.585 h; card-hours: 7.585
+# columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
+#   zai-org/GLM-4.5-Air @ a24ceef6ce4f3536971efe9b778bdaa1bab18daa | aqua_rat / stated-hint | n 1500 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool h200-141 tp 1 quant fp8 flags none | 7.585 h at concurrency 1 (7.585 h sequential)
+zai-org/GLM-4.5-Air	aqua_rat	stated-hint	BCF_REVISION=a24ceef6ce4f3536971efe9b778bdaa1bab18daa	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=1	MEM=192G	CPUS=16	BCF_EXPECTED_HOURS=7.585	BCF_QUANT=fp8

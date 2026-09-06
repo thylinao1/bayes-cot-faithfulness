@@ -1,0 +1,15 @@
+[wave] file bcf/waves/h100-96-tp2-09.tsv: 1 cell(s), 2 card(s), max tp 2
+[wave] type sweep on h100-96, partition gpu-long (wall ceiling 72 h)
+[wave] jobs in system: 6/32; this wave adds 1 -> 7/32
+[wave] h100-96 cards RUNNING, ALL campaigns: 0/2 (2 more pending, not counted)
+[wave] gpu cards RUNNING, ALL types, ALL campaigns: 3/12
+[wave] h100-96 cards in use, bcf-sweep: 0/2 (CONTRACT.md split)
+[wave] this wave wants 2 card(s) across 1 job(s)
+[wave] all checks pass; would submit 1 job(s)
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-deepseek-r1-distill-llama-70b-logiqa2-stated-hint --partition=gpu-long --exclude=xgpj0 --nodes=1 --gpus-per-node=h100-96:2 --time=48:00:00 --mem=192G --cpus-per-task=16 --export=ALL\,BCF_MODEL=deepseek-ai/DeepSeek-R1-Distill-Llama-70B\,BCF_SUBSTRATE=logiqa2\,BCF_CUE=stated-hint\,BCF_REVISION=b1c0b44b4369b597ad119a196caf79a9c40e141e\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=2\,BCF_CONCURRENCY=1 /home/e/e1506804/bcf/repo/bcf/serve_and_run.sbatch
+[wave]   sbatch --test-only CANNOT PLACE IT NOW: allocation failure: Requested node configuration is not available
+[wave]   (that message covers both an invalid line and a full pool; check
+[wave]    the pool with sinfo before reading it as a configuration error)
+[wave] 1 of 1 row(s) could not be placed right now (advisory)
+[wave] done (check-only, nothing submitted)
+exit_code=0
