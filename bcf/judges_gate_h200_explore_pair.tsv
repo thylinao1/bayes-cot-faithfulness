@@ -1,0 +1,7 @@
+# EXPLORATORY, NOT THE RUN OF RECORD. Gemma-3-27B-it and gpt-oss-20b are pinned to share
+# ONE a100-80 at gpu-memory-utilization 0.65 and 0.25 (section 6.1). Co-hosted here on the
+# h200-141 at the same two fractions, which on a 141 GB card is 92 GB and 35 GB against
+# about 56 GB and 13 GB of weights, so the memory fits with room for the KV cache. Both Q1
+# prompts. Every vote and every report carries serving_line=exploratory-h200-141;
+# bcf/judges_gate_a100_pair.tsv is unchanged and is the run of record when the pool frees.
+gemma-3-27b-it,gpt-oss-20b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a,b	BCF_OUT_SLUG=gemma-gptoss-h200	BCF_SERVING_LINE=exploratory-h200-141	BCF_SERVING_NOTE=run of record is the pinned a100-80 pair line of section 6.1

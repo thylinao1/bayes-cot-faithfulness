@@ -43,7 +43,9 @@
 #            BCF_HOME_USAGE_TTL_H
 #
 # BCF_Q1_PROMPT names which Q1 prompt file the gate loads ("a" is the file of record,
-# "b" the revision). BCF_OUT_SLUG overrides the results directory name so two Q1 prompts
+# "b" the revision). It also takes a comma separated list ("a,b"), in which case the gate
+# runs once per variant into ${SLUG}-q1<variant> and the served judge is paid for only
+# once. BCF_OUT_SLUG overrides the results directory name so two Q1 prompts
 # on the same judge do not write into one vote file. BCF_SERVING_LINE labels a run served
 # on a card other than the one section 6.1 pins for that judge; it lands on every vote
 # record and in the report, so an exploratory run can never be read as the run of record.
@@ -274,16 +276,32 @@ LINE_FLAGS=()
 [ -n "$SERVING_LINE" ] && LINE_FLAGS+=(--serving-line "$SERVING_LINE")
 [ -n "$SERVING_NOTE" ] && LINE_FLAGS+=(--serving-line-note "$SERVING_NOTE")
 
-echo "[gate] starting at $(date -Is)" | ts | tee -a "$LOG"
 cd "$BCF_REPO" || exit 9
-python -m experiments.jury.gate \
-  --items "$GATE_ITEMS" --out "$OUT_DIR" \
-  --substrate "$SUBSTRATE" --cue-family "$CUE" \
-  --seed "$SEED" --concurrency "$CONCURRENCY" --num-predict "$NUM_PREDICT" \
-  --q1-prompt "$Q1_PROMPT" \
-  $RESUME_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
-GATE_STATUS=${PIPESTATUS[0]}
-echo "[gate] finished at $(date -Is) with status ${GATE_STATUS}" | ts | tee -a "$LOG"
+IFS=',' read -r -a Q1_VARIANTS <<< "$Q1_PROMPT"
+GATE_STATUS=0
+for variant in "${Q1_VARIANTS[@]}"; do
+  # One served judge, one gate run per Q1 prompt. With a single variant the results path
+  # is unchanged, so a resumed run finds its own vote file where it left it.
+  if [ "${#Q1_VARIANTS[@]}" -gt 1 ]; then
+    RUN_OUT="${OUT_ROOT}/${SLUG}-q1${variant}/${SUBSTRATE}/${CUE}"
+    mkdir -p "$RUN_OUT"
+  else
+    RUN_OUT="$OUT_DIR"
+  fi
+  echo "[gate] Q1 variant ${variant} starting at $(date -Is) -> ${RUN_OUT}" | ts | tee -a "$LOG"
+  python -m experiments.jury.gate \
+    --items "$GATE_ITEMS" --out "$RUN_OUT" \
+    --substrate "$SUBSTRATE" --cue-family "$CUE" \
+    --seed "$SEED" --concurrency "$CONCURRENCY" --num-predict "$NUM_PREDICT" \
+    --q1-prompt "$variant" \
+    $RESUME_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
+  st=${PIPESTATUS[0]}
+  echo "[gate] Q1 variant ${variant} finished at $(date -Is) with status ${st}" | ts | tee -a "$LOG"
+  # 1 is a FAILED THRESHOLD, which is a result. Anything above 1 is the job breaking.
+  [ "$st" -gt "$GATE_STATUS" ] && GATE_STATUS=$st
+  echo "$st" > "${RUN_OUT}/exit_code.txt"
+done
+echo "[gate] all variants finished at $(date -Is), worst status ${GATE_STATUS}" | ts | tee -a "$LOG"
 
 # Exit 0 when the gate RAN, whatever its verdict: a judge failing a threshold is a result,
 # not a job failure, and mailing FAIL on it would train the operator to ignore the mail.
