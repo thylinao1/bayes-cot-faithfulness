@@ -1,0 +1,10 @@
+# EXPLORATORY, NOT THE RUN OF RECORD. Gemma-3-27B-it ALONE, after job 826026 showed the
+# pinned co-hosting pair does not start. vLLM's --gpu-memory-utilization is a fraction of
+# the WHOLE card measured against what every process on it already holds, not a private
+# slice: gemma at 0.65 allocated first, and gpt-oss then computed 0.25 x 141 GiB minus
+# gemma's allocation and reported "Available KV cache memory: -39.48 GiB" before dying with
+# "No available memory for the cache blocks". The section 6.1 line's 0.65 and 0.25 do not
+# add up the way the line assumes, on this card or on the a100-80 it is pinned to.
+# So the two are served one at a time. Gemma keeps its pinned 0.65, which on a 141 GB card
+# is 92 GB against about 56 GB of bf16 weights.
+gemma-3-27b-it	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gemma-3-27b-it-h200	BCF_SERVING_LINE=exploratory-h200-141

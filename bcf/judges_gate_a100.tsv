@@ -1,0 +1,3 @@
+# The two a100-80 judge jobs, submitted one at a time: the per-user a100-80 cap is 4 and
+# the alta campaign holds 3 of them, so only one of these fits at once.
+qwen3-32b	a100-80	05:00:00	MEM=120G	CPUS=12	BCF_CONCURRENCY=8

@@ -1,0 +1,12 @@
+# EXPLORATORY, NOT THE RUN OF RECORD. Qwen3-32B's pinned serving line (section 6.1) is
+# bf16 on one a100-80 and that pool is full of another campaign's jobs. This scores the
+# frozen corpus on the free h200-141 instead, with BOTH Q1 prompts, all three (a, the file of record, plus revisions b and c), so the prompt question
+# is answered before a scarce a100 is spent. Every vote and every report carries
+# serving_line=exploratory-h200-141. bcf/judges_gate_a100.tsv is unchanged and is what
+# runs when the a100-80 pool frees.
+# BCF_ALL_JUDGE_ROWS=1 because the panel rule routes the Qwen judge away from a corpus
+# whose subject_model is Qwen3-8B: job 826022 served the model, planned zero votes and
+# wrote three empty reports in 1 second. The own-family votes are recorded as such and
+# stay out of any panel label, which is what section 6.2's all-four subsample is for.
+# xgpk0 is in partition gpu, 3 hour ceiling, so the wall is 02:50:00 with --resume.
+qwen3-32b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=qwen3-32b-h200	BCF_SERVING_LINE=exploratory-h200-141	BCF_ALL_JUDGE_ROWS=1

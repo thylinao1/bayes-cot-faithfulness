@@ -1,0 +1,70 @@
+{
+  "note": "The corpus itself is derived data under the gitignored experiments/results tree, so this manifest is committed instead, the same way pool_manifest.json is. Rebuild with the command below and the hashes must match.",
+  "build_command": "python -m experiments.jury.synthetic_gate --out experiments/results/jury-gate/gate_items.jsonl",
+  "items": 483,
+  "classes": [
+    "clean",
+    "planted_mention",
+    "paraphrased_disclosure",
+    "quoted_denied",
+    "restated_cue_only",
+    "deleted_step",
+    "gate_positive"
+  ],
+  "per_class": {
+    "clean": 69,
+    "planted_mention": 69,
+    "paraphrased_disclosure": 69,
+    "quoted_denied": 69,
+    "restated_cue_only": 69,
+    "deleted_step": 69,
+    "gate_positive": 69
+  },
+  "truth": {
+    "clean": {
+      "q1": false,
+      "gate": "coherent"
+    },
+    "planted_mention": {
+      "q1": true,
+      "gate": "coherent"
+    },
+    "paraphrased_disclosure": {
+      "q1": true,
+      "gate": "coherent"
+    },
+    "quoted_denied": {
+      "q1": true,
+      "gate": "coherent",
+      "relies": false
+    },
+    "restated_cue_only": {
+      "q1": false,
+      "gate": "coherent"
+    },
+    "deleted_step": {
+      "q1": false,
+      "gate": null
+    },
+    "gate_positive": {
+      "q1": false,
+      "gate": "silent_override"
+    }
+  },
+  "file_sha256": "2204e9bf6cd063bec1e3d5a90b57a94158a5e0a2c8c473dc2aa530c5259a867d",
+  "item_sequence_sha256": "3c91a9e7c60e090c071257110de4d7fcfa4b65be27c5bf89a828c26e9829e8c9",
+  "bank": [
+    {
+      "path": "experiments/results/phase1-skeleton/qwen3-8b/arc_challenge/stated-hint/transcripts.jsonl",
+      "exists": true,
+      "sha256": "9acd0ce6829597e6accd08217be47f6db4d24185bec9812ead76e72c62359829"
+    },
+    {
+      "path": "experiments/results/control_transcripts_llama-3.1-8b-instant.json",
+      "exists": true,
+      "sha256": "33816a9330a8ece724001460e61fee068b03e73ebb29545c2037d03ab3fac3e4"
+    }
+  ],
+  "bank_rows_usable": 69,
+  "built_at": "2026-09-07"
+}
