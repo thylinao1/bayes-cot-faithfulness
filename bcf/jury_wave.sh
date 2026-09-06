@@ -153,7 +153,10 @@ for row in "${ROWS[@]}"; do
   IFS=$'\t' read -r KEYS GPU_TYPE WALL REST <<< "$row"
   slug="$(echo "$KEYS" | tr ',' '-')"
   name="bcf-jury-${slug}"
-  exports="ALL,BCF_JUDGES=${KEYS},BCF_GATE_ITEMS=${GATE_ITEMS}"
+  # --export is comma separated, so a co-hosted pair travels with '+' between its keys and
+  # judge_serve.sbatch translates it back. Without this the second judge of the pair is
+  # dropped on the wire and the job serves one while reporting two.
+  exports="ALL,BCF_JUDGES=$(printf '%s' "$KEYS" | tr ',' '+'),BCF_GATE_ITEMS=${GATE_ITEMS}"
   tp=1
   # MEM= and CPUS= are sbatch flags, not exports. Slurm's default here is 3G of host RAM
   # and 1 CPU, which OOM-kills a vLLM engine core with no message in the server log
@@ -165,6 +168,17 @@ for row in "${ROWS[@]}"; do
     case "$field" in
       MEM=*)  mem_flag=(--mem="${field#MEM=}"); continue ;;
       CPUS=*) cpus_flag=(--cpus-per-task="${field#CPUS=}"); continue ;;
+    esac
+    # --export is comma separated and this loop word-splits on whitespace, so a value
+    # carrying either would arrive at the job truncated or split into a stray variable
+    # name. Refuse instead: a job that runs with a silently mangled export is worse than
+    # one that never starts. Use '+' for lists (BCF_Q1_PROMPT=a+c) and set anything with
+    # spaces inside the sbatch script.
+    case "$field" in
+      *,*)
+        echo "[wave] REFUSING: job-table field '${field}' contains a comma, which --export"
+        echo "[wave]   uses as its own separator. Use '+' for a list."
+        exit 2 ;;
     esac
     exports="${exports},${field}"
     case "$field" in BCF_TP=*) tp="${field#BCF_TP=}" ;; esac

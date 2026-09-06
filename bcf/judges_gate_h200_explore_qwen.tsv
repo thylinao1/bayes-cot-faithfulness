@@ -1,8 +1,8 @@
 # EXPLORATORY, NOT THE RUN OF RECORD. Qwen3-32B's pinned serving line (section 6.1) is
 # bf16 on one a100-80 and that pool is full of another campaign's jobs. This scores the
-# frozen corpus on the free h200-141 instead, with BOTH Q1 prompts, so the prompt question
+# frozen corpus on the free h200-141 instead, with BOTH Q1 prompts, a (the file of record) and c (the last revision), so the prompt question
 # is answered before a scarce a100 is spent. Every vote and every report carries
 # serving_line=exploratory-h200-141. bcf/judges_gate_a100.tsv is unchanged and is what
 # runs when the a100-80 pool frees.
 # xgpk0 is in partition gpu, 3 hour ceiling, so the wall is 02:50:00 with --resume.
-qwen3-32b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a,b	BCF_OUT_SLUG=qwen3-32b-h200	BCF_SERVING_LINE=exploratory-h200-141	BCF_SERVING_NOTE=run of record is the pinned a100-80 line of section 6.1, bf16
+qwen3-32b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+c	BCF_OUT_SLUG=qwen3-32b-h200	BCF_SERVING_LINE=exploratory-h200-141

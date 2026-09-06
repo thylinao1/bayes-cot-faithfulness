@@ -43,7 +43,8 @@
 #            BCF_HOME_USAGE_TTL_H
 #
 # BCF_Q1_PROMPT names which Q1 prompt file the gate loads ("a" is the file of record,
-# "b" the revision). It also takes a comma separated list ("a,b"), in which case the gate
+# "b" and "c" the revisions). It also takes a list, separated by "+" in a job table and by
+# "," or "+" on a hand-run sbatch ("a+c"), in which case the gate
 # runs once per variant into ${SLUG}-q1<variant> and the served judge is paid for only
 # once. BCF_OUT_SLUG overrides the results directory name so two Q1 prompts
 # on the same judge do not write into one vote file. BCF_SERVING_LINE labels a run served
@@ -68,7 +69,13 @@ fi
 
 ts() { while IFS= read -r line; do printf '[%s] %s\n' "$(date -Is)" "$line"; done; }
 
-JUDGES="${BCF_JUDGES:?BCF_JUDGES is required, e.g. qwen3-32b or gemma-3-27b-it,gpt-oss-20b}"
+JUDGES="${BCF_JUDGES:?BCF_JUDGES is required, e.g. qwen3-32b or gemma-3-27b-it+gpt-oss-20b}"
+# A co-hosted pair arrives with '+' between the keys, because sbatch --export is itself
+# comma separated: "BCF_JUDGES=gemma-3-27b-it,gpt-oss-20b" reaches the job as
+# BCF_JUDGES=gemma-3-27b-it plus a stray variable name, and the job would then serve ONE
+# judge while its results directory and its report claimed two. Both separators are
+# accepted here so a hand-run sbatch that quotes the value properly still works.
+JUDGES="$(printf '%s' "$JUDGES" | tr '+' ',')"
 GATE_ITEMS="${BCF_GATE_ITEMS:?BCF_GATE_ITEMS is required}"
 OUT_ROOT="${BCF_OUT_ROOT:-$HOME/bcf/results/jury-gate}"
 PORT_BASE="${BCF_PORT_BASE:-8100}"
@@ -82,7 +89,14 @@ SUBSTRATE="arc_challenge"
 CUE="stated-hint"
 Q1_PROMPT="${BCF_Q1_PROMPT:-a}"
 SERVING_LINE="${BCF_SERVING_LINE:-}"
+# The note carries spaces and commas, and jury_wave.sh word-splits the tsv's extra fields
+# and joins them with commas into --export. So the note is NOT passed through the job
+# table: it is defaulted here from the serving line, and BCF_SERVING_NOTE only overrides it
+# for a hand-run sbatch where the quoting is under the caller's control.
 SERVING_NOTE="${BCF_SERVING_NOTE:-}"
+if [ -n "$SERVING_LINE" ] && [ -z "$SERVING_NOTE" ]; then
+  SERVING_NOTE="exploratory: served on ${SERVING_LINE}, NOT the line section 6.1 pins for this judge; the run of record is the pinned a100-80 line and it runs unchanged from bcf/judges_gate_a100*.tsv"
+fi
 RESUME_FLAG=""
 [ -n "${BCF_RESUME:-}" ] && RESUME_FLAG="--resume"
 
@@ -277,7 +291,10 @@ LINE_FLAGS=()
 [ -n "$SERVING_NOTE" ] && LINE_FLAGS+=(--serving-line-note "$SERVING_NOTE")
 
 cd "$BCF_REPO" || exit 9
-IFS=',' read -r -a Q1_VARIANTS <<< "$Q1_PROMPT"
+# '+' as well as ',' separates the variants. A comma cannot travel through a job table:
+# jury_wave.sh joins the tsv's extra fields into sbatch --export, which is itself comma
+# separated, so BCF_Q1_PROMPT=a,c would arrive as BCF_Q1_PROMPT=a plus a stray name "c".
+IFS=',' read -r -a Q1_VARIANTS <<< "$(printf '%s' "$Q1_PROMPT" | tr '+' ',')"
 GATE_STATUS=0
 for variant in "${Q1_VARIANTS[@]}"; do
   # One served judge, one gate run per Q1 prompt. With a single variant the results path
