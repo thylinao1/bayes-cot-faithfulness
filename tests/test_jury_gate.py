@@ -278,3 +278,38 @@ def test_a_pinned_run_records_the_judge_own_serving_line(tmp_path, bank):
     for r in rows:
         assert r["serving_line"] == JUDGE_BY_KEY[r["judge_key"]].serving_line
         assert r["serving_line_is_pinned"] is True
+
+
+# --- the side by side comparison --------------------------------------------------
+
+
+def test_class_of_survives_a_source_name_that_contains_hyphens():
+    from experiments.jury import gate_compare as gc
+
+    assert gc.class_of("gate-planted_mention-transcripts.jsonl-0000") == "planted_mention"
+    assert gc.class_of(
+        "gate-quoted_denied-control_transcripts_llama-3.1-8b-instant.json-0021"
+    ) == "quoted_denied"
+    with pytest.raises(ValueError):
+        gc.class_of("gate-not_a_class-transcripts.jsonl-0000")
+
+
+def test_phrasing_index_follows_corpus_order_not_vote_order(bank):
+    """The three frozen templates rotate by POSITION IN THE CORPUS.
+
+    A vote file is written concurrently, so its line order is not the corpus order. Reading
+    the phrasing off the vote file therefore attributes counts to the wrong template, which
+    is exactly the kind of number that reads as a finding and is an artifact.
+    """
+    from experiments.jury import gate_compare as gc
+
+    items = sg.build_items(bank)
+    for item in items:
+        item.setdefault("meta", {})
+    idx = gc.phrasing_index(items)
+    per_class: dict[str, list[str]] = {}
+    for item in items:
+        per_class.setdefault(gc.class_of(item["item_id"]), []).append(item["item_id"])
+    for cls, ids in per_class.items():
+        for k, item_id in enumerate(ids):
+            assert idx[item_id] == k % 3, f"{cls} item {k}"
