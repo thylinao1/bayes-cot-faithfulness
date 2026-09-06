@@ -35,6 +35,15 @@ GPU_TOTAL_CAP=12
 declare -A USER_CAP=( [a100-40]=8 [a100-80]=4 [h100-47]=4 [h100-96]=2 [h200-141]=1 [h200-71]=1 [nv]=8 )
 declare -A CARDS_PER_NODE=( [a100-40]=2 [a100-80]=1 [h100-47]=4 [h100-96]=2 [h200-141]=4 )
 
+# Which partition actually carries each card type, and that partition's wall ceiling.
+# Found the hard way on 2026-09-07: xgpk0 is the ONLY h200-141 node on the cluster and it
+# sits in `gpu` alone, not in `gpu-long`. An h200 job submitted to gpu-long is rejected
+# outright with "Requested node configuration is not available", which reads like a busy
+# cluster and is not. `gpu` caps the wall at 3 hours, so an h200 judge checkpoints and
+# resumes across jobs instead of running one long one.
+declare -A PARTITION_FOR=( [a100-40]=gpu-long [a100-80]=gpu-long [h100-47]=gpu-long [h100-96]=gpu-long [h200-141]=gpu [h200-71]=gpu [nv]=gpu-long )
+declare -A PARTITION_MAX_H=( [gpu]=3 [gpu-long]=72 )
+
 SBATCH_SCRIPT="${BCF_JURY_SBATCH:-$HOME/bcf/repo-jury/bcf/judge_serve.sbatch}"
 GATE_ITEMS="${BCF_GATE_ITEMS:-$HOME/bcf/gate_items.jsonl}"
 DRY_RUN=0
@@ -92,6 +101,15 @@ for row in "${ROWS[@]}"; do
     echo "[wave]   No amount of waiting fixes that (sinfo -o '%n %G')."
     exit 1
   fi
+  part="${PARTITION_FOR[$GPU_TYPE]:-gpu-long}"
+  max_h="${PARTITION_MAX_H[$part]:-3}"
+  wall_h="${WALL%%:*}"
+  if [ "$((10#$wall_h))" -ge "$max_h" ]; then
+    echo "[wave] REFUSING: ${KEYS} asks ${WALL} on ${GPU_TYPE}, which lives in partition"
+    echo "[wave]   '${part}' with a ${max_h} hour ceiling. Slurm rejects the job at submit"
+    echo "[wave]   time; it does not queue. Shorten the wall and resume across jobs."
+    exit 1
+  fi
   WANT[$GPU_TYPE]=$(( ${WANT[$GPU_TYPE]:-0} + tp ))
   CARDS_WANTED=$(( CARDS_WANTED + tp ))
 done
@@ -125,6 +143,8 @@ if [ -n "$REFUSE" ]; then
 fi
 
 echo "[wave] every cap holds; submitting ${N_JOBS} job(s)"
+N_SUBMITTED=0
+N_REJECTED=0
 for row in "${ROWS[@]}"; do
   IFS=$'\t' read -r KEYS GPU_TYPE WALL REST <<< "$row"
   slug="$(echo "$KEYS" | tr ',' '-')"
@@ -138,11 +158,25 @@ for row in "${ROWS[@]}"; do
   done
   gpus_flag="--gpus=${GPU_TYPE}"
   [ "$tp" -gt 1 ] && gpus_flag="--nodes=1 --gpus-per-node=${GPU_TYPE}:${tp}"
-  cmd=(sbatch --job-name="$name" $gpus_flag --time="$WALL" --export="$exports" "$SBATCH_SCRIPT")
+  part="${PARTITION_FOR[$GPU_TYPE]:-gpu-long}"
+  cmd=(sbatch --job-name="$name" --partition="$part" $gpus_flag --time="$WALL" --export="$exports" "$SBATCH_SCRIPT")
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "[wave] DRY-RUN ${cmd[*]}"
+    N_SUBMITTED=$(( N_SUBMITTED + 1 ))
   else
-    "${cmd[@]}"
+    # sbatch REJECTS rather than queues on a bad node configuration or the submit cap, and
+    # a loop that ignores its status reports a submission that never happened.
+    if "${cmd[@]}"; then
+      N_SUBMITTED=$(( N_SUBMITTED + 1 ))
+    else
+      N_REJECTED=$(( N_REJECTED + 1 ))
+      echo "[wave] SUBMIT REJECTED for ${name} (sbatch exited non-zero). Nothing queued for it."
+    fi
   fi
 done
-echo "[wave] done ($([ "$DRY_RUN" -eq 1 ] && echo 'dry run, nothing submitted' || echo "${N_JOBS} submitted"))"
+if [ "$DRY_RUN" -eq 1 ]; then
+  echo "[wave] done (dry run, ${N_SUBMITTED} would be submitted, nothing was)"
+  exit 0
+fi
+echo "[wave] done (${N_SUBMITTED} submitted, ${N_REJECTED} rejected of ${N_JOBS})"
+[ "$N_REJECTED" -eq 0 ] || exit 1

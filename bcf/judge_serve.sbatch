@@ -32,8 +32,20 @@
 #            BCF_RESUME
 
 set -uo pipefail
+
+# env.sh defaults BCF_REPO to $BCF_ROOT/repo, which is the tree the OTHER lane's live jobs
+# (825510, 825511) read at runtime. This lane must never run out of it, and must never
+# write into it. Pin repo-jury BEFORE sourcing, and refuse if anything points back.
+export BCF_REPO="${BCF_REPO:-$HOME/bcf/repo-jury}"
 source "${BCF_ENV_SH:-$HOME/bcf/repo-jury/bcf/env.sh}"
 set +e
+case "$BCF_REPO" in
+  */repo|*/repo/) echo "[repo] REFUSING: BCF_REPO=${BCF_REPO} is the other lane's tree" >&2; exit 10 ;;
+esac
+if [ ! -d "${BCF_REPO}/experiments/jury" ]; then
+  echo "[repo] REFUSING: ${BCF_REPO} carries no experiments/jury; wrong tree" >&2
+  exit 10
+fi
 
 ts() { while IFS= read -r line; do printf '[%s] %s\n' "$(date -Is)" "$line"; done; }
 
