@@ -39,7 +39,14 @@
 # Required : BCF_JUDGES (comma separated judge keys), BCF_GATE_ITEMS
 # Optional : BCF_OUT_ROOT BCF_PORT_BASE BCF_CONCURRENCY BCF_GATE_LIMIT BCF_SEED
 #            BCF_NUM_PREDICT BCF_SERVER_WAIT BCF_TP BCF_JUDGE_CACHE BCF_CACHE_BUDGET_GB
-#            BCF_RESUME
+#            BCF_RESUME BCF_Q1_PROMPT BCF_OUT_SLUG BCF_SERVING_LINE BCF_SERVING_NOTE
+#            BCF_HOME_USAGE_TTL_H
+#
+# BCF_Q1_PROMPT names which Q1 prompt file the gate loads ("a" is the file of record,
+# "b" the revision). BCF_OUT_SLUG overrides the results directory name so two Q1 prompts
+# on the same judge do not write into one vote file. BCF_SERVING_LINE labels a run served
+# on a card other than the one section 6.1 pins for that judge; it lands on every vote
+# record and in the report, so an exploratory run can never be read as the run of record.
 
 set -uo pipefail
 
@@ -71,6 +78,9 @@ SERVER_WAIT="${BCF_SERVER_WAIT:-3600}"
 TP="${BCF_TP:-1}"
 SUBSTRATE="arc_challenge"
 CUE="stated-hint"
+Q1_PROMPT="${BCF_Q1_PROMPT:-a}"
+SERVING_LINE="${BCF_SERVING_LINE:-}"
+SERVING_NOTE="${BCF_SERVING_NOTE:-}"
 RESUME_FLAG=""
 [ -n "${BCF_RESUME:-}" ] && RESUME_FLAG="--resume"
 
@@ -80,7 +90,7 @@ RESUME_FLAG=""
 # it is repeated here so a judge job started with a different env file still gets it.
 export VLLM_USE_FLASHINFER_SAMPLER=0
 
-SLUG="$(echo "$JUDGES" | tr ',' '-')"
+SLUG="${BCF_OUT_SLUG:-$(echo "$JUDGES" | tr ',' '-')}"
 OUT_DIR="${OUT_ROOT}/${SLUG}/${SUBSTRATE}/${CUE}"
 case "$OUT_DIR" in
   *"/${SUBSTRATE}/${CUE}") : ;;
@@ -111,6 +121,7 @@ trap finish EXIT
 {
   echo "=== bcf judge_serve: job ${SLURM_JOB_ID} on $(hostname) at $(date -Is) ==="
   echo "judges=${JUDGES} items=${GATE_ITEMS} out=${OUT_DIR} concurrency=${CONCURRENCY}"
+  echo "q1_prompt=${Q1_PROMPT} serving_line=${SERVING_LINE:-pinned}"
 } | ts | tee -a "$LOG"
 
 # --- 1. device assertion, BEFORE any download ----------------------------------
@@ -129,7 +140,31 @@ fi
 JUDGE_CACHE="${BCF_JUDGE_CACHE:-$HOME/bcf/hf-judges}"
 CACHE_BUDGET_GB="${BCF_CACHE_BUDGET_GB:-450}"
 mkdir -p "$JUDGE_CACHE"
-HOME_USED_GB="$(du -sBG "$HOME" 2>/dev/null | awk '{gsub("G","",$1); print $1+0}')"
+# A full `du -sBG $HOME` over this NFS home costs 90 to 120 s and every judge job paid it.
+# Split the number instead: the REST of home changes only when another campaign writes,
+# so it is measured once and memoised with a TTL, while the judge cache is the only part
+# this lane grows and is measured fresh every run in about a second. HOME_USED_GB is still
+# the same quantity, and the ceiling it is compared against does not move.
+HOME_USAGE_CACHE="${JUDGE_CACHE%/}/.home-usage-rest-gb"
+HOME_USAGE_TTL_H="${BCF_HOME_USAGE_TTL_H:-24}"
+CACHE_USED_GB="$(du -sBG "$JUDGE_CACHE" 2>/dev/null | awk '{gsub("G","",$1); print $1+0}')"
+REST_GB=""
+if [ -f "$HOME_USAGE_CACHE" ]; then
+  age_s=$(( $(date +%s) - $(stat -c %Y "$HOME_USAGE_CACHE" 2>/dev/null || echo 0) ))
+  if [ "$age_s" -lt $(( HOME_USAGE_TTL_H * 3600 )) ]; then
+    REST_GB="$(awk '{print $1+0}' "$HOME_USAGE_CACHE" 2>/dev/null)"
+    echo "[cache] home-minus-cache ${REST_GB} GB from ${HOME_USAGE_CACHE} (${age_s}s old, ttl ${HOME_USAGE_TTL_H}h)" | ts | tee -a "$LOG"
+  fi
+fi
+if [ -z "$REST_GB" ]; then
+  scan_start=$(date +%s)
+  TOTAL_GB="$(du -sBG "$HOME" 2>/dev/null | awk '{gsub("G","",$1); print $1+0}')"
+  REST_GB=$(( TOTAL_GB - CACHE_USED_GB ))
+  [ "$REST_GB" -lt 0 ] && REST_GB=0
+  echo "$REST_GB" > "$HOME_USAGE_CACHE"
+  echo "[cache] full home scan took $(( $(date +%s) - scan_start ))s: total ${TOTAL_GB} GB, cache ${CACHE_USED_GB} GB, rest ${REST_GB} GB memoised for ${HOME_USAGE_TTL_H}h" | ts | tee -a "$LOG"
+fi
+HOME_USED_GB=$(( REST_GB + CACHE_USED_GB ))
 HEADROOM_GB=$(( CACHE_BUDGET_GB - HOME_USED_GB ))
 # A rough footprint per judge, only used to decide persistent vs scratch.
 NEED_GB=0
@@ -160,7 +195,7 @@ for key in $(echo "$JUDGES" | tr ',' ' '); do
 done
 NET_GB=$(( NEED_GB - HAVE_GB ))
 [ "$NET_GB" -lt 0 ] && NET_GB=0
-echo "[cache] home used ${HOME_USED_GB} GB of a ${CACHE_BUDGET_GB} GB working ceiling; headroom ${HEADROOM_GB} GB; gross need ${NEED_GB} GB, already cached ${HAVE_GB} GB, net need ${NET_GB} GB" | ts | tee -a "$LOG"
+echo "[cache] home used ${HOME_USED_GB} GB (rest ${REST_GB} + cache ${CACHE_USED_GB}) of a ${CACHE_BUDGET_GB} GB working ceiling; headroom ${HEADROOM_GB} GB; gross need ${NEED_GB} GB, already cached ${HAVE_GB} GB, net need ${NET_GB} GB" | ts | tee -a "$LOG"
 if [ "$NET_GB" -le "$HEADROOM_GB" ]; then
   export HF_HOME="$JUDGE_CACHE"
   mkdir -p "$HF_HOME"
@@ -235,6 +270,9 @@ for idx in "${!KEYS[@]}"; do
 done
 LIMIT_FLAG=()
 [ "$GATE_LIMIT" -gt 0 ] && LIMIT_FLAG=(--limit "$GATE_LIMIT")
+LINE_FLAGS=()
+[ -n "$SERVING_LINE" ] && LINE_FLAGS+=(--serving-line "$SERVING_LINE")
+[ -n "$SERVING_NOTE" ] && LINE_FLAGS+=(--serving-line-note "$SERVING_NOTE")
 
 echo "[gate] starting at $(date -Is)" | ts | tee -a "$LOG"
 cd "$BCF_REPO" || exit 9
@@ -242,7 +280,8 @@ python -m experiments.jury.gate \
   --items "$GATE_ITEMS" --out "$OUT_DIR" \
   --substrate "$SUBSTRATE" --cue-family "$CUE" \
   --seed "$SEED" --concurrency "$CONCURRENCY" --num-predict "$NUM_PREDICT" \
-  $RESUME_FLAG "${LIMIT_FLAG[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
+  --q1-prompt "$Q1_PROMPT" \
+  $RESUME_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
 GATE_STATUS=${PIPESTATUS[0]}
 echo "[gate] finished at $(date -Is) with status ${GATE_STATUS}" | ts | tee -a "$LOG"
 
