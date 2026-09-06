@@ -2,6 +2,9 @@
 #SBATCH --job-name=bcf-run
 #SBATCH --partition=gpu-long
 #SBATCH --gpus=a100-80
+#SBATCH --exclude=xgpj0
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=8
 #SBATCH --time=24:00:00
 #SBATCH --output=%x-%j.out
 #SBATCH --mail-type=FAIL
@@ -46,6 +49,7 @@ PORT="${BCF_PORT:-8000}"
 MAX_LEN="${BCF_MAX_LEN:-8192}"
 GPU_UTIL="${BCF_GPU_UTIL:-0.90}"
 SERVER_WAIT="${BCF_SERVER_WAIT:-2400}"
+CONCURRENCY="${BCF_CONCURRENCY:-1}"
 TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}"
 OUT_ROOT="${BCF_OUT_ROOT:-$BCF_RESULTS}"
 
@@ -100,13 +104,22 @@ if [ -z "$REVISION" ]; then
 fi
 VLLM_VERSION="$(python -c 'import vllm; print(vllm.__version__)')"
 echo "[revision] ${MODEL} @ ${REVISION}  (vllm ${VLLM_VERSION})" | ts | tee -a "$LOG"
+# Element 10 pins a revision per roster row and says the runner compares against it.
+# When the wave manifest carries BCF_REVISION, a drift between the pinned sha and what
+# the Hub resolves today stops the cell here rather than producing a cell whose
+# hf_revision field quietly disagrees with the pre-registration.
+if [ -n "${BCF_REVISION:-}" ] && [ "${BCF_REVISION}" != "${REVISION}" ]; then
+  echo "[revision] REFUSING: the wave pins ${BCF_REVISION} but the Hub resolves ${REVISION}" \
+    | ts | tee -a "$LOG" >&2
+  exit 8
+fi
 BCF_META_TEMPLATE_KWARGS="$TEMPLATE_KWARGS" python - <<PY >> "$LOG" 2>&1
 import json, os, pathlib
 pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "job_id": "${SLURM_JOB_ID}", "model": "${MODEL}", "hf_revision": "${REVISION}",
     "backend": "openai", "backend_version": "vllm ${VLLM_VERSION}",
     "substrate": "${SUBSTRATE}", "cue_family": "${CUE}",
-    "tensor_parallel_size": ${TP}, "seed": ${SEED},
+    "tensor_parallel_size": ${TP}, "seed": ${SEED}, "concurrency": ${CONCURRENCY},
     "temperature": 0.0, "num_predict": ${NUM_PREDICT}, "curve_cap": ${CURVE_CAP},
     # CONTRACT record schema. Round-1 verification check 4 failed because
     # intervention_level was absent from every summary; it is written here AND by the
@@ -188,6 +201,7 @@ python "${BCF_REPO}/experiments/08_additive_arms.py" \
   --data "${BCF_REPO}/experiments/data/${SUBSTRATE}.json" \
   --specificity-holdout "${BCF_REPO}/experiments/data/specificity_holdout.json" \
   --n-items "$N_ITEMS" --num-predict "$NUM_PREDICT" --curve-cap "$CURVE_CAP" \
+  --concurrency "$CONCURRENCY" \
   --out "$OUT_DIR" --timeout 600 --resume \
   "${ARM_FLAGS[@]}" "${TAXONOMY_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
 ARMS_STATUS=${PIPESTATUS[0]}

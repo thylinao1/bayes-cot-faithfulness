@@ -1,0 +1,24 @@
+refusal-overcap-a100-40.txt: exit_code=1
+refusal-tp2-on-a100-80.txt: exit_code=1
+refusal-wall-over-ceiling.txt: exit_code=1
+
+PROOF THAT THE CHECKS CAN FAIL, run live on the cluster 2026-09-07 with sbatch present.
+Three injections, three exit-1 refusals, nothing submitted and nothing cancelled.
+
+1. refusal-overcap-a100-40.txt. overcap-a100-40.tsv is wave a100-40-01 plus one extra
+   row: 9 cells on a pool whose per-user cap is 8 and whose live RUNNING count was 0.
+   wave.sh names both denominators (9 > 8 per-user cap counting all campaigns, and
+   9 > 8 CONTRACT sweep budget) and exits 1.
+2. refusal-tp2-on-a100-80.txt. tp2-on-a100-80.tsv asks for tensor-parallel 2 on a100-80,
+   where every node carries exactly one card. wave.sh exits 1 before touching the queue
+   and lists the GPU types that could hold it.
+3. refusal-wall-over-ceiling.txt. The same h200-141 wave that passes at the default
+   02:50:00 is refused at --time=24:00:00, because the only h200-141 node lives in
+   partition gpu whose ceiling is 3 h. That was verified against Slurm itself: the
+   identical h200 command line is ACCEPTED by sbatch --test-only at 02:50:00 and
+   REJECTED at 24:00:00 with "Requested node configuration is not available", which
+   reads like a busy cluster and is not.
+
+The check also refused on REAL waves with no injection at all: 36 of 36 a100-80 sweep
+waves, because the alta campaign held 3 of that pool's 4 cards while the dry runs ran
+(3 + 2 = 5 > 4). That is the cross-campaign count doing its job.

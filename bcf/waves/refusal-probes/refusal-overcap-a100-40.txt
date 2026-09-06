@@ -1,0 +1,12 @@
+[wave] file bcf/waves/refusal-probes/overcap-a100-40.tsv: 9 cell(s), 9 card(s), max tp 1
+[wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[wave] jobs in system: 6/32; this wave adds 9 -> 15/32
+[wave] a100-40 cards RUNNING, ALL campaigns: 0/8 (0 more pending, not counted)
+[wave] gpu cards RUNNING, ALL types, ALL campaigns: 3/12
+[wave] a100-40 cards in use, bcf-sweep: 0/8 (CONTRACT.md split)
+[wave] this wave wants 9 card(s) across 9 job(s)
+[wave] REFUSING to submit:
+  a100-40 cards would reach 9 > 8 (per-user cap, all campaigns)
+  bcf-sweep cards on a100-40 would reach 9 > 8 (CONTRACT.md sweep budget)
+[wave] nothing was submitted and nothing was cancelled. Wait for jobs to drain, or split the wave.
+exit_code=1

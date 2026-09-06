@@ -1,0 +1,10 @@
+[wave] file bcf/waves/refusal-probes/tp2-on-a100-80.tsv: 1 cell(s), 2 card(s), max tp 2
+[wave] type sweep on a100-80, partition gpu-long (wall ceiling 72 h)
+[wave] REFUSING: a cell asks for tensor-parallel 2 on a100-80, but
+[wave]   every a100-80 node carries only 1 card(s) (sinfo -o '%n %G').
+[wave]   No amount of waiting fixes this. Use a GPU type with >= 2 cards per node:
+[wave]     --gpu-type h200-141 (4 per node, cap 1)
+[wave]     --gpu-type h100-47 (4 per node, cap 4)
+[wave]     --gpu-type h100-96 (2 per node, cap 2)
+[wave]     --gpu-type a100-40 (2 per node, cap 8)
+exit_code=1
