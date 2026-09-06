@@ -35,8 +35,19 @@ FROZEN_FILE_SHA256 = {
     # Amendment A1 (2026-07-22, approved): appended the additive powered-P3
     # AQuA-RAT substrate section; fingerprint updated in the same commit per the
     # document's own Amendment protocol. Nothing existing in the file was edited.
+    # Amendment A2 (2026-09-07, approved by the operator 2026-09-06): appended
+    # the additive A2 section carrying the new P-item P2b and the pointer to the
+    # companion pre-registration below. Fingerprint updated in the same commit;
+    # the first 320 lines of the file are byte-identical to the A1 state.
     "experiments/PREREGISTRATION_phase2_arms.md": (
-        "0e6a577ae9e0a8f520f7b968738b16ed393413c0c3d21efa22746cf9d9b770d4"
+        "cf4cef118bd75d2222849043ed6d9a3e74c81b85f407039b14159032245d9970"
+    ),
+    # Frozen 2026-09-07 by Amendment A2: the companion pre-registration holding
+    # elements 0 to 23 (the Column B contract, the jury, the scale study). Same
+    # amendment protocol as the documents above: additive sections only, hash
+    # updated in the same commit. Amendment A3 (element 13) is scheduled.
+    "experiments/PREREGISTRATION_jury_and_scale.md": (
+        "076c7da8b503bc6d22efc64de2aafc08012199725dc7950ead1f7122dcab07ee"
     ),
     "experiments/data/specificity_holdout.json": (
         "82ab56d8561d533a0d7196c4c604ab3ae6d27f53acb028bf390121c3567dabcd"
