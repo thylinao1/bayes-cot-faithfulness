@@ -18,6 +18,42 @@ SHARED_CAUSE_CROSSING = 0.70710678
 SHARED_CAUSE_TOLERANCE = 0.02
 NOMINAL_COVERAGE = 0.95  # family 1 passes when coverage is not significantly below nominal
 
+# Element 12 part (iv)'s misspecification list, mapped onto the generators that
+# carry it. The key is the list item, verbatim from section 13 of the
+# pre-registration; the value is the families that realise it.
+PART_IV_LIST = {
+    "baseline offsets": (
+        ("f1_no_cue_effect", "NoCueEffect"),
+        ("f4_rationalization", "Rationalization"),
+        ("f6_answer_copying", "AnswerCopying"),
+        ("f7_opposing_effects", "OpposingEffects"),
+    ),
+    "nonlinear depth response": (("f8_nonlinear_depth", "NonlinearDepthResponse"),),
+    "varying variance": (("f9_varying_variance", "VaryingVariance"),),
+    "correlated errors": (
+        ("f3_shared_cause", "SharedCause"),
+        ("f5_redundant_explanation", "RedundantExplanation"),
+    ),
+    "sparse groups": (("f10_sparse_groups", "SparseGroups"),),
+    "treatment-induced latent states": (
+        ("f5_redundant_explanation", "RedundantExplanation"),
+        ("f6_answer_copying", "AnswerCopying"),
+    ),
+    "missingness": (("f11_mediator_missingness", "MediatorMissingness"),),
+    "near-zero and cancelling effects": (
+        ("f7_opposing_effects", "OpposingEffects"),
+        ("f2_direct_bypass_alpha3", "DirectBypass"),
+        ("f1_no_cue_effect", "NoCueEffect"),
+    ),
+}
+
+PART_IV_TITLES = {
+    "f8_nonlinear_depth": "Family 8: saturating depth response",
+    "f9_varying_variance": "Family 9: arm-dependent mediator variance",
+    "f10_sparse_groups": "Family 10: sparse item-level groups",
+    "f11_mediator_missingness": "Family 11: mediator missingness, complete case",
+}
+
 FAMILY_TITLES = {
     "f1_no_cue_effect": "Family 1: no cue effect",
     "f2_direct_bypass": "Family 2: increasing direct bypass, fixed text pathway",
@@ -234,14 +270,17 @@ def _prior_probe_section(payload, small: int) -> str:
         )
     by_key = {p["condition"]: p for p in probe}
     lines = [
-        "\nWhere the two paths disagree the cause is a prior-scale conflict in the PyMC "
-        "model's outcome equation rather than a sampling problem: the table above reports the "
-        "maximum r_hat and the divergence count for every fit. "
-        "`mediation.fit_mediation_model` gives the mediator baseline a "
-        "scale-aware prior (`mu_m ~ Normal(mean(M), sd(M))`, added in the 2026-09-07 repair) "
-        "and leaves the outcome equation on fixed-scale priors "
-        "(`alpha0 ~ Normal(0, 1.5)`, `beta ~ Normal(0, 2)`). On one seeded dataset per "
-        "mechanism at n = " + str(small) + ":\n",
+        "\nThe probe below records, on one seeded dataset per mechanism at n = "
+        + str(small)
+        + ", the posterior for the two outcome parameters beside the maximum-likelihood fit "
+        "of the same data. Until 2026-09-07 this was where the two paths came apart: the "
+        "outcome priors were fixed-scale (`alpha0 ~ Normal(0, 1.5)`, `beta ~ Normal(0, 2)`), "
+        "so on a mediator with a baseline near six the implied intercept sat several prior "
+        "standard deviations from zero and the posterior shrank the intercept and the "
+        "mediator coefficient together. The outcome equation is now centred on the mean "
+        "mediator and every mediator prior is stated in units of sd(M) "
+        "(docs/ESTIMATOR-PRIORS-2026-09-07.md), so this probe is a standing check rather "
+        "than a diagnosis:\n",
     ]
     for key, note in (
         ("f4_rationalization", "a mediator with a baseline near six that also drives the answer"),
@@ -251,33 +290,20 @@ def _prior_probe_section(payload, small: int) -> str:
         if p is None:
             continue
         lines.append(
-            f"- **{key}** ({note}): the probit MAP fit gives beta {_f(p['map_beta'], 3)} and "
-            f"alpha0 {_f(p['map_alpha0'], 3)}, which on the logit scale the PyMC model works "
-            f"on are about {_f(p['map_beta_on_logit_scale'], 3)} and "
-            f"{_f(p['map_alpha0_on_logit_scale'], 3)}. The posterior returns beta "
-            f"{_f(p['posterior_beta_mean'], 3)} "
+            f"- **{key}** ({note}): the maximum-likelihood fit gives beta "
+            f"{_f(p['map_beta'], 3)} and alpha0 {_f(p['map_alpha0'], 3)}. The posterior "
+            f"returns beta {_f(p['posterior_beta_mean'], 3)} "
             f"[{_f(p['posterior_beta_lo'], 3)}, {_f(p['posterior_beta_hi'], 3)}] and alpha0 "
             f"{_f(p['posterior_alpha0_mean'], 3)} "
             f"[{_f(p['posterior_alpha0_lo'], 3)}, {_f(p['posterior_alpha0_hi'], 3)}], which "
-            + (
-                "excludes"
-                if not (
-                    p["posterior_alpha0_lo"]
-                    <= p["map_alpha0_on_logit_scale"]
-                    <= p["posterior_alpha0_hi"]
-                )
-                else "contains"
-            )
-            + " the logit-scale value the MAP fit implies."
+            + ("contains" if p["posterior_interval_contains_map_alpha0"] else "excludes")
+            + " the value the maximum-likelihood fit implies for the same data."
         )
     tail = (
-        "\nWhen the implied outcome intercept sits several prior standard deviations from "
-        "zero the posterior cannot reach it, and it shrinks the intercept and the mediator "
-        "coefficient together, which pulls the mediated effect down. That is exactly the shape of mediator the intercept "
-        "repair was about, a reasoning-step count with a baseline well away from zero, so the "
-        "finding belongs to the estimator workstream rather than to this battery: **the MAP "
-        "path is scale-free and the posterior path is not, and this battery does not change "
-        "either of them.** "
+        "\nAn interval that excludes the maximum-likelihood value on this probe is the "
+        "signature of a prior fighting the data rather than of a sampling problem, and it is "
+        "what the fixed-scale outcome priors produced on a mediator with a baseline near six "
+        "before 2026-09-07. "
     )
     if worst is not None:
         map_block = _get(payload, worst["condition"], small)
@@ -292,6 +318,131 @@ def _prior_probe_section(payload, small: int) -> str:
             f"{map_block['effects']['nie']['coverage_n']} for the bootstrap."
         )
     return "\n".join(lines) + "\n" + tail + "\n"
+
+
+def _generator_lines() -> dict[str, int]:
+    """Line number of each generator class in the battery source, read at report time.
+
+    Printed rather than hard-coded so the mapping table cannot quietly go stale.
+    """
+    from pathlib import Path as _Path
+
+    source = (_Path(__file__).resolve().parent / "mechanism_battery.py").read_text().splitlines()
+    return {
+        line.split("class ")[1].split("(")[0]: i + 1
+        for i, line in enumerate(source)
+        if line.startswith("class ")
+    }
+
+
+def _part_iv_section(payload, small: int) -> str:
+    """Element 12 part (iv): the list, the generator that carries each item, the numbers."""
+    lines = _generator_lines()
+    head = [
+        "## Element 12 part (iv): the misspecification list\n",
+        (
+            "Section 13 of `experiments/PREREGISTRATION_jury_and_scale.md` names eight "
+            "misspecifications the offset-null family must cover. Each row below names the "
+            "generator that carries it and where that generator is written. Four of the "
+            "eight were already covered by the original seven families; the other four were "
+            "added on 2026-09-07 as families 8 to 11, each of them family 4's world with "
+            "exactly one thing changed, so the comparison against family 4 on the same table "
+            "isolates the misspecification.\n"
+        ),
+        "| list item | family | generator, file and line |",
+        "| --- | --- | --- |",
+    ]
+    for item, entries in PART_IV_LIST.items():
+        fams = ", ".join(f"`{k}`" for k, _ in entries)
+        where = ", ".join(
+            dict.fromkeys(
+                f"`{cls}` (`experiments/mechanism_battery.py:{lines[cls]}`)"
+                for _, cls in entries
+            )
+        )
+        head.append(f"| {item} | {fams} | {where} |")
+
+    rows = [c for c in _by(payload, small) if c["family"] in PART_IV_TITLES]
+    if not rows:
+        return "\n".join(head) + "\n"
+    f4 = _get(payload, "f4_rationalization", small)
+    table = [
+        "",
+        (
+            f"All four run at n = {small} with their own dataset count, beside family 4 at "
+            f"the same size for reference. Truth is the family's own analytic value, "
+            f"cross-checked against its {payload['constants']['truth_mc_rows']:,}-row Monte "
+            f"Carlo in the truth table above."
+        ),
+        "",
+        (
+            "| condition | datasets | rows analysed | truth NIE | NIE bias | NIE coverage "
+            "| TE coverage | verdict fires |"
+        ),
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for c in [f4, *rows]:
+        e = c["effects"]
+        v = c["verdict"]
+        table.append(
+            f"| {c['condition']} | {c['n_datasets']} "
+            f"| {_f(c.get('mean_rows_analysed', c['n_rows']), 1)} "
+            f"| {_f(c['truth_analytic']['nie'])} | {_f(e['nie']['bias_mean'])} "
+            f"| {_cov_cell(e, 'nie')} | {_cov_cell(e, 'te')} "
+            f"| {v['load_bearing_k']}/{v['load_bearing_n']} |"
+        )
+    paragraphs = ["", "### Reading the four new families", ""]
+    for c in rows:
+        paragraphs.append(f"**{PART_IV_TITLES[c['family']]}.** {_part_iv_reading(c, f4)}\n")
+    return "\n".join(head + table + paragraphs) + "\n"
+
+
+def _part_iv_reading(c, f4) -> str:
+    """One paragraph per part (iv) family, written from the run."""
+    e = c["effects"]
+    nie = e["nie"]
+    cov = f"{nie['coverage_k']}/{nie['coverage_n']} [{_f(nie['coverage_ci_lo'],3)}, {_f(nie['coverage_ci_hi'],3)}]"
+    f4_cov = (
+        f"{f4['effects']['nie']['coverage_k']}/{f4['effects']['nie']['coverage_n']}"
+    )
+    common = (
+        f"True NIE {_f(c['truth_analytic']['nie'])}, estimated "
+        f"{_f(nie['estimate_mean'])} (bias {_f(nie['bias_mean'])} +/- "
+        f"{_f(nie['bias_mcse'])}) over {c['n_datasets']} datasets, interval coverage {cov} "
+        f"against {f4_cov} for family 4 at the same size, mean interval width "
+        f"{_f(nie['mean_interval_width'],3)}. "
+    )
+    if c["family"] == "f8_nonlinear_depth":
+        return common + (
+            "The outcome index is a saturating function of depth and the estimator's "
+            "outcome equation is linear in the mediator, so what it fits is the best linear "
+            "index for this data rather than the mechanism. The number to read is the bias: "
+            "it is the price of the linearity assumption on a response that flattens, and it "
+            "is charged against a truth computed by quadrature on the same equations."
+        )
+    if c["family"] == "f9_varying_variance":
+        return common + (
+            "The cue shifts the mediator and widens it threefold, while the model fits one "
+            "sigma_m for both arms. The mediated effect here is partly a spread effect, which "
+            "a single-variance model has no parameter for."
+        )
+    if c["family"] == "f10_sparse_groups":
+        return common + (
+            "The item effect enters the answer and not the mediator, so the marginal outcome "
+            "model is still correct and the point estimate stays consistent; what fails is the "
+            "independence the row bootstrap assumes. Read the coverage against family 4's on "
+            "the same line: any shortfall here is an interval problem, not a bias problem, and "
+            "it is the reason a real per-item table cannot use a row bootstrap."
+        )
+    if c["family"] == "f11_mediator_missingness":
+        retained = c.get("mean_rows_analysed", c["n_rows"])
+        return common + (
+            f"On average {_f(retained,1)} of {c['n_rows']} rows survive, and the rows that go "
+            f"missing are the long traces, which are also the rows carrying the mediated "
+            f"signal. The truth is the full population's, so the bias here is what a "
+            f"complete-case analysis of a parse failure costs."
+        )
+    raise KeyError(c["family"])
 
 
 def _pymc_table(payload) -> str:
@@ -554,6 +705,12 @@ def build_report(payload) -> str:
     k = payload["constants"]
     checks = payload["cross_checks"]
     n_cond = len(_by(payload, small))
+    n_families = len({c["family"] for c in payload["conditions"]})
+    total_datasets = sum(c["n_datasets"] for c in payload["conditions"])
+    part_iv_datasets = max(
+        [c["n_datasets"] for c in payload["conditions"] if c["family"] in PART_IV_TITLES],
+        default=0,
+    )
 
     parts: list[str] = []
     parts.append(
@@ -561,10 +718,11 @@ def build_report(payload) -> str:
         f"Generated {payload['generated_utc']} by `experiments/mechanism_battery.py` in "
         f"{payload['runtime_seconds']} seconds of wall clock on CPU. Reproduce with\n\n"
         f"```\nPYTHONPATH=src python experiments/mechanism_battery.py --out {s['out']}\n```\n\n"
-        f"Seven generator families, evaluated as {n_cond} conditions (family 2 carries five "
-        f"bypass strengths), at n = {' and '.join(str(x) for x in sizes)} rows per dataset, "
-        f"{s['n_datasets']} seeded datasets per condition per sample size, "
-        f"{n_cond * s['n_datasets'] * len(sizes)} datasets in total, each fitted once at "
+        f"{n_families} generator families, evaluated as {n_cond} conditions (family 2 carries "
+        f"five bypass strengths), at n = {' and '.join(str(x) for x in sizes)} rows per "
+        f"dataset, at least {s['n_datasets']} seeded datasets per condition per sample size "
+        f"(the element 12 part (iv) families carry {part_iv_datasets} each), "
+        f"{total_datasets} datasets in total, each fitted once at "
         f"rho = 0 plus {s['n_bootstrap']} bootstrap refits. Every dataset is drawn from a "
         f"seed fixed before the run (dataset seed base {k['dataset_seed_base']}, bootstrap seed "
         f"base {k['bootstrap_seed_base']}); no result below is a re-run after seeing a number.\n"
@@ -637,17 +795,20 @@ def build_report(payload) -> str:
             f"## Verdicts and rho behaviour at n = {n_rows}\n\n" + _verdict_table(payload, n_rows)
         )
 
+    parts.append(_part_iv_section(payload, small))
     parts.append("## Reading, one paragraph per family\n")
     for family, title in FAMILY_TITLES.items():
         parts.append(f"### {title}\n\n{_reading(payload, family, small, big)}\n")
 
     parts.append(
         f"## The PyMC subset at n = {small}\n\n"
-        f"{s['n_pymc']} datasets per family, re-run through the repaired PyMC posterior. The "
-        "outcome equation in that model is logistic while every generator here has a Gaussian "
-        "latent outcome and the MAP estimator is probit, so the two paths are not the same "
-        "estimator; the last two columns measure how far apart they land on identical data "
-        "rather than assuming they agree.\n\n"
+        f"{s['n_pymc']} datasets per family, re-run through the repaired PyMC posterior. Since "
+        "the link audit of 2026-09-07 both paths are probit: the posterior fits the same "
+        "outcome equation the maximum-likelihood path fits, and both convert to "
+        "probability-scale effects through the same closed form, so a gap between the columns "
+        "below is a difference between a posterior and a bootstrap and not a difference "
+        "between two models. The last two columns measure how far apart they land on "
+        "identical data rather than assuming they agree.\n\n"
         + _pymc_table(payload)
         + _prior_probe_section(payload, small)
     )
