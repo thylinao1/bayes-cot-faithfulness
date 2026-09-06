@@ -1,12 +1,12 @@
 # CPU mechanism battery (Amendment A2, element 11(a))
 
-Generated 2026-09-06T19:51:31Z by `experiments/mechanism_battery.py` in 4003.1 seconds of wall clock on CPU. Reproduce with
+Generated 2026-09-06T22:34:48Z by `experiments/mechanism_battery.py` in 6354.4 seconds of wall clock on CPU. Reproduce with
 
 ```
 PYTHONPATH=src python experiments/mechanism_battery.py --out experiments/results/mechanism_battery
 ```
 
-Seven generator families, evaluated as 11 conditions (family 2 carries five bypass strengths), at n = 350 and 3600 rows per dataset, 100 seeded datasets per condition per sample size, 2200 datasets in total, each fitted once at rho = 0 plus 200 bootstrap refits. Every dataset is drawn from a seed fixed before the run (dataset seed base 731000, bootstrap seed base 909000); no result below is a re-run after seeing a number.
+11 generator families, evaluated as 15 conditions (family 2 carries five bypass strengths), at n = 350 and 3600 rows per dataset, at least 100 seeded datasets per condition per sample size (the element 12 part (iv) families carry 400 each), 3800 datasets in total, each fitted once at rho = 0 plus 200 bootstrap refits. Every dataset is drawn from a seed fixed before the run (dataset seed base 731000, bootstrap seed base 909000); no result below is a re-run after seeing a number.
 
 ## What was fitted, and where each interval comes from
 
@@ -28,7 +28,7 @@ The **false-robust-verdict rate** is the share of datasets where the verdict fir
 
 1. The vectorised rho curve against `sensitivity_sweep`, which refits the probit model at every grid point and integrates by Monte Carlo: max absolute NIE difference 0.00335, mean 0.00165, over 33 datasets at 6 rho values each (198 comparisons) at n = 3600.
 2. The analytic `rho*_point` against `breakdown_frontier`, which root-finds on refits: max absolute difference 0.00096, mean 0.00009, over 33 datasets that had a crossing inside the evaluated range.
-3. Each family's Monte Carlo truth (2,000,000 rows, common noise across the three cross-world cells) against its hand-derived analytic truth: max absolute difference 0.00065 over 11 conditions. The analytic value is what the bias and coverage columns are computed against.
+3. Each family's Monte Carlo truth (2,000,000 rows, common noise across the three cross-world cells) against its hand-derived analytic truth: max absolute difference 0.00077 over 15 conditions. The analytic value is what the bias and coverage columns are computed against.
 
 ## The comparison no single family can make
 
@@ -57,6 +57,10 @@ The two reports are the same report. Both put essentially the whole total effect
 | f5_redundant_explanation | 0.2874 / 0.0000 / 0.2874 | 0.2876 / 0.0000 / 0.2876 | 0.00011 |
 | f6_answer_copying | 0.3413 / 0.0000 / 0.3413 | 0.3416 / 0.0000 / 0.3416 | 0.00026 |
 | f7_opposing_effects | -0.2423 / 0.2423 / 0.0000 | -0.2420 / 0.2420 / 0.0000 | 0.00039 |
+| f8_nonlinear_depth | 0.0000 / 0.2803 / 0.2803 | 0.0000 / 0.2810 / 0.2810 | 0.00077 |
+| f9_varying_variance | 0.0000 / 0.1836 / 0.1836 | 0.0000 / 0.1837 / 0.1837 | 0.00010 |
+| f10_sparse_groups | 0.0000 / 0.2566 / 0.2566 | 0.0000 / 0.2559 / 0.2559 | 0.00064 |
+| f11_mediator_missingness | 0.0000 / 0.2827 / 0.2827 | 0.0000 / 0.2833 / 0.2833 | 0.00065 |
 
 ## Effects, bias and coverage at n = 350
 
@@ -73,6 +77,10 @@ The two reports are the same report. Both put essentially the whole total effect
 | f5_redundant_explanation | 0.287 / 0.000 / 0.287 | -0.2462 | 0.2438 | -0.0024 | 0/100 [0.00, 0.04] | 0/100 [0.00, 0.04] | 97/100 [0.91, 0.99] | 0.129 |
 | f6_answer_copying | 0.341 / 0.000 / 0.341 | -0.0032 | 0.0012 | -0.0020 | 94/100 [0.87, 0.98] | 98/100 [0.93, 1.00] | 95/100 [0.89, 0.98] | 0.022 |
 | f7_opposing_effects | -0.242 / 0.242 / 0.000 | 0.0007 | -0.0029 | -0.0023 | 90/100 [0.82, 0.95] | 92/100 [0.85, 0.96] | 89/100 [0.81, 0.94] | 0.115 |
+| f8_nonlinear_depth | 0.000 / 0.280 / 0.280 | 0.0056 | -0.0156 | -0.0100 | 369/400 [0.89, 0.95] | 359/400 [0.86, 0.93] | 370/400 [0.89, 0.95] | 0.136 |
+| f9_varying_variance | 0.000 / 0.184 / 0.184 | -0.0018 | 0.0653 | 0.0635 | 375/400 [0.91, 0.96] | 169/400 [0.37, 0.47] | 272/400 [0.63, 0.73] | 0.117 |
+| f10_sparse_groups | 0.000 / 0.257 / 0.257 | 0.0020 | -0.0009 | 0.0011 | 382/400 [0.93, 0.97] | 362/400 [0.87, 0.93] | 377/400 [0.91, 0.96] | 0.132 |
+| f11_mediator_missingness | 0.000 / 0.283 / 0.283 | -0.0009 | -0.0108 | -0.0117 | 375/400 [0.91, 0.96] | 367/400 [0.89, 0.94] | 358/400 [0.86, 0.92] | 0.150 |
 
 ## Verdicts and rho behaviour at n = 350
 
@@ -89,6 +97,10 @@ The two reports are the same report. Both put essentially the whole total effect
 | f5_redundant_explanation | 0.000 | 88/100 [0.80, 0.94] | yes 88.0% | 0.8468 [0.793, 0.897] | unresolved 12/100, crossing 88/100 (median 0.265), none-in-range 0/100 |
 | f6_answer_copying | 0.000 | 0/100 [0.00, 0.04] | yes 0.0% | 0.0602 [0.006, 0.204] | unresolved 100/100, crossing 0/100 (median n/a), none-in-range 0/100 |
 | f7_opposing_effects | 0.242 | 92/100 [0.85, 0.96] | n/a | 0.6298 [0.540, 0.714] | unresolved 8/100, crossing 92/100 (median 0.165), none-in-range 0/100 |
+| f8_nonlinear_depth | 0.280 | 384/400 [0.94, 0.98] | n/a | 0.6642 [0.560, 0.766] | unresolved 16/400, crossing 384/400 (median 0.190), none-in-range 0/400 |
+| f9_varying_variance | 0.184 | 383/400 [0.93, 0.98] | n/a | 0.8029 [0.728, 0.868] | unresolved 17/400, crossing 383/400 (median 0.275), none-in-range 0/400 |
+| f10_sparse_groups | 0.257 | 366/400 [0.88, 0.94] | n/a | 0.6192 [0.521, 0.710] | unresolved 34/400, crossing 366/400 (median 0.160), none-in-range 0/400 |
+| f11_mediator_missingness | 0.283 | 377/400 [0.91, 0.96] | n/a | 0.6871 [0.590, 0.777] | unresolved 23/400, crossing 377/400 (median 0.220), none-in-range 0/400 |
 
 ## Effects, bias and coverage at n = 3600
 
@@ -122,6 +134,42 @@ The two reports are the same report. Both put essentially the whole total effect
 | f6_answer_copying | 0.000 | 0/100 [0.00, 0.04] | yes 0.0% | 0.0200 [0.003, 0.064] | unresolved 100/100, crossing 0/100 (median n/a), none-in-range 0/100 |
 | f7_opposing_effects | 0.242 | 100/100 [0.96, 1.00] | n/a | 0.6249 [0.597, 0.652] | unresolved 0/100, crossing 100/100 (median 0.270), none-in-range 0/100 |
 
+## Element 12 part (iv): the misspecification list
+
+Section 13 of `experiments/PREREGISTRATION_jury_and_scale.md` names eight misspecifications the offset-null family must cover. Each row below names the generator that carries it and where that generator is written. Four of the eight were already covered by the original seven families; the other four were added on 2026-09-07 as families 8 to 11, each of them family 4's world with exactly one thing changed, so the comparison against family 4 on the same table isolates the misspecification.
+
+| list item | family | generator, file and line |
+| --- | --- | --- |
+| baseline offsets | `f1_no_cue_effect`, `f4_rationalization`, `f6_answer_copying`, `f7_opposing_effects` | `NoCueEffect` (`experiments/mechanism_battery.py:206`), `Rationalization` (`experiments/mechanism_battery.py:270`), `AnswerCopying` (`experiments/mechanism_battery.py:322`), `OpposingEffects` (`experiments/mechanism_battery.py:342`) |
+| nonlinear depth response | `f8_nonlinear_depth` | `NonlinearDepthResponse` (`experiments/mechanism_battery.py:379`) |
+| varying variance | `f9_varying_variance` | `VaryingVariance` (`experiments/mechanism_battery.py:407`) |
+| correlated errors | `f3_shared_cause`, `f5_redundant_explanation` | `SharedCause` (`experiments/mechanism_battery.py:250`), `RedundantExplanation` (`experiments/mechanism_battery.py:292`) |
+| sparse groups | `f10_sparse_groups` | `SparseGroups` (`experiments/mechanism_battery.py:440`) |
+| treatment-induced latent states | `f5_redundant_explanation`, `f6_answer_copying` | `RedundantExplanation` (`experiments/mechanism_battery.py:292`), `AnswerCopying` (`experiments/mechanism_battery.py:322`) |
+| missingness | `f11_mediator_missingness` | `MediatorMissingness` (`experiments/mechanism_battery.py:477`) |
+| near-zero and cancelling effects | `f7_opposing_effects`, `f2_direct_bypass_alpha3`, `f1_no_cue_effect` | `OpposingEffects` (`experiments/mechanism_battery.py:342`), `DirectBypass` (`experiments/mechanism_battery.py:225`), `NoCueEffect` (`experiments/mechanism_battery.py:206`) |
+
+All four run at n = 350 with their own dataset count, beside family 4 at the same size for reference. Truth is the family's own analytic value, cross-checked against its 2,000,000-row Monte Carlo in the truth table above.
+
+| condition | datasets | rows analysed | truth NIE | NIE bias | NIE coverage | TE coverage | verdict fires |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| f4_rationalization | 100 | 350.0 | 0.2827 | -0.0059 | 93/100 [0.86, 0.97] | 96/100 [0.90, 0.99] | 97/100 |
+| f8_nonlinear_depth | 400 | 350.0 | 0.2803 | -0.0156 | 359/400 [0.86, 0.93] | 370/400 [0.89, 0.95] | 384/400 |
+| f9_varying_variance | 400 | 350.0 | 0.1836 | 0.0653 | 169/400 [0.37, 0.47] | 272/400 [0.63, 0.73] | 383/400 |
+| f10_sparse_groups | 400 | 350.0 | 0.2566 | -0.0009 | 362/400 [0.87, 0.93] | 377/400 [0.91, 0.96] | 366/400 |
+| f11_mediator_missingness | 400 | 264.5 | 0.2827 | -0.0108 | 367/400 [0.89, 0.94] | 358/400 [0.86, 0.92] | 377/400 |
+
+### Reading the four new families
+
+**Family 8: saturating depth response.** True NIE 0.2803, estimated 0.2646 (bias -0.0156 +/- 0.0018) over 400 datasets, interval coverage 359/400 [0.864, 0.925] against 93/100 for family 4 at the same size, mean interval width 0.136. The outcome index is a saturating function of depth and the estimator's outcome equation is linear in the mediator, so what it fits is the best linear index for this data rather than the mechanism. The number to read is the bias: it is the price of the linearity assumption on a response that flattens, and it is charged against a truth computed by quadrature on the same equations.
+
+**Family 9: arm-dependent mediator variance.** True NIE 0.1836, estimated 0.2489 (bias 0.0653 +/- 0.0015) over 400 datasets, interval coverage 169/400 [0.374, 0.473] against 93/100 for family 4 at the same size, mean interval width 0.117. The cue shifts the mediator and widens it threefold, while the model fits one sigma_m for both arms. The mediated effect here is partly a spread effect, which a single-variance model has no parameter for.
+
+**Family 10: sparse item-level groups.** True NIE 0.2566, estimated 0.2557 (bias -0.0009 +/- 0.0018) over 400 datasets, interval coverage 362/400 [0.872, 0.932] against 93/100 for family 4 at the same size, mean interval width 0.132. The item effect enters the answer and not the mediator, so the marginal outcome model is still correct and the point estimate stays consistent; what fails is the independence the row bootstrap assumes. Read the coverage against family 4's on the same line: any shortfall here is an interval problem, not a bias problem, and it is the reason a real per-item table cannot use a row bootstrap.
+
+**Family 11: mediator missingness, complete case.** True NIE 0.2827, estimated 0.2719 (bias -0.0108 +/- 0.0019) over 400 datasets, interval coverage 367/400 [0.886, 0.943] against 93/100 for family 4 at the same size, mean interval width 0.150. On average 264.5 of 350 rows survive, and the rows that go missing are the long traces, which are also the rows carrying the mediated signal. The truth is the full population's, so the bias here is what a complete-case analysis of a parse failure costs.
+
+
 ## Reading, one paragraph per family
 
 ### Family 1: no cue effect
@@ -154,28 +202,32 @@ The direct and indirect paths are large and opposite: truth NDE -0.242, NIE 0.24
 
 ## The PyMC subset at n = 350
 
-20 datasets per family, re-run through the repaired PyMC posterior. The outcome equation in that model is logistic while every generator here has a Gaussian latent outcome and the MAP estimator is probit, so the two paths are not the same estimator; the last two columns measure how far apart they land on identical data rather than assuming they agree.
+20 datasets per family, re-run through the repaired PyMC posterior. Since the link audit of 2026-09-07 both paths are probit: the posterior fits the same outcome equation the maximum-likelihood path fits, and both convert to probability-scale effects through the same closed form, so a gap between the columns below is a difference between a posterior and a bootstrap and not a difference between two models. The last two columns measure how far apart they land on identical data rather than assuming they agree.
 
 | condition | datasets | NIE coverage | NIE bias | mean posterior width | mean bootstrap width | max r_hat | divergences |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| f1_no_cue_effect | 20 | 20/20 [0.83, 1.00] | 0.0002 | 0.015 | 0.016 | 1.0100 | 0 |
-| f2_direct_bypass_alpha0 | 4 | 4/4 [0.40, 1.00] | -0.0232 | 0.124 | 0.113 | 1.0000 | 0 |
-| f2_direct_bypass_alpha0.5 | 4 | 4/4 [0.40, 1.00] | -0.0189 | 0.122 | 0.122 | 1.0000 | 0 |
-| f2_direct_bypass_alpha1 | 4 | 4/4 [0.40, 1.00] | 0.0130 | 0.127 | 0.121 | 1.0000 | 0 |
-| f2_direct_bypass_alpha2 | 4 | 4/4 [0.40, 1.00] | 0.0078 | 0.085 | 0.087 | 1.0000 | 0 |
-| f2_direct_bypass_alpha3 | 4 | 3/4 [0.19, 0.99] | 0.0177 | 0.056 | 0.018 | 1.0000 | 0 |
-| f3_shared_cause | 20 | 0/20 [0.00, 0.17] | 0.2513 | 0.130 | 0.122 | 1.0000 | 0 |
-| f4_rationalization | 20 | 7/20 [0.15, 0.59] | -0.0790 | 0.126 | 0.133 | 1.0000 | 0 |
-| f5_redundant_explanation | 20 | 0/20 [0.00, 0.17] | 0.2397 | 0.135 | 0.128 | 1.0000 | 0 |
-| f6_answer_copying | 20 | 20/20 [0.83, 1.00] | 0.0001 | 0.019 | 0.022 | 1.0000 | 0 |
-| f7_opposing_effects | 20 | 12/20 [0.36, 0.81] | -0.0473 | 0.108 | 0.112 | 1.0000 | 0 |
+| f1_no_cue_effect | 20 | 20/20 [0.83, 1.00] | 0.0004 | 0.016 | 0.016 | 1.0000 | 0 |
+| f2_direct_bypass_alpha0 | 4 | 4/4 [0.40, 1.00] | -0.0232 | 0.120 | 0.113 | 1.0000 | 0 |
+| f2_direct_bypass_alpha0.5 | 4 | 3/4 [0.19, 0.99] | -0.0183 | 0.116 | 0.122 | 1.0000 | 0 |
+| f2_direct_bypass_alpha1 | 4 | 4/4 [0.40, 1.00] | 0.0114 | 0.118 | 0.121 | 1.0000 | 0 |
+| f2_direct_bypass_alpha2 | 4 | 4/4 [0.40, 1.00] | 0.0080 | 0.083 | 0.087 | 1.0000 | 0 |
+| f2_direct_bypass_alpha3 | 4 | 4/4 [0.40, 1.00] | 0.0087 | 0.048 | 0.018 | 1.0000 | 0 |
+| f3_shared_cause | 20 | 0/20 [0.00, 0.17] | 0.2513 | 0.125 | 0.122 | 1.0000 | 0 |
+| f4_rationalization | 20 | 20/20 [0.83, 1.00] | -0.0092 | 0.136 | 0.133 | 1.0000 | 0 |
+| f5_redundant_explanation | 20 | 0/20 [0.00, 0.17] | 0.2405 | 0.129 | 0.128 | 1.0000 | 0 |
+| f6_answer_copying | 20 | 20/20 [0.83, 1.00] | 0.0001 | 0.023 | 0.022 | 1.0000 | 0 |
+| f7_opposing_effects | 20 | 19/20 [0.75, 1.00] | -0.0078 | 0.116 | 0.112 | 1.0000 | 0 |
+| f8_nonlinear_depth | 20 | 17/20 [0.62, 0.97] | -0.0230 | 0.134 | 0.131 | 1.0000 | 0 |
+| f9_varying_variance | 20 | 12/20 [0.36, 0.81] | 0.0574 | 0.129 | 0.110 | 1.0000 | 0 |
+| f10_sparse_groups | 20 | 18/20 [0.68, 0.99] | -0.0008 | 0.133 | 0.130 | 1.0000 | 0 |
+| f11_mediator_missingness | 20 | 20/20 [0.83, 1.00] | -0.0196 | 0.148 | 0.143 | 1.0000 | 0 |
 
-Where the two paths disagree the cause is a prior-scale conflict in the PyMC model's outcome equation rather than a sampling problem: the table above reports the maximum r_hat and the divergence count for every fit. `mediation.fit_mediation_model` gives the mediator baseline a scale-aware prior (`mu_m ~ Normal(mean(M), sd(M))`, added in the 2026-09-07 repair) and leaves the outcome equation on fixed-scale priors (`alpha0 ~ Normal(0, 1.5)`, `beta ~ Normal(0, 2)`). On one seeded dataset per mechanism at n = 350:
+The probe below records, on one seeded dataset per mechanism at n = 350, the posterior for the two outcome parameters beside the maximum-likelihood fit of the same data. Until 2026-09-07 this was where the two paths came apart: the outcome priors were fixed-scale (`alpha0 ~ Normal(0, 1.5)`, `beta ~ Normal(0, 2)`), so on a mediator with a baseline near six the implied intercept sat several prior standard deviations from zero and the posterior shrank the intercept and the mediator coefficient together. The outcome equation is now centred on the mean mediator and every mediator prior is stated in units of sd(M) (docs/ESTIMATOR-PRIORS-2026-09-07.md), so this probe is a standing check rather than a diagnosis:
 
-- **f4_rationalization** (a mediator with a baseline near six that also drives the answer): the probit MAP fit gives beta 1.130 and alpha0 -6.564, which on the logit scale the PyMC model works on are about 1.924 and -11.173. The posterior returns beta 1.191 [0.904, 1.499] and alpha0 -6.758 [-8.590, -5.049], which excludes the logit-scale value the MAP fit implies.
-- **f3_shared_cause** (a mediator centred near zero): the probit MAP fit gives beta 1.048 and alpha0 0.026, which on the logit scale the PyMC model works on are about 1.784 and 0.045. The posterior returns beta 1.782 [1.385, 2.199] and alpha0 0.033 [-0.345, 0.403], which contains the logit-scale value the MAP fit implies.
+- **f4_rationalization** (a mediator with a baseline near six that also drives the answer): the maximum-likelihood fit gives beta 1.130 and alpha0 -6.564. The posterior returns beta 1.137 [0.884, 1.405] and alpha0 -6.604 [-8.208, -5.108], which contains the value the maximum-likelihood fit implies for the same data.
+- **f3_shared_cause** (a mediator centred near zero): the maximum-likelihood fit gives beta 1.048 and alpha0 0.026. The posterior returns beta 1.052 [0.830, 1.279] and alpha0 0.025 [-0.200, 0.247], which contains the value the maximum-likelihood fit implies for the same data.
 
-When the implied outcome intercept sits several prior standard deviations from zero the posterior cannot reach it, and it shrinks the intercept and the mediator coefficient together, which pulls the mediated effect down. That is exactly the shape of mediator the intercept repair was about, a reasoning-step count with a baseline well away from zero, so the finding belongs to the estimator workstream rather than to this battery: **the MAP path is scale-free and the posterior path is not, and this battery does not change either of them.** The largest disagreement in the subset is on f4_rationalization: the posterior NIE bias is -0.0790 over 20 datasets against -0.0059 for the MAP path over 100 datasets of the same condition at the same size, and the posterior interval covered the truth in 7/20 against 93/100 for the bootstrap.
+An interval that excludes the maximum-likelihood value on this probe is the signature of a prior fighting the data rather than of a sampling problem, and it is what the fixed-scale outcome priors produced on a mediator with a baseline near six before 2026-09-07. The largest disagreement in the subset is on f2_direct_bypass_alpha0: the posterior NIE bias is -0.0232 over 4 datasets against -0.0031 for the MAP path over 100 datasets of the same condition at the same size, and the posterior interval covered the truth in 4/4 against 93/100 for the bootstrap.
 
 ## Limitations of this battery
 

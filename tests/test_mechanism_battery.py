@@ -90,7 +90,7 @@ def test_the_generator_line_table_points_at_real_class_definitions() -> None:
     source = (REPO / "experiments" / "mechanism_battery.py").read_text().splitlines()
 
     # Assert
-    for _, entries in mbr.PART_IV_LIST.items():
+    for entries in mbr.PART_IV_LIST.values():
         for _, class_name in entries:
             assert source[lines[class_name] - 1].startswith(f"class {class_name}(")
 

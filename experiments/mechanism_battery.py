@@ -458,7 +458,7 @@ class SparseGroups(Mechanism):
         self.analytic_truth = (0.0, p1 - p0, p1 - p0)
 
     def noise(self, rng, n):
-        n_groups = int(math.ceil(n / GROUP_SIZE))
+        n_groups = math.ceil(n / GROUP_SIZE)
         per_group = rng.normal(0.0, GROUP_SD, n_groups)
         group_of_row = np.arange(n) // GROUP_SIZE
         return {

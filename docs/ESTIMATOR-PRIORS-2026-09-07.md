@@ -17,16 +17,16 @@ Asked of the code, not of the prose: which link does each path use? Line numbers
 
 | Path | File and line at `5840afc` | Link |
 |---|---|---|
-| PyMC likelihood | `src/bayes_cot_faithfulness/mediation.py:92` — `pm.Bernoulli("Y_obs", logit_p=logit_y, observed=Y)` | **logit** |
-| PyMC draw-to-effect conversion | `src/bayes_cot_faithfulness/effects.py:138-140` — `_sigmoid(alpha0 + alpha*x + beta*m).mean()` | **logit** |
-| Maximum-likelihood negative log-likelihood | `src/bayes_cot_faithfulness/sensitivity.py:314` and `:328` — `np.where(Y == 1, norm.logcdf(eta), norm.logsf(eta))` | **probit** |
+| PyMC likelihood | `src/bayes_cot_faithfulness/mediation.py:92`: `pm.Bernoulli("Y_obs", logit_p=logit_y, observed=Y)` | **logit** |
+| PyMC draw-to-effect conversion | `src/bayes_cot_faithfulness/effects.py:138-140`: `_sigmoid(alpha0 + alpha*x + beta*m).mean()` | **logit** |
+| Maximum-likelihood negative log-likelihood | `src/bayes_cot_faithfulness/sensitivity.py:314` and `:328`: `np.where(Y == 1, norm.logcdf(eta), norm.logsf(eta))` | **probit** |
 | Maximum-likelihood draw-to-effect (`probit_natural_effects`, `natural_effects_from_fit`) | `src/bayes_cot_faithfulness/sensitivity.py:250-252` | **probit** |
-| Closed-form natural effects | `src/bayes_cot_faithfulness/closed_form.py` — `norm.cdf(...)` throughout | **probit** |
+| Closed-form natural effects | `src/bayes_cot_faithfulness/closed_form.py`: `norm.cdf(...)` throughout | **probit** |
 | Ground truth for the logistic generator | `src/bayes_cot_faithfulness/effects.py:79-81` (`monte_carlo_true_effects`) | logit, and correct: `synthetic.py` is a logistic generator |
 
-**Finding: the two estimator paths disagreed.** Each was internally consistent — the PyMC
+**Finding: the two estimator paths disagreed.** Each was internally consistent (the PyMC
 likelihood and its converter were both logistic, the maximum-likelihood fit and its
-converter and the closed form were all probit — so nothing raised. But the same
+converter and the closed form were all probit), so nothing raised. But the same
 `(alpha, beta, gamma, sigma_m, mu_m, alpha0)` symbols meant two different models, and the
 mechanism battery reported the two paths side by side against a single probit truth.
 `experiments/mechanism_battery_stats.py:183-187` at `5840afc` says so in its own docstring
@@ -132,14 +132,14 @@ logistic converter it was paired with):
 
 | Fit of the same data | NDE | NIE | TE | beta | alpha0 | mu_m |
 |---|---:|---:|---:|---:|---:|---:|
-| as given, mediator mean 6 | −0.0172 | +0.2627 | +0.2455 | +1.654 | −9.483 | +6.057 |
-| mediator shifted by −6 | −0.0325 | +0.2865 | +0.2540 | +1.936 | +0.426 | +0.056 |
-| mediator rescaled by 10 | −0.0083 | +0.1193 | +0.1110 | +0.368 | −5.169 | +63.376 |
+| as given, mediator mean 6 | -0.0172 | +0.2627 | +0.2455 | +1.654 | -9.483 | +6.057 |
+| mediator shifted by -6 | -0.0325 | +0.2865 | +0.2540 | +1.936 | +0.426 | +0.056 |
+| mediator rescaled by 10 | -0.0083 | +0.1193 | +0.1110 | +0.368 | -5.169 | +63.376 |
 
 Closed-form truth for that world: NDE +0.0000, NIE +0.2827, TE +0.2827.
 
-- shift: NIE moves **0.0238** and NDE **0.0153**, against the 0.0100 tolerance — FAIL.
-- rescale: NIE moves **0.1434** and TE **0.1345** — FAIL, and the rescaled fit reported
+- shift: NIE moves **0.0238** and NDE **0.0153**, against the 0.0100 tolerance. FAIL.
+- rescale: NIE moves **0.1434** and TE **0.1345**. FAIL, and the rescaled fit reported
   **400 divergences after tuning**, so on that mediator unit the old priors did not merely
   bias the answer, they broke the sampler.
 
@@ -160,6 +160,8 @@ first run after the last code change.
 | 1 | Acceptance (b): the battery's PyMC subset, same seeds and datasets | **PASS**, exit 0, table below | same tree |
 | 1 | `tests/test_mechanism_battery.py` with the four part (iv) families | **1 failed, 34 passed** (22.2 s): the new missingness test called the closed form with `rho` omitted from its positional arguments and got `ValueError: |rho| must be <= 0.95` | the part (iv) families |
 | 2 | `tests/test_mechanism_battery.py` | **35 passed** (25.2 s) | the missing `rho` argument in that test |
+| 1 | The full battery, one command, 4 workers | **exit 0** in 6,354.4 s; section 6 | the part (iv) families |
+| - | Two linter nits after that run (`int(math.ceil(x))` to `math.ceil(x)` in the family 10 generator, `.items()` to `.values()` in one test loop) | no gate re-run: neither can change a number, and that is checked rather than asserted. Redrawing family 10's dataset 0 after the edit reproduces the run's own `dataset_rows.csv` row exactly: answer rate 0.702857142857, mediator mean 6.652451383811, corr(M, Y) 0.592962464443. | |
 
 ---
 
@@ -191,12 +193,12 @@ any family.
 | family | NIE coverage before | after | Clopper-Pearson after | NIE bias before | after | mean posterior NIE width after |
 |---|---:|---:|---|---:|---:|---:|
 | f1_no_cue_effect | 20/20 | 20/20 | [0.832, 1.000] | +0.0002 | +0.0004 | 0.0165 |
-| f2_direct_bypass | 19/20 | 19/20 | [0.751, 0.999] | −0.0007 | −0.0027 | 0.0971 |
+| f2_direct_bypass | 19/20 | 19/20 | [0.751, 0.999] | -0.0007 | -0.0027 | 0.0971 |
 | f3_shared_cause | 0/20 | 0/20 | [0.000, 0.168] | +0.2513 | +0.2513 | 0.1253 |
-| **f4_rationalization** | **7/20** | **20/20** | **[0.832, 1.000]** | **−0.0790** | **−0.0092** | 0.1362 |
+| **f4_rationalization** | **7/20** | **20/20** | **[0.832, 1.000]** | **-0.0790** | **-0.0092** | 0.1362 |
 | f5_redundant_explanation | 0/20 | 0/20 | [0.000, 0.168] | +0.2397 | +0.2405 | 0.1287 |
 | f6_answer_copying | 20/20 | 20/20 | [0.832, 1.000] | +0.0001 | +0.0001 | 0.0227 |
-| **f7_opposing_effects** | **12/20** | **19/20** | **[0.751, 0.999]** | **−0.0473** | **−0.0078** | 0.1157 |
+| **f7_opposing_effects** | **12/20** | **19/20** | **[0.751, 0.999]** | **-0.0473** | **-0.0078** | 0.1157 |
 
 **PASS.** Families 4 and 7 both reach an interval containing 0.95, and no family's coverage
 count is lower than it was: the five other families are unchanged to the dataset. Maximum
@@ -267,3 +269,94 @@ minimum, plus the standard 20-dataset PyMC subset. Their results are in the run 
 | `test_every_misspecification_on_the_list_has_a_generator` | one entry pointed at a class name that does not exist | `AssertionError: missingness names an unknown class MissingnessFamily` |
 | `test_missingness_family_drops_the_long_traces_and_keeps_the_full_truth` | `retention` replaced by a function returning 1 | `len(x) = 4000 == n = 4000`, so `len(x) < n` is False. As written it keeps 0.765 of 4,000 rows with a surviving mean mediator of 6.307 against a population mean of 6.600 |
 | `test_sparse_groups_share_one_item_effect_across_each_block_of_rows` | per-row noise instead of a per-item effect | within-item sd 1.147 against the required 0. As written the within-item sd is 0.000000 and the between-item sd is 0.630 |
+
+---
+
+## 6 · The full battery, re-run
+
+One command, attempt 1, first run after the last code change, exit 0:
+
+```
+PYTHONPATH=src python experiments/mechanism_battery.py --out experiments/results/mechanism_battery --workers 4
+```
+
+6,354.4 s of wall clock (1 h 46 min) on four CPU workers. Eleven families evaluated as 15
+conditions, 3,800 seeded datasets (11 original conditions at 100 datasets at each of n = 350
+and n = 3,600, plus the four part (iv) families at 400 datasets at n = 350), each fitted once
+at rho = 0 plus 200 bootstrap refits, plus a 20-dataset PyMC subset per family.
+
+**The three required outcomes of A2 element 11(a) still PASS** (R1 direct bypass, R2 shared
+cause, R3 no cue effect), and the cross-checks are unchanged in kind: the vectorised rho curve
+against `sensitivity_sweep`, maximum absolute NIE difference 0.00335 over 198 comparisons;
+`rho*_point` against `breakdown_frontier`, maximum absolute difference 0.00096 over 33
+datasets; each family's Monte Carlo truth against its analytic truth, maximum absolute
+difference 0.000773 over 15 conditions at 2,000,000 rows each.
+
+### The maximum-likelihood path did not move, and that is the point
+
+Every one of the 22 shared condition-and-size cells reproduces the 2026-09-07 run **exactly**:
+the same NIE coverage count out of the same denominator and the same bias to four decimals, in
+all of f1, the five f2 conditions, f3, f4, f5, f6 and f7 at both n = 350 and n = 3,600. The
+prior change is confined to the posterior path by construction, and this is the check rather
+than the claim. It also clears the one refactor that could have moved a number: the bootstrap
+now resamples `len(x)` rows instead of the requested `n`, which is identical for every family
+whose rows cannot go missing.
+
+### The PyMC subset, before and after, per family
+
+The full run reproduces gate (b) to the dataset on all seven original families:
+
+| family | NIE coverage before | after | Clopper-Pearson after | NIE bias before | after |
+|---|---:|---:|---|---:|---:|
+| f1_no_cue_effect | 20/20 | 20/20 | [0.832, 1.000] | +0.0002 | +0.0004 |
+| f2_direct_bypass | 19/20 | 19/20 | [0.751, 0.999] | -0.0007 | -0.0027 |
+| f3_shared_cause | 0/20 | 0/20 | [0.000, 0.168] | +0.2513 | +0.2513 |
+| **f4_rationalization** | **7/20** | **20/20** | [0.832, 1.000] | **-0.0790** | **-0.0092** |
+| f5_redundant_explanation | 0/20 | 0/20 | [0.000, 0.168] | +0.2397 | +0.2405 |
+| f6_answer_copying | 20/20 | 20/20 | [0.832, 1.000] | +0.0001 | +0.0001 |
+| **f7_opposing_effects** | **12/20** | **19/20** | [0.751, 0.999] | **-0.0473** | **-0.0078** |
+| f8_nonlinear_depth | (new) | 17/20 | [0.621, 0.968] | | -0.0230 |
+| f9_varying_variance | (new) | 12/20 | [0.361, 0.809] | | +0.0574 |
+| f10_sparse_groups | (new) | 18/20 | [0.683, 0.988] | | -0.0008 |
+| f11_mediator_missingness | (new) | 20/20 | [0.832, 1.000] | | -0.0196 |
+
+Maximum r_hat 1.0000 and zero divergences across all 220 fits.
+
+### What the four new families found (maximum-likelihood path, 400 datasets each at n = 350)
+
+| condition | rows analysed | truth NIE | NIE bias | NIE coverage | TE coverage | verdict fires |
+|---|---:|---:|---:|---|---|---:|
+| f4_rationalization (reference, 100 datasets) | 350.0 | +0.2827 | -0.0059 | 93/100 [0.861, 0.971] | 96/100 | 97/100 |
+| f8_nonlinear_depth | 350.0 | +0.2803 | -0.0156 | 359/400 [0.864, 0.925] | 370/400 | 384/400 |
+| f9_varying_variance | 350.0 | +0.1836 | **+0.0653** | **169/400 [0.374, 0.473]** | 272/400 | 383/400 |
+| f10_sparse_groups | 350.0 | +0.2566 | -0.0009 | 362/400 [0.872, 0.932] | 377/400 | 366/400 |
+| f11_mediator_missingness | 264.5 | +0.2827 | -0.0108 | 367/400 [0.886, 0.943] | 358/400 | 377/400 |
+
+Three findings, each with its denominator:
+
+1. **Arm-dependent mediator variance is the expensive one.** Family 9's NIE bias is +0.0653
+   (+/- 0.0015 over 400 datasets) and coverage is 169/400, an interval that misses the truth
+   more often than it contains it. The bias is entirely on the mediated path: the NDE bias is
+   -0.0018 with coverage 375/400, and the total-effect bias is +0.0635. A cue that widens the
+   spread of the reasoning as well as shifting its level is read by a single-`sigma_m` model as
+   a larger mediated effect, and no amount of data fixes it, because it is misspecification.
+   The verdict fires in 383/400 here and the true NIE is 0.1836, so the verdict is *right* in
+   this cell; a world with the same variance change and a true NIE just under the 0.15
+   threshold would get a confident wrong answer, and nothing in the report would show it.
+2. **Clustering is an interval problem, not a bias problem.** Family 10's point estimate is
+   unbiased to three decimals (-0.0009 +/- 0.0018) because the item effect enters the answer
+   only and the marginal outcome model stays correct, while coverage falls to 362/400
+   [0.872, 0.932]. The row bootstrap resamples rows that are not independent. A per-item table
+   in the real analysis cannot use one.
+3. **Complete-case analysis of a parse failure costs about a hundredth.** Family 11 keeps 264.5
+   of 350 rows on average, drops the long traces preferentially, and comes out biased by
+   -0.0108 with coverage 367/400. The saturating depth response (family 8) costs a similar
+   -0.0156 with coverage 359/400. Both are small next to family 9 and next to the confounded
+   families, and both are real.
+
+Nothing in the four new families changes any pre-registered verdict rule; they are the
+evidence for what that rule costs under each named misspecification, which is what part (iv)
+asks for.
+
+Artifacts: `experiments/results/mechanism_battery/{report.md,battery_results.json,cross_checks.json,pymc_subset.json,dataset_rows.csv}`
+and the gate's own `experiments/results/mechanism_battery_pymc_gate/`.
