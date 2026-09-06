@@ -44,12 +44,22 @@ PROVENANCE = {
     "arc_challenge": {
         "fetcher": "experiments/fetch_arc.py",
         "command": ("python experiments/fetch_arc.py --n 1500 --split test "
-                    "--then-split validation --then-split train"),
+                    "--then-split validation --then-split train --max-choices 4 "
+                    "--max-choices-from 700"),
         "source": "allenai/ai2_arc ARC-Challenge, Hugging Face datasets-server rows API",
         "licence": "CC BY-SA 4.0",
         "order": ("datasets-server row order, test then validation then train, "
                   "deduplicated on the resume merge key (question plus choices), "
                   "first occurrence wins"),
+        "filter": ("items with more than 4 options are dropped from index 700 onward "
+                   "and the pool is backfilled from the same stream to 1,500. The "
+                   "ARC-Challenge test split carries four 5-option items and all four "
+                   "fall past the frozen prefix (old indices 836, 868, 1037, 1382), so "
+                   "the enlargement would have made an ARC cell parse against five "
+                   "answer labels where the 700-item pool every Phase-1 artifact was "
+                   "measured on has at most four. The first 700 items are untouched by "
+                   "the filter and their sequence hash is unchanged "
+                   "(DECISION-LOG 2026-09-07 03:58 ruling (a))."),
     },
     "aqua_rat": {
         "fetcher": "experiments/fetch_aqua.py",
@@ -59,6 +69,7 @@ PROVENANCE = {
         "licence": "Apache-2.0",
         "order": ("shipped file order, test then dev then train, deduplicated by "
                   "question text, first occurrence wins"),
+        "filter": "none; every AQuA-RAT item carries exactly 5 options",
     },
     "logiqa2": {
         "fetcher": "experiments/fetch_logiqa2.py",
@@ -67,8 +78,15 @@ PROVENANCE = {
         "licence": "CC BY-NC-SA 4.0",
         "order": ("shipped file order, test split, deduplicated on the resume merge "
                   "key (question plus choices), first occurrence wins"),
+        "filter": "none; every LogiQA 2.0 item carries exactly 4 options",
     },
 }
+
+# The answer-label set each substrate's frozen prompt surface parses against. A pool that
+# exceeded its own maximum would silently widen that set, which is a change to the frozen
+# prompt surface and belongs in an amendment, not in a fetch. Asserted here so a re-fetch
+# that reintroduced a wider item cannot be written into the manifest quietly.
+MAX_CHOICES = {"arc_challenge": 4, "aqua_rat": 5, "logiqa2": 4}
 
 # The first 700 items of each pool must keep the indices they had in the 700-item pools
 # every Phase-1 artifact was measured against, so the enlargement is a pure append and a
@@ -108,6 +126,17 @@ def describe(name: str) -> dict:
             f"frozen {FROZEN_PREFIX_SHA[name]}. The enlargement moved an item that "
             f"Phase-1 artifacts already refer to by index."
         )
+    choices_min = min(len(it["choices"]) for it in items)
+    choices_max = max(len(it["choices"]) for it in items)
+    if choices_max > MAX_CHOICES[name]:
+        over = [i for i, it in enumerate(items) if len(it["choices"]) > MAX_CHOICES[name]]
+        raise SystemExit(
+            f"REFUSING: {name} holds {len(over)} items with more than "
+            f"{MAX_CHOICES[name]} options (first at index {over[0]}, {choices_max} "
+            f"options). That widens the answer-label set the frozen prompt surface "
+            f"parses against. Re-fetch with the filter in PROVENANCE['{name}']"
+            f"['command'], or amend the pre-registration."
+        )
     return {
         **PROVENANCE[name],
         "n_items": len(items),
@@ -118,8 +147,9 @@ def describe(name: str) -> dict:
         "last_item_sha256": per_item[-1],
         "frozen_prefix_n": FROZEN_PREFIX_N,
         "frozen_prefix_sha256": prefix_sha,
-        "choices_min": min(len(it["choices"]) for it in items),
-        "choices_max": max(len(it["choices"]) for it in items),
+        "choices_min": choices_min,
+        "choices_max": choices_max,
+        "max_choices_allowed": MAX_CHOICES[name],
     }
 
 

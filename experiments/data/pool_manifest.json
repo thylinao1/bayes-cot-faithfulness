@@ -4,20 +4,22 @@
   "pools": {
     "arc_challenge": {
       "fetcher": "experiments/fetch_arc.py",
-      "command": "python experiments/fetch_arc.py --n 1500 --split test --then-split validation --then-split train",
+      "command": "python experiments/fetch_arc.py --n 1500 --split test --then-split validation --then-split train --max-choices 4 --max-choices-from 700",
       "source": "allenai/ai2_arc ARC-Challenge, Hugging Face datasets-server rows API",
       "licence": "CC BY-SA 4.0",
       "order": "datasets-server row order, test then validation then train, deduplicated on the resume merge key (question plus choices), first occurrence wins",
+      "filter": "items with more than 4 options are dropped from index 700 onward and the pool is backfilled from the same stream to 1,500. The ARC-Challenge test split carries four 5-option items and all four fall past the frozen prefix (old indices 836, 868, 1037, 1382), so the enlargement would have made an ARC cell parse against five answer labels where the 700-item pool every Phase-1 artifact was measured on has at most four. The first 700 items are untouched by the filter and their sequence hash is unchanged (DECISION-LOG 2026-09-07 03:58 ruling (a)).",
       "n_items": 1500,
       "n_unique_resume_keys": 1500,
-      "file_sha256": "0358128cbf4d4419637c3bd2b41bcf134d39fe1dabe6508b4d34e958b74c17bf",
-      "item_sequence_sha256": "c952bbb78d7028c42427e0991bcd6c0594fd26d0f7ee64743c58a7ebb72badde",
+      "file_sha256": "7dbf9616004dce8877fc20ee97ec7831c79622c295cee90c9ed9209947947e98",
+      "item_sequence_sha256": "0269fec9e04cef66fa1d77d234d212a7013e4c8cec172c074bcd1ebf309c4ffd",
       "first_item_sha256": "20fab8286fc3b6b2a0437b776520f29bf4f8ab456587bbff02ea4853f3c57864",
-      "last_item_sha256": "3b9351ebeb4e799a3af473737d7508945e2df48e50399e8148df994ac801dff1",
+      "last_item_sha256": "1ede40fbdc6ec3edcdc494c2db9cd7f5c6a457485d979a449a689cf3b1039e1a",
       "frozen_prefix_n": 700,
       "frozen_prefix_sha256": "a48a5bef74ef30d0be729ffb4c90453a8f2390a6bc9bfe05a1a7842200860eaa",
       "choices_min": 3,
-      "choices_max": 5
+      "choices_max": 4,
+      "max_choices_allowed": 4
     },
     "aqua_rat": {
       "fetcher": "experiments/fetch_aqua.py",
@@ -25,6 +27,7 @@
       "source": "google-deepmind/AQuA @ 26b64ed1f22208c6742f47df547dfd65088ec30d",
       "licence": "Apache-2.0",
       "order": "shipped file order, test then dev then train, deduplicated by question text, first occurrence wins",
+      "filter": "none; every AQuA-RAT item carries exactly 5 options",
       "n_items": 1500,
       "n_unique_resume_keys": 1500,
       "file_sha256": "51cdc8407bedcd76826c5761ef8e66a558da8529959cc868f1791a9bb9754b05",
@@ -34,7 +37,8 @@
       "frozen_prefix_n": 700,
       "frozen_prefix_sha256": "6997545c0887c57f5077112f8781ee3035a46a7327a75203ec48bc8cb3136117",
       "choices_min": 5,
-      "choices_max": 5
+      "choices_max": 5,
+      "max_choices_allowed": 5
     },
     "logiqa2": {
       "fetcher": "experiments/fetch_logiqa2.py",
@@ -42,6 +46,7 @@
       "source": "csitfun/LogiQA2.0 @ 955e1d3df6c59d9bfb44d9913da1e1a27ec14e18",
       "licence": "CC BY-NC-SA 4.0",
       "order": "shipped file order, test split, deduplicated on the resume merge key (question plus choices), first occurrence wins",
+      "filter": "none; every LogiQA 2.0 item carries exactly 4 options",
       "n_items": 1500,
       "n_unique_resume_keys": 1500,
       "file_sha256": "72c5c86603d7567de95d462d6ca9e005067748a6b1eb157c8471fde00fd207d8",
@@ -51,7 +56,8 @@
       "frozen_prefix_n": 700,
       "frozen_prefix_sha256": "bbacc55d5dda07b365c5eb15ab5caabbdc546a288d8087677be50fd137a0b962",
       "choices_min": 4,
-      "choices_max": 4
+      "choices_max": 4,
+      "max_choices_allowed": 4
     }
   }
 }
