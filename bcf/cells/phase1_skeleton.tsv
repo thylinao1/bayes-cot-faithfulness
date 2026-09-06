@@ -1,0 +1,11 @@
+# Phase 1 walking skeleton: one model, one substrate, one cue family, all arms.
+# Qwen3-8B rather than Llama-3.1-8B-Instruct because the Llama gated licence is still
+# pending (PERMISSIONS.md); Qwen3-8B is ungated. enable_thinking off via the chat
+# template so the frozen num_predict=320 is a fair budget.
+# Card: a100-40, not a100-80. The live QOS caps a100-80 at 4 (not the 8 CONTRACT.md
+# assumes) and another campaign holds all 4, so an a100-80 request only pends. Qwen3-8B
+# in bf16 is about 16 GB and fits a 40 GB card with room to spare, and a100-40 is the
+# same Ampere generation as a100-80, so the measured rate transfers to the sweep's
+# a100-80 serving line far better than a Hopper card would.
+# MODEL	SUBSTRATE	CUE	KEY=VALUE...
+Qwen/Qwen3-8B	arc_challenge	stated-hint	BCF_TP=1	BCF_N_ITEMS=30	BCF_NUM_PREDICT=320	BCF_CURVE_CAP=30	BCF_OUT_ROOT=/home/e/e1506804/bcf/results/phase1-skeleton

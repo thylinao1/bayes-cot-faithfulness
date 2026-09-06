@@ -41,6 +41,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))  # local sibling clients, exactly like 05
 from groq_client import GroqClient  # noqa: E402
 from ollama_client import OllamaClient  # noqa: E402
+from openai_client import OpenAIClient, openai_setup_message  # noqa: E402
 import arms_resume  # noqa: E402  # sibling checkpoint/resume module, imported like the clients
 
 from bayes_cot_faithfulness.interventions import (  # noqa: E402
@@ -1242,7 +1243,8 @@ def no_arms_hint() -> str:
 
 
 # --- Orchestration ---
-def _gate_client(backend, model, host, timeout):
+def _gate_client(backend, model, host, timeout, *, base_url=None,
+                 seed=None, chat_template_kwargs=None):
     """Build the backend client, or print the setup message and return None ($0 gate).
 
     ``max_wait`` is raised from GroqClient's 25s default for THIS runner only (05 and the
@@ -1257,6 +1259,17 @@ def _gate_client(backend, model, host, timeout):
     saturation Groq asks ~34s, so every resumed leg aborts on its first call and makes
     zero progress.
     """
+    if backend == "openai":
+        # Self-hosted vLLM on a cluster card. The groq and ollama branches below are
+        # untouched: this branch returns before either of them is reached.
+        client = OpenAIClient(
+            base_url=base_url, model=model, temperature=0.0, timeout=timeout,
+            seed=seed, chat_template_kwargs=chat_template_kwargs,
+        )
+        if not client.is_available():
+            print(openai_setup_message(base_url, model))
+            return None
+        return client
     if backend == "groq":
         client = GroqClient(model=model, temperature=0.0, timeout=timeout, max_wait=90.0)
         if not client.is_available():
@@ -1298,7 +1311,8 @@ def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_bloc
 
 def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         curve_cap=20, num_predict=320, timeout=120.0, backend="ollama",
-        specificity_holdout=None, resume=False):
+        specificity_holdout=None, resume=False, *, base_url=None, seed=None,
+        chat_template_kwargs=None):
     arms = resolve_arms(arms)
     if not arms:
         print(no_arms_hint())
@@ -1357,7 +1371,8 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
                 print(arms_resume.duplicate_refusal_message(dupes, label, path))
                 return 0
 
-    client = _gate_client(backend, model, host, timeout)
+    client = _gate_client(backend, model, host, timeout, base_url=base_url,
+                          seed=seed, chat_template_kwargs=chat_template_kwargs)
     if client is None:
         return 0
 
@@ -1442,8 +1457,18 @@ def build_parser() -> argparse.ArgumentParser:
                     help="max tokens per full generation (lower = faster, less load)")
     ap.add_argument("--timeout", type=float, default=120.0,
                     help="seconds to wait per model call before skipping it")
-    ap.add_argument("--backend", choices=["ollama", "groq"], default="ollama",
-                    help="'groq' = free hosted 70B (needs GROQ_API_KEY); 'ollama' = local")
+    ap.add_argument("--backend", choices=["ollama", "groq", "openai"], default="ollama",
+                    help="'openai' = a self-hosted OpenAI-compatible server (vLLM on the "
+                         "cluster; needs --base-url); 'groq' = free hosted 70B (needs "
+                         "GROQ_API_KEY); 'ollama' = local")
+    ap.add_argument("--base-url", default=None,
+                    help="OpenAI-compatible endpoint for --backend openai, including the "
+                         "/v1 suffix (e.g. http://127.0.0.1:8000/v1)")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="seed sent on every --backend openai call (CONTRACT 'seed' field)")
+    ap.add_argument("--chat-template-kwargs", default=None,
+                    help="JSON object forwarded to the server's chat template for "
+                         "--backend openai, e.g. '{\"enable_thinking\": false}'")
     ap.add_argument("--arm", action="append", choices=list(ARM_CHOICES), default=None,
                     help="additive Phase-2 arm to run; repeatable. Choices: "
                          + ", ".join(ARM_CHOICES))
@@ -1472,9 +1497,14 @@ def main(argv: list[str] | None = None) -> int:
     model = a.model
     if a.backend == "groq" and model == "llama3.2:3b":
         model = "llama-3.3-70b-versatile"  # sensible default for the groq backend
+    if a.backend == "openai" and not a.base_url:
+        print("[setup] --backend openai needs --base-url (e.g. http://127.0.0.1:8000/v1).")
+        return 0
+    template_kwargs = json.loads(a.chat_template_kwargs) if a.chat_template_kwargs else None
     return run(model, a.host, a.n_items, a.data, a.out, a.arm, a.taxonomy,
                a.curve_cap, a.num_predict, a.timeout, a.backend,
-               a.specificity_holdout, a.resume)
+               a.specificity_holdout, a.resume, base_url=a.base_url, seed=a.seed,
+               chat_template_kwargs=template_kwargs)
 
 
 if __name__ == "__main__":

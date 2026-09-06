@@ -1,0 +1,3 @@
+# Re-run the forced-logprob unit check under the run's own chat template.
+# MODEL	SUBSTRATE	CUE	KEY=VALUE...
+Qwen/Qwen3-8B	arc_challenge	stated-hint	BCF_TP=1	BCF_PORT=8200
