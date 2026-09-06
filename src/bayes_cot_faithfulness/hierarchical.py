@@ -10,12 +10,19 @@ rest.
 
 Model (logit outcome, shared mediator noise)::
 
-    M_ig | X_ig ~ Normal(gamma_g * X_ig, sigma_m)
-    Y_ig | X_ig, M_ig ~ Bernoulli(sigmoid(alpha_g * X_ig + beta_g * M_ig))
+    M_ig | X_ig ~ Normal(mu_m + gamma_g * X_ig, sigma_m)
+    Y_ig | X_ig, M_ig ~ Bernoulli(sigmoid(mu_0 + alpha_g * X_ig + beta_g * M_ig))
 
     alpha_g ~ Normal(mu_alpha, tau_alpha)     # population spread of the direct path
     beta_g  ~ Normal(mu_beta,  tau_beta)      # population spread of the faithful path
     gamma_g ~ Normal(mu_gamma, tau_gamma)
+
+``mu_0`` (population outcome intercept) and ``mu_m`` (mediator intercept) are
+the baselines added in the 2026-09-07 estimator repair, and are on by default.
+Without them the model asserts ``E[M | X=0] = 0`` and a clean-arm answer rate of
+0.5 in every group, and on a mediator with a natural baseline level it reads
+that level as a treatment shift. ``intercepts=False`` restores the pre-repair
+graph exactly, variable names included.
 
 The population mean ``mu_beta`` is the model-level faithfulness slope with the
 right uncertainty; ``tau_beta`` says how much prompts disagree. A non-centred
@@ -62,6 +69,8 @@ class HierarchicalCoTConfig:
     min_per_group: int = 30
     max_per_group: int = 250
     rng_seed: int = 42
+    mu_m: float = 0.0
+    mu_0: float = 0.0
 
 
 def simulate_hierarchical_cot(
@@ -89,8 +98,8 @@ def simulate_hierarchical_cot(
     for gi in range(g):
         n = int(n_per[gi])
         X = rng.binomial(1, 0.5, size=n)
-        M = rng.normal(gamma_g[gi] * X, config.sigma_m)
-        logit = alpha_g[gi] * X + beta_g[gi] * M
+        M = rng.normal(config.mu_m + gamma_g[gi] * X, config.sigma_m)
+        logit = config.mu_0 + alpha_g[gi] * X + beta_g[gi] * M
         Y = rng.binomial(1, 1.0 / (1.0 + np.exp(-logit)))
         groups.append(np.full(n, gi))
         Xs.append(X)
@@ -105,6 +114,8 @@ def simulate_hierarchical_cot(
         "mu_alpha": np.array(config.mu_alpha),
         "mu_beta": np.array(config.mu_beta),
         "mu_gamma": np.array(config.mu_gamma),
+        "mu_m": np.array(config.mu_m),
+        "mu_0": np.array(config.mu_0),
     }
     return (
         np.concatenate(groups).astype(int),
@@ -144,10 +155,15 @@ def simulate_hierarchical_cot_ext(
     for gi in range(g):
         n = int(n_per[gi])
         X = rng.binomial(1, 0.5, size=n)
-        M = rng.normal(gamma_g[gi] * X, config.sigma_m)
+        M = rng.normal(config.mu_m + gamma_g[gi] * X, config.sigma_m)
         h = rng.integers(0, n_hint_types, size=n)
         c = rng.normal(0.0, 1.0, size=n)
-        logit = alpha_g[gi] * X + (beta_g[gi] + beta_h[h]) * M + covariate_effect * c
+        logit = (
+            config.mu_0
+            + alpha_g[gi] * X
+            + (beta_g[gi] + beta_h[h]) * M
+            + covariate_effect * c
+        )
         Y = rng.binomial(1, 1.0 / (1.0 + np.exp(-logit)))
         groups.append(np.full(n, gi))
         Xs.append(X)
@@ -182,12 +198,16 @@ def build_hierarchical_model(
     covariates: np.ndarray | None = None,
     covariate_names: list[str] | None = None,
     hint_type: np.ndarray | None = None,
+    intercepts: bool = True,
 ) -> "pm.Model":
     """Construct the (optionally extended) mediation model without sampling.
     Factored out of ``fit_hierarchical_mediation`` so the graph can be inspected in
-    fast tests. With no optional arguments the returned model is identical to v1.
-    ``covariates`` must be standardized by the CALLER (shape ``(n_obs, k)``);
-    ``hint_type`` is contiguous int codes like ``group``.
+    fast tests. ``covariates`` must be standardized by the CALLER (shape
+    ``(n_obs, k)``); ``hint_type`` is contiguous int codes like ``group``.
+
+    ``intercepts=True`` (the default) adds the population outcome intercept
+    ``mu_0`` and the mediator intercept ``mu_m``; ``intercepts=False`` with no
+    other optional arguments returns the v1 graph, variable-for-variable.
     """
     import pymc as pm
 
@@ -215,8 +235,16 @@ def build_hierarchical_model(
         beta_g = pm.Deterministic("beta_g", mu_beta + tau_beta * z_beta)
         gamma_g = pm.Deterministic("gamma_g", mu_gamma + tau_gamma * z_gamma)
 
-        pm.Normal("M_obs", mu=gamma_g[group] * X, sigma=sigma_m, observed=M)
+        mean_m = gamma_g[group] * X
         logit_y = alpha_g[group] * X + beta_g[group] * M
+        if intercepts:
+            # Scale-aware mediator baseline (a step count sits far from zero);
+            # the outcome baseline stays weakly informative on the logit scale.
+            mu_m = pm.Normal("mu_m", float(np.mean(M)), float(max(np.std(M), 1.0)))
+            mu_0 = pm.Normal("mu_0", 0.0, 1.5)
+            mean_m = mu_m + mean_m
+            logit_y = mu_0 + logit_y
+        pm.Normal("M_obs", mu=mean_m, sigma=sigma_m, observed=M)
         if hint_type is not None:
             logit_y = logit_y + _hint_type_term(X, M, hint_type)
         if covariates is not None:
@@ -275,6 +303,7 @@ def fit_hierarchical_mediation(
     covariates: np.ndarray | None = None,
     covariate_names: list[str] | None = None,
     hint_type: np.ndarray | None = None,
+    intercepts: bool = True,
 ) -> "az.InferenceData":
     """Fit the partially-pooled mediation model with a non-centred parameterisation.
 
@@ -283,7 +312,11 @@ def fit_hierarchical_mediation(
 
     The optional ``covariates`` (standardized by the caller, shape ``(n_obs, k)``),
     ``covariate_names`` and ``hint_type`` (contiguous int codes) turn on the T12 and
-    A2 extensions; omit them all and the fit is identical to the v1 model.
+    A2 extensions.
+
+    ``intercepts=True`` (the default) fits the repaired model with the population
+    outcome intercept ``mu_0`` and the mediator intercept ``mu_m``. Pass
+    ``intercepts=False`` and no extension arguments to reproduce a v1 fit.
     """
     import pymc as pm
 
@@ -292,6 +325,7 @@ def fit_hierarchical_mediation(
         covariates=covariates,
         covariate_names=covariate_names,
         hint_type=hint_type,
+        intercepts=intercepts,
     )
 
     with model:

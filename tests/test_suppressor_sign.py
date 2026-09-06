@@ -30,7 +30,7 @@ from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
     breakdown_frontier,
     fit_probit_mediation_map,
-    probit_natural_effects,
+    natural_effects_from_fit,
     simulate_confounded_cot,
 )
 from bayes_cot_faithfulness.synthetic import SyntheticCoTConfig
@@ -49,11 +49,9 @@ def test_probit_fit_recovers_negative_mediated_path() -> None:
         n_prompts=6_000, alpha_direct=0.3, beta_mediated=-1.0, rho_confound=0.0, rng_seed=7
     )
     X, M, Y = simulate_confounded_cot(cfg)
-    alpha, beta, gamma, sigma_m = fit_probit_mediation_map(X, M, Y, rho=0.0)
-    assert beta < -0.5
-    nde, nie, _ = probit_natural_effects(
-        alpha, beta, gamma, sigma_m, rho=0.0, n_mc=50_000, rng_seed=0
-    )
+    fit = fit_probit_mediation_map(X, M, Y, rho=0.0)
+    assert fit.beta < -0.5
+    _, nie, _ = natural_effects_from_fit(fit, rho=0.0, n_mc=50_000, rng_seed=0)
     assert nie < -0.02
 
 

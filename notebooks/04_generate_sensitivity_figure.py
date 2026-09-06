@@ -26,6 +26,7 @@ from bayes_cot_faithfulness.sensitivity import (
     ConfoundedCoTConfig,
     breakdown_frontier,
     fit_probit_mediation_map,
+    natural_effects_from_fit,
     probit_natural_effects,
     robustness_interval,
     sensitivity_sweep,
@@ -58,9 +59,9 @@ def main() -> None:
 
     # --- correctness gate -------------------------------------------------
     # (1) the sweep's rho=0 point reproduces a direct rho=0 computation.
-    a0, b0, g0, s0 = fit_probit_mediation_map(X, M, Y, 0.0)
-    nde0_direct, nie0_direct, _ = probit_natural_effects(
-        a0, b0, g0, s0, 0.0, n_mc=N_MC, rng_seed=SWEEP_SEED
+    fit0 = fit_probit_mediation_map(X, M, Y, 0.0)
+    nde0_direct, nie0_direct, _ = natural_effects_from_fit(
+        fit0, 0.0, n_mc=N_MC, rng_seed=SWEEP_SEED
     )
     i0 = int(np.argmin(np.abs(rhos - 0.0)))
     assert abs(nie[i0] - nie0_direct) < 1e-9, (

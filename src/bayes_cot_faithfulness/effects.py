@@ -3,14 +3,19 @@
 For the structural model
 
     X ~ Bernoulli(0.5)
-    M | X ~ Normal(gamma * X, sigma_m)
-    Y | X, M ~ Bernoulli(sigmoid(alpha * X + beta * M))
+    M | X ~ Normal(mu_m + gamma * X, sigma_m)
+    Y | X, M ~ Bernoulli(sigmoid(alpha0 + alpha * X + beta * M))
 
 the natural direct effect (NDE) and natural indirect effect (NIE) on the
 probability of Y are integrals over the mediator distribution. We compute
 them by Monte Carlo integration, both for ground truth (using the true
 parameters of the data-generating process) and for posterior estimates
 (using draws from a fitted Bayesian model).
+
+``mu_m`` and ``alpha0`` are the baseline intercepts added in the 2026-09-07
+estimator repair. Omit them and the computation is the pre-repair one, which is
+correct only when the mediator really is centred at zero in the control arm and
+the clean-arm answer rate really is 0.5.
 """
 
 from __future__ import annotations
@@ -67,12 +72,13 @@ def monte_carlo_true_effects(
     """
     rng = np.random.default_rng(rng_seed)
 
-    m_under_x0 = rng.normal(0.0, config.sigma_m, size=n_mc)
-    m_under_x1 = rng.normal(config.gamma_xm, config.sigma_m, size=n_mc)
+    m_under_x0 = rng.normal(config.mu_m, config.sigma_m, size=n_mc)
+    m_under_x1 = rng.normal(config.mu_m + config.gamma_xm, config.sigma_m, size=n_mc)
 
-    py_x0_m0 = _sigmoid(config.alpha_direct * 0 + config.beta_mediated * m_under_x0).mean()
-    py_x1_m0 = _sigmoid(config.alpha_direct * 1 + config.beta_mediated * m_under_x0).mean()
-    py_x1_m1 = _sigmoid(config.alpha_direct * 1 + config.beta_mediated * m_under_x1).mean()
+    a0 = config.alpha0
+    py_x0_m0 = _sigmoid(a0 + config.alpha_direct * 0 + config.beta_mediated * m_under_x0).mean()
+    py_x1_m0 = _sigmoid(a0 + config.alpha_direct * 1 + config.beta_mediated * m_under_x0).mean()
+    py_x1_m1 = _sigmoid(a0 + config.alpha_direct * 1 + config.beta_mediated * m_under_x1).mean()
 
     nde = py_x1_m0 - py_x0_m0
     nie = py_x1_m1 - py_x1_m0
@@ -88,17 +94,32 @@ def posterior_natural_effects(
     n_mc_per_draw: int = 2_000,
     cri: float = 0.95,
     rng_seed: int = 0,
+    mu_m_samples: np.ndarray | None = None,
+    alpha0_samples: np.ndarray | None = None,
 ) -> PosteriorEffects:
     """Compute posterior over NDE / NIE / TE from MCMC parameter samples.
 
-    For each posterior draw (alpha, beta, gamma, sigma_m), we do a small Monte
-    Carlo integration over the mediator distribution to convert from the
-    coefficients to the probability-scale effects.
+    For each posterior draw (alpha, beta, gamma, sigma_m, mu_m, alpha0), we do a
+    small Monte Carlo integration over the mediator distribution to convert from
+    the coefficients to the probability-scale effects.
+
+    ``mu_m_samples`` and ``alpha0_samples`` are the baseline-intercept draws from
+    a model fitted with ``intercepts=True``; pass them whenever the fit had
+    intercepts, or the effects are integrated against the wrong mediator
+    distribution and the wrong clean-arm baseline. Omitting them (the default)
+    treats both intercepts as exactly zero, which is the pre-2026-09-07
+    behaviour.
     """
     rng = np.random.default_rng(rng_seed)
     n_draws = len(alpha_samples)
     if not (len(beta_samples) == len(gamma_samples) == len(sigma_m_samples) == n_draws):
         raise ValueError("All posterior sample arrays must have the same length.")
+    mu_m_samples = np.zeros(n_draws) if mu_m_samples is None else np.asarray(mu_m_samples)
+    alpha0_samples = (
+        np.zeros(n_draws) if alpha0_samples is None else np.asarray(alpha0_samples)
+    )
+    if len(mu_m_samples) != n_draws or len(alpha0_samples) != n_draws:
+        raise ValueError("Intercept sample arrays must match the other draws in length.")
 
     nde_samples = np.empty(n_draws)
     nie_samples = np.empty(n_draws)
@@ -108,13 +129,15 @@ def posterior_natural_effects(
         beta = beta_samples[i]
         gamma = gamma_samples[i]
         sigma_m = sigma_m_samples[i]
+        mu_m = mu_m_samples[i]
+        alpha0 = alpha0_samples[i]
 
-        m0 = rng.normal(0.0, sigma_m, size=n_mc_per_draw)
-        m1 = rng.normal(gamma, sigma_m, size=n_mc_per_draw)
+        m0 = rng.normal(mu_m, sigma_m, size=n_mc_per_draw)
+        m1 = rng.normal(mu_m + gamma, sigma_m, size=n_mc_per_draw)
 
-        py_x0_m0 = _sigmoid(alpha * 0 + beta * m0).mean()
-        py_x1_m0 = _sigmoid(alpha * 1 + beta * m0).mean()
-        py_x1_m1 = _sigmoid(alpha * 1 + beta * m1).mean()
+        py_x0_m0 = _sigmoid(alpha0 + alpha * 0 + beta * m0).mean()
+        py_x1_m0 = _sigmoid(alpha0 + alpha * 1 + beta * m0).mean()
+        py_x1_m1 = _sigmoid(alpha0 + alpha * 1 + beta * m1).mean()
 
         nde_samples[i] = py_x1_m0 - py_x0_m0
         nie_samples[i] = py_x1_m1 - py_x1_m0

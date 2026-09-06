@@ -2,13 +2,20 @@
 
 The model jointly fits:
 
-    Mediator equation:   M | X ~ Normal(gamma * X, sigma_m)
-    Outcome equation:    Y | X, M ~ Bernoulli(sigmoid(alpha * X + beta * M))
+    Mediator equation:   M | X ~ Normal(mu_m + gamma * X, sigma_m)
+    Outcome equation:    Y | X, M ~ Bernoulli(sigmoid(alpha0 + alpha * X + beta * M))
 
 with weakly informative priors. Posterior samples over (alpha, beta, gamma,
-sigma_m) are then converted into a posterior over the natural direct and
-natural indirect effects on the probability scale by Monte Carlo integration
-(see ``effects.posterior_natural_effects``).
+sigma_m, mu_m, alpha0) are then converted into a posterior over the natural
+direct and natural indirect effects on the probability scale by Monte Carlo
+integration (see ``effects.posterior_natural_effects``).
+
+``mu_m`` and ``alpha0`` are the baseline intercepts added in the 2026-09-07
+estimator repair and are on by default. Without them the model asserts
+``E[M | X=0] = 0`` and a clean-arm answer rate of 0.5, and on a mediator with a
+natural baseline level (a CoT step count, a truncation depth) it reads that
+level as a treatment shift and reports mediation where there is none. Pass
+``intercepts=False`` only to reproduce a pre-repair fit.
 """
 
 from __future__ import annotations
@@ -31,6 +38,7 @@ def fit_mediation_model(
     target_accept: float = 0.95,
     random_seed: int = 0,
     progressbar: bool = True,
+    intercepts: bool = True,
 ) -> "az.InferenceData":
     """Fit a Bayesian mediation model and return posterior samples.
 
@@ -42,11 +50,16 @@ def fit_mediation_model(
         Continuous CoT-as-mediator.
     Y : ndarray of shape (n,), int
         Binary answer.
+    intercepts : bool
+        ``True`` (default) adds the mediator baseline ``mu_m`` and the outcome
+        baseline ``alpha0``. ``False`` restores the pre-2026-09-07 model, whose
+        graph and variable names are unchanged.
 
     Returns
     -------
     arviz.InferenceData
-        Trace with posterior samples for alpha, beta, gamma, sigma_m.
+        Trace with posterior samples for alpha, beta, gamma, sigma_m and, when
+        ``intercepts`` is on, mu_m and alpha0.
     """
     import pymc as pm
 
@@ -65,10 +78,17 @@ def fit_mediation_model(
         gamma = pm.Normal("gamma", mu=0.0, sigma=1.5)
         sigma_m = pm.HalfNormal("sigma_m", sigma=1.0)
 
-        mu_m = gamma * X
-        pm.Normal("M_obs", mu=mu_m, sigma=sigma_m, observed=M)
-
+        mean_m = gamma * X
         logit_y = alpha * X + beta * M
+        if intercepts:
+            # Weakly informative and scale-aware: the mediator baseline prior is
+            # centred on the observed control-arm level rather than on zero, so a
+            # step count in the tens is not fought by the prior.
+            mu_m = pm.Normal("mu_m", mu=float(np.mean(M)), sigma=float(_prior_scale(M)))
+            alpha0 = pm.Normal("alpha0", mu=0.0, sigma=1.5)
+            mean_m = mu_m + mean_m
+            logit_y = alpha0 + logit_y
+        pm.Normal("M_obs", mu=mean_m, sigma=sigma_m, observed=M)
         pm.Bernoulli("Y_obs", logit_p=logit_y, observed=Y)
 
         trace = pm.sample(
@@ -84,13 +104,41 @@ def fit_mediation_model(
     return trace
 
 
+def _prior_scale(M: np.ndarray) -> float:
+    """Prior sd for the mediator baseline: the mediator's own spread, floored."""
+    return float(max(np.std(M), 1.0))
+
+
 def extract_parameter_samples(
     trace: "az.InferenceData",
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Flatten posterior samples for (alpha, beta, gamma, sigma_m)."""
+    """Flatten posterior samples for (alpha, beta, gamma, sigma_m).
+
+    Deliberately unchanged by the intercept repair, so every existing four-way
+    unpack keeps working. Use ``extract_intercept_samples`` for the baselines
+    and pass both into ``effects.posterior_natural_effects``.
+    """
     posterior = trace.posterior
     alpha = posterior["alpha"].values.flatten()
     beta = posterior["beta"].values.flatten()
     gamma = posterior["gamma"].values.flatten()
     sigma_m = posterior["sigma_m"].values.flatten()
     return alpha, beta, gamma, sigma_m
+
+
+def extract_intercept_samples(
+    trace: az.InferenceData,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Flatten posterior samples for the baselines ``(mu_m, alpha0)``.
+
+    A trace from a fit run with ``intercepts=False`` has no such variables; this
+    returns exact zeros of the right length in that case, which is precisely the
+    constraint that fit imposed.
+    """
+    posterior = trace.posterior
+    n_draws = posterior["alpha"].values.size
+    if "mu_m" in posterior:
+        mu_m = posterior["mu_m"].values.flatten()
+        alpha0 = posterior["alpha0"].values.flatten()
+        return mu_m, alpha0
+    return np.zeros(n_draws), np.zeros(n_draws)

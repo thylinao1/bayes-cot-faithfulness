@@ -17,27 +17,36 @@ Probit SCM (see ``sensitivity``)::
 
     X ~ Bernoulli(0.5)
     (eps_M, eps_Y) ~ Normal2(0, [[sigma_m^2, rho*sigma_m], [rho*sigma_m, 1]])
-    M = gamma * X + eps_M
-    Y = 1[alpha * X + beta * M + eps_Y > 0]
+    M = mu_m + gamma * X + eps_M
+    Y = 1[alpha0 + alpha * X + beta * M + eps_Y > 0]
+
+``mu_m`` and ``alpha0`` are the mediator and outcome baseline intercepts added
+in the 2026-09-07 estimator repair. Both default to 0.0, which is the exact
+pre-repair specification, so every historical call keeps its meaning.
 
 Derivation of the closed form
 -----------------------------
 A cross-world potential outcome fixes the direct-path treatment to ``x_prime``
 and draws the mediator from its distribution under ``x``:
 
-    M(x) = gamma * x + eps_M
-    Y(x_prime, M(x)) = 1[ alpha*x_prime + beta*M(x) + eps_Y > 0 ]
-                     = 1[ alpha*x_prime + beta*gamma*x + (beta*eps_M + eps_Y) > 0 ]
+    M(x) = mu_m + gamma * x + eps_M
+    Y(x_prime, M(x)) = 1[ alpha0 + alpha*x_prime + beta*M(x) + eps_Y > 0 ]
+                     = 1[ (alpha0 + beta*mu_m) + alpha*x_prime + beta*gamma*x
+                          + (beta*eps_M + eps_Y) > 0 ]
 
 The bracket is a fixed offset plus the linear combination ``beta*eps_M + eps_Y``
 of a mean-zero bivariate normal, so it is itself univariate normal with
 
-    mean = alpha*x_prime + beta*gamma*x
+    mean = alpha0 + beta*mu_m + alpha*x_prime + beta*gamma*x
     var  = beta^2 * sigma_m^2 + 2*beta*rho*sigma_m + 1     (= Var(beta*eps_M + eps_Y))
 
 Hence, with ``Phi`` the standard-normal CDF,
 
-    P(Y(x_prime, M(x)) = 1) = Phi( (alpha*x_prime + beta*gamma*x) / sqrt(var) )
+    P(Y(x_prime, M(x)) = 1)
+        = Phi( (alpha0 + beta*mu_m + alpha*x_prime + beta*gamma*x) / sqrt(var) )
+
+The intercepts enter only through the shared offset ``alpha0 + beta*mu_m``, so
+``var`` is unchanged and the NIE still vanishes exactly when ``beta*gamma = 0``.
 
 and the probability-scale natural effects follow directly:
 
@@ -70,6 +79,8 @@ def probit_natural_effects_closed_form(
     gamma: float,
     sigma_m: float,
     rho: float,
+    mu_m: float = 0.0,
+    alpha0: float = 0.0,
 ) -> tuple[float, float, float]:
     """Exact probability-scale ``(NDE, NIE, TE)`` for the probit SCM.
 
@@ -84,6 +95,10 @@ def probit_natural_effects_closed_form(
         The probit structural parameters. ``rho`` is the residual correlation
         between the mediator and outcome errors (``rho = 0`` is sequential
         ignorability).
+    mu_m, alpha0:
+        Mediator and outcome baseline intercepts. Both default to 0.0, the
+        pre-2026-09-07 specification, so existing five-argument calls are
+        unchanged.
 
     Returns
     -------
@@ -101,8 +116,10 @@ def probit_natural_effects_closed_form(
         raise ValueError("Degenerate latent variance; check (beta, sigma_m, rho).")
     sd = np.sqrt(var)
 
+    offset = alpha0 + beta * mu_m
+
     def p(x_prime: int, x: int) -> float:
-        return float(norm.cdf((alpha * x_prime + beta * gamma * x) / sd))
+        return float(norm.cdf((offset + alpha * x_prime + beta * gamma * x) / sd))
 
     py_x0_m0 = p(0, 0)
     py_x1_m0 = p(1, 0)
