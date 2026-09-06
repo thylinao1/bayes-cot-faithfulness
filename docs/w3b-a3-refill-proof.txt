@@ -1,0 +1,37 @@
+=== PROOF: the A3 refill is additions-only and the frozen guard still bites ===
+date: 2026-09-07T04:41:29+08:00   branch: amend/a3
+
+### 1. git diff against main on the pre-registration: additions only
+$ git diff main --numstat -- experiments/PREREGISTRATION_jury_and_scale.md
+  735	0	experiments/PREREGISTRATION_jury_and_scale.md
+  lines in the raw diff opening with '-' (the file header is the only one):
+    --- a/experiments/PREREGISTRATION_jury_and_scale.md
+  the other frozen files are byte-identical to main:
+    src/bayes_cot_faithfulness/interventions.py: unchanged
+    experiments/groq_client.py: unchanged
+    experiments/ollama_client.py: unchanged
+    experiments/PREREGISTRATION.md: unchanged
+    experiments/PREREGISTRATION_phase2_arms.md: unchanged
+    experiments/PREREGISTRATION_uncertain_items.md: unchanged
+
+### 2. the guard passes at the re-pinned fingerprint
+tests/test_frozen_guard.py .....                                         [100%]
+
+============================== 5 passed in 0.56s ===============================
+  exit=0
+
+### 3. the guard is PROVEN able to fail: one byte appended to the section file
+E     - b2246bbf929575e011f0b379c1be7d56ed0eb7681cfb27b2e70894f908b3df1a
+E     + 077f9b43c1816c395b4e964d52142f316fe4430cfce0b6f44848b197045016e3
+=========================== short test summary info ============================
+FAILED tests/test_frozen_guard.py::test_preregistration_files_unchanged - Ass...
+========================= 1 failed, 4 passed in 0.45s ==========================
+  exit=1
+  restored; sha256 is now b2246bbf929575e011f0b379c1be7d56ed0eb7681cfb27b2e70894f908b3df1a
+
+### 4. green again, and the numstat is unchanged
+tests/test_frozen_guard.py .....                                         [100%]
+
+============================== 5 passed in 0.44s ===============================
+  exit=0
+  735	0	experiments/PREREGISTRATION_jury_and_scale.md

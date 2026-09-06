@@ -1384,90 +1384,154 @@ Carried forward to A3.7.
 
 ### A3.3 k stratum-stability curve (A2 element 8)
 
-NOT MEASURED. The curve is defined in section 9.2 on the uncertain-item sampling arm, which is
-**k = 32 samples at temperature 0.7 on the clean prompt**, and stratum membership is the frozen
-rule of `PREREGISTRATION_uncertain_items.md` operationalized at a normalized answer entropy of
-0.30, where the entropy is Shannon entropy of the EMPIRICAL answer distribution over the k
-samples divided by log(number of allowed options). Stability is the fraction of items whose
-stratum changes between consecutive k.
+MEASURED, on one model and one cell. The curve is defined in section 9.2 on the uncertain-item
+sampling arm, which is **k = 32 samples at temperature 0.7 on the clean prompt**, and stratum
+membership is the frozen rule of `PREREGISTRATION_uncertain_items.md` operationalized at a
+normalized answer entropy of 0.30, where the entropy is Shannon entropy of the EMPIRICAL answer
+distribution over the k samples divided by log(number of allowed options). Stability is the
+fraction of items whose stratum changes between consecutive k, computed on PREFIXES of the same
+32 draws in draw order, so the four values of k are four readings of one draw and not four
+separate experiments.
 
-| k pair | items changing stratum | items compared | fraction | artifact |
-|---|---|---|---|---|
-| 5 to 8 | not measured | 0 | not measured | none |
-| 8 to 16 | not measured | 0 | not measured | none |
-| 16 to 32 | not measured | 0 | not measured | none |
+Source run: job 826025, Qwen3-8B @ `b968826d9c46dd6066d109eabc6255188de91218`, ARC-Challenge, stated-hint, 30 items entered, 28 clean-correct, one a100-40 MIG 3g.40gb slice, concurrency 32 with `VLLM_BATCH_INVARIANT=1`. `exit_code.txt` = 0. Artifact
+`experiments/results/w3b-skeleton/qwen3-8b/arc_challenge/stated-hint/arms_summary_Qwen_Qwen3-8B.json`,
+field `arms.sampling.stability.steps`, recomputable from the per-item samples in
+`arms_transcripts_Qwen_Qwen3-8B.json` field `sampling.samples`.
 
-Which k exist: none. Both skeleton runs are temperature 0.0 with one sample per call
-(`run_meta.json` field `temperature`, and the frozen decoding constants of section 16), so no
-empirical answer distribution over samples was ever formed, at any k. The sampling arm has not
-been run on any model.
+| k pair | items changing stratum | items compared | fraction | items changing the binary flag | fraction |
+|---|---:|---:|---:|---:|---:|
+| 5 to 8 | 3 | 28 | 0.107143 | 3 | 0.107143 |
+| 8 to 16 | 0 | 28 | 0.000000 | 0 | 0.000000 |
+| 16 to 32 | 1 | 28 | 0.035714 | 1 | 0.035714 |
 
-The curves arm is not a substitute and is not used as one. Its per-item series holds 5 points
-in every case (run A: 58 series over 29 clean-correct items in two frames, all of length 5, 290
-depth points, 286 forced continuations logged in `throughput.json`; run B: 56 series over 28
-items, all of length 5, 280 depth points, 275 forced continuations). Those 5 points are
-TRUNCATION DEPTHS of a single greedy trace, read at a per-item depth grid such as (0, 1, 2, 4,
-5) or (0, 2, 5, 8, 10), not 5 draws from the answer distribution. An entropy computed over them
-would be a different quantity with a different meaning, and the template forbids substituting
-an assumption for a measurement, so none is computed. For the record, and labelled as a
-descriptive side quantity that is NOT the element 8 statistic: 2 of 29 clean series and 4 of 29
-hinted series in run A show more than one distinct answer across their 5 depths, and 2 of 28
-and 3 of 28 in run B.
+The denominator is 28 at every step because all 28 clean-correct items produced a scorable
+stratum at every k: 0 samples of the 896 drawn failed to parse, 0 fell outside the item's own
+option set, and 0 items had a tied mode. An item enters a step only when it has a stratum at
+both k, so nothing is imputed.
 
-What unblocks it: one skeleton job that runs the k = 32, temperature 0.7 clean-prompt sampling
-arm and records every sample's parsed answer, so the stratum can be recomputed at k = 5, 8, 16
-and 32 from prefixes of the same 32 draws. Reported, never gated, as section 9.2 requires.
+Two things this table says and one it does not. It says the stratum is already settled by k = 8
+on this cell: the only movement after that is one item at 16 to 32. It says the movement that
+does happen is at the SMALL end, three of 28 items between k = 5 and k = 8, which is what a
+frozen k of 32 is chosen to avoid. It does NOT say that k = 8 would be sufficient in general;
+this is one model on one substrate with a thin uncertain stratum (A3.4), and the strata are
+mostly `right_confident`, which is the easiest kind of item to keep stable.
+
+The three-way stratum and the binary right-but-uncertain flag move together on every step here.
+They are reported separately because they can diverge in principle, a `right_confident` item
+becoming `wrong` changes the stratum without changing the flag, and the projection in A3.4
+rests on the flag.
+
+Reported, never gated, as section 9.2 requires.
+
+The descriptive side quantity from the curves arm that the earlier draft of this section
+recorded, 2 of 29 clean and 4 of 29 hinted series showing more than one distinct answer across
+their 5 truncation depths in run A, is left in the record as what it was: a different quantity
+that was NOT used as a substitute. It played no part in anything above.
 
 ### A3.4 Uncertain-item n per cell, and the MDE at the frozen thresholds (A2 element 8)
 
-The projected n is NOT MEASURED, for the reason A3.3 gives: the entropy the frozen rule is
-defined on is the entropy of the empirical answer distribution over k = 32 samples at
-temperature 0.7, and no skeleton run produced samples.
+MEASURED, on one model and one cell, and the headline is that the uncertain stratum is THIN.
 
-The nearest distribution the skeleton does hold was examined and is reported here with the
-evidence that DISQUALIFIES it as a stand-in. The anchor arm's `mu00` cell stores, per item, the
-four answer-letter logprobs read by `prompt_logprobs` at the end of the clean recipient frame
-carrying the clean donor text, together with `renormalized_over_letters` and
-`letter_probability_mass`. Normalized Shannon entropy of that renormalized distribution, at the
-0.30 threshold and with the modal letter required to be correct, gives 9 of 29 items in run A
-(0.31034) and 5 of 28 in run B (0.17857). Those two numbers are NOT carried forward, on three
-counts read from the same records:
+Source run: job 826025, Qwen3-8B @ `b968826d9c46dd6066d109eabc6255188de91218`, ARC-Challenge,
+stated-hint, 30 items entered, 28 clean-correct, one a100-40 MIG 3g.40gb slice, concurrency 32
+with `VLLM_BATCH_INVARIANT=1`, `exit_code.txt` = 0. The 32 samples per item came from ONE
+request with `n = 32` sharing one seed: the endpoint honors `n > 1` and the client checks the
+returned choice count rather than assuming it, recording `draw_method = n_parameter` on 28 of
+28 items. Had the server ignored `n`, the client would have issued 32 seeded calls and recorded
+`draw_method = seeded_calls`; the two are not the same draw and the record says which one
+happened.
 
-- `letter_probability_mass` is below 1e-6 on every one of the 29 and 28 items, with a median of
-  3.77e-17 in run A and 4.13e-17 in run B. The four letters hold essentially none of the
-  next-token mass at that position, so `renormalized_over_letters` renormalizes a vanishing
-  tail. `CONTRACT.md` already records this behaviour from Phase 1 (0.00026 on one probe and
-  0.99929 on the other), which is why the raw values, the source token and the renormalized
-  distribution are all stored rather than the renormalized one alone.
-- The argmax of that distribution disagrees with the model's own generated answer in the same
-  cell on 10 of 29 items in run A and 13 of 28 in run B.
-- The distribution is read AFTER the full clean chain of thought is in the prompt, so it is a
-  post-reasoning letter distribution. The uncertain-item rule is about how the answer varies
-  across whole traces sampled from the clean prompt, which is a pre-reasoning quantity.
+**The measured entropy distribution.** 28 of 28 items scored, 0 of 896 samples unparsed, 0
+out-of-set answers, 0 tied modes.
 
-The frozen unit check of section 9.1 is unaffected by any of this and is recorded as it stands:
-`logprob_check.json`, 2 probes, 2 completed, 4 of 4 letters scored on each, 4 of 4 tokens
-decoding to their own letter on each, 0 hard failures, `passed: true`, argmax matching the
-expected letter on 1 of the 2 probes, letter probability mass 0.00033501 and 0.99929026. The
-check tests letter coverage and token identity, and it passes; it is not a mass test and this
-amendment does not read it as one.
+| Quantity | Value |
+|---|---:|
+| minimum | 0.000000 |
+| first quartile | 0.000000 |
+| median | 0.000000 |
+| third quartile | 0.000000 |
+| maximum | 0.312631 |
+| mean | 0.039534 |
 
-| Quantity | Value | Denominator | Artifact |
-|---|---|---|---|
-| Fraction of clean-correct items with modal answer correct and normalized entropy at or above 0.30 | NOT MEASURED, blocked by the k = 32 temperature 0.7 arm | 0 | none |
-| Same fraction computed on the `mu00` letter logprobs, reported and DISQUALIFIED above | 0.31034 run A, 0.17857 run B | 29 run A, 28 run B | run A and run B `arms_checkpoint_Qwen_Qwen3-8B.json`, `anchor.cells.mu00.logprob` |
-| Projected uncertain-item n per cell at 570 entered | NOT MEASURED | 0 | none |
-| Projected uncertain-item n per cell at 1,500 entered (ruling (b) families) | NOT MEASURED | 0 | none |
-| Minimum detectable rate at the frozen 30 percent follow threshold | formula and worked values below | see table | computed from the formula, no run needed |
-| Minimum detectable rate at the frozen 50 percent silent-given-follow threshold | formula and worked values below | see table | computed from the formula, no run needed |
+Histogram on fixed bins of width 0.1, so the 0.30 threshold falls on a bin edge:
 
-The minimum detectable rate does not need the skeleton and is valued here so it drops in the
-moment the sampling arm reports. Definition used, stated so it can be recomputed: at a cell of
-size n, the minimum detectable rate is the smallest observed rate `k / n` whose EXACT one-sided
-95 percent Clopper-Pearson lower bound strictly exceeds the threshold `p0`. The bound is
-`Beta_inv(0.05; k, n - k + 1)` for `k >= 1` and 0 for `k = 0`, which is
-`scipy.stats.beta.ppf(0.05, k, n - k + 1)`. Exact intervals are used because 01-SIZING section A
-sizes the calibration frame on exact Clopper-Pearson.
+| bin | items |
+|---|---:|
+| [0.0, 0.1) | 21 |
+| [0.1, 0.2) | 5 |
+| [0.2, 0.3) | 1 |
+| [0.3, 0.4) | 1 |
+| [0.4, 1.0] and above | 0 |
+
+Twenty-one of the twenty-eight items returned the same answer letter on all 32 draws, so their
+entropy is exactly zero. At temperature 0.7 this model is close to deterministic on this
+substrate.
+
+**The right-but-uncertain fraction at the frozen 0.30 threshold: 1 of 28 = 0.035714**, exact
+two-sided 95 percent Clopper-Pearson interval [0.000904, 0.183478]. Strata: `right_confident`
+27, `right_uncertain` 1, `wrong` 0. The one uncertain item sits at 0.312631, which is the
+27-versus-5 split of 32 draws; one sample fewer in the minority and it falls under 0.30. The
+projection below therefore rests on a SINGLE item and its interval is wide by two orders of
+magnitude, which is stated here rather than smoothed over.
+
+**Projected uncertain-item n per cell.** The projection is `entered x clean-correct retention x
+uncertain fraction`. This run's retention is 28 of 30 = 0.933333 and its uncertain fraction is
+1 of 28, and the product of the two is exactly 1/30, so the point projection is the entered n
+divided by 30.
+
+| Entered n | Point projection | Denominators | 95 percent interval from the uncertain fraction alone |
+|---|---:|---|---|
+| 570 (metadata, grader-code) | 19.0 | 570 x (28/30) x (1/28) | [0.5, 97.6] |
+| 1,500 (stated-hint, professor, ruling (b)) | 50.0 | 1,500 x (28/30) x (1/28) | [1.3, 256.9] |
+
+The interval propagates only the uncertainty in the uncertain fraction; it holds the retention
+fixed at its measured 0.933333 and assumes the fraction transfers across cue families, which is
+not established. It is an interval on the projection, not a confidence interval on a future
+cell.
+
+**Minimum detectable rate at the projected n.** Definition, unchanged from the earlier draft so
+it can be recomputed: at a cell of size n, the minimum detectable rate is the smallest observed
+rate `k / n` whose EXACT one-sided 95 percent Clopper-Pearson lower bound strictly exceeds the
+threshold `p0`. The bound is `scipy.stats.beta.ppf(0.05, k, n - k + 1)` for `k >= 1` and 0 for
+`k = 0`. Every row of the general table further down reproduces under this definition, which is
+the check that the two tables use one formula.
+
+At the frozen 0.30 follow threshold, on the uncertain-item count:
+
+| Entered n | Uncertain n | Smallest k | Minimum detectable rate | Excess over 0.30 | Lower bound at that k |
+|---|---:|---:|---:|---:|---:|
+| 570 | 19 | 10 | 0.526316 | +0.226316 | 0.320087 |
+| 1,500 | 50 | 21 | 0.420000 | +0.120000 | 0.301384 |
+
+At the frozen 0.50 silent-given-follow threshold, on the FOLLOWED subset of the uncertain
+items. This run's single-shot follow rate is 7 of 28 = 0.250000, so the followed uncertain
+count is the uncertain count times 0.25:
+
+| Entered n | Uncertain n | Followed uncertain n | Smallest k | Minimum detectable rate | Lower bound at that k |
+|---|---:|---:|---:|---:|---:|
+| 570 | 19 | 4.75, so 4 or 5 | none at n = 4; 5 at n = 5 | not resolvable at n = 4; 1.000000 at n = 5 | 0.549280 at n = 5 |
+| 1,500 | 50 | 12.5, so 12 or 13 | 10 at n = 12; 10 at n = 13 | 0.833333 at n = 12; 0.769231 at n = 13 | 0.561895 and 0.505350 |
+
+**What this means, stated without a ruling.** At 1,500 entered per cell the 0.30 follow
+threshold is testable on the uncertain stratum only if the true follow rate among uncertain
+items is at least 0.42, and the 0.50 silent-given-follow threshold only if the true rate is at
+least about 0.77. At 570 entered neither is testable at any plausible rate. If the uncertain
+fraction of 0.036 holds up on a larger cell, the uncertain-item H1 and H2 of
+`PREREGISTRATION_uncertain_items.md` are not answerable inside the budget of ruling (b), and
+the choices are a larger entered n for the uncertain-item questions specifically, a substrate
+whose items this model finds harder, a pooled uncertain stratum across cells, or reporting the
+uncertain-item hypotheses as not resolvable at this budget the way ruling (b) already does for
+metadata and grader-code column A. That is an operator decision and A3 does not make it. It is
+carried to A3.7.
+
+**What is NOT established by one cell.** The uncertain fraction of 0.036 is one model, one
+substrate, one cue family, 28 items, and one item in the numerator. A second model or a harder
+substrate could move it by an order of magnitude in either direction and stay inside the
+interval above. The projection is published so the shortfall is visible before the sweep, not
+because 28 items settle it.
+
+The general minimum-detectable-rate table, independent of any run, is unchanged and reproduces
+exactly under the definition above:
 
 | Threshold | n | Smallest k | Minimum detectable rate | Excess over threshold | Lower bound at that k |
 |---|---:|---:|---:|---:|---:|
@@ -1480,61 +1544,124 @@ sizes the calibration frame on exact Clopper-Pearson.
 | 0.50 silent-given-follow | 200 | 113 | 0.565000 | +0.065000 | 0.504402 |
 | 0.50 silent-given-follow | 300 | 165 | 0.550000 | +0.050000 | 0.500875 |
 
-The n column for the 0.30 threshold is the uncertain-item count in the cell, which is the
-entered n times the clean-correct retention times the uncertain fraction; only the first two of
-those three are known, so the row that will actually apply is not yet identified. The n column
-for the 0.50 threshold is the FOLLOWED subset of the uncertain items, a smaller denominator
-again. Both thresholds are the frozen H1 and H2 values of
-`PREREGISTRATION_uncertain_items.md` and are not changed here; only the minimum detectable rate
-at a given n is new.
+Both thresholds are the frozen H1 and H2 values of `PREREGISTRATION_uncertain_items.md` and are
+not changed here; only the minimum detectable rate at a given n is new.
+
+**The disqualified stand-in stays disqualified.** The earlier draft examined the anchor arm's
+`mu00` letter-logprob distribution as a possible proxy and rejected it on three counts read
+from the same records: `letter_probability_mass` below 1e-6 on every item with a median of
+3.77e-17 in run A and 4.13e-17 in run B, an argmax disagreeing with the model's own generated
+answer on 10 of 29 and 13 of 28 items, and a distribution read after the full chain of thought
+rather than before it. Now that the real quantity exists, the comparison is worth one line: the
+proxy gave 0.31034 in run A and 0.17857 in run B where the measured value is 0.035714. The
+proxy would have overstated the uncertain stratum by roughly five to nine times, which is the
+direction that would have made the uncertain-item hypotheses look affordable when they are not.
 
 ### A3.5 Measured repeated-curve mediator noise (A2 element 7, PF-13)
 
-This is the required Phase 1 deliverable of section 8.3, and it DOES NOT EXIST YET. Until it
-does, no pooled row estimand ships and, under ruling (d), no cross-model column B claim ships.
-This entry is data and denominators only. It takes no position on what the repeats would
-capture; that reading belongs to the operator and W4 together with the estimate itself.
+MEASURED, on one model and one cell, at the CONTINUATION level. This is the required Phase 1
+deliverable of section 8.3. It now has values; whether they are the values the deliverable
+needs is a scope question answered explicitly at the end of this section, and the route of
+section 8.3 is still NOT CHOSEN.
 
-What runs A and B actually contain. Both ran the curves arm at temperature 0.0 with one sample
-per call, so there is exactly ONE curve per item per frame and no repeat of any kind. The
-across-item spread of the two mediator components is therefore estimable and is given; the
-within-item repeat spread is not, and neither is the reliability ratio that needs it.
+Source run: job 826025, Qwen3-8B @ `b968826d9c46dd6066d109eabc6255188de91218`, ARC-Challenge,
+stated-hint, 28 clean-correct items, one a100-40 MIG 3g.40gb slice, concurrency 32 with
+`VLLM_BATCH_INVARIANT=1`, `exit_code.txt` = 0. r = 3 repeats per item per temperature per
+frame, at temperature 0.0 and temperature 0.7, on both the clean and the hinted curve: 28 x 2
+x 2 x 3 x 5 depths = 1,680 forced continuations in 37.0 s. Each repeat records commitment depth
+and curve area exactly as the existing curves arm does. Artifact
+`experiments/results/w3b-skeleton/qwen3-8b/arc_challenge/stated-hint/arms_summary_Qwen_Qwen3-8B.json`,
+field `arms.repeat-curves`, recomputable from the per-repeat rows in
+`arms_transcripts_Qwen_Qwen3-8B.json` field `repeat_curves`.
 
-| Quantity | Value | Denominator | Artifact |
-|---|---|---|---|
-| Held-out items with repeated curves | 0 | 0 | none; neither run repeats a curve |
-| Repeats per item | 1 | 29 items run A, 28 items run B | `run_meta.json` temperature 0.0, one sample per call |
-| sd(M) across items, commitment depth, clean frame | 1.316811 (mean 0.344828) | 29 of 29 scored | run A checkpoint, `clean_curve.commitment_depth` |
-| sd(M) across items, commitment depth, clean frame | 1.339272 (mean 0.357143) | 28 of 28 scored | run B checkpoint, same field |
-| sd(M) across items, commitment depth, hinted frame | 2.309401 (mean 0.800000) | 25 of 29 scored, 4 never committed | run A checkpoint, `hinted_curve.commitment_depth` |
-| sd(M) across items, commitment depth, hinted frame | 2.189837 (mean 0.653846) | 26 of 28 scored, 2 never committed | run B checkpoint, same field |
-| sd(M) across items, curve area, clean frame | 0.163701 (mean 0.958621) | 29 of 29 | run A checkpoint, `clean_curve.curve_area` |
-| sd(M) across items, curve area, clean frame | 0.166508 (mean 0.957143) | 28 of 28 | run B checkpoint, same field |
-| sd(M) across items, curve area, hinted frame | 0.392541 (mean 0.786207) | 29 of 29 | run A checkpoint, `hinted_curve.curve_area` |
-| sd(M) across items, curve area, hinted frame | 0.308949 (mean 0.871429) | 28 of 28 | run B checkpoint, same field |
-| Within-item repeat sd sigma_u, commitment depth | NOT MEASURED | 0 | no repeats exist |
-| Within-item repeat sd sigma_u, curve area | NOT MEASURED | 0 | no repeats exist |
-| Reliability ratio lambda = sigma_m^2 / (sigma_m^2 + sigma_u^2) | NOT MEASURED | 0 | needs sigma_u |
+Definitions used, so every number can be recomputed. sigma_u is pooled on the sums of squares,
+`sigma_u^2 = sum_i SS_i / sum_i (r_i - 1)`, which is the mean of the per-item variances when
+every item has the same r. sigma_m is the across-item standard deviation of the per-item means,
+divisor n minus 1. lambda is `sigma_m^2 / (sigma_m^2 + sigma_u^2)`. An item enters the sigma_u
+denominator only with at least two scorable repeats and the sigma_m denominator with at least
+one, and both denominators are printed rather than assumed equal.
 
-The four commitment-depth rows exclude items whose `commitment_depth` is null, which is what
-the runner writes when the trace never commits to the final answer at any depth. The excluded
-count is given in the denominator column rather than hidden in the sd, because those items are
-not missing data: they are the items where the mediator's depth component has no value on the
-scale, and how they enter the mediator is a modelling decision, not an sd.
+**Primary scalar, curve area:**
 
-What the next skeleton job must add, stated concretely enough to be built from. Repeat the
-curves arm R times per item at temperature 0.7 on a held-out item subset, with the repeat index
-written into every record and the held-out subset fixed and named before the job runs, so that
-sigma_u is a within-item sd across repeats of the same item and sigma_m is the across-item sd
-of the per-item mean. R and the subset size set the precision of lambda and are the operator's
-call. The one thing the job must not do is repeat at temperature 0.0, which would return the
-same curve R times and report sigma_u = 0 by construction.
+| Frame | Temperature | sigma_u | sigma_m | lambda | lambda noise corrected | within-item df | items for sigma_u | items for sigma_m | items held out |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| clean | 0.0 | 0.000000 | 0.166508 | 1.000000 | 1.000000 | 56 | 28 | 28 | 0 |
+| clean | 0.7 | 0.000000 | 0.168874 | 1.000000 | 1.000000 | 56 | 28 | 28 | 0 |
+| hinted | 0.0 | 0.000000 | 0.347325 | 1.000000 | 1.000000 | 56 | 28 | 28 | 0 |
+| hinted | 0.7 | **0.043644** | **0.332618** | **0.983075** | 0.982979 | 56 | 28 | 28 | 0 |
 
-Route chosen: NOT CHOSEN. Section 8.3 permits two routes, a latent-M layer using the measured
-estimate or the printed attenuation band from the closed form validated in 01-SIZING I.3, and
-requires exactly one. The choice is made on the measured lambda, and lambda does not exist, so
-choosing now would be choosing without the measurement that selects. Flagged for the operator
+**Secondary scalar, commitment depth:**
+
+| Frame | Temperature | sigma_u | sigma_m | lambda | lambda noise corrected | within-item df | items for sigma_u | items for sigma_m | items held out |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| clean | 0.0 | 0.000000 | 1.339272 | 1.000000 | 1.000000 | 56 | 28 | 28 | 0 |
+| clean | 0.7 | 0.000000 | 1.372442 | 1.000000 | 1.000000 | 56 | 28 | 28 | 0 |
+| hinted | 0.0 | 0.000000 | 3.171225 | 1.000000 | 1.000000 | 50 | 25 | 25 | 3 |
+| hinted | 0.7 | **1.019049** | **3.241082** | **0.910036** | 0.907255 | 52 | 26 | 26 | 2 |
+
+The held-out counts are items whose repeats never committed at any depth, so `commitment_depth`
+is null and the item has no value on that scale. None of them is missing data and none is
+excluded for a scoring failure: `n_items_held_out_no_scorable_repeat` and
+`n_items_held_out_single_scorable_repeat` are 0 in every cell of both tables. How a
+never-committing item enters the mediator is a modelling decision, not an sd, which is why it
+is a denominator here and not an imputation.
+
+The four sigma_u entries printed as 0.000000 are 6.4e-18, 2.6e-17, 3.9e-17 and exactly 0.0 in
+the artifact: floating-point residue on sums that are zero, with
+`n_items_with_zero_within_item_sd` at 27, 26, 24 and 28 of 28. Read them as zero.
+
+**Two lambdas are reported and the difference is real.** sigma_m as defined above, the
+across-item sd of the item means, is biased UPWARD because an item mean over r repeats still
+carries `sigma_u^2 / r` of measurement noise. The noise-corrected column subtracts that term,
+floored at zero, and is the unbiased-in-expectation estimate. On this cell the two agree to
+three decimals because sigma_u is small; on a noisier model they will not, and the artifact
+carries both so the closed form of section 8.3 can be evaluated either way. Which one the
+model uses is an analysis ruling and is not made here.
+
+**The temperature-0 rows are a determinism measurement, not a mediator-noise measurement.** The
+earlier draft of this section warned that repeating at temperature 0.0 "would return the same
+curve R times and report sigma_u = 0 by construction". Both temperatures were run deliberately
+and the temperature-0 rows are read as what they are: with `VLLM_BATCH_INVARIANT=1` and 32
+requests in flight, 28 of 28 items produced BYTE-IDENTICAL repeats on both frames, so sigma_u
+is zero because the server is deterministic and not because the estimator is blind. Under a
+flag-off server at that concurrency it would not have been zero: job 825548 measured 13 of 30
+identical completions at 32 in flight. The byte-identical fractions are 28/28 clean and 28/28
+hinted at temperature 0.0, and 25/28 clean and 23/28 hinted at temperature 0.7.
+
+**Scope, so the number is not over-read.** These repeats resample the FORCED CONTINUATION at
+each truncation depth with the chain of thought held FIXED. They do not resample the chain
+itself. So sigma_u here is the noise of the curve READ, and a mediator whose chain is also
+redrawn carries at least this much and almost certainly more. The clean frame makes the point:
+its temperature-0.7 continuations differ in wording on 3 of 28 items, yet its curve-area
+sigma_u is zero, because the wording changed without any parsed answer at any depth changing.
+The hinted frame is the only place in this run where sampling moved the mediator at all.
+Section 8.3's closed form takes whatever sigma_u the deliverable measures; this is the
+continuation-level one. A chain-level estimate is a strictly larger experiment that no run has
+done, and it is carried to A3.7.
+
+**Route chosen: still NOT CHOSEN.** Section 8.3 permits a latent-M layer using the measured
+estimate or a printed attenuation band from the closed form validated in 01-SIZING I.3, and
+requires exactly one. The measured lambda now exists, at 0.983 on curve area and 0.910 on
+commitment depth for the hinted frame, which is far above the 0.80 implied by the 20 percent
+assumed mediator noise the sizing used, and which would make the attenuation band narrow. That
+is an argument, not a ruling, and it rests on a continuation-level sigma_u from one 28-item
+cell on one model. Choosing the route on it would be choosing on a number whose scope the
+section above spells out as smaller than the quantity the route needs. Flagged for the operator
 and W4 and carried to A3.7.
+
+**What runs A and B contain, kept for continuity.** Both ran the curves arm at temperature 0.0
+with one sample per call and one curve per item per frame, so their across-item spread is
+estimable and their within-item spread is not. Those figures stand unchanged and are the
+cross-check on the sigma_m column above: across-item sd of curve area, clean frame, 0.163701 on
+29 items in run A and 0.166508 on 28 in run B, against 0.166508 here; hinted frame 0.392541 and
+0.308949, against 0.347325 here. Across-item sd of commitment depth, clean frame, 1.316811 and
+1.339272, against 1.339272 here; hinted frame 2.309401 on 25 of 29 scored and 2.189837 on 26 of
+28, against 3.171225 on 25 of 28 here. Run B's clean-frame summary statistics and
+this run's coincide to six decimals, which is a coarse-scale coincidence rather than proof that
+the traces match: run B was served flag-off at concurrency 1 and this run flag-on at
+concurrency 32, and job 826020 measured only 10 of 30 completions identical between those two
+server configurations. Curve area on a five-point grid takes few distinct values, so two
+different sets of traces can land on the same sd.
 
 ### A3.6 Measured throughput per model class (A2 element 16)
 
@@ -1592,19 +1719,70 @@ By model class, which is what element 16 asks for:
 |---|---|---|---|---|---|
 | 8B to 9B (Qwen3-8B) | MIG 3g.40gb slice of a100-80, sequential client | 0.2364 | 2.3030 | 1,520 / 660.0 | run A `throughput.json` |
 | 8B to 9B (Qwen3-8B) | MIG 3g.40gb slice of a100-80, sequential client | 0.2387 | 2.2917 | 1,469 / 641.0 | run B `throughput.json` |
-| 8B to 9B (Qwen3-8B) | whole a100-80 card | pending job 825510 | pending job 825510 | pending job 825510 | output directory empty |
+| 8B to 9B (Qwen3-8B) | MIG 3g.40gb slice, concurrency 32, `VLLM_BATCH_INVARIANT=1`, eleven arms | not comparable, see note | 14.2466 | 3,177 / 223.0 | job 826025 `throughput.json` |
+| 8B to 9B (Qwen3-8B) | whole a100-80 card, sequential client, nine arms | 0.414634 | 3.981030 | 1,469 / 369.0 | job 826028 `throughput.json`, exit 0 |
 | 24B to 35B | a100-80 | UNMEASURED until the Phase 1 serving test | UNMEASURED | none | none |
 | 70B dense (tensor-parallel 2) | h100-96 x 2 | UNMEASURED, serving test job 825253 still PENDING | UNMEASURED | none | none |
 | 120B mxfp4 | h100-96 | UNMEASURED until the Phase 1 serving test | UNMEASURED | none | none |
 
 The concurrency sweep that section 17 calls for:
 
-| Concurrent requests | Full generations per second | Denominator | Artifact |
-|---|---|---|---|
-| 1 | 0.2364 | 156 full generations / 660.0 s | run A `throughput.json`, sequential client |
-| 8 | slot: concurrent-client rate, Track G measurement | to be filled before the freeze | pending |
-| 32 | slot: concurrent-client rate, Track G measurement | to be filled before the freeze | pending |
-| 64 | slot: concurrent-client rate, Track G measurement | to be filled before the freeze | pending |
+FILLED. Two probes measured it on the same card class, the same model, the same 30 ARC items
+and the same decoding constants, differing only in `VLLM_BATCH_INVARIANT`. Both are pure
+generation passes rather than whole arm runs, so the unit is generations per second per slice
+and it is comparable across rows but not with the per-arm tables above.
+
+| Concurrent requests | Generations per second, flag OFF | Generations per second, flag ON | Forced letter-logprob calls per second, OFF | ON | Denominator |
+|---:|---:|---:|---:|---:|---|
+| 1 | 0.3539 | 0.1433 | 13.9855 | 11.2010 | 30 generations and 120 letter logprobs per level |
+| 8 | 1.8868 | 0.8556 | 30.1927 | 23.0426 | same |
+| 32 | 5.9650 | 2.9196 | 43.6545 | 30.7345 | same |
+| 64 | 5.9647 | 2.9208 | 43.1726 | 30.2832 | same |
+
+Artifacts: job 825548 for the flag-off column (`bcf/measured/trackg-probe-825548/probe_results.json`)
+and job 826020 for the flag-on column (`bcf/measured/w3b-probe-bi-826020/probe_results.json`),
+both `exit_code.txt` = 0. Job 826020 also re-measured the flag-off concurrency-1 row on its own
+node minutes before its flag-on phase and got 0.3537 generations per second and 13.885
+letter-logprob calls per second, so the 825548 column is a live agreement and not a stale quote.
+
+Both configurations saturate at 32 in flight; 64 adds nothing to either. The sequential rate
+that every card-hour projection above is priced at is the 0.3539 figure, so 32 in flight is
+16.9 times that rate flag-off and 8.25 times it flag-on.
+
+**Determinism at those rates, because a rate without it is not usable for a logprob outcome.**
+Identical completions against the same configuration's own concurrency-1 run, and the largest
+absolute letter-logprob difference over 120 comparisons per level:
+
+| Concurrent requests | Identical completions, flag OFF | max abs diff, OFF | Identical completions, flag ON | max abs diff, ON |
+|---:|---|---:|---|---:|
+| 1 | 30/30 | 0.000 | 30/30 | 0.000 |
+| 8 | 11/30 | 0.625 | 30/30 | 0.000 |
+| 32 | 13/30 | 0.875 | 30/30 | 0.000 |
+| 64 | 13/30 | 0.875 | 30/30 | 0.000 |
+
+With the flag on, every one of the 120 letter logprobs at every level is EXACTLY equal to the
+concurrency-1 value, so batching moves nothing. The flag also CHANGES the outputs rather than
+only stabilizing them: against the flag-off concurrency-1 baseline, only 10 of 30 flag-on
+completions are identical and the median letter-logprob difference is 0.125 nats, the same
+magnitude the flag-off server showed between concurrency 1 and 8. Both servers selected the
+FLASH_ATTN attention backend; neither refused the flag and neither fell back. Runs 825511 and
+825492 were served flag-off, so a flag-on cell is not a continuation of them at the token
+level. Whether to serve with the flag is the operator's ruling and A3 does not make it.
+
+**The two new arms have a measured cost now.** Job 826025 ran the eleven-arm skeleton at
+concurrency 32 with the flag on, 3,177 calls in 223.0 s (14.247 calls per second overall). The
+element 9.2 sampling arm is 30 calls in 64.0 s, because each item's 32 samples arrive in one
+`n = 32` request whose 320-token generations dominate the wall clock; the element 8.3
+repeat-curve arm is 1,680 forced continuations in 37.0 s (45.4 calls per second). So the two
+arms the projections above exclude cost about 101 s on a 28-item cell at this concurrency, next
+to 223.0 s for the whole run.
+
+A defect in the reporting, not in the arms, found by reading job 826025's own
+`throughput.json`: `bcf/throughput.py` matched arm boundaries with `running arm '([a-z]+)'`,
+which does not match a hyphen, so `repeat-curves` never got an interval and its 1,680 calls
+were billed to the arm before it, showing the sampling arm at 1,710 calls when it made 28. The
+regex now accepts hyphens and the file was recomputed offline from that run's own log; the run
+itself is unchanged and only the attribution of its calls moved.
 
 Implied card-hours per 8B cell, extrapolated linearly in items from run A. The specificity arm
 runs on the fixed 20-item holdout of `experiments/data/specificity_holdout.json` and does not
@@ -1616,19 +1794,82 @@ scaled; the same treatment on run B holds 114.0 constant and scales 527.0.
 | 570 (metadata, grader-code) | 10,488 s = 2.913 card-hours, about 28,088 calls | 10,127 s = 2.813 card-hours, about 27,155 calls |
 | 1,500 (stated-hint, professor) | 27,414 s = 7.615 card-hours, about 73,844 calls | 26,464 s = 7.351 card-hours, about 71,392 calls |
 
-Those projections cover ONLY the arms the skeleton ran, which are the eleven listed in the
-tables above. They do NOT include the k = 32 temperature 0.7 sampling arm of section 9.2 or the
-U6 on-policy resampling arm of section 9.3, because neither was in either run, so they are a
-floor on the cell cost and not the cell cost.
+Those projections cover ONLY the arms runs A and B ran, which are the eleven listed in the
+tables above. They do NOT include the U6 on-policy resampling arm of section 9.3, which has
+still never run, so they remain a floor on the cell cost and not the cell cost. The k = 32
+temperature 0.7 sampling arm of section 9.2 and the repeated curves of section 8.3 are no
+longer missing: job 826025 measured them at 64.0 s and 37.0 s on a 28-item cell at concurrency
+32 with the flag on, which is the only setting they have been run at.
+
+**The whole a100-80 row, MEASURED, and the a100-80 to MIG ratio with it.** Job 826028 ran the
+nine A2 arms on a whole a100-80 card on xgph0, 30 items entered and 28 clean-correct,
+`exit_code.txt` = 0, 1,469 calls in 369.0 s. Its call counts are identical to run B's, 1,469
+calls and 153 full generations on the same 30 items with the same arms, so the comparison is
+the same work on two card types with the same sequential client, and the ratio is a wall-clock
+ratio rather than a rate estimate:
+
+| Run | Card | Full generations per second | Calls per second | Denominator |
+|---|---|---:|---:|---|
+| A, job 825511 | MIG 3g.40gb slice | 0.236364 | 2.303030 | 156 full / 1,520 calls / 660.0 s |
+| B, job 825492 | MIG 3g.40gb slice | 0.238690 | 2.291732 | 153 full / 1,469 calls / 641.0 s |
+| C, job 826028 | whole a100-80 | 0.414634 | 3.981030 | 153 full / 1,469 calls / 369.0 s |
+
+**a100-80 to MIG ratio: 1.7371** against run B on both measures (641.0 s of the same work
+against 369.0 s), and 1.7542 on full generations and 1.7286 on calls against run A. A whole
+a100-80 is worth about 1.74 MIG 3g.40gb slices for this workload at one request in flight,
+where the slice is 3 of the card's 7 compute units, so the card gives less than the 2.33 that
+its share alone would suggest. This is a sequential-client ratio on an 8B model; it says
+nothing about either card under load and nothing about a larger model.
+
+Note the run parameters: 826028's `run_meta.json` carries no `concurrency` field, so it ran the
+pre-concurrency runner from `~/bcf/repo` and is a sequential-client measurement, directly
+comparable to runs A and B and NOT to job 826025 or the probes.
+
+**How that row was nearly lost.** Job 825510, the first attempt, ran on xgph0 at 04:19 on
+2026-09-07 and was killed by the out-of-memory handler after 3 minutes 51 seconds:
+`sacct` reports `State=OUT_OF_MEMORY`, `ExitCode=0:125`, `ReqMem=3G`, `ReqCPUS=1` and
+`MaxRSS=6292740K`, so it asked for the partition's 3 GB host-memory default and used 6.0 GB
+loading the model. This is the same fault that killed judge job 825536, and it is a submission
+fault rather than a hardware or code one: `bcf/serve_and_run.sbatch` carries `--mem=64G` and
+`--cpus-per-task=8` in its header, and 825510 was submitted before that header existed. It was
+resubmitted by another lane as job 826028 at 04:29:00 with `mem=64G` and `cpu=8`, which
+COMPLETED in 10 minutes 26 seconds with `MaxRSS=21257416K` (20.3 GB), and that is the run the
+row above reports. The 3 GB default was 3.4 times too small for the model load alone and 6.8
+times too small for the run's peak.
+
+**A label-set correction that changes what an ARC cell parses against.** The enlargement of the
+ARC pool to 1,500 items reached four 5-option items in the ARC-Challenge test split, at indices
+836, 868, 1037 and 1382 of the pre-correction pool, all of them past the frozen first 700. An
+ARC cell drawn from that pool at n = 1,500 would have parsed against FIVE answer labels where
+every Phase-1 artifact was measured against four, which is a change to the frozen prompt
+surface rather than a larger sample of it. The pool was regenerated with the same fetcher, the
+same splits and the same first-occurrence dedup, dropping items with more than 4 options from
+index 700 onward and backfilling from the same stream: 1,500 items, 1,500 unique resume keys,
+options 3 to 4, and the frozen prefix hash
+`a48a5bef74ef30d0be729ffb4c90453a8f2390a6bc9bfe05a1a7842200860eaa` unchanged, so no Phase-1
+record lands on a different item. The manifest records the filter and refuses a pool that
+exceeds its substrate's label set, and a test asserts both the cap and the prefix hash. The
+AQuA-RAT pool is 5 options throughout by construction and LogiQA 2.0 is 4 throughout; neither
+moved. Recorded here because it is a property of the frozen prompt surface, and section 9.2's
+normalized-entropy denominator is log(number of allowed options), so it would have changed
+under the un-corrected pool.
 
 Is the degradation ladder of section 17 triggered? NOT DECIDED HERE, and deliberately so. The
 ladder's trigger is measured throughput falling far below the budget of record, and every
 throughput figure in this amendment is a sequential-client rate on a MIG slice with the two
 largest missing arms unmeasured. Deciding the trigger on that would be deciding it on a
-property of the client. The trigger is evaluated once two things exist: the Track G concurrent
-measurement in the slots above, and job 825510 or its successor on a whole a100-80. Until then
-the MIG sequential numbers stay the budget of record, as `CONTRACT.md` already says, and the
-a100-80 to MIG ratio stays UNMEASURED rather than assumed. Carried to A3.7.
+property of the client. BOTH inputs now exist. The concurrent measurement above shows one
+MIG slice reaching 5.9650 generations per second at 32 in flight flag-off and 2.9196 flag-on,
+16.9 and 8.25 times the sequential rate the budget is priced at, and the whole-card measurement
+gives an a100-80 to MIG ratio of 1.7371 at one request in flight. Both point the same way,
+which is that the budget of record understates the available throughput rather than
+overstating it, and a ladder whose trigger is throughput falling BELOW the budget is not
+approached from this side. That is an observation and not the evaluation: the trigger is
+stated in section 17 against the budget of record, the budget of record is a
+sequential-client MIG rate, and changing which rate the budget is priced at is a decision about
+`CONTRACT.md` rather than an arithmetic step. It also now depends on the operator's
+batch-determinism ruling, because the flag halves the concurrent rate. Carried to A3.7 as a
+decision rather than as a missing measurement.
 
 One arm-shape fact worth recording while the numbers are fresh, because it changes where a
 concurrency win would land. The anchor arm is 869 of run A's 1,520 calls (57.2 percent) and 841
@@ -1644,18 +1885,21 @@ full-generation arms most, which is where the wall clock is.
 |---|---|---|
 | Organism-minus-twin MDE, all three rows of A3.2 | The ladder has not run; no LoRA checkpoint exists. The CPU mechanism battery of element 11(a) has no committed artifact and `STATUS.md` records W5 as not started | W5, then W4 for the MDE arithmetic |
 | Which two of the three ladder rungs are "the first two dose levels" after element 11(c) replaces the lowest rung with the disclosing learner and the uninformative control | An ambiguity in element 11 that a valuation cannot resolve; deciding it changes the element, so it belongs to the operator, not to A3 | operator |
-| k stratum-stability curve at k = 5, 8, 16, 32 (A3.3) | The k = 32 temperature 0.7 clean-prompt sampling arm has not been run on any model | W3 |
-| Uncertain-item n per cell and the realized n for both MDE tables (A3.4) | Same missing arm as A3.3 | W3 |
-| Repeated-curve mediator noise sigma_u and lambda (A3.5) | No repeated curves exist; both runs are temperature 0.0 with one sample per call | W3 to produce, W4 to estimate |
-| Which of the two section 8.3 routes ships, latent-M layer or printed attenuation band | The choice is made on the measured lambda, which does not exist | operator and W4 |
-| Concurrent-client throughput at 8, 32 and 64 requests in flight (A3.6) | The Track G measurement has not reported | Track G lane |
-| Whole a100-80 throughput and the a100-80 to MIG ratio (A3.6) | Job 825510 is PENDING with reason `Resources`; the a100-80 per-user cap is 4 and another campaign holds them | W3 |
+| k stratum-stability curve on a SECOND model and substrate (A3.3) | CLOSED for Qwen3-8B on ARC stated-hint by job 826025; open everywhere else, because one cell cannot show whether the stratum settles this early in general | W3 |
+| What to do about an uncertain stratum of 0.036 (A3.4) | MEASURED on one cell: 1 of 28 items right-but-uncertain, so 19 uncertain items at 570 entered and 50 at 1,500, at which the frozen 0.30 follow threshold needs a true rate of at least 0.42 and the 0.50 silent-given-follow threshold at least about 0.77. Choosing between a larger entered n for the uncertain-item questions, a harder substrate, a pooled stratum, and declaring them not resolvable at this budget is an operator decision | operator, on the A3.4 numbers |
+| A CHAIN-level repeated-curve estimate (A3.5) | Job 826025 measured the CONTINUATION-level sigma_u with the chain of thought held fixed (hinted frame, temperature 0.7: 0.043644 on curve area, 1.019049 on commitment depth). Resampling the chain itself is a strictly larger experiment that no run has done, and it can only raise sigma_u | W3 to produce, W4 to estimate |
+| Which of the two section 8.3 routes ships, latent-M layer or printed attenuation band | A measured lambda now exists, 0.983075 on curve area and 0.910036 on commitment depth for the hinted frame, but it is the continuation-level one from a 28-item cell on one model, which is narrower than the quantity the route needs | operator and W4 |
+| The batch-determinism ruling (A3.6) | MEASURED both ways on the same card, model and items: flag off, 5.9650 generations per second at 32 in flight with 13 of 30 completions identical; flag on, 2.9196 with 30 of 30 identical and every letter logprob exactly equal. The flag also changes the outputs against the flag-off baseline (10 of 30 identical), so it is not backward compatible with runs 825511 and 825492. Whether to pay half the throughput for exact reproducibility is the operator's | operator |
+| Whether the budget of record moves off the sequential-client MIG rate (A3.6) | CLOSED as a measurement: the whole a100-80 row is job 826028, 1,469 calls in 369.0 s, and the a100-80 to MIG ratio is 1.7371 at one request in flight. What is open is whether `CONTRACT.md`'s budget of record is repriced on it, and on the concurrent rate, which is a document decision | operator |
 | Whether the degradation ladder is triggered, and at which rung | Both throughput inputs above | operator, on the Track G and 825510 numbers |
 | Throughput for the 24B to 35B, 70B dense and 120B mxfp4 classes | Their Phase 1 serving tests; job 825253 for tensor-parallel 2 is still PENDING with `ReqNodeNotAvail` | W3 |
 | `f_s` and `e_s` for the Gemma, gpt-oss and OLMo strata (A3.1) | No skeleton run exists for any model in those three families | W3 |
 | The Llama ARC stated-hint Q1-yes count, 1 or 3 of 22 | The two committed artifacts disagree and neither says which subset it counts; the 114-item cell's transcripts were never banked | W3, by re-running or by banking the transcripts |
 | A sixth and seventh calibration stratum for the four uncalibrated rows | An operator decision on about 400 more human rows and the rater hours they cost | operator |
 | The offset-null part (iv) misspecification battery, a Phase 1 done-when before the first powered fit | Assigned but not run | W4 |
+| Whether the frozen k of 32 is worth its cost, given the stratum is settled by k = 8 on this cell (A3.3) | Reported, never gated, so nothing depends on it; changing k would be an amendment and the evidence is one cell | operator, not before a second model reports |
+| Whether the arms should be served with `VLLM_BATCH_INVARIANT=1` on the powered sweep, and whether the flag-off skeleton runs stay comparable to flag-on cells | The same ruling as the batch-determinism row above, applied to the sweep rather than to the probe | operator |
+| Whether an ARC cell at n = 1,500 may use the four dropped 5-option items (A3.6) | They were dropped so an ARC cell keeps the 4-label answer set every Phase-1 artifact was measured against; admitting them would widen the frozen prompt surface and needs its own amendment | operator |
 
 ### A3.8 Scope
 

@@ -16,7 +16,10 @@ with its output in `a3_numbers.txt` beside it. It reads only the artifacts named
 | run A | `soc:~/bcf/results/phase1-skeleton-a100-40/qwen3-8b/arc_challenge/stated-hint` | job 825511, exit 0, MIG 3g.40gb slice on xgph10. NOT mirrored into this repo |
 | run B | `soc:~/bcf/results/phase1-anchor-mig/qwen3-8b/arc_challenge/stated-hint` | job 825492, exit 0, same MIG slice UUID |
 | run B mirror | `experiments/results/phase1-anchor-mig/qwen3-8b/arc_challenge/stated-hint` | summary, throughput, run_meta, logprob_check, exit_code only |
-| run C | `soc:~/bcf/results/phase1-skeleton-fullcard/qwen3-8b/arc_challenge` | job 825510, PENDING reason `Resources`, directory EMPTY |
+| run C | `soc:~/bcf/results/phase1-skeleton-fullcard/qwen3-8b/arc_challenge/stated-hint` | job 825510 ran on xgph0 and was OUT_OF_MEMORY killed: `ReqMem=3G`, `ReqCPUS=1`, `MaxRSS=6292740K`, 3 min 51 s, ExitCode 0:125. Resubmitted by another lane as job 826028 with `mem=64G`, `cpu=8`, running at 04:29:02 with a 2 h limit, unfinished when these notes were written |
+| run W3b | `soc:~/bcf/results/w3b-skeleton/qwen3-8b/arc_challenge/stated-hint`, mirrored WITH RECORDS to `experiments/results/w3b-skeleton/qwen3-8b/arc_challenge/stated-hint` in the w3b worktree | job 826025, exit 0. The source of every new number in A3.3, A3.4 and A3.5. Qwen3-8B @ b968826d9c46dd6066d109eabc6255188de91218, ARC, stated-hint, 30 entered, 28 clean-correct, one a100-40 MIG 3g.40gb slice on xgph10, concurrency 32 with `VLLM_BATCH_INVARIANT=1`, eleven arms, 3,177 calls in 223.0 s |
+| probe flag-off | `bcf/measured/trackg-probe-825548/probe_results.json` in the w3b worktree | job 825548, exit 0, the flag-off concurrency sweep |
+| probe flag-on | `bcf/measured/w3b-probe-bi-826020/probe_results.json` in the w3b worktree | job 826020, exit 0, two servers in one job: phase A flag off at concurrency 1 writing `baseline_off_raw.json`, phase B flag on at 1, 8, 32, 64 |
 | Llama control | `experiments/results/control_transcripts_llama-3.1-8b-instant.json` and `control_summary_llama-3.1-8b-instant.json` | 05_realmodel_control.py era, Groq backend |
 | Llama p8 | `experiments/results/p8_{professor,metadata,grader_code}/numbers_table.txt` | line 110 in each |
 | Llama AQuA | `experiments/results/p3_powered_aqua/numbers_table.txt` | line 110 |
@@ -94,84 +97,138 @@ the ladder budget line of `CONTRACT.md`:
 
 ## A3.3 numbers
 
-Nothing measured for the pre-registered quantity. Counts recorded to show what does exist:
+MEASURED by job 826025. Every value below is read from
+`experiments/results/w3b-skeleton/qwen3-8b/arc_challenge/stated-hint/arms_summary_Qwen_Qwen3-8B.json`
+in the w3b worktree, and every one is recomputable from the per-item samples in
+`arms_transcripts_Qwen_Qwen3-8B.json` field `sampling.samples`.
 
-| Value | Number | Source | Field |
-|---|---|---|---|
-| Run A curve series | 58 (29 items x 2 frames) | run A checkpoint | `clean_curve` and `hinted_curve` present on every clean-correct record |
-| Run A points per series | 5 on all 58 | run A checkpoint | `len(clean_curve.depths)` and `len(hinted_curve.depths)` |
-| Run A depth points total | 290 | run A checkpoint | sum of the above |
-| Run A curves-arm calls logged | 286 | run A `throughput.json` | `arms[arm=curves].n_calls` |
-| Run B curve series | 56 (28 x 2) | run B checkpoint | same |
-| Run B depth points total | 280 | run B checkpoint | same |
-| Run B curves-arm calls logged | 275 | run B `throughput.json` | same |
-| Run A series with more than one distinct answer | 2 / 29 clean, 4 / 29 hinted | run A checkpoint | `len(set(curve.answers)) > 1` |
-| Run B series with more than one distinct answer | 2 / 28 clean, 3 / 28 hinted | run B checkpoint | same |
+| Value | Number | Field |
+|---|---|---|
+| Items with a sampling block | 28 | `arms.sampling.n_records_with_samples` |
+| Draw method | `n_parameter` on 28 of 28 | `arms.sampling.draw_methods` |
+| k | 32 | `arms.sampling.k` |
+| Temperature | 0.7 | `arms.sampling.temperature` |
+| Samples drawn | 896 (28 x 32) | 28 items x k |
+| Unparsed samples | 0 | `arms.sampling.n_unscorable_samples` |
+| Out-of-set answers | 0 | `arms.sampling.n_out_of_set_samples` |
+| Tied modes | 0 | `arms.sampling.n_modal_ties` |
+| Stratum change, k 5 to 8 | 3 / 28 = 0.107143 | `arms.sampling.stability.steps[0]` |
+| Stratum change, k 8 to 16 | 0 / 28 = 0.000000 | `arms.sampling.stability.steps[1]` |
+| Stratum change, k 16 to 32 | 1 / 28 = 0.035714 | `arms.sampling.stability.steps[2]` |
+| Binary-flag change, same three steps | 3 / 28, 0 / 28, 1 / 28 | `n_flag_changed` on the same rows |
 
-Depth grids observed, so it is clear these are truncation depths and not samples: (0,1,2,4,5),
-(0,2,3,4,6), (0,2,4,5,7), (0,2,5,8,10), (0,2,4,6,8), (0,2,4,7,9), (0,4,8,11,15).
+The per-item stratum at each k is recomputed in `src/bayes_cot_faithfulness/sampling_arm.py`
+from the FIRST k samples in draw order (`_at_k`), so the four k are four readings of one draw.
+An injection that read the LAST k instead turns the tests red; see
+`docs/w3b-proofs/sampling_and_repeat_falsification.txt` in the w3b worktree, injection 5.
 
-The blocking fact: `run_meta.json` temperature is 0.0 in both runs and the runner sends one
-sample per call, so no empirical answer distribution exists at any k.
+The curves-arm counts the earlier draft recorded are left in the record unchanged as what they
+were, a different quantity that was NOT substituted: 58 and 56 series of 5 truncation depths,
+290 and 280 depth points, and 2 / 29 clean and 4 / 29 hinted series in run A and 2 / 28 and
+3 / 28 in run B showing more than one distinct answer across their depths.
 
 ## A3.4 numbers
 
-The disqualified proxy, computed and reported in A3 with its disqualification:
+MEASURED by job 826025. Same artifact and same fields as A3.3.
 
-| Value | Number | Source | Field |
-|---|---|---|---|
-| Run A, modal correct AND normalized entropy >= 0.30 | 9 / 29 = 0.310345 | run A checkpoint | `anchor.cells.mu00.logprob.renormalized_over_letters`, entropy divided by log 4, modal letter vs `answer_label` |
-| Run B, same | 5 / 28 = 0.178571 | run B checkpoint | same |
-| Run A entropy min / median / max | 0.005348 / 0.348687 / 0.746101 | run A checkpoint | same field |
-| Run B entropy min / median / max | 0.005063 / 0.379709 / 0.739144 | run B checkpoint | same |
-| Run A items with mass below 1e-6 | 29 / 29, median mass 3.77e-17 | run A checkpoint | `anchor.cells.mu00.logprob.letter_probability_mass` |
-| Run B items with mass below 1e-6 | 28 / 28, median mass 4.13e-17 | run B checkpoint | same |
-| Run A argmax disagrees with the generated answer | 10 / 29 | run A checkpoint | argmax of `renormalized_over_letters` vs `anchor.cells.mu00.answer` |
-| Run B argmax disagrees with the generated answer | 13 / 28 | run B checkpoint | same |
-| logprob_check probes | 2 of 2 completed, 4 of 4 letters scored each, 4 of 4 tokens matching, 0 hard failures, passed true, argmax correct on 1 of 2, mass 0.00033501 and 0.99929026 | run A and run B `logprob_check.json` | top-level fields and `results[]` |
+| Value | Number | Field or derivation |
+|---|---|---|
+| Items scored | 28 of 28 | `arms.sampling.n_items_with_entropy` |
+| Entropy minimum | 0.000000 | `arms.sampling.entropy_min` (the artifact stores `-0.0`, which is equal to 0.0; a unanimous item's `-(1 log 1)` is negative zero and the code now normalizes it) |
+| Entropy q25, median, q75 | 0.000000 each | `entropy_q25`, `entropy_median`, `entropy_q75` |
+| Entropy maximum | 0.312631 | `entropy_max`; this is the 27-versus-5 split of 32 draws |
+| Entropy mean | 0.039534 | `entropy_mean` |
+| Histogram, 0.1 bins | 21, 5, 1, 1, then zeros | `entropy_histogram` |
+| Right-but-uncertain at 0.30 | 1 / 28 = 0.035714 | `n_right_but_uncertain` over `n_records_entered` |
+| Exact two-sided 95 percent CI on 1/28 | [0.000904, 0.183478] | `scipy.stats.beta.ppf(0.025, 1, 28)` and `beta.ppf(0.975, 2, 27)` |
+| Strata | right_confident 27, right_uncertain 1, wrong 0 | `arms.sampling.strata` |
+| Clean-correct retention | 28 / 30 = 0.933333 | `n_clean_correct` over `n_items` in the same summary |
+| Projected uncertain n at 570 entered | 19.0 | 570 x (28/30) x (1/28); the two factors multiply to exactly 1/30 |
+| Projected uncertain n at 1,500 entered | 50.0 | 1,500 x (28/30) x (1/28) |
+| Interval on those projections | [0.5, 97.6] and [1.3, 256.9] | the CI above times 570 x 0.933333 and 1,500 x 0.933333 |
+| Single-shot follow rate | 7 / 28 = 0.250000 | `arms.twostep.singleshot_follow_rate` |
+| Followed uncertain n | 4.75 at 570, 12.5 at 1,500 | uncertain n x 0.25 |
 
-Minimum detectable rate, exact one-sided 95 percent Clopper-Pearson, computed with
-`scipy.stats.beta.ppf(0.05, k, n - k + 1)` (scipy 1.18.1 in
-`/Users/maksimsilchenko/Developer/bayes-cot-faithfulness/.venv`). Smallest `k` whose bound
+MDE values, all from `scipy.stats.beta.ppf(0.05, k, n - k + 1)` with the smallest k whose bound
 strictly exceeds the threshold:
 
-| Threshold | n | k | rate | bound |
+| Threshold | n | k | rate | lower bound |
 |---|---:|---:|---:|---:|
-| 0.30 | 350 | 120 | 0.342857 | 0.300805 |
-| 0.30 | 570 | 190 | 0.333333 | 0.300676 |
-| 0.30 | 923 | 301 | 0.326111 | 0.300626 |
-| 0.30 | 1,500 | 480 | 0.320000 | 0.300129 |
-| 0.50 | 50 | 32 | 0.640000 | 0.514231 |
-| 0.50 | 100 | 59 | 0.590000 | 0.502892 |
-| 0.50 | 200 | 113 | 0.565000 | 0.504402 |
-| 0.50 | 300 | 165 | 0.550000 | 0.500875 |
+| 0.30 | 19 | 10 | 0.526316 | 0.320087 |
+| 0.30 | 50 | 21 | 0.420000 | 0.301384 |
+| 0.50 | 4 | none resolves | not resolvable | n/a |
+| 0.50 | 5 | 5 | 1.000000 | 0.549280 |
+| 0.50 | 12 | 10 | 0.833333 | 0.561895 |
+| 0.50 | 13 | 10 | 0.769231 | 0.505350 |
 
-The 923 row exists because DECISION-LOG ruling (b) names 923 traces as the count that buys
-about 300 followed items at the banked 32.5 percent follow rate.
+The same code reproduces all eight rows of the general table already in A3.4 (n = 350, 570,
+923, 1,500 at 0.30 and n = 50, 100, 200, 300 at 0.50) to six decimals, which is the check that
+the two tables use one formula and not two.
+
+The disqualified proxy is unchanged and is now comparable to the real quantity: the `mu00`
+letter-logprob proxy gave 0.31034 in run A and 0.17857 in run B where the measured value is
+0.035714, so it would have overstated the uncertain stratum by five to nine times.
 
 ## A3.5 numbers
 
-| Value | Number | Source | Field | Denominator |
-|---|---|---|---|---|
-| Held-out items with repeated curves | 0 | both runs | no repeat index exists in any record | 0 |
-| Repeats per item | 1 | both `run_meta.json` | temperature 0.0, one sample per call | 29 and 28 items |
-| Run A clean commitment depth | mean 0.344828, sd 1.316811 | run A checkpoint | `clean_curve.commitment_depth` | 29 of 29, 0 null |
-| Run B clean commitment depth | mean 0.357143, sd 1.339272 | run B checkpoint | same | 28 of 28, 0 null |
-| Run A hinted commitment depth | mean 0.800000, sd 2.309401 | run A checkpoint | `hinted_curve.commitment_depth` | 25 of 29, 4 null |
-| Run B hinted commitment depth | mean 0.653846, sd 2.189837 | run B checkpoint | same | 26 of 28, 2 null |
-| Run A clean curve area | mean 0.958621, sd 0.163701 | run A checkpoint | `clean_curve.curve_area` | 29 of 29 |
-| Run B clean curve area | mean 0.957143, sd 0.166508 | run B checkpoint | same | 28 of 28 |
-| Run A hinted curve area | mean 0.786207, sd 0.392541 | run A checkpoint | `hinted_curve.curve_area` | 29 of 29 |
-| Run B hinted curve area | mean 0.871429, sd 0.308949 | run B checkpoint | same | 28 of 28 |
-| sigma_u, both components | NOT MEASURED | no repeats | | 0 |
-| lambda | NOT MEASURED | needs sigma_u | | 0 |
+MEASURED by job 826025, at the CONTINUATION level. Artifact
+`experiments/results/w3b-skeleton/qwen3-8b/arc_challenge/stated-hint/arms_summary_Qwen_Qwen3-8B.json`,
+field `arms.repeat-curves.arms.<frame>.<temperature>`; per-repeat rows in
+`arms_transcripts_Qwen_Qwen3-8B.json` field `repeat_curves`.
 
-The mean curve areas cross-check against the summaries: run A `arms.curves.clean.mean_curve_area`
-0.9586206896551724 and `arms.curves.hinted.mean_curve_area` 0.7862068965517242; run B
-0.9571428571428572 and 0.8714285714285713. The sd values are computed from the per-item records
-because the summary carries no sd.
+Design: r = 3, temperatures 0.0 and 0.7, frames clean and hinted, 28 items, 5 depths, so
+28 x 2 x 2 x 3 x 5 = 1,680 forced continuations, measured at 37.0 s in `throughput.json` arm
+`repeat-curves`. Seeds are per (item, frame, temperature, repeat); an injection that gives
+every repeat one seed turns the tests red (injection 11 in the w3b proof file).
 
-Sample sd is used throughout (divisor n - 1).
+Curve area, `curve_area` sub-block:
+
+| Frame | T | sigma_u | sigma_m | lambda | lambda corrected | df | n sigma_u | n sigma_m | held out |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| clean | 0.0 | 6.42e-18 | 0.16650786 | 1.0 | 1.0 | 56 | 28 | 28 | 0 |
+| clean | 0.7 | 2.65e-17 | 0.16887427 | 1.0 | 1.0 | 56 | 28 | 28 | 0 |
+| hinted | 0.0 | 3.91e-17 | 0.34732538 | 1.0 | 1.0 | 56 | 28 | 28 | 0 |
+| hinted | 0.7 | 0.04364358 | 0.33261828 | 0.98307475 | 0.98297872 | 56 | 28 | 28 | 0 |
+
+Commitment depth, `commitment_depth` sub-block:
+
+| Frame | T | sigma_u | sigma_m | lambda | lambda corrected | df | n sigma_u | n sigma_m | held out |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| clean | 0.0 | 0.0 | 1.33927249 | 1.0 | 1.0 | 56 | 28 | 28 | 0 |
+| clean | 0.7 | 0.0 | 1.37244231 | 1.0 | 1.0 | 56 | 28 | 28 | 0 |
+| hinted | 0.0 | 0.0 | 3.17122479 | 1.0 | 1.0 | 50 | 25 | 25 | 3 |
+| hinted | 0.7 | 1.01904933 | 3.24108244 | 0.91003599 | 0.90725474 | 52 | 26 | 26 | 2 |
+
+`n_items_held_out_no_scorable_repeat` and `n_items_held_out_single_scorable_repeat` are 0 in
+every one of the eight cells; the held-out column above is items whose repeats never committed
+at any depth, so `commitment_depth` is null. `n_items_with_zero_within_item_sd` is 27, 26, 24
+and 28 of 28 on the four curve-area rows, which is why three of those sigma_u values are
+floating-point residue rather than a measurement.
+
+Byte-identical repeats, `byte_identical_repeats` sub-block, compared on sha256 of the generated
+text rather than on the parsed answer:
+
+| Frame | T | identical | compared | incomplete |
+|---|---:|---|---:|---:|
+| clean | 0.0 | 28 | 28 | 0 |
+| hinted | 0.0 | 28 | 28 | 0 |
+| clean | 0.7 | 25 | 28 | 0 |
+| hinted | 0.7 | 23 | 28 | 0 |
+
+The clean frame at temperature 0.7 is the instructive cell: 3 of 28 items produced different
+continuation TEXT across repeats and its curve-area sigma_u is still zero, because the wording
+changed without any parsed answer at any depth changing.
+
+Definitions, so the numbers can be recomputed from the per-repeat rows:
+`sigma_u^2 = sum_i SS_i / sum_i (r_i - 1)`; sigma_m is the across-item sd of the item means
+with divisor n minus 1; `lambda = sigma_m^2 / (sigma_m^2 + sigma_u^2)`; the corrected column
+replaces the between-item variance with `max(0, var(means) - sigma_u^2 / r)`. Injections that
+change the divisor to r or invert lambda turn the tests red (injections 6 and 7 in the w3b
+proof file).
+
+SCOPE: the chain of thought is held FIXED across repeats and only the forced continuation is
+resampled, so this sigma_u is the noise of the curve READ. A chain-level estimate has not been
+run.
 
 ## A3.6 numbers
 
@@ -205,9 +262,76 @@ Arm-shape figures quoted in A3, computed here from the same tables: anchor is 86
 (clean_substrate, cue_pass, placebo, specificity) are 30 + 30 + 30 + 44 = 134 of 1,520 calls =
 8.8 percent and 85.0 + 110.0 + 89.0 + 114.0 = 398.0 of 660.0 seconds = 60.3 percent.
 
-The sequential-client caveat is a code fact, not an inference: neither
-`experiments/08_additive_arms.py` nor `experiments/openai_client.py` contains any concurrency
-construct, so requests are issued one at a time.
+The sequential-client caveat WAS a code fact for runs A and B: at the time neither
+`experiments/08_additive_arms.py` nor `experiments/openai_client.py` contained any concurrency
+construct, so requests were issued one at a time. The Track G lane added bounded concurrency at
+a default of 1, and job 826025 is the first arm run to use it.
+
+New in this revision.
+
+Concurrency sweep, both flags, same card class, same model, same 30 ARC items, same decoding
+constants. Flag-off column from `bcf/measured/trackg-probe-825548/probe_results.json` (job
+825548), flag-on column from `bcf/measured/w3b-probe-bi-826020/probe_results.json` (job
+826020), both in the w3b worktree, both `exit_code.txt` 0. Fields
+`generations_per_second`, `logprob_calls_per_second`, and
+`vs_concurrency_1.{identical_completions,max_abs_letter_logprob_diff}`:
+
+| Concurrency | gen/s OFF | gen/s ON | lp calls/s OFF | ON | identical OFF | identical ON | max diff OFF | ON |
+|---:|---:|---:|---:|---:|---|---|---:|---:|
+| 1 | 0.3539 | 0.1433 | 13.9855 | 11.2010 | 30/30 | 30/30 | 0.000 | 0.000 |
+| 8 | 1.8868 | 0.8556 | 30.1927 | 23.0426 | 11/30 | 30/30 | 0.625 | 0.000 |
+| 32 | 5.9650 | 2.9196 | 43.6545 | 30.7345 | 13/30 | 30/30 | 0.875 | 0.000 |
+| 64 | 5.9647 | 2.9208 | 43.1726 | 30.2832 | 13/30 | 30/30 | 0.875 | 0.000 |
+
+Job 826020 phase A re-measured the flag-off concurrency-1 row on its own node and got 0.3537
+gen/s and 13.885 lp calls/s, against 825548's 0.3539 and 13.9855, so the two jobs agree. The
+flag-on rows compared against phase A's raw file give 10/30 identical completions and a median
+absolute letter-logprob difference of 0.125 at every level, which is why the flag is recorded
+as changing the outputs and not only stabilizing them. Both servers logged
+`Using FLASH_ATTN attention backend`, saved to `server-off-backend-lines.txt` and
+`server-bi-backend-lines.txt` in the same directory.
+
+Job 826025 throughput, from
+`experiments/results/w3b-skeleton/qwen3-8b/arc_challenge/stated-hint/throughput.json` in the
+w3b worktree: `total_calls` 3,177, `total_seconds` 223.0, `n_intervals` 13,
+`overall_generations_per_second` 14.246636771300448. Arm `sampling` 30 calls in 64.0 s; arm
+`repeat-curves` 1,680 calls in 37.0 s. That file was RECOMPUTED offline after a regex fix: the
+first version billed the sampling arm 1,710 calls because `ARM_RE` was
+`running arm '([a-z]+)'` and did not match the hyphen in `repeat-curves`, so that arm got no
+interval. The run is unchanged; only the attribution moved. Covered by a test proven able to
+fail (`docs/w3b-proofs/probe_baseline_falsification.txt` in the w3b worktree).
+
+Job 825510, the first whole a100-80 attempt: `sacct -j 825510` gives `State=OUT_OF_MEMORY`,
+`ExitCode=0:125`, `ReqMem=3G`, `ReqCPUS=1`, `MaxRSS=6292740K`, `Elapsed=00:03:51`,
+`NodeList=xgph0`. Its successor job 826028, submitted by another lane at 2026-09-07T04:29:00
+with `ReqTRES=cpu=8,mem=64G,...,gres/gpu:a100-80=1`, COMPLETED: `sacct` gives `State=COMPLETED`,
+`ExitCode=0:0`, `Elapsed=00:10:26`, `MaxRSS=21257416K`, `NodeList=xgph0`. 826028 belongs to
+another lane; its results were READ and neither it nor 825510 was submitted, cancelled or
+modified here.
+
+The whole-card row, from
+`soc:~/bcf/results/phase1-skeleton-fullcard/qwen3-8b/arc_challenge/stated-hint/throughput.json`:
+`total_calls` 1,469, `total_seconds` 369.0, `overall_generations_per_second`
+3.9810298102981028, full generations 153 summed over `n_full_generations`, so full generations
+per second is 153 / 369.0 = 0.414634. `arms_summary_Qwen_Qwen3-8B.json` gives `n_items` 30,
+`n_clean_correct` 28 and the nine A2 arms, and `run_meta.json` carries NO `concurrency` field,
+so it ran the pre-concurrency runner and is a sequential-client measurement.
+
+Ratios, computed here: 826028's 1,469 calls and 153 full generations are IDENTICAL to run B's
+on the same 30 items with the same arms, so 641.0 s against 369.0 s is the same work on two
+card types and the ratio is 641.0 / 369.0 = 1.7371 on both measures. Against run A, whose call
+count differs, the ratio is 0.414634 / 0.236364 = 1.7542 on full generations and 3.981030 /
+2.303030 = 1.7286 on calls. A MIG 3g.40gb slice is 3 of the card's 7 compute units, so a share
+argument would predict 2.33; the measured 1.74 is well under it.
+
+ARC label set, from `experiments/data/pool_manifest.json` in the w3b worktree after the fix:
+`n_items` 1,500, `n_unique_resume_keys` 1,500, `choices_min` 3, `choices_max` 4,
+`max_choices_allowed` 4, `frozen_prefix_n` 700,
+`frozen_prefix_sha256 a48a5bef74ef30d0be729ffb4c90453a8f2390a6bc9bfe05a1a7842200860eaa`
+(unchanged from the 700-item pool), and `command` now carrying
+`--max-choices 4 --max-choices-from 700`. The four dropped items were at indices 836, 868, 1037
+and 1382 of the pre-correction pool; the new pool differs from it first at index 836 and
+contains four items the old one did not, in place of those four.
 
 ## Values deliberately not filled, and what blocks each
 
@@ -215,14 +339,15 @@ construct, so requests are issued one at a time.
 |---|---|---|
 | A3.1 Gemma, gpt-oss, OLMo `f_s` and `e_s` | no data yet | no skeleton run exists for any model in those families |
 | A3.2 all three MDE rows | NOT MEASURED | ladder not run, no LoRA checkpoint, W5 CPU battery has no artifact |
-| A3.3 all three k pairs | NOT MEASURED | the k = 32, temperature 0.7 clean-prompt sampling arm has not been run |
-| A3.4 projected uncertain-item n | NOT MEASURED | same missing arm; the `mu00` logprob proxy is disqualified by its own mass and argmax figures |
-| A3.5 sigma_u and lambda | NOT MEASURED | no repeated curves; both runs are temperature 0.0 |
-| A3.5 route (latent-M or attenuation band) | NOT CHOSEN | the choice is made on lambda |
-| A3.6 whole-card throughput | pending job 825510 | PENDING with reason `Resources`; the a100-80 per-user cap is 4 and another campaign holds them |
-| A3.6 concurrency rows at 8, 32, 64 | named slots | Track G measurement has not reported |
+| A3.3 all three k pairs | FILLED from job 826025 | 3/28, 0/28, 1/28; open for a second model |
+| A3.4 projected uncertain-item n | FILLED from job 826025 | 19 at 570 entered and 50 at 1,500, on an uncertain fraction of 1/28 whose exact CI is [0.0009, 0.1835]; the `mu00` proxy stays disqualified and would have overstated it five to nine times |
+| A3.5 sigma_u and lambda | FILLED from job 826025, at the CONTINUATION level | hinted frame, temperature 0.7: sigma_u 0.043644 and lambda 0.983075 on curve area, sigma_u 1.019049 and lambda 0.910036 on commitment depth. A chain-level estimate has not been run |
+| A3.5 route (latent-M or attenuation band) | STILL NOT CHOSEN | lambda now exists but is continuation-level from one 28-item cell, narrower than the quantity the route needs |
+| A3.6 whole-card throughput | FILLED from job 826028 | 1,469 calls in 369.0 s, 0.414634 full generations per second; a100-80 to MIG ratio 1.7371 |
+| A3.6 concurrency rows at 8, 32, 64 | FILLED both ways | jobs 825548 (flag off) and 826020 (flag on) |
 | A3.6 24B to 35B, 70B, 120B classes | UNMEASURED | Phase 1 serving tests; job 825253 for tensor-parallel 2 is PENDING with `ReqNodeNotAvail` |
-| A3.6 degradation-ladder trigger | NOT DECIDED | both throughput inputs above |
+| A3.6 degradation-ladder trigger | STILL NOT DECIDED, but no longer for want of a measurement | both throughput inputs now exist and both point away from the trigger; what is open is whether CONTRACT.md's budget of record is repriced, which is a document decision, and the operator's batch-determinism ruling |
+| Batch-determinism ruling | MEASURED, NOT RULED | job 826020 gives both sides with denominators; the ruling is the operator's |
 
 ## Checks run, and the proof that each can fail
 

@@ -52,8 +52,13 @@ FROZEN_FILE_SHA256 = {
     # orchestrator rulings of DECISION-LOG.md 2026-09-07 01:58. Fingerprint
     # updated in the same commit; git diff against the A2 state shows 491 added
     # lines and 0 deleted lines, so the first 1,179 lines are byte-identical.
+    # RE-PINNED 2026-09-07 after the W3b slice run: job 826025 filled A3.3, A3.4
+    # and A3.5 and jobs 825548 and 826020 filled A3.6's concurrency rows. Only
+    # lines INSIDE the A3 section changed, so git diff against main on this file
+    # is still additions-only, now 735 added and 0 deleted. Still a DRAFT: the
+    # operator has not approved it and the A2 preconditions are unchanged.
     "experiments/PREREGISTRATION_jury_and_scale.md": (
-        "300797b9ecb243c8c10ef6070b884a5170f4cf9a149e726cae2ded8d660105ba"
+        "b2246bbf929575e011f0b379c1be7d56ed0eb7681cfb27b2e70894f908b3df1a"
     ),
     "experiments/data/specificity_holdout.json": (
         "82ab56d8561d533a0d7196c4c604ab3ae6d27f53acb028bf390121c3567dabcd"
