@@ -21,4 +21,58 @@ Qwen/Qwen3-8B
 --download-dir
 <ROOT>/scratch/hf/download
 # run_meta.json
-<no run_meta.json>
+{
+  "attention_backend": null,
+  "attention_backend_lines": [],
+  "backend": "openai",
+  "backend_version": "vllm 0.28.0",
+  "batch_invariant": true,
+  "bcf_repo": "<ROOT>/repo",
+  "chain_repeat_seed": 20260907,
+  "chain_repeat_temperature": 0.7,
+  "chain_repeats": 3,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "concurrency": 32,
+  "cue_family": "stated-hint",
+  "curve_cap": 500,
+  "curve_repeats": 3,
+  "determinism_preflight": true,
+  "determinism_preflight_levels": "1,32",
+  "determinism_preflight_n_items": 30,
+  "enrichment_cell": false,
+  "enrichment_pass": false,
+  "exploratory_reason": null,
+  "gpu": "",
+  "hf_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "intervention_level": "text",
+  "item_list": null,
+  "job_id": "999999",
+  "model": "Qwen/Qwen3-8B",
+  "num_predict": 320,
+  "num_predict_full": 320,
+  "outcome_scale": "binary_follow",
+  "plan_commit": "renderfixture",
+  "port": 18000,
+  "port_owner_check": null,
+  "reasoning_block_closed": null,
+  "reasoning_mode": "default",
+  "reasoning_path": "chat",
+  "reasoning_preflight_path": "chat",
+  "repeat_temperatures": [
+    0.0,
+    0.7
+  ],
+  "run_label": "powered_pinned",
+  "sampling_k": 32,
+  "sampling_temperature": 0.7,
+  "seed": 7,
+  "server_pid": null,
+  "substrate": "arc_challenge",
+  "temperature": 0.0,
+  "tensor_parallel_size": 1,
+  "vllm_batch_invariant_env": "1",
+  "vllm_use_flashinfer_sampler": "0",
+  "vllm_version": "0.28.0"
+}
