@@ -157,3 +157,52 @@ exit_code.txt says: 11
 --- J. nothing was submitted by any of the above
 12
 (jobs in system now; compare with the queue listed at the top)
+
+=== LIVE RUN, 15:39, four wave-1 cells having finished (826733 to 826736, all COMPLETED 0:0) ===
+This is the refuse path against the real queue with no injected counts, run for real
+(no --dry-run, no --check-only): the feeder asked, wave.sh said no, nothing was submitted.
+=== live feeder run, real (not dry) ===
+host xlogin1  2026-09-07T15:39:37+08:00
+--- queue before
+    826796                      alta-m2-foldrep   PENDING       0:00
+    826792                         alta-oofckpt   PENDING       0:00
+    826783                   bcf-jury-qwen3-32b   RUNNING      44:20
+    826784                   bcf-jury-qwen3-32b   PENDING       0:00
+    826739 bcf-sweep-phi-4-reasoning-arc_challe   RUNNING       6:44
+    826738 bcf-sweep-llama-3-1-8b-instruct-arc_   RUNNING      10:45
+    826737 bcf-sweep-gemma-2-9b-it-arc_challeng   RUNNING      13:15
+--- bash ~/bcf/src-feeder/bcf/wave_feeder.sh --pool a100-40 --repo-tree $HOME/bcf/repo-5d40e5224ac0
+[feeder] next unsubmitted wave for sweep/a100-40: a100-40-02.tsv
+[feeder] jobs in system 7/32; headroom 25, floor 8
+[feeder] asking wave.sh --check-only about a100-40-02.tsv
+[feeder]   | [wave] planning commit <none> at <no checkout>
+[feeder]   | [wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-5d40e5224ac0
+[feeder]   | [wave] file bcf/waves/a100-40-02.tsv: 8 cell(s), 8 card(s), max tp 1
+[feeder]   | [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[feeder]   | [wave] jobs in system: 7/32; this wave adds 8 -> 15/32
+[feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 3/8 (0 more pending, not counted)
+[feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 4/12
+[feeder]   | [wave] a100-40 cards in use, bcf-sweep: 3/8 (CONTRACT.md split)
+[feeder]   | [wave] this wave wants 8 card(s) across 8 job(s)
+[feeder]   | [wave] REFUSING to submit:
+[feeder]   |   a100-40 cards would reach 11 > 8 (per-user cap, all campaigns)
+[feeder]   |   bcf-sweep cards on a100-40 would reach 11 > 8 (CONTRACT.md sweep budget)
+[feeder]   | [wave] nothing was submitted and nothing was cancelled. Wait for jobs to drain, or split the wave.
+[feeder] REFUSED by wave.sh (exit 1): the split or a cap has no room.
+[feeder]   Nothing was submitted; a100-40-02.tsv stays next.
+LIVE_FEEDER_EXIT=3
+--- queue after
+7
+--- state file waves recorded
+[feeder]   pending    a100-40-02.tsv
+[feeder]   pending    a100-40-03.tsv
+[feeder]   pending    a100-40-04.tsv
+[feeder]   pending    a100-40-05.tsv
+[feeder]   pending    a100-40-06.tsv
+[feeder]   pending    a100-40-07.tsv
+[feeder]   pending    a100-40-08.tsv
+[feeder]   pending    a100-40-09.tsv
+[feeder]   pending    a100-40-10.tsv
+[feeder]   pending    a100-40-11.tsv
+[feeder]   pending    a100-40-12.tsv
+[feeder] 1/12 wave file(s) of a100-40-*.tsv already submitted

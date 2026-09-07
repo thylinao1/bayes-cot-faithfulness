@@ -10,3 +10,6 @@
 0
 1
 0
+3   # live feeder run 15:39, refused by the split (real, not dry)
+0   # jury_wave.sh --dry-run of the h100-47 gpt-oss row, 15:39
+0   # jury_wave.sh real submit of that row, 15:39 -> job 826859

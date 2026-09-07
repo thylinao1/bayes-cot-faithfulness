@@ -1,8 +1,10 @@
 # The wave feeder, the enrichment pass and the enrichment cell
 
 Track G follow-up lane, 2026-09-07. Branch `trackg/feeder`, base `5d40e52`. Nothing here
-was merged and nothing was pushed. One powered wave exists at the time of writing (wave 1,
-jobs 826733 to 826740, submitted by hand at 14:29); this lane submitted no powered job.
+was merged and nothing was pushed. One powered sweep wave exists (wave 1, jobs 826733 to
+826740, submitted by hand at 14:29; 826733 to 826736 COMPLETED 0:0 by 15:39). This lane
+submitted no sweep cell and no enrichment job. It did submit one exploratory judge, job
+826859 on h100-47, which is section 4 and is the one thing here that spends a card.
 
 Three pieces, in the order the campaign uses them.
 
@@ -23,15 +25,30 @@ not have, and both scripts read `squeue`. From the Mac it is driven over ssh.
 
 ### The one command for a 15-minute poll
 
+Until this branch is merged, this is the command that runs today, and it is the one that
+produced the live refusal at 15:39 in `docs/trackg-proofs/feeder_cluster_proofs.txt`:
+
 ```bash
 bash bcf/ssh_retry.sh --wall 240 --tries 2 --gap 20 -- \
-  'bash $HOME/bcf/src/bcf/wave_feeder.sh --pool a100-40'
+  'bash $HOME/bcf/src-feeder/bcf/wave_feeder.sh --pool a100-40 \
+     --repo-tree $HOME/bcf/repo-5d40e5224ac0'
 ```
 
-`~/bcf/src` is the cluster checkout the orchestrator keeps at the commit CI is green on;
-the feeder reads its wave files and calls its `wave.sh`, so the feeder ships with the
-merge like everything else. Until this branch is merged, point `--src` at a checkout that
-has it.
+`~/bcf/src-feeder` is a copy of this branch, byte-identical in `bcf/wave_feeder.sh` and
+`bcf/wave.sh` to the committed files (sha256 `ca592934...` and `b070bcaa...`, checked on
+the cluster at 15:38). It is not a git checkout, so `wave.sh` cannot sync a tree from a
+commit and `--repo-tree` names one it already synced: `~/bcf/repo-5d40e5224ac0`, the tree
+wave 1 reads, made by `wave.sh` from commit `5d40e52`. Never point it at `~/bcf/repo` or at
+a working tree.
+
+After the merge, `~/bcf/src` is the orchestrator's checkout at the commit CI is green on,
+the feeder ships with it, `wave.sh` syncs the per-commit tree itself, and the poll shortens
+to:
+
+```bash
+bash bcf/ssh_retry.sh --wall 240 --tries 2 --gap 20 -- \
+  'cd $HOME/bcf/src && bash bcf/wave_feeder.sh --pool a100-40'
+```
 
 ### What the exit code means
 
@@ -54,7 +71,7 @@ directory beside it stops two pollers racing.
 A wave submitted **by hand** has to be adopted, or the feeder will offer it again:
 
 ```bash
-bash $HOME/bcf/src/bcf/wave_feeder.sh adopt a100-40-01.tsv \
+bash $HOME/bcf/src-feeder/bcf/wave_feeder.sh adopt a100-40-01.tsv \
   826733,826734,826735,826736,826737,826738,826739,826740
 ```
 
@@ -71,6 +88,10 @@ Adopting a wave twice is refused (exit 8) rather than overwriting what is record
   accepts a100-40-02.tsv and this is where it would be submitted", no sbatch, no state
   write.
 * **E** the injected counters cannot cause a real submission: exit 2.
+* **LIVE, 15:39**, no injection and no `--dry-run`: with four wave-1 cells finished the
+  feeder asked for real and `wave.sh` still refused (bcf-sweep 3/8 running, the wave wants
+  8, 11 > 8), exit 3, jobs in system 7 before and 7 after, `a100-40-02.tsv` still next.
+  This is the refusal the poll loop will see for as long as the pool is busy.
 
 The MaxSubmit floor is 8 free slots, wider than `wave.sh`'s own edge, because the 33rd
 sbatch is rejected rather than queued and an automated poll should stop well before that.
@@ -107,7 +128,8 @@ one model, on one a100-40 slice, under the pinned serving mode with the determin
 preflight in front of it.
 
 ```bash
-bash $HOME/bcf/src/bcf/wave_feeder.sh --pool a100-40 --type enrich
+bash $HOME/bcf/src-feeder/bcf/wave_feeder.sh --pool a100-40 --type enrich \
+  --repo-tree $HOME/bcf/repo-5d40e5224ac0
 # or by hand:
 bcf/wave.sh --type enrich --gpu-type a100-40 bcf/waves/enrich-a100-40-01.tsv
 ```
@@ -227,11 +249,20 @@ bash bcf/ssh_retry.sh --wall 180 --tries 2 --gap 15 -- \
   bash bcf/jury_wave.sh bcf/judges_gate_h100_explore_gptoss.tsv'
 ```
 
-**Not submitted at 14:56, and the reason is a cap.** `jury_wave.sh --dry-run` read gpu
-cards total **12/12** counting RUNNING and PENDING across every campaign (8 sweep cells,
-2 jury gates, 2 alta jobs), so one more card would reach 13 over the QOS cap of 12 and it
-refused with exit 1. h100-47 itself is free, 0 of 4. Nothing was cancelled to make room.
-Run the command above the moment one card frees; the row goes in unchanged.
+**Refused at 14:56 by a cap, submitted unchanged at 15:39.** The first `jury_wave.sh
+--dry-run` read gpu cards total **12/12** counting RUNNING and PENDING across every
+campaign (8 sweep cells, 2 jury gates, 2 alta jobs), so one more card would reach 13 over
+the QOS cap of 12 and it refused with exit 1; h100-47 itself was free, 0 of 4, and nothing
+was cancelled to make room. Wave-1 cells 826733 to 826736 finished between 14:57 and
+15:39, the count fell to 7/12, and the same row went in with no edit:
+
+* dry run 15:39:54, exit 0, "every cap holds; submitting 1 job(s)", h100-47 0/4 -> 1/4.
+* real submit 15:39:54, exit 0, **job 826859**, Slurm name `bcf-jury-gpt-oss-20b`,
+  partition `gpu-long`, RUNNING within the minute.
+
+Both are in `docs/trackg-proofs/h100_judge_gate_attempt.txt` with the queue either side.
+The Slurm job name is the judge default, so tell this job from the pinned jury gates by
+**id 826859** and by its slug, not by name.
 
 When it runs it writes three results directories, one per Q1 prompt variant:
 `gpt-oss-20b-h100-47-q1a`, `-q1b`, `-q1c`. The collector fetches them the usual way:
@@ -250,9 +281,14 @@ known until the job runs.
 
 ## What this lane did not do
 
-No powered job was submitted. Nothing was cancelled. `~/bcf/src`, `~/bcf/repo`,
-`~/bcf/repo-jury` and every `~/bcf/repo-<sha>` tree were left untouched; the cluster proofs
-ran from `~/bcf/src-feeder`, a copy of this branch made for them, against
+No sweep cell and no enrichment job was submitted: every wave file here is still
+unsubmitted, and the live feeder run at 15:39 was refused by the split with nothing sent.
+The one job this lane put in the system is the exploratory judge 826859 of section 4, which
+R7 allows on a free pool and which is not a run of record. Nothing was cancelled. `~/bcf/src`,
+`~/bcf/repo`, `~/bcf/repo-jury` and every `~/bcf/repo-<sha>` tree were left untouched: the
+check-only proofs ran from `~/bcf/src-feeder`, a copy of this branch, against
 `--repo-tree ~/bcf/repo-feeder-proof`, a path that does not exist and was never created
-because `--check-only` writes nothing. The frozen files are byte-identical to main and
-`tests/test_frozen_guard.py` passes.
+because `--check-only` writes nothing; the live feeder run named the real
+`~/bcf/repo-5d40e5224ac0` and never got as far as reading it; the judge row reads
+`~/bcf/repo-jury-h100`, a separate copy, so the W2f lane's `~/bcf/repo-jury` is not shared.
+The frozen files are byte-identical to main and `tests/test_frozen_guard.py` passes.

@@ -46,3 +46,45 @@ gpu xgpi19 gpu:h100-47:4 mix
 gpu xgpi20 gpu:h100-47:4 mix
 gpu-long xgpi11 gpu:h100-47:4 mix
 gpu-long xgpi12 gpu:h100-47:4 mix
+
+=== SUBMITTED at 15:39 on the second attempt ===
+The 14:56 refusal was a cap, not a defect: gpu cards were 12/12. Four wave-1 cells
+finished between 14:57 and 15:39, the count fell to 7/12, and the same row went in
+unchanged. Job 826859, Slurm job name bcf-jury-gpt-oss-20b, out slug gpt-oss-20b-h100-47.
+=== R7 extension: gpt-oss-20b exploratory judge on h100-47, submit attempt 2 ===
+host xlogin1  2026-09-07T15:39:54+08:00
+--- the row
+gpt-oss-20b	h100-47	08:00:00	MEM=64G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gpt-oss-20b-h100-47	BCF_SERVING_LINE=exploratory-h100-47	BCF_REPO=/home/e/e1506804/bcf/repo-jury-h100	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-h100/bcf/env.sh
+--- dry run
+[wave] denominators, live, ALL campaigns on this account (2026-09-07T15:39:54+08:00):
+[wave]   jobs in system : 7/32   (this wave adds 1 -> 8/32)
+[wave]   jobs running   : 4/16
+[wave]   gpu cards total: 7/12   (this wave adds 1 -> 8/12)
+[wave]   h100-47 cards    : 0/4   (this wave adds 1 -> 1/4)
+[wave] every cap holds; submitting 1 job(s)
+[wave] DRY-RUN sbatch --job-name=bcf-jury-gpt-oss-20b --partition=gpu-long --gpus=h100-47 --mem=64G --cpus-per-task=16 --time=08:00:00 --export=ALL,BCF_JUDGES=gpt-oss-20b,BCF_GATE_ITEMS=/home/e/e1506804/bcf/gate_items.jsonl,BCF_CONCURRENCY=12,BCF_RESUME=1,BCF_Q1_PROMPT=a+b+c,BCF_OUT_SLUG=gpt-oss-20b-h100-47,BCF_SERVING_LINE=exploratory-h100-47,BCF_REPO=/home/e/e1506804/bcf/repo-jury-h100,BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-h100/bcf/env.sh /home/e/e1506804/bcf/repo-jury-h100/bcf/judge_serve.sbatch
+[wave] done (dry run, 1 would be submitted, nothing was)
+DRY_RUN_EXIT=0
+--- real submit
+[wave] denominators, live, ALL campaigns on this account (2026-09-07T15:39:54+08:00):
+[wave]   jobs in system : 7/32   (this wave adds 1 -> 8/32)
+[wave]   jobs running   : 4/16
+[wave]   gpu cards total: 7/12   (this wave adds 1 -> 8/12)
+[wave]   h100-47 cards    : 0/4   (this wave adds 1 -> 1/4)
+[wave] every cap holds; submitting 1 job(s)
+Submitted batch job 826859
+[wave] done (1 submitted, 0 rejected of 1)
+SUBMIT_EXIT=0
+--- queue after
+    826796                      alta-m2-foldrep   PENDING          N/A       0:00           (Priority)
+    826792                         alta-oofckpt   PENDING          N/A       0:00           (Priority)
+    826783                   bcf-jury-qwen3-32b   RUNNING          N/A      44:37                xgpk0
+    826784                   bcf-jury-qwen3-32b   PENDING          N/A       0:00           (Priority)
+    826859                 bcf-jury-gpt-oss-20b   PENDING          N/A       0:00           (Priority)
+    826739 bcf-sweep-phi-4-reasoning-arc_challe   RUNNING          N/A       7:01                xgpg3
+    826738 bcf-sweep-llama-3-1-8b-instruct-arc_   RUNNING          N/A      11:02                xgpg6
+    826737 bcf-sweep-gemma-2-9b-it-arc_challeng   RUNNING          N/A      13:32                xgpg5
+--- sacct 826859
+       JobID                  JobName      State ExitCode              Submit  Partition 
+------------ ------------------------ ---------- -------- ------------------- ---------- 
+      826859     bcf-jury-gpt-oss-20b    RUNNING      0:0 2026-09-07T15:39:54   gpu-long 
