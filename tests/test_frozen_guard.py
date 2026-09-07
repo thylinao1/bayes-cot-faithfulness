@@ -65,8 +65,17 @@ FROZEN_FILE_SHA256 = {
     # against main on this file is 391 added and 0 DELETED lines, so every line
     # above the insertion points is byte-identical. R9, the jury Q1 construct,
     # is left open by name. Still a DRAFT: the operator has not approved it.
+    # RE-PINNED 2026-09-07 evening by Amendment A4: appended one section
+    # carrying rulings R9 (no primary jury configuration; column A of record
+    # stays the uncorrected regex share), R11 (gpt-oss suspended as a subject,
+    # kept as a judge) and R12 (element 9.4 for rows with no documented
+    # reasoning switch), the measured chain-level mediator noise from job
+    # 826596, two wave-1 fits findings, and the serving line the reruns were
+    # made under. Nothing existing was edited or deleted: git diff against main
+    # on this file is 626 added and 0 DELETED lines, so the first 2,305 lines
+    # are byte-identical. Still a DRAFT: the operator has not approved it.
     "experiments/PREREGISTRATION_jury_and_scale.md": (
-        "0676fb2d9e5ba608fdb3721b67fabe4e31b5e010f5174463150b26acbb7a9635"
+        "cf71ae19be297fb3cb6882b97be1f2c63e115b9a4f899678df2da9f0dde6f160"
     ),
     "experiments/data/specificity_holdout.json": (
         "82ab56d8561d533a0d7196c4c604ab3ae6d27f53acb028bf390121c3567dabcd"
