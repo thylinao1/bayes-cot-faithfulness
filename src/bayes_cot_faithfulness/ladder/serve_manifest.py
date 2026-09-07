@@ -21,11 +21,18 @@ manifest. A ladder checkpoint has no Hub id and no Hub revision, so its rows car
   the exact weights that produced it, the same job the Hub sha does for a roster row.
 * ``BCF_LADDER_BASE`` and ``BCF_BASE_REVISION`` -- the roster row the checkpoint was
   trained from, so a ladder row is still checkable against element 10.
-* ``BCF_SKIP_HUB_REVISION=1`` -- the switch the serving script needs so it does not ask
-  the Hub about a local path. That switch does not exist in
-  ``bcf/serve_and_run.sbatch`` yet; adding it is a four-line additive change this lane
-  did NOT make, because that file is the sweep's live runner. LADDER-IMPL.md names the
-  exact lines.
+* ``BCF_LOCAL_CHECKPOINT`` -- the merged directory again, under the name
+  ``bcf/serve_and_run.sbatch`` actually branches on. It is the ONLY variable that
+  switches that script off the Hub path: it serves the directory, takes the revision
+  from the checkpoint's own manifest hash, drops ``--revision``, and records
+  ``local_checkpoint: true`` in ``run_meta.json``.
+  ``tests/test_serve_local_checkpoint.py`` holds the default case to a fixture rendered
+  before that branch existed.
+* ``BCF_SKIP_HUB_REVISION=1`` -- kept for readers and for anything that greps the
+  manifests, and NOT what the runner branches on. It predates the branch, which lands
+  under the ``BCF_LOCAL_CHECKPOINT`` name; a row carrying only this flag would have gone
+  down the Hub path and exited 4 on a local directory, which is exactly why both are
+  emitted.
 
 Cell ids
 --------
@@ -139,6 +146,9 @@ class ServeRow:
         kv = [
             f"BCF_REVISION={self.revision}",
             f"BCF_MODEL_PATH={self.model_path}",
+            # The name the runner branches on. Same value as BCF_MODEL_PATH; see the
+            # module docstring for why both are emitted.
+            f"BCF_LOCAL_CHECKPOINT={self.model_path}",
             f"BCF_LADDER_BASE={self.base_model}",
             f"BCF_BASE_REVISION={self.base_revision}",
             "BCF_SKIP_HUB_REVISION=1",
@@ -283,7 +293,11 @@ def main(argv: list[str] | None = None) -> int:
 # The 12 LoRA jobs, in the same TSV shape, so bcf/ladder_wave.sh can feed them to
 # bcf/wave.sh one row at a time and the four card caps are checked by the same code the
 # sweep uses. MODEL here IS the roster id: a training job loads the pinned base.
-LADDER_POOL = "~/bcf/ladder/pools/arc_challenge_ladder.json"
+# Built by bayes_cot_faithfulness.ladder.train_pool from the ARC-Challenge TRAIN
+# split and rsynced here; disjoint from every evaluation pool by id AND by
+# normalised question text, with the counts in
+# experiments/data/ladder_train_pool_manifest.json.
+LADDER_POOL = "~/bcf/ladder/pools/ladder_train_pool.json"
 LADDER_GUARD = "~/bcf/ladder/pools/evaluation_guard.json"
 LADDER_TRACES = "~/bcf/ladder/pools/base_clean_traces.jsonl"
 TRAIN_MEM = "128G"          # the merge writes a second full bf16 copy of an 8B on CPU

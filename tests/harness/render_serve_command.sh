@@ -59,6 +59,11 @@ export BCF_RENDER_ROOT="$ROOT"
 export BCF_RENDER_ARGV="${ROOT}/argv.txt"
 export BCF_ENV_SH="${HERE}/serve_render/env_stub.sh"
 export SLURM_JOB_ID=999999
+# The local-checkpoint branch imports bayes_cot_faithfulness.ladder.serve_manifest
+# to hash a checkpoint manifest. On the cluster bcf/env.sh sets PYTHONPATH; here the
+# repository under test supplies it. The default path imports nothing, so this does
+# not move the default fixtures.
+export PYTHONPATH="${REPO}/src:${PYTHONPATH:-}"
 export BCF_PLAN_COMMIT=renderfixture
 export TZ=UTC
 
