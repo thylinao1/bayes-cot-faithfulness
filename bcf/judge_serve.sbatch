@@ -257,6 +257,28 @@ for key in $(echo "$JUDGES" | tr ',' ' '); do
     echo "[judge] REFUSING: unknown judge key ${key}" | ts | tee -a "$LOG" >&2
     exit 8
   fi
+
+  # EXPLORATORY LINES ONLY: the memory fraction in the section 6.1 table describes the card
+  # that table names. gpt-oss-20b carries 0.25 because the table co-hosted it with Gemma on
+  # one a100-80; R7 dissolved that pair, and 0.25 of a 47 GB MIG slice is 11.7 GB, under the
+  # 13 GB the mxfp4 weights need, so vLLM loads the model and then has nothing left for the
+  # KV cache (job 826859, "No available memory for the cache blocks", exit 5). A row may
+  # override the fraction, and only a row whose serving line says exploratory: a run of
+  # record serves at the table's number or it does not serve.
+  # The row's own BCF_SERVING_LINE is what decides, not JUDGE_SERVING_LINE, which is the
+  # table's prose and says "a100-80" on every gpt-oss row whatever card the job holds.
+  if [ -n "${BCF_JUDGE_GPU_UTIL:-}" ]; then
+    case "${BCF_SERVING_LINE:-}" in
+      exploratory*)
+        echo "[serve] ${key}: gpu-memory-utilization OVERRIDDEN ${JUDGE_GPU_UTIL} -> ${BCF_JUDGE_GPU_UTIL} (row serving line '${BCF_SERVING_LINE}'; the table fraction belongs to '${JUDGE_SERVING_LINE}', a card this line is not on)" | ts | tee -a "$LOG"
+        JUDGE_GPU_UTIL="${BCF_JUDGE_GPU_UTIL}"
+        ;;
+      *)
+        echo "[judge] REFUSING: BCF_JUDGE_GPU_UTIL=${BCF_JUDGE_GPU_UTIL} with BCF_SERVING_LINE='${BCF_SERVING_LINE:-<unset>}', which is not exploratory. A run of record serves at the section 6.1 fraction ${JUDGE_GPU_UTIL}." | ts | tee -a "$LOG" >&2
+        exit 12
+        ;;
+    esac
+  fi
   PORT=$(( PORT_BASE + i ))
   # The pinned revision is the point of the pin: check it still resolves and that the live
   # sha for the repo has not moved under the pin. A mismatch is reported, not silently

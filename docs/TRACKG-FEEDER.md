@@ -262,7 +262,48 @@ was cancelled to make room. Wave-1 cells 826733 to 826736 finished between 14:57
 
 Both are in `docs/trackg-proofs/h100_judge_gate_attempt.txt` with the queue either side.
 The Slurm job name is the judge default, so tell this job from the pinned jury gates by
-**id 826859** and by its slug, not by name.
+**id** and by its slug, not by name.
+
+**The mxfp4 question is answered, and the answer is no.** 826859's server log reads
+`quantization=gpt_oss_mxfp4` and `Using 'TRITON' Mxfp4 MoE backend`, the same backend as on
+the a100-80 (job 826026). vLLM did not refuse the quantization on this card class and did
+not dequantize to bf16.
+
+**826859 still died, exit 5, over memory rather than quantization.**
+
+```
+ValueError: No available memory for the cache blocks. Try increasing `gpu_memory_utilization`
+```
+
+`--gpus=h100-47` hands out a **MIG 3g.47gb slice** of an H100 NVL, and section 6.1 gives
+gpt-oss-20b `gpu_memory_utilization=0.25` because that table co-hosted it with Gemma on one
+a100-80. 0.25 of 47 GB is 11.7 GB against 13.03 GiB of weights: the model loads, the KV
+cache gets nothing. R7 dissolved that pair, so the 0.25 is a leftover of a line that no
+longer exists.
+
+The fix is a row-level override that only an exploratory row can use.
+`bcf/judge_serve.sbatch` reads `BCF_JUDGE_GPU_UTIL` and takes it **only** when the row's
+`BCF_SERVING_LINE` starts with `exploratory`; anything else exits 12 with the table's
+fraction named in the refusal, so a run of record cannot be served at a number the
+pre-registration does not state. `experiments/jury/family_map.py` is untouched: the 6.1
+table still says 0.25. Proven both ways in
+`docs/trackg-proofs/util_override_falsification.txt`, which extracts the block from the
+sbatch file rather than retyping it: exploratory plus override takes 0.90 (exit 0), the
+pinned line plus the same override refuses (exit 12), an unset `BCF_SERVING_LINE` refuses
+(exit 12), and no override leaves 0.25 (exit 0). Regenerate it with
+`bash bcf/util_guard_proof.sh bcf/judge_serve.sbatch`.
+
+Resubmitted at 15:49:59 with `BCF_JUDGE_GPU_UTIL=0.90` in the row: **job 826888**, dry run
+exit 0 (h100-47 2/4 -> 3/4), submit exit 0.
+
+**Collision to know about.** Another lane ran the command above at 15:47:02 and got **job
+826880**, the same row, the same tree and the same `BCF_OUT_SLUG`, but submitted two
+minutes before the patched sbatch reached the cluster, so it carries no override and fails
+the same way 826859 did. Two jobs with one slug write one results directory. This lane
+cancelled neither (its cancel permission names `bcf-enrich-*` and `bcf-jury-gptoss-h100-*`,
+and `jury_wave.sh` names both of these `bcf-jury-gpt-oss-20b`). 826880 dies on its own a
+few minutes after it starts serving; if it is somehow still alive when 826888 starts, one
+of the two should be cancelled by whoever owns it, and it should be 826880.
 
 When it runs it writes three results directories, one per Q1 prompt variant:
 `gpt-oss-20b-h100-47-q1a`, `-q1b`, `-q1c`. The collector fetches them the usual way:
