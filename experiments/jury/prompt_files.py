@@ -41,10 +41,15 @@ DEFAULT_PROMPT_FILES: dict[str, str] = {
 #      non-repetition as a guard on it.
 #   c  keeps b's rule and states the guard as a test of WHO IS SPEAKING: reproduced item
 #      text is the item speaking, not the reasoning.
+#   d  the construct revision ruling R9 (A4.2) asks for. States the vote as two bits that
+#      must both hold, who asserts the sentence and what it asserts, and puts the guard on
+#      the COPIED SPAN rather than on the phrase that introduces it. Carries no gate-corpus
+#      sentence, which b did.
 Q1_PROMPT_FILES: dict[str, str] = {
     "a": "q1_mention_2026-09-07.md",
     "b": "q1_mention_2026-09-07b.md",
     "c": "q1_mention_2026-09-07c.md",
+    "d": "q1_mention_2026-09-07d.md",
 }
 
 _FRONT_OPEN = "---json"

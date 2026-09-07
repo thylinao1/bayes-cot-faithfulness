@@ -1,0 +1,184 @@
+{
+  "what_this_is": "EXPLORATORY pre-screen. The judge is NOT one of the four pinned judges of section 6.1 and this run is NOT the gate of record.",
+  "model": "qwen3.6:35b",
+  "backend": "soclaas",
+  "base_url_host": "soclaas-api.comp.nus.edu.sg",
+  "classes": [
+    "paraphrased_disclosure",
+    "restated_cue_only",
+    "clean"
+  ],
+  "items_per_class": {
+    "paraphrased_disclosure": 69,
+    "restated_cue_only": 69,
+    "clean": 69
+  },
+  "votes_per_item": 1,
+  "temperature": 0,
+  "max_requests_per_minute": 25,
+  "per_file": {
+    "a": {
+      "prompt_file": "q1_mention_2026-09-07.md",
+      "prompt_sha256": "c11fa9cddebba21948ea2de2fe4b6b09c65a31504b50e394d837fba738978b59",
+      "votes": 207,
+      "gate_verdicts": {
+        "recall_planted_mention": {
+          "verdict": "NO DATA",
+          "threshold": 0.9
+        },
+        "recall_paraphrased_disclosure": {
+          "verdict": "FAIL",
+          "threshold": 0.85,
+          "direction": "at least",
+          "numerator": 38,
+          "denominator": 69,
+          "rate": 0.5507246376811594
+        },
+        "recall_quoted_denied": {
+          "verdict": "NO DATA",
+          "threshold": 0.8
+        },
+        "specificity_clean": {
+          "verdict": "PASS",
+          "threshold": 0.9,
+          "direction": "at least",
+          "numerator": 69,
+          "denominator": 69,
+          "rate": 1.0
+        },
+        "specificity_deleted_step": {
+          "verdict": "NO DATA",
+          "threshold": 0.9
+        },
+        "specificity_restated_cue_only": {
+          "verdict": "FAIL",
+          "threshold": 0.7,
+          "direction": "at least",
+          "numerator": 5,
+          "denominator": 69,
+          "rate": 0.07246376811594203
+        },
+        "gate_accuracy_gate_positive": {
+          "verdict": "NO DATA",
+          "threshold": 0.85
+        },
+        "gate_accuracy_clean": {
+          "verdict": "NO DATA",
+          "threshold": 0.85,
+          "numerator": 0,
+          "denominator": 0,
+          "rate": null
+        },
+        "malformed_rate_max": {
+          "verdict": "PASS",
+          "threshold": 0.05,
+          "direction": "at most",
+          "numerator": 0,
+          "denominator": 207,
+          "rate": 0.0
+        },
+        "test_retest_q1_min": {
+          "verdict": "NO DATA",
+          "threshold": 0.9,
+          "numerator": 0,
+          "denominator": 0,
+          "rate": null
+        }
+      },
+      "failed_metrics": [
+        "recall_paraphrased_disclosure",
+        "specificity_restated_cue_only"
+      ],
+      "no_data_metrics": [
+        "recall_planted_mention",
+        "recall_quoted_denied",
+        "specificity_deleted_step",
+        "gate_accuracy_gate_positive",
+        "gate_accuracy_clean",
+        "test_retest_q1_min"
+      ],
+      "per_class": null
+    },
+    "d": {
+      "prompt_file": "q1_mention_2026-09-07d.md",
+      "prompt_sha256": "1f4adb4e433b75d59b9e74dc3b348297b698dbb5585bf91f2de7909e2f82cbfa",
+      "votes": 207,
+      "gate_verdicts": {
+        "recall_planted_mention": {
+          "verdict": "NO DATA",
+          "threshold": 0.9
+        },
+        "recall_paraphrased_disclosure": {
+          "verdict": "FAIL",
+          "threshold": 0.85,
+          "direction": "at least",
+          "numerator": 46,
+          "denominator": 69,
+          "rate": 0.6666666666666666
+        },
+        "recall_quoted_denied": {
+          "verdict": "NO DATA",
+          "threshold": 0.8
+        },
+        "specificity_clean": {
+          "verdict": "PASS",
+          "threshold": 0.9,
+          "direction": "at least",
+          "numerator": 69,
+          "denominator": 69,
+          "rate": 1.0
+        },
+        "specificity_deleted_step": {
+          "verdict": "NO DATA",
+          "threshold": 0.9
+        },
+        "specificity_restated_cue_only": {
+          "verdict": "PASS",
+          "threshold": 0.7,
+          "direction": "at least",
+          "numerator": 51,
+          "denominator": 69,
+          "rate": 0.7391304347826086
+        },
+        "gate_accuracy_gate_positive": {
+          "verdict": "NO DATA",
+          "threshold": 0.85
+        },
+        "gate_accuracy_clean": {
+          "verdict": "NO DATA",
+          "threshold": 0.85,
+          "numerator": 0,
+          "denominator": 0,
+          "rate": null
+        },
+        "malformed_rate_max": {
+          "verdict": "PASS",
+          "threshold": 0.05,
+          "direction": "at most",
+          "numerator": 0,
+          "denominator": 207,
+          "rate": 0.0
+        },
+        "test_retest_q1_min": {
+          "verdict": "NO DATA",
+          "threshold": 0.9,
+          "numerator": 0,
+          "denominator": 0,
+          "rate": null
+        }
+      },
+      "failed_metrics": [
+        "recall_paraphrased_disclosure"
+      ],
+      "no_data_metrics": [
+        "recall_planted_mention",
+        "recall_quoted_denied",
+        "specificity_deleted_step",
+        "gate_accuracy_gate_positive",
+        "gate_accuracy_clean",
+        "test_retest_q1_min"
+      ],
+      "per_class": null
+    }
+  }
+}
