@@ -40,13 +40,16 @@ from pathlib import Path
 
 from . import records as rec
 from .aggregate import aggregate
-from .family_map import JUDGE_BY_KEY
+from .family_map import JUDGE_BY_KEY, routing
 from .gate_thresholds import HIGHER_IS_BETTER, THRESHOLDS, thresholds_sha256
 from .prompt_files import PROMPT_DIR, Q1_PROMPT_FILES, load_prompt
 from .synthetic_gate import CLASSES, TRUTH
 
 DEFAULT_ITEMS = Path("experiments/results/jury-gate/gate_items.jsonl")
+SUBJECT_MODEL = "Qwen3-8B"
 SUBJECT_FAMILY = "Qwen"
+# What section 6.2 routes onto this corpus: every judge not of the subject's family.
+EXPECTED_PANEL: tuple[str, ...] = routing(SUBJECT_MODEL)
 
 
 class PanelGateError(RuntimeError):
@@ -246,6 +249,7 @@ def score_panel(sources: dict[str, dict], items_by_id: dict[str, dict]) -> dict:
 
 def build_panel_report(sources: dict[str, dict], items: list[dict], q1_variant: str) -> dict:
     items_by_id = {i["item_id"]: i for i in items}
+    missing = [k for k in EXPECTED_PANEL if k not in sources]
     full = score_panel(sources, items_by_id)
     loo = {}
     for dropped in sorted(sources):
@@ -254,7 +258,12 @@ def build_panel_report(sources: dict[str, dict], items: list[dict], q1_variant: 
             continue
         loo[dropped] = score_panel(rest, items_by_id)
     return {
-        "kind": "PANEL",
+        # A panel missing a judge is a SMALLER PANEL, not a stand-in for the panel of
+        # record, and the kind says so in the one place every table reads.
+        "kind": "PANEL" if not missing else "PANEL-PARTIAL",
+        "panel_complete": not missing,
+        "expected_panel": list(EXPECTED_PANEL),
+        "missing_judges": missing,
         "q1_prompt_variant": q1_variant,
         "q1_prompt_file": Q1_PROMPT_FILES[q1_variant],
         "thresholds": THRESHOLDS,
@@ -281,6 +290,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="one judge's results directory (the one holding votes.jsonl)")
     ap.add_argument("--items", type=Path, default=DEFAULT_ITEMS)
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--allow-partial", action="store_true",
+                    help="write a report even when a judge of the panel has no votes. "
+                         "Without it an incomplete panel prints its numbers and writes "
+                         "nothing, so a partial panel cannot reach a table by accident.")
     args = ap.parse_args(argv)
 
     sources: dict[str, dict] = {}
@@ -289,9 +302,17 @@ def main(argv: list[str] | None = None) -> int:
         sources[key] = load_judge_votes(key, Path(path), args.q1)
     items = [json.loads(x) for x in args.items.read_text(encoding="utf-8").splitlines() if x.strip()]
     report = build_panel_report(sources, items, args.q1)
+    if report["missing_judges"]:
+        print(f"[panel] INCOMPLETE: {', '.join(report['missing_judges'])} has no votes here, "
+              f"so this is a {len(sources)}-judge panel and not the panel of record "
+              f"({', '.join(EXPECTED_PANEL)}).")
     if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        if report["missing_judges"] and not args.allow_partial:
+            print(f"[panel] NOT WRITING {args.out}: pass --allow-partial to record a "
+                  f"partial panel, which every table then shows as PANEL-PARTIAL.")
+        else:
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(json.dumps(report, indent=2), encoding="utf-8")
     panel = report["panel"]
     print(f"[panel] Q1 {report['q1_prompt_file']}  judges {', '.join(panel['judges'])}  "
           f"{panel['verdict']}  {panel['passed_of_ten']} thresholds pass")

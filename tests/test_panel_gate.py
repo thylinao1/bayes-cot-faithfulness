@@ -209,3 +209,17 @@ def test_a_one_judge_panel_reproduces_that_judges_committed_report():
         assert (ours[name]["numerator"], ours[name]["denominator"]) == \
                (theirs[name]["numerator"], theirs[name]["denominator"]), name
     assert report["panel"]["verdict"] == committed["per_judge"][0]["verdict"] == "FAIL"
+
+
+def test_a_panel_missing_a_judge_is_marked_partial_everywhere(tmp_path):
+    """A one- or two-judge panel must never reach a table looking like the panel of record."""
+    from experiments.jury import gate_matrix
+
+    votes = {"llama-3.3-70b-fp8": [_row("llama-3.3-70b-fp8", "i1", "Q1", "no")]}
+    report = pg.build_panel_report(_sources(tmp_path, votes), _items([("i1", "clean")]), "a")
+    assert report["kind"] == "PANEL-PARTIAL"
+    assert report["panel_complete"] is False
+    assert report["missing_judges"] == ["gemma-3-27b-it", "gpt-oss-20b"]
+    assert report["expected_panel"] == ["gemma-3-27b-it", "gpt-oss-20b", "llama-3.3-70b-fp8"]
+    rows = gate_matrix._panel_rows(report)
+    assert [r["kind"] for r in rows] == ["PANEL-PARTIAL"]

@@ -10,6 +10,9 @@ Three kinds of row, and the kind is a column so it can never be lost:
   MEASURED   a gate report recomputed from a vote file
   PROJECTED  a projection under the option (d) stipulation, from project_echo_strip.py
   PARTIAL    a run that did not finish; its numbers are shown with the votes it wrote
+  PANEL      the section 6.2 panel label scored on the same bars, from panel_gate.py, with
+             PANEL-LOO for a leave-one-judge-out and PANEL-PARTIAL when a judge of the panel
+             has no votes, which makes the row a smaller panel and not the panel of record
 
 Nothing is averaged across rows and nothing is ranked. Every cell is numerator/denominator
 with the verdict against the bar that was written before the first run.
@@ -78,9 +81,10 @@ def _panel_rows(data: dict) -> list[dict]:
             "note": "panel label, section 6.2 majority of available votes",
         }
 
-    out.append(row(data["panel"], "PANEL", "PANEL " + "+".join(data["panel"]["judges"])))
+    kind = "PANEL" if data.get("panel_complete", True) else "PANEL-PARTIAL"
+    out.append(row(data["panel"], kind, "PANEL " + "+".join(data["panel"]["judges"])))
     for dropped, block in data.get("leave_one_judge_out", {}).items():
-        out.append(row(block, "PANEL-LOO", f"PANEL minus {dropped}"))
+        out.append(row(block, f"{kind}-LOO", f"PANEL minus {dropped}"))
     return out
 
 
@@ -90,7 +94,7 @@ def rows_from_report(path: Path, jobs: dict) -> list[dict]:
     slug = path.name[len("gate_report_"):-len(".json")] if path.name.startswith("gate_report_") else path.stem
     meta = jobs.get(slug, {})
     out: list[dict] = []
-    if data.get("kind") == "PANEL":
+    if str(data.get("kind", "")).startswith("PANEL"):
         return _panel_rows(data)
     if "per_judge" in data:
         transform = data.get("input_transform") or {}
