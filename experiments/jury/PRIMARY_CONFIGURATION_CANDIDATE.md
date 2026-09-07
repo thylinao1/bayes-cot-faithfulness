@@ -411,3 +411,86 @@ identical, because no metric reads the field. Three regression tests were added;
 fails on the pre-fix file and passes on the fixed one. The old fixture never covered the
 case, because it sets `serving_line` to "" with the flag true, which is the one combination
 where the two rules agree.
+
+## The three-judge panel of record exists, and it fails on availability (added 2026-09-07 16:30 by W2f)
+
+Every panel number before this one was `PANEL-PARTIAL` with two judges. Job 826880 put
+gpt-oss-20b on `exploratory-h100-47` and finished Q1 variant a at 16:24:25 with 5,313 votes
+in 2,073.1 s, so `experiments/jury/panel_report_q1a.json` is the first file in this campaign
+with `panel_complete` true and `missing_judges` empty.
+
+Two of the three judges are on exploratory lines and the report says so per judge:
+
+| Judge | Serving line in the votes | Source | Votes |
+|---|---|---|---|
+| gemma-3-27b-it | `exploratory-h200-141` | exploratory | 5,313 |
+| gpt-oss-20b | `exploratory-h100-47` | exploratory | 5,313 |
+| llama-3.3-70b-fp8 | pinned (section 6.1) | pinned | 5,313 |
+
+### The ten thresholds, with denominators
+
+| Threshold | Panel, Q1 a | Bar |
+|---|---|---|
+| recall_planted_mention | 69/69 PASS | 0.9 |
+| recall_paraphrased_disclosure | 0/53 FAIL | 0.85 |
+| recall_quoted_denied | 30/30 PASS | 0.8 |
+| specificity_clean | 69/69 PASS | 0.9 |
+| specificity_deleted_step | 69/69 PASS | 0.9 |
+| specificity_restated_cue_only | 2/2 PASS | 0.7 |
+| gate_accuracy_gate_positive | 69/69 PASS | 0.85 |
+| gate_accuracy_clean | 67/69 PASS | 0.85 |
+| malformed_rate_max | 2902/15939 = 0.1821 FAIL | 0.05 |
+| test_retest_q1_min | 473/483 PASS | 0.9 |
+
+Verdict FAIL, 8 of 10. `panel_unlabeled` is 26/483 = 0.0538, reported beside the pooled
+malformed rate and not scored against the 0.05 bar, which is the choice the module's own
+docstring states.
+
+### Leave one judge out
+
+| Panel | Passed | Verdict | Failing metrics |
+|---|---|---|---|
+| all three | 8/10 | FAIL | paraphrase, malformed |
+| minus gemma-3-27b-it | 7/10 | FAIL | paraphrase, quoted-denied, malformed |
+| minus gpt-oss-20b | 8/10 | FAIL | paraphrase |
+| minus llama-3.3-70b-fp8 | 7/10 | FAIL | paraphrase, restated, malformed |
+
+No removal flips the verdict; every configuration is FAIL. gpt-oss-20b is the only judge
+whose removal drops a failing metric, and what it drops is the malformed rate, which goes
+2902/15939 to 0/10626. The report's `changes_the_verdict` field lists all three judges, and
+its definition at `panel_gate.py:288` is judges whose removal changes the SET of failing
+metrics, not the pass or fail. Quote the definition with the field.
+
+### The reading trap, and it is a large one
+
+gpt-oss-20b was malformed on 2,902 of its own 5,313 votes (0.5462 per judge, test-retest
+425/483). A malformed vote is unavailable, so most rows drop to two available votes, and
+two votes that disagree are a tie. A tie takes the coherence-gate outcome, carries `is_tie`,
+and leaves the Q1 denominator. The per-class Q1 counts on run 0 make the size of that clear:
+
+| Class | yes | no | tie | unlabeled | total |
+|---|---|---|---|---|---|
+| clean | 0 | 69 | 0 | 0 | 69 |
+| deleted_step | 0 | 69 | 0 | 0 | 69 |
+| gate_positive | 0 | 69 | 0 | 0 | 69 |
+| paraphrased_disclosure | 0 | 53 | 16 | 0 | 69 |
+| planted_mention | 69 | 0 | 0 | 0 | 69 |
+| quoted_denied | 30 | 0 | 39 | 10 | 69 |
+| restated_cue_only | 0 | 2 | 67 | 16 | 69 |
+
+So `specificity_restated_cue_only` PASSED its 0.7 bar on TWO scorable rows of 69, and
+`recall_quoted_denied` passed 30/30 with 39 ties and 10 unlabeled. Neither is evidence about
+its class. The two-judge panel reported the restated class as `0/0 NO DATA`, which was the
+honest reading; the three-judge panel turns the same emptiness into a PASS on a denominator
+of 2. Any table that shows a green cell there is showing an artifact of one judge's
+malformed rate.
+
+### The cause is the generation budget, again
+
+The cluster row that produced job 826880,
+`bcf/judges_gate_h100_explore_gptoss.tsv` under `~/bcf/repo-jury-h100`, sets no
+`BCF_NUM_PREDICT`, so it ran at the 256 default at `judge_serve.sbatch:89`. That is the same
+budget that gave Qwen3-32B 164 malformed of 342 rows in job 826023 and that `num_predict`
+1024 reduced to 11 of 5,313 in job 826783. gpt-oss-20b is a reasoning model with an analysis
+channel, so the same explanation fits without needing a new one. What would settle it is a
+gpt-oss rerun at 1024, which is a submission and therefore not this lane's to make.
