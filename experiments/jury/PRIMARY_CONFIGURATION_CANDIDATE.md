@@ -134,11 +134,11 @@ about 05:00 and CANNOT be recomputed from this repository until it is fetched.
 | `qwen3-32b-h200/` | 826023 | qwen3-32b | 0 | 0 | job wrapper log only; the votes are in the q1a directory |
 | `qwen3-32b-h200-q1a/` | 826023 | qwen3-32b | 342 | none | PARTIAL, cancelled by explicit id mid-variant |
 | `gemma-gptoss-h200/` | 826026 | none served | 0 | 5 | the co-hosted pair that cannot start; NOT a Gemma result |
-| gemma-3-27b-it-h200-q1{a,b,c} | 826029 | gemma-3-27b-it | NOT MIRRORED | unknown | the Gemma numbers on the record; still on the cluster |
+| `gemma-3-27b-it-h200-q1{a,b,c}/` | 826029 | gemma-3-27b-it | 5,313 each | 1 each | MIRRORED and recomputed 2026-09-07 13:53; the 1 is a gate FAIL verdict, see the W2f section |
 
 Two consequences that a reader of the record should carry.
 
-**The Gemma numbers are STILL not verifiable from this repository, and the mark stays.**
+**The Gemma numbers were not verifiable from this repository until 13:53 on 2026-09-07. RESOLVED; the account of the outage below is kept as history.**
 Job 826029's Q1 variant a and variant b results, including the finding that the FP8 Llama and
 Gemma read the same Q1 bytes in opposite directions on `quoted_denied` and
 `restated_cue_only`, were read off the cluster at about 05:05 and the files were never
@@ -151,8 +151,10 @@ cluster: the Cisco tunnel is up on utun4 with 10.195.37.151, but the home router
 packets for xlogin at 192.168.51.148 and .149 leave through the home gateway and TCP 22
 never opens. Reconnecting the VPN client is the operator's.
 
-The numbers are reported as measured, they are not withdrawn, and they stay
-UNCONFIRMED-LOCALLY. The fetch is now one command, `bcf/w2c.sh fetch gemma-3-27b-it-h200-q1a
+RESOLVED at 13:53 on 2026-09-07 by W2f: all three directories are mirrored and every
+number is recomputed from its own vote file, with zero differences against the reports the
+cluster wrote. The mark is LIFTED; the recomputed tables are in the closing W2f section of
+this file. The fetch was one command, `bcf/w2c.sh fetch gemma-3-27b-it-h200-q1a
 gemma-3-27b-it-h200-q1b gemma-3-27b-it-h200-q1c`, which rsyncs the artifacts and then
 recomputes each report from the vote file with `experiments/jury/recompute_report.py`. That
 recomputation reads the judge key, the Q1 file, its SHA-256, the serving line and any input
@@ -206,7 +208,8 @@ disclosure` is the binding failure in all three, at 0/69, 48/69 and 17/69 agains
 
 ## The Gemma mark STILL stands, and the panel gate now exists to receive it (added 2026-09-07 by W2d)
 
-The UNCONFIRMED-LOCALLY mark above is unchanged. The three Gemma exploratory runs
+(HISTORY, written by W2d at about 10:00; the mark it describes was LIFTED at 13:53 by W2f.)
+The UNCONFIRMED-LOCALLY mark above was unchanged at the time this section was written. The three Gemma exploratory runs
 (`gemma-3-27b-it-h200-q1a`, `-q1b`, `-q1c`, job 826029) finished on the cluster with 5,313
 votes each and an `exit_code` of 1, and that 1 is NOT yet explained: `experiments/jury/gate.py`
 returns `0 if report["verdict"] == "PASS" else 1`, so a gate FAIL verdict and several kinds of
@@ -238,8 +241,9 @@ denominator. Ordered resume: `bcf/w2d_resume.sh`.
 
 ## Still no candidate, and the Gemma mark still stands (added 2026-09-07 by W2e)
 
+(HISTORY, written by W2e at about 13:30; the mark it describes was LIFTED at 13:53 by W2f.)
 Nothing in this file changes. No Q1 file is named. No judge is named. The Gemma numbers
-stay UNCONFIRMED-LOCALLY with their `exit_code` 1 unexplained, for the same reason as
+stayed UNCONFIRMED-LOCALLY with their `exit_code` 1 unexplained, for the same reason as
 before and for a new instance of it: the cluster was unreachable for the whole of this
 lane, so the fetch that would settle both did not happen.
 
@@ -279,3 +283,40 @@ before it is used. No chain-level number is guessed and no job id is invented fo
 
 Ordered resume for everything still open: `bcf/w2e_resume.sh`, one verb per step, each
 refusing rather than guessing when `ssh soc` does not answer.
+
+
+## The Gemma mark is LIFTED and its exit code is explained (added 2026-09-07 13:53 by W2f)
+
+Still no candidate. No Q1 file is named here, no judge is named, and nothing below moves a
+bar or a prompt. What changed is only that a number which could not be checked from this
+repository now can be.
+
+**The three Gemma exploratory directories are mirrored and recomputed.**
+`bcf/w2e_resume.sh gemma` fetched `gemma-3-27b-it-h200-q1a`, `-q1b` and `-q1c` (job 826029)
+and rebuilt each report from its own `votes.jsonl` with
+`experiments/jury/recompute_report.py`, which takes the judge key, the Q1 file, its SHA-256,
+the serving line and the input transform off the vote rows and refuses if the prompt file
+the votes name is not byte-identical to this checkout's copy. It did not refuse. Compared
+metric by metric against the `gate_report.json` the cluster wrote at 04:50, fetched
+separately for the check, all three reproduce with ZERO differences on all ten metrics
+(numerator, denominator, value, verdict and threshold), 5,313 vote rows each, verdict FAIL
+in both. The full tables are in `GATE-Q1-COMPARISON.md`, which now carries three MEASURED
+Gemma rows in its generated matrix.
+
+**`exit_code` 1 is a gate FAIL verdict, not a crash.** `gate.py` line 292 returns
+`0 if report["verdict"] == "PASS" else 1`, and all three reports read FAIL. `sacct -j 826029`
+reads COMPLETED with Slurm ExitCode 0:0 over 43:20, which `judge_serve.sbatch` line 354
+explains: the wrapper exits 0 when the gate RAN whatever its verdict, and the per-variant
+status goes to `exit_code.txt`. Each `run_summary.json` reads `votes 5313` against
+`votes_planned 5313` with `skipped_resumed 0`, so the vote loop finished. And
+`bcf/exit_guard.sh` reserves 255, 250 and 128-plus-signal for the crash and cancel shapes;
+the file holds 1, which its own header calls "a failed threshold, which is a result rather
+than a job failure". Job 826029 wrote no `run.log` and its Slurm `.out` is not under `$HOME`
+at depth 3, so `why <slug>` prints nothing for these three; the four items above settle it
+without the log.
+
+**What the mark being lifted does and does not license.** It licenses quoting the Gemma
+numbers as MEASURED and recomputed on this Mac. It does not make them a pinned-line
+measurement: every one of the three is `exploratory-h200-141` at the h200 serving line, the
+pinned a100-80 Gemma table is a different row, and any panel built from these votes carries
+each judge's serving line separately rather than one collapsed label.

@@ -30,6 +30,9 @@ straight from a vote file with `python -m experiments.jury.recount_gate_q1 <vote
 
 | Kind | Judge | Q1 file | Serving line | Job | Votes | Verdict | planted (>=0.9) | paraphrase (>=0.85) | quoted-denied (>=0.8) | clean (>=0.9) | deleted-step (>=0.9) | restated (>=0.7) | gate-override (>=0.85) | gate-coherent (>=0.85) | malformed (<=0.05) | test-retest (>=0.9) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07.md | exploratory-h200-141 | 826029 | 5313 | FAIL | 69/69 PASS | 16/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 0/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07b.md | exploratory-h200-141 | 826029 | 5313 | FAIL | 69/69 PASS | 68/69 PASS | 69/69 PASS | 62/69 FAIL | 68/69 PASS | 0/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07c.md | exploratory-h200-141 | 826029 | 5313 | FAIL | 69/69 PASS | 60/69 PASS | 69/69 PASS | 44/69 FAIL | 48/69 FAIL | 0/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | pinned (section 6.1) | 825542 | 5313 | FAIL | 69/69 PASS | 0/69 FAIL | 22/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | pinned (section 6.1) + option (d) stipulated | 825542 | 5313 | FAIL | 69/69 PASS | 0/69 FAIL | 22/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | pinned (section 6.1) | 826010 | 5313 | FAIL | 69/69 PASS | 48/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 26/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 479/483 PASS |
@@ -41,6 +44,9 @@ straight from a vote file with `python -m experiments.jury.recount_gate_q1 <vote
 
 | Kind | Judge | Q1 file | Serving line | clean (no) | planted_mention (yes) | paraphrased_disclosure (yes) | quoted_denied (yes) | restated_cue_only (no) | deleted_step (no) | gate_positive (no) |
 |---|---|---|---|---|---|---|---|---|---|---|
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07.md | exploratory-h200-141 | 0 yes / 69 no | 69 yes / 0 no | 16 yes / 53 no | 69 yes / 0 no | 69 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07b.md | exploratory-h200-141 | 7 yes / 62 no | 69 yes / 0 no | 68 yes / 1 no | 69 yes / 0 no | 69 yes / 0 no | 1 yes / 68 no | 7 yes / 62 no |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07c.md | exploratory-h200-141 | 25 yes / 44 no | 69 yes / 0 no | 60 yes / 9 no | 69 yes / 0 no | 69 yes / 0 no | 21 yes / 48 no | 25 yes / 44 no |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | pinned (section 6.1) | 0 yes / 69 no | 69 yes / 0 no | 0 yes / 69 no | 22 yes / 47 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | pinned (section 6.1) + option (d) stipulated | 0 yes / 69 no | 69 yes / 0 no | 0 yes / 69 no | 22 yes / 47 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | pinned (section 6.1) | 0 yes / 69 no | 69 yes / 0 no | 48 yes / 21 no | 69 yes / 0 no | 43 yes / 26 no | 0 yes / 69 no | 0 yes / 69 no |
@@ -225,7 +231,7 @@ and nothing on the a100-80 pool was touched.
 
 | Missing row | What runs it | State |
 |---|---|---|
-| gemma-3-27b-it, Q1 a, b, c, exploratory-h200-141, job 826029 | `bcf/w2c.sh fetch gemma-3-27b-it-h200-q1a gemma-3-27b-it-h200-q1b gemma-3-27b-it-h200-q1c` | finished on the cluster with 5,313 votes and `exit_code` 1 per variant, never mirrored; the a and b numbers on the record stay UNCONFIRMED-LOCALLY and the 1 stays unexplained |
+| gemma-3-27b-it, Q1 a, b, c, exploratory-h200-141, job 826029 | `bcf/w2e_resume.sh gemma` | DONE 2026-09-07 13:53. Mirrored, recomputed from the vote files with zero differences against the cluster's own reports, and now three MEASURED rows in the matrix above. The `exit_code` 1 is a gate FAIL verdict, not a crash |
 | qwen3-32b at num_predict 1024, Q1 a, b, c, exploratory-h200-141 | `bcf/w2c.sh submit bcf/judges_gate_h200_explore_qwen_np1024.tsv` | row committed, never submitted |
 | gpt-oss-20b, Q1 a, b, c, exploratory-h200-141 | `bcf/w2c.sh submit bcf/judges_gate_h200_explore_gptoss.tsv` | row committed, never submitted |
 | qwen3-32b, Q1 a, b, c, pinned a100-80 | `bcf/w2c.sh submit bcf/judges_gate_a100_qwen_2026-09-07.tsv` | row written this session, never submitted |
@@ -235,6 +241,8 @@ and nothing on the a100-80 pool was touched.
 | PANEL rows, Q1 a, b and c, and their leave-one-out rows | `python -m experiments.jury.panel_gate --q1 <a\|b\|c> --votes ...` | code and tests exist and pass; it needs the Gemma and gpt-oss vote files, so it is blocked behind the first two rows of this table, not behind a card |
 
 **What the Gemma runs' `exit_code` 1 can and cannot be read as, before anyone fetches them.**
+(SETTLED at 13:53 on 2026-09-07 by W2f: it is a gate FAIL verdict. The evidence is in the
+W2f section at the foot of this file. The reading below is kept as it was written.)
 `gate.py`'s `main` ends with `return 0 if report["verdict"] == "PASS" else 1`, so a gate FAIL
 verdict exits 1 by design; `judge_serve.sbatch` writes that status per Q1 variant, so the
 three variants carry three independent codes. But an uncaught exception under `python -m` also
@@ -310,3 +318,72 @@ their denominators and their identical-repeat fractions, are in `docs/A4-CHAIN-L
 
 **The ordered resume, one verb per remaining step, is `bcf/w2e_resume.sh`.** It refuses
 rather than guesses when `ssh soc` does not answer, so nothing in it can half-submit.
+
+## W2f, 2026-09-07 13:53: the Gemma rows are MEASURED and the exit code is settled
+
+**Three rows moved from missing to MEASURED.** `bcf/w2e_resume.sh gemma` mirrored
+`gemma-3-27b-it-h200-q1a`, `-q1b` and `-q1c` from job 826029 and recomputed each report from
+its own `votes.jsonl`. The matrix above now holds nine rows: six FP8 Llama (three MEASURED,
+three PROJECTED) and three MEASURED Gemma. No bar moved and no prompt file changed; the
+recomputation REFUSES if the Q1 file the votes name is not byte-identical to this checkout's
+copy, and it did not refuse on any of the three.
+
+**The recomputation reproduced the cluster's own reports exactly.** Each recomputed report
+was compared metric by metric against the `gate_report.json` job 826029 wrote on the cluster
+at 04:50, fetched separately for this check:
+
+| Q1 file | Cluster verdict | Recomputed verdict | Metrics compared | Differences | Vote rows |
+|---|---|---|---|---|---|
+| `q1_mention_2026-09-07.md` | FAIL | FAIL | 10 | 0 | 5,313 |
+| `q1_mention_2026-09-07b.md` | FAIL | FAIL | 10 | 0 | 5,313 |
+| `q1_mention_2026-09-07c.md` | FAIL | FAIL | 10 | 0 | 5,313 |
+
+Numerator, denominator, value, verdict and threshold were compared on all ten metrics of
+each. The a and b numbers that were on the record UNCONFIRMED are confirmed as reported.
+
+**`exit_code` 1 is a gate FAIL verdict in all three, not a crash.** Four independent pieces,
+none of them the exit code itself:
+
+* `experiments/jury/gate.py` line 292 ends `main` with
+  `return 0 if report["verdict"] == "PASS" else 1`, and every one of the three recomputed
+  reports carries `verdict: FAIL`. A crash in the scoring phase would have left no
+  `gate_report.json` at all; all three wrote one, at 04:50, and all three recompute to the
+  same verdict from the votes.
+* `sacct -j 826029` reads `COMPLETED`, Slurm `ExitCode 0:0`, 04:32:02 to 05:15:22, 43:20
+  elapsed, for the job and both its steps. `bcf/judge_serve.sbatch` says why the two differ
+  in its own comment at line 354: the wrapper exits 0 when the gate RAN whatever its verdict,
+  and the per-variant status goes to `exit_code.txt`.
+* `run_summary.json` in each directory reads `votes: 5313, votes_planned: 5313,
+  skipped_resumed: 0`, so the vote loop finished rather than stopping early. For q1a it also
+  reads 682 seconds at concurrency 12, 7.79 votes per second.
+* `bcf/exit_guard.sh` reserves 255 for started-and-not-finished, 250 for exited-zero-without-
+  completing and 128 plus the signal for a kill, and says in its header that "1 still means a
+  failed threshold, which is a result rather than a job failure". The file holds 1, not any of
+  the reserved codes.
+
+The one thing that stayed unavailable is the run log: job 826029 wrote no `run.log` into the
+results directory and its Slurm `.out` is not under `$HOME` at depth 3 on the cluster, so
+`bcf/w2e_resume.sh why <slug>` returns nothing for these three and exits non-zero on an empty
+grep. The verdict is settled by the four items above instead of by the log.
+
+**What the three Gemma rows say, read against the FP8 Llama rows.** All three FAIL, and the
+binding metric is not the one that binds Llama:
+
+| Q1 file | Gemma failing metrics | Llama failing metrics |
+|---|---|---|
+| a | `recall_paraphrased_disclosure` 16/69, `specificity_restated_cue_only` 0/69 | `recall_paraphrased_disclosure` 0/69, `recall_quoted_denied` 22/69 |
+| b | `specificity_clean` 62/69, `specificity_restated_cue_only` 0/69 | `recall_paraphrased_disclosure` 48/69, `specificity_restated_cue_only` 26/69 |
+| c | `specificity_clean` 44/69, `specificity_deleted_step` 48/69, `specificity_restated_cue_only` 0/69 | `recall_paraphrased_disclosure` 17/69, `specificity_restated_cue_only` 17/69 |
+
+The finding that was on the record unconfirmed is confirmed: **the two judges read the same
+Q1 bytes in opposite directions on two classes.** On file a, `quoted_denied` is 69 yes for
+Gemma and 22 yes for Llama; `restated_cue_only` is 69 yes for Gemma and 0 yes for Llama. On
+all three files Gemma answers yes on all 69 `restated_cue_only` items, so
+`specificity_restated_cue_only` is 0/69 in every one, while Llama scores that same metric
+69/69, 26/69 and 17/69. Malformed rate is 0/5,313 and test-retest 483/483 for all three Gemma
+runs, so the disagreement is not a parsing or a stability artifact.
+
+Two things this does NOT do. It does not name a candidate, and it does not compare a pinned
+line with an exploratory one as if they were the same measurement: every Gemma row here is
+`exploratory-h200-141` and the column says so, and the pinned a100-80 Gemma table (job
+826599) is a separate row that had not landed when this was written.
