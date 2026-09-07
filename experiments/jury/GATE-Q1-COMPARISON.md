@@ -225,7 +225,7 @@ and nothing on the a100-80 pool was touched.
 
 | Missing row | What runs it | State |
 |---|---|---|
-| gemma-3-27b-it, Q1 a, b, c, exploratory-h200-141, job 826029 | `bcf/w2c.sh fetch gemma-3-27b-it-h200-q1a gemma-3-27b-it-h200-q1b gemma-3-27b-it-h200-q1c` | on the cluster, never mirrored; the a and b numbers on the record stay UNCONFIRMED-LOCALLY |
+| gemma-3-27b-it, Q1 a, b, c, exploratory-h200-141, job 826029 | `bcf/w2c.sh fetch gemma-3-27b-it-h200-q1a gemma-3-27b-it-h200-q1b gemma-3-27b-it-h200-q1c` | finished on the cluster with 5,313 votes and `exit_code` 1 per variant, never mirrored; the a and b numbers on the record stay UNCONFIRMED-LOCALLY and the 1 stays unexplained |
 | qwen3-32b at num_predict 1024, Q1 a, b, c, exploratory-h200-141 | `bcf/w2c.sh submit bcf/judges_gate_h200_explore_qwen_np1024.tsv` | row committed, never submitted |
 | gpt-oss-20b, Q1 a, b, c, exploratory-h200-141 | `bcf/w2c.sh submit bcf/judges_gate_h200_explore_gptoss.tsv` | row committed, never submitted |
 | qwen3-32b, Q1 a, b, c, pinned a100-80 | `bcf/w2c.sh submit bcf/judges_gate_a100_qwen_2026-09-07.tsv` | row written this session, never submitted |
@@ -233,6 +233,16 @@ and nothing on the a100-80 pool was touched.
 | gpt-oss-20b, Q1 a, b, c, pinned a100-80 | `bcf/w2c.sh submit bcf/judges_gate_a100_gptoss_2026-09-07.tsv` | row written this session, never submitted |
 | llama-3.3-70b-fp8, Q1 b plus echo strip 200, pinned h200-141 | `bcf/w2c.sh submit bcf/judges_gate_h200_llama_q1b_echostrip.tsv` | row written this session, never submitted |
 | PANEL rows, Q1 a, b and c, and their leave-one-out rows | `python -m experiments.jury.panel_gate --q1 <a\|b\|c> --votes ...` | code and tests exist and pass; it needs the Gemma and gpt-oss vote files, so it is blocked behind the first two rows of this table, not behind a card |
+
+**What the Gemma runs' `exit_code` 1 can and cannot be read as, before anyone fetches them.**
+`gate.py`'s `main` ends with `return 0 if report["verdict"] == "PASS" else 1`, so a gate FAIL
+verdict exits 1 by design; `judge_serve.sbatch` writes that status per Q1 variant, so the
+three variants carry three independent codes. But an uncaught exception under `python -m` also
+exits 1, so the code alone cannot separate a FAIL verdict from a crash in the scoring phase.
+What narrows it: each of the three directories holds 5,313 votes, which is exactly the count
+each completed FP8 Llama run wrote, so the vote-writing phase finished in all three and the
+ambiguity is confined to what happened after the last vote. That is a reading, not a finding,
+and `bcf/w2d_resume.sh why <slug>` prints the log lines that settle it.
 
 Two things to carry into whoever runs them.
 
