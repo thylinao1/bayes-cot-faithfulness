@@ -158,7 +158,18 @@ REPEAT_TEMPERATURES="${BCF_REPEAT_TEMPERATURES:-0.0,0.7}"
 CHAIN_REPEATS="${BCF_CHAIN_REPEATS:-3}"
 CHAIN_REPEAT_TEMPERATURE="${BCF_CHAIN_REPEAT_TEMPERATURE:-0.7}"
 CHAIN_REPEAT_SEED="${BCF_CHAIN_REPEAT_SEED:-20260907}"
-TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}"
+# A literal JSON default has to live OUTSIDE ${VAR:-word}: bash's word scanner for
+# ${VAR:-word} treats the first bare } inside word as the expansion's own terminator,
+# so `${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}` (the previous line here)
+# rendered, with BCF_TEMPLATE_KWARGS unset, as the 26-byte string
+# `{"enable_thinking": false\}` -- a stray backslash, no closing brace, invalid JSON --
+# under the real /bin/bash on this machine (GNU bash 3.2.57) and silently killed the
+# run_meta.json writer below every time a cell left BCF_TEMPLATE_KWARGS unset (the
+# writer's python runs inside `set +e`, so the JSONDecodeError never stopped the job;
+# see tests/fixtures/serve_render_default_bare_before_fix.txt for the captured render).
+# A plain variable reference has no braces of its own to be mis-scanned.
+DEFAULT_TEMPLATE_KWARGS='{"enable_thinking": false}'
+TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-$DEFAULT_TEMPLATE_KWARGS}"
 OUT_ROOT="${BCF_OUT_ROOT:-$BCF_RESULTS}"
 # A relative subdirectory under the results root, so a wave file can separate a line's
 # output without hard-coding a home directory into a manifest that travels between
