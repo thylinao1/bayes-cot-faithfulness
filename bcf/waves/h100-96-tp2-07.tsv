@@ -1,6 +1,8 @@
 # wave h100-96-tp2-07  pool h100-96  2 card(s) of the 2 per-user cap (2 planned as sweep slots)
 # submit with:  bcf/wave.sh --type sweep --gpu-type h100-96 bcf/waves/h100-96-tp2-07.tsv
-# longest cell in this wave: 2.902 h; card-hours: 5.804
+# longest cell in this wave: 0.564 h; card-hours: 1.128
+# serving mode of record (ruling R1, A3.6): VLLM_BATCH_INVARIANT=1, 32 requests in flight, vLLM 0.28.0, FLASH_ATTN backend, VLLM_USE_FLASHINFER_SAMPLER=0, the revision pinned per row. Each cell re-proves the determinism preflight on its
+# own server (30 items at 1 and 32 in flight, 30/30 identical and 0.0 max letter-logprob difference) and refuses with exit 10 otherwise.
 # columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
-#   deepseek-ai/DeepSeek-R1-Distill-Llama-70B @ b1c0b44b4369b597ad119a196caf79a9c40e141e | aqua_rat / metadata | n 570 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool h100-96 tp 2 quant none flags none | 2.902 h at concurrency 1 (2.902 h sequential)
-deepseek-ai/DeepSeek-R1-Distill-Llama-70B	aqua_rat	metadata	BCF_REVISION=b1c0b44b4369b597ad119a196caf79a9c40e141e	BCF_N_ITEMS=570	BCF_CURVE_CAP=570	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=2	BCF_CONCURRENCY=1	MEM=192G	CPUS=16	BCF_EXPECTED_HOURS=2.902
+#   deepseek-ai/DeepSeek-R1-Distill-Llama-70B @ b1c0b44b4369b597ad119a196caf79a9c40e141e | aqua_rat / metadata | n 570 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool h100-96 tp 2 quant none flags none | 0.564 h at concurrency 32 with the flag on (2.902 h sequential client) | FLOOR, not measured for this class
+deepseek-ai/DeepSeek-R1-Distill-Llama-70B	aqua_rat	metadata	BCF_REVISION=b1c0b44b4369b597ad119a196caf79a9c40e141e	BCF_N_ITEMS=570	BCF_CURVE_CAP=570	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=2	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=192G	CPUS=16	BCF_EXPECTED_HOURS=0.564

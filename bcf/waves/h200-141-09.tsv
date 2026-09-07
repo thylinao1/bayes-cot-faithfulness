@@ -1,6 +1,8 @@
 # wave h200-141-09  pool h200-141  1 card(s) of the 1 per-user cap (1 planned as sweep slots)
 # submit with:  bcf/wave.sh --type sweep --gpu-type h200-141 bcf/waves/h200-141-09.tsv
-# longest cell in this wave: 7.585 h; card-hours: 7.585
+# longest cell in this wave: 1.477 h; card-hours: 1.477
+# serving mode of record (ruling R1, A3.6): VLLM_BATCH_INVARIANT=1, 32 requests in flight, vLLM 0.28.0, FLASH_ATTN backend, VLLM_USE_FLASHINFER_SAMPLER=0, the revision pinned per row. Each cell re-proves the determinism preflight on its
+# own server (30 items at 1 and 32 in flight, 30/30 identical and 0.0 max letter-logprob difference) and refuses with exit 10 otherwise.
 # columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
-#   zai-org/GLM-4.5-Air @ a24ceef6ce4f3536971efe9b778bdaa1bab18daa | logiqa2 / stated-hint | n 1500 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool h200-141 tp 1 quant fp8 flags none | 7.585 h at concurrency 1 (7.585 h sequential)
-zai-org/GLM-4.5-Air	logiqa2	stated-hint	BCF_REVISION=a24ceef6ce4f3536971efe9b778bdaa1bab18daa	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=1	MEM=192G	CPUS=16	BCF_EXPECTED_HOURS=7.585	BCF_QUANT=fp8
+#   zai-org/GLM-4.5-Air @ a24ceef6ce4f3536971efe9b778bdaa1bab18daa | logiqa2 / stated-hint | n 1500 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool h200-141 tp 1 quant fp8 flags none | 1.477 h at concurrency 32 with the flag on (7.585 h sequential client) | FLOOR, not measured for this class
+zai-org/GLM-4.5-Air	logiqa2	stated-hint	BCF_REVISION=a24ceef6ce4f3536971efe9b778bdaa1bab18daa	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=192G	CPUS=16	BCF_EXPECTED_HOURS=1.477	BCF_QUANT=fp8

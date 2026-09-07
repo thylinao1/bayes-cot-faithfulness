@@ -1,0 +1,5 @@
+[preflight] concurrency 1: identical 30/30, max letter-logprob diff 0.0 over 120 comparisons (0 missing)
+[preflight] concurrency 32: identical 29/30, max letter-logprob diff 0.0 over 120 comparisons (0 missing)
+[preflight] REFUSING to run this cell:
+[preflight]   concurrency 32: identical completions 29/30, and the rule needs 30/30
+[preflight] wrote /Users/maksimsilchenko/Developer/bcf-a3final/docs/a3f-proofs/verdict_injected.json

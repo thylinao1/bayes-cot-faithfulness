@@ -1,8 +1,10 @@
 # wave a100-80-17  pool a100-80  2 card(s) of the 4 per-user cap (2 planned as sweep slots)
 # submit with:  bcf/wave.sh --type sweep --gpu-type a100-80 bcf/waves/a100-80-17.tsv
-# longest cell in this wave: 7.585 h; card-hours: 15.17
+# longest cell in this wave: 0.85 h; card-hours: 1.7
+# serving mode of record (ruling R1, A3.6): VLLM_BATCH_INVARIANT=1, 32 requests in flight, vLLM 0.28.0, FLASH_ATTN backend, VLLM_USE_FLASHINFER_SAMPLER=0, the revision pinned per row. Each cell re-proves the determinism preflight on its
+# own server (30 items at 1 and 32 in flight, 30/30 identical and 0.0 max letter-logprob difference) and refuses with exit 10 otherwise.
 # columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
-#   allenai/Olmo-3-32B-Think @ f2edda15216e738ef2bb73771e11890e152b2112 | aqua_rat / stated-hint | n 1500 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool a100-80 tp 1 quant none flags none | 7.585 h at concurrency 1 (7.585 h sequential)
-#   google/gemma-3-27b-it @ 005ad3404e59d6023443cb575daa05336842228a | aqua_rat / stated-hint | n 1500 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool a100-80 tp 1 quant none flags none | 7.585 h at concurrency 1 (7.585 h sequential)
-allenai/Olmo-3-32B-Think	aqua_rat	stated-hint	BCF_REVISION=f2edda15216e738ef2bb73771e11890e152b2112	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=1	MEM=128G	CPUS=8	BCF_EXPECTED_HOURS=7.585
-google/gemma-3-27b-it	aqua_rat	stated-hint	BCF_REVISION=005ad3404e59d6023443cb575daa05336842228a	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=1	MEM=128G	CPUS=8	BCF_EXPECTED_HOURS=7.585
+#   allenai/Olmo-3-32B-Think @ f2edda15216e738ef2bb73771e11890e152b2112 | aqua_rat / stated-hint | n 1500 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool a100-80 tp 1 quant none flags none | 0.85 h at concurrency 32 with the flag on (7.585 h sequential client) | FLOOR, not measured for this class
+#   google/gemma-3-27b-it @ 005ad3404e59d6023443cb575daa05336842228a | aqua_rat / stated-hint | n 1500 | arms replay,placebo,direct,twostep,filler,curves,transplant,anchor,specificity | pool a100-80 tp 1 quant none flags none | 0.85 h at concurrency 32 with the flag on (7.585 h sequential client) | FLOOR, not measured for this class
+allenai/Olmo-3-32B-Think	aqua_rat	stated-hint	BCF_REVISION=f2edda15216e738ef2bb73771e11890e152b2112	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=128G	CPUS=8	BCF_EXPECTED_HOURS=0.85
+google/gemma-3-27b-it	aqua_rat	stated-hint	BCF_REVISION=005ad3404e59d6023443cb575daa05336842228a	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=128G	CPUS=8	BCF_EXPECTED_HOURS=0.85

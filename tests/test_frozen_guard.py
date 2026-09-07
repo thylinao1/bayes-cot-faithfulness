@@ -57,8 +57,16 @@ FROZEN_FILE_SHA256 = {
     # lines INSIDE the A3 section changed, so git diff against main on this file
     # is still additions-only, now 735 added and 0 deleted. Still a DRAFT: the
     # operator has not approved it and the A2 preconditions are unchanged.
+    # RE-PINNED AGAIN 2026-09-07 by the A3-final lane: appended section A3.9,
+    # carrying rulings R1 to R8 of RULINGS-2026-09-07.md with the measurements
+    # and job ids they rest on, plus paragraphs appended INSIDE A3.2 (R6),
+    # A3.4 (R3), A3.5 (R4), A3.6 (R1, R2, R5) and A3.7 (which rows are closed
+    # and by which ruling). Nothing existing was edited or deleted: git diff
+    # against main on this file is 391 added and 0 DELETED lines, so every line
+    # above the insertion points is byte-identical. R9, the jury Q1 construct,
+    # is left open by name. Still a DRAFT: the operator has not approved it.
     "experiments/PREREGISTRATION_jury_and_scale.md": (
-        "b2246bbf929575e011f0b379c1be7d56ed0eb7681cfb27b2e70894f908b3df1a"
+        "0676fb2d9e5ba608fdb3721b67fabe4e31b5e010f5174463150b26acbb7a9635"
     ),
     "experiments/data/specificity_holdout.json": (
         "82ab56d8561d533a0d7196c4c604ab3ae6d27f53acb028bf390121c3567dabcd"

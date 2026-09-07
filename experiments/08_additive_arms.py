@@ -99,6 +99,9 @@ from bayes_cot_faithfulness.repeat_curves import (  # noqa: E402
     identical_repeat_fraction,
     variance_components,
 )
+from bayes_cot_faithfulness.chain_repeats import (  # noqa: E402
+    summarize_chain_repeats as summarize_chain_repeats_block,
+)
 
 CONTROL_SCRIPT = HERE / "05_realmodel_control.py"
 
@@ -190,6 +193,16 @@ class RunCtx:
     curve_repeats: int = 3
     repeat_temperatures: tuple[float, ...] = (0.0, 0.7)
     repeat_seed: int = 9101
+    # Ruling R4 (2026-09-07): the CHAIN-level repeats. r full-chain resamples per item
+    # per frame at chain_repeat_temperature, each read through the same truncation grid
+    # the curves arm uses. Distinct from curve_repeats, which holds the chain fixed.
+    chain_repeats: int = 3
+    chain_repeat_temperature: float = 0.7
+    chain_repeat_seed: int = 20260907
+    # The cue family this run is cueing with, needed to rebuild the HINTED prompt for a
+    # chain resample. cue_pass takes it as an argument; the chain arm runs later and has
+    # only the records, so it is carried here rather than re-derived from a transcript.
+    taxonomy: str | None = None
 
 
 # --- Small pure helpers -----------------------------------------------------
@@ -622,6 +635,22 @@ def summarize_repeat_curves(records: list[dict]) -> dict:
     return out
 
 
+def summarize_chain_repeats(records: list[dict]) -> dict:
+    """Ruling R4: chain-level sigma_u, sigma_m and lambda per frame, with denominators.
+
+    The identical-chain fraction is printed beside every lambda on purpose. On a model
+    that is nearly deterministic at temperature 0.7 (job 826025 saw 21 of 28 items
+    return one answer on all 32 draws) most chains can come back identical, and then a
+    lambda of 1.0 says the sampler did not move rather than that the mediator is
+    noiseless. Without the fraction those two readings are indistinguishable.
+    """
+    blocks = [r["chain_repeats"] for r in records if "chain_repeats" in r]
+    out = summarize_chain_repeats_block(blocks)
+    out["n_records_entered"] = len(records)
+    out["n_records_with_chain_repeats"] = len(blocks)
+    return out
+
+
 def _transplant_direction(records: list[dict], got_key: str, want_key: str) -> dict:
     """Carry-over for one transplant direction over the SCORABLE pairs only.
 
@@ -784,6 +813,7 @@ def build_blocks(records: list[dict], arms: list[str]) -> dict:
         "curves": summarize_curves,
         "sampling": summarize_sampling,
         "repeat-curves": summarize_repeat_curves,
+        "chain-repeats": summarize_chain_repeats,
         "transplant": summarize_transplant,
         "anchor": summarize_anchor,
     }
@@ -874,7 +904,7 @@ def serialize_arm_record(r: dict) -> dict:
         ckey = f"{arm}_curve"
         if ckey in r:
             out[ckey] = _curve_to_dict(r[ckey])
-    for block in ("anchor", "sampling", "repeat_curves"):
+    for block in ("anchor", "sampling", "repeat_curves", "chain_repeats"):
         if block in r:
             out[block] = r[block]
     return out
@@ -1504,6 +1534,157 @@ def arm_repeat_curves(client, records, ctx):
     return ok, state["err"]
 
 
+def _frame_prompt(ctx, it, r, frame: str) -> str:
+    """The prompt whose chain a resample redraws, rebuilt exactly as the pass built it.
+
+    The clean frame is ``clean_prompt``. The hinted frame is whatever ``cue_pass`` used
+    for this run's cue family, rebuilt from the record's own banked ``hint_label`` so a
+    resample cannot drift onto a different cue than the one the item was scored under.
+    Both come from the frozen instruments, read-only.
+    """
+    if frame == "clean":
+        return clean_prompt(it)
+    hint = r["hint_label"]
+    if ctx.taxonomy:
+        return taxonomy_hinted_prompt(it, hint, ctx.taxonomy)
+    return hinted_prompt(it, hint, strength="strong")
+
+
+def _one_chain_repeat(client, ctx, it, prompt, seed, keep_text=False):
+    """Redraw ONE chain, then read its truncation curve. Returns (repeat_dict, err).
+
+    Two calls' worth of difference from ``_one_repeat_curve``: the chain is generated
+    here at ``chain_repeat_temperature`` instead of being handed in, and the curve's
+    final answer is the RESAMPLED chain's own answer rather than the banked one. That
+    second point is what makes this a mediator measurement: a curve read against the
+    original chain's answer would be scoring a new mediator on an old outcome.
+
+    The depth calls themselves are the frozen forced continuations at temperature 0,
+    byte for byte the path ``arm_curves`` uses, so the only thing that varies across
+    repeats is the chain.
+    """
+    try:
+        chains, method = client.sample_completions(
+            prompt, k=1, temperature=ctx.chain_repeat_temperature, seed=seed,
+            num_predict=ctx.num_predict,
+        )
+    except Exception as exc:  # noqa: BLE001 - same discipline as safe_generate
+        return None, exc
+    chain = chains[0]
+    # No forced-answer fallback. parse_or_force would spend a second call and fold a
+    # DIFFERENT generation's answer into this chain's curve, which is exactly the kind
+    # of quiet mixing the sampling arm already refuses. An unparsed chain is counted.
+    chain_answer = parse_answer(chain, ctx.n_choices)
+    row = {
+        "seed": seed,
+        "temperature": ctx.chain_repeat_temperature,
+        "draw_method": method,
+        "chain_answer": chain_answer,
+        "chain_sha256": _sha16(chain),
+        "chain_n_chars": len(chain),
+        "curve_area": None,
+        "commitment_depth": None,
+        "n_unscorable_depths": None,
+        "depths": None,
+        "answers": None,
+    }
+    if keep_text:
+        row["chain"] = chain
+    if chain_answer is None:
+        # No parsed answer means no curve to read: summarize_curve's match is defined
+        # against the chain's own final answer. The repeat stays in the record with its
+        # scalars None, so it is counted as drawn and dropped from every sd denominator.
+        row["unscorable_reason"] = "the resampled chain's own final answer did not parse"
+        return row, None
+    depths: list[int] = []
+    answers: list[str | None] = []
+    texts: list[str] = []
+    for depth, dprompt in curve_prompts(it, chain):
+        out, err = safe_generate(client, dprompt, FORCE_TOKENS)
+        if err is not None:
+            return None, err
+        depths.append(depth)
+        answers.append(parse_answer(out, ctx.n_choices))
+        texts.append(out)
+    curve = summarize_curve(depths, answers, chain_answer)
+    row.update({
+        "depths": depths,
+        "answers": answers,
+        "commitment_depth": curve.commitment_depth,
+        "curve_area": curve.curve_area,
+        "n_unscorable_depths": curve.n_unscorable_depths,
+        "completions_sha256": _sha16("\x1e".join(texts)),
+    })
+    return row, None
+
+
+def arm_chain_repeats(client, records, ctx):
+    """Ruling R4: r full-chain resamples per item per frame, each read as a curve.
+
+    A3.5 measured the CONTINUATION-level sigma_u with the chain held fixed and named the
+    chain-level estimate as the real PF-13 gap: "a mediator whose chain is also redrawn
+    carries at least this much and almost certainly more". This arm draws it. Both
+    frames run, because the noise correction is applied to a contrast read off both, and
+    because the clean frame is where A3.5 found sampling moving the wording without
+    moving any parsed answer, which is the case a chain-level lambda has to price.
+
+    One seed per (item, frame, repeat), distinct across all three, so no two chains in
+    this arm share a sampler stream and a resumed leg redraws the same chains.
+    """
+    capped = records[: ctx.curve_cap]
+    if not hasattr(client, "sample_completions"):
+        return False, RuntimeError(SAMPLING_CAPABILITY_REFUSAL)
+    state = {"err": None}
+
+    def _work(i, r):
+        if "chain_repeats" in r:
+            return {}, None  # banked on an earlier leg; do not redraw
+        it = r["item"]
+        block: dict = {
+            "r": ctx.chain_repeats,
+            "temperature": ctx.chain_repeat_temperature,
+            "frames": {},
+        }
+        for frame in ("clean", "hinted"):
+            if frame == "hinted" and "hint_label" not in r:
+                continue  # the cue pass never reached this record; not an empty frame
+            prompt = _frame_prompt(ctx, it, r, frame)
+            reps = []
+            for rep in range(ctx.chain_repeats):
+                seed = (ctx.chain_repeat_seed
+                        + i * 1000
+                        + (0 if frame == "clean" else 500)
+                        + rep)
+                row, err = _one_chain_repeat(
+                    client, ctx, it, prompt, seed, keep_text=(rep == 0),
+                )
+                if err is not None:
+                    return {}, err
+                row["repeat"] = rep
+                row["frame"] = frame
+                reps.append(row)
+            block["frames"][frame] = reps
+        return {"chain_repeats": block}, None
+
+    def _consume(i, r, result):
+        updates, err = result
+        if updates:
+            r.update(updates)
+        if err is not None:
+            state["err"] = err
+            return False
+        _checkpoint(ctx, records, i)
+        # One item here costs r * 2 chains plus r * 2 curves worth of calls, so the
+        # internal checkpoint banks per ITEM, like the curves and repeat-curves arms: a
+        # hard kill re-spends at most one item.
+        if ctx.checkpoint is not None:
+            ctx.checkpoint.write()
+        return True
+
+    ok = map_in_order(capped, _work, concurrency=ctx.concurrency, consume=_consume)
+    return ok, state["err"]
+
+
 def arm_transplant(client, records, ctx):
     """T3: forward (hinted CoT, cue STRIPPED) and reverse (clean CoT, cue ADDED) crossing.
 
@@ -1838,6 +2019,7 @@ ARM_RUNNERS = {
     "curves": arm_curves,
     "sampling": arm_sampling,
     "repeat-curves": arm_repeat_curves,
+    "chain-repeats": arm_chain_repeats,
     "transplant": arm_transplant,
     "anchor": arm_anchor,
 }
@@ -1935,6 +2117,25 @@ def report_blocks(blocks: dict) -> None:
                       f"{fmt(v['lambda'])} (corrected {fmt(v['lambda_noise_corrected'])})"
                       f"; byte-identical {ident['n_identical']}/"
                       f"{ident['n_items_compared']}")
+    if "chain-repeats" in blocks:
+        b = blocks["chain-repeats"]
+        print(f"[chain-repeats R4] r={b['r']} full-chain resamples at T="
+              f"{b['temperature']} on "
+              f"{b['n_records_with_chain_repeats']}/{b['n_records_entered']} items")
+        fmt = lambda x: "n/a" if x is None else f"{x:.6f}"
+        for frame, cell in b["frames"].items():
+            ident = cell["identical_chains"]
+            for scalar in ("curve_area", "commitment_depth"):
+                v = cell[scalar]
+                print(f"    {frame} {scalar}: sigma_u {fmt(v['sigma_u'])} "
+                      f"(df {v['total_within_item_df']}, "
+                      f"{v['n_items_used_for_sigma_u']} items), sigma_m "
+                      f"{fmt(v['sigma_m'])} ({v['n_items_with_a_scorable_repeat']} "
+                      f"items), lambda {fmt(v['lambda'])} (corrected "
+                      f"{fmt(v['lambda_noise_corrected'])})")
+            print(f"    {frame} identical chains {ident['n_identical']}/"
+                  f"{ident['n_items_compared']}; chains drawn {cell['n_chains_drawn']}, "
+                  f"unparsed {cell['n_chains_unparsed']}")
     if "transplant" in blocks:
         b = blocks["transplant"]
         f, rv = b["forward"], b["reverse"]
@@ -2076,7 +2277,8 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         chat_template_kwargs=None, concurrency=1,
         sampling_k=SAMPLING_K, sampling_temperature=SAMPLING_TEMPERATURE,
         sampling_seed=None, curve_repeats=3, repeat_temperatures=(0.0, 0.7),
-        repeat_seed=9101):
+        repeat_seed=9101, chain_repeats=3, chain_repeat_temperature=0.7,
+        chain_repeat_seed=20260907):
     arms = resolve_arms(arms)
     if not arms:
         print(no_arms_hint())
@@ -2105,11 +2307,20 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
          "seed": repeat_seed}
         if "repeat-curves" in arms else None
     )
+    # Same rule as the two above: the chain-repeat draw parameters ride in the resume
+    # fingerprint only when their own arm is enabled, so a run without the arm writes
+    # the None a pre-existing checkpoint carries and stays resumable.
+    chain_repeat_params = (
+        {"r": chain_repeats, "temperature": float(chain_repeat_temperature),
+         "seed": chain_repeat_seed}
+        if "chain-repeats" in arms else None
+    )
     params = arms_resume.build_params(
         model, backend, n_items, data_path, taxonomy, arms, curve_cap, num_predict,
         holdout_path, arms_resume.file_sha256(data_path),
         arms_resume.file_sha256(holdout_path),
         sampling=sampling_params, repeat_curves=repeat_params,
+        chain_repeats=chain_repeat_params,
     )
     # Resume gate BEFORE the backend gate: an unreadable version, a parameter mismatch,
     # or a data file whose duplicate keys would alias banked records must refuse with
@@ -2193,6 +2404,10 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         sampling_seed=sampling_seed, curve_repeats=curve_repeats,
         repeat_temperatures=tuple(float(t) for t in repeat_temperatures),
         repeat_seed=repeat_seed,
+        chain_repeats=chain_repeats,
+        chain_repeat_temperature=float(chain_repeat_temperature),
+        chain_repeat_seed=chain_repeat_seed,
+        taxonomy=taxonomy,
     )
     print(f"[2/3] Cue pass ({cue_kind}) on {len(correct)} clean-correct items")
     if not cue_pass(client, correct, ctx, taxonomy):
@@ -2287,6 +2502,17 @@ def build_parser() -> argparse.ArgumentParser:
                          "sampled one is the mediator-noise measurement.")
     ap.add_argument("--repeat-seed", type=int, default=9101,
                     help="base seed for the repeated-curve draws.")
+    ap.add_argument("--chain-repeats", type=int, default=3,
+                    help="ruling R4: full-CHAIN resamples per item per frame (default "
+                         "3). Each resampled chain is read through the same truncation "
+                         "grid the curves arm uses, so sigma_u here is the noise of the "
+                         "mediator itself rather than of the curve read.")
+    ap.add_argument("--chain-repeat-temperature", type=float, default=0.7,
+                    help="temperature the chains are resampled at (default 0.7, the "
+                         "value ruling R4 names).")
+    ap.add_argument("--chain-repeat-seed", type=int, default=20260907,
+                    help="base seed for the chain resamples; one seed per (item, frame, "
+                         "repeat).")
     ap.add_argument("--concurrency", type=int, default=1,
                     help="requests in flight at once (default 1 = the sequential client "
                          "every Phase-1 measurement was taken with). Above 1 the records "
@@ -2319,6 +2545,17 @@ def main(argv: list[str] | None = None) -> int:
     if a.curve_repeats < 1:
         print("[setup] --curve-repeats must be at least 1.")
         return 0
+    if a.chain_repeats < 2:
+        # Two is the arithmetic floor, not a preference: within_item_sd needs r >= 2 or
+        # every item drops out of sigma_u and the arm reports lambda 1.0 by construction.
+        print("[setup] --chain-repeats must be at least 2; sigma_u needs two chains per "
+              "item, and r = 1 would report lambda = 1.0 by construction.")
+        return 0
+    if not 0.0 < a.chain_repeat_temperature <= 2.0:
+        print("[setup] --chain-repeat-temperature must be above 0 and at most 2; at 0 "
+              "the chains are the same chain and sigma_u is a determinism check, not a "
+              "mediator-noise measurement.")
+        return 0
     try:
         repeat_temperatures = tuple(
             float(x) for x in a.repeat_temperatures.split(",") if x.strip()
@@ -2337,7 +2574,10 @@ def main(argv: list[str] | None = None) -> int:
                sampling_k=a.sampling_k, sampling_temperature=a.sampling_temperature,
                sampling_seed=(a.sampling_seed if a.sampling_seed is not None else a.seed),
                curve_repeats=a.curve_repeats,
-               repeat_temperatures=repeat_temperatures, repeat_seed=a.repeat_seed)
+               repeat_temperatures=repeat_temperatures, repeat_seed=a.repeat_seed,
+               chain_repeats=a.chain_repeats,
+               chain_repeat_temperature=a.chain_repeat_temperature,
+               chain_repeat_seed=a.chain_repeat_seed)
 
 
 if __name__ == "__main__":

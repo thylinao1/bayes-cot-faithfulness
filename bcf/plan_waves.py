@@ -5,21 +5,28 @@ crossed with 3 substrates and 4 cue families: 216 cells. This script writes one 
 wave under bcf/waves/, in a form bcf/wave.sh reads directly, plus a plan.json and a
 plan.md carrying the pool assignment, the dependency order and the card-hours per pool.
 
+RULING R2 (2026-09-07) sets what these hours are priced at. The basis is no longer a
+sequential-client rate divided by a speedup: it is job 826025's own per-arm seconds,
+measured on one MIG 3g.40gb slice at 32 requests in flight with VLLM_BATCH_INVARIANT=1,
+which is the serving mode ruling R1 pins for every powered cell. The generation rate that
+mode reaches is 2.92 generations per second per slice (job 826020), and the a100-80 pool
+is priced at the measured whole-card to MIG ratio of 1.7371 as a FLOOR.
+
 Two things it will NOT do.
 
   - It never invents a rate. Per-cell hours come from the per-arm call counts and the
-    per-call seconds of ONE measured run (bcf/measured/run-a-825511/throughput.json, job
-    825511, exit 0, Qwen3-8B on a MIG 3g.40gb slice), divided by a measured concurrency
-    speedup read from the Track G probe. A model class with no measurement of its own is
-    marked UNMEASURED and carries the 8B cost scaled by nothing, which is a FLOOR and is
-    labelled as one.
+    per-call seconds of ONE measured run in the pinned serving mode (job 826025, exit 0,
+    Qwen3-8B on a MIG 3g.40gb slice, concurrency 32, flag on), restricted to the same
+    eleven intervals the powered cells run. A pool or a model class with no measurement
+    of its own carries the 8B cost divided by a ratio that is a LOWER BOUND on the true
+    cost, and every such row is marked measured_for_this_class false.
   - It never sizes a wave past a cap. The caps are the live per-user MaxTRESPU values
     (a100-40 8, a100-80 4, h100-96 2, h200-141 1, gpu total 12) and they count every
     campaign on the account, so a wave that fits here can still be refused at submit
     time by wave.sh reading the live queue. That refusal is the point.
 
-    python bcf/plan_waves.py --probe results/trackg-probe/probe_results.json
-    python bcf/plan_waves.py --sequential-only     # no probe yet: hours at concurrency 1
+    python bcf/plan_waves.py                 # R2 defaults: flag on, 32 in flight
+    python bcf/plan_waves.py --sequential-only   # the pre-R2 comparison, concurrency 1
 """
 
 from __future__ import annotations
@@ -30,7 +37,82 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 WAVES = REPO / "bcf" / "waves"
-MEASURED = REPO / "bcf" / "measured" / "run-a-825511" / "throughput.json"
+# The cost basis of record after ruling R2: job 826025, the eleven-arm skeleton run at
+# concurrency 32 with VLLM_BATCH_INVARIANT=1 on one MIG 3g.40gb slice, mirrored into the
+# repository. The sequential file stays beside it as the comparison column, because the
+# ladder trigger of element 16 is stated against a budget that was priced sequentially.
+MEASURED_FLAG_ON = (REPO / "experiments" / "results" / "w3b-skeleton" / "qwen3-8b"
+                    / "arc_challenge" / "stated-hint" / "throughput.json")
+MEASURED_SEQ = REPO / "bcf" / "measured" / "run-a-825511" / "throughput.json"
+MEASURED = MEASURED_SEQ  # kept: the sequential comparison still reads it by name
+# The flag-on determinism probe, quoted into plan.json so every wave carries the numbers
+# that justify serving at 32 in flight rather than a claim that it is safe.
+PROBE_FLAG_ON = (REPO / "bcf" / "measured" / "w3b-probe-bi-826020" / "probe_results.json")
+
+# RULING R1 serving constants, carried into every row of every wave manifest.
+SERVING = {
+    "batch_invariant": 1,
+    "concurrency": 32,
+    "vllm_version": "0.28.0",
+    "attention_backend": "FLASH_ATTN",
+    "vllm_use_flashinfer_sampler": 0,
+    "generations_per_second_per_slice": 2.9196,
+    "source": ("ruling R1 / A3.6: job 826020 measured 30/30 identical completions and a "
+               "max absolute letter-logprob difference of 0.0 at 1, 8, 32 and 64 in "
+               "flight with the flag on, against 13/30 and 0.875 nats at 32 with it off "
+               "(job 825548). Every cell re-proves it on its own server before its arms."),
+}
+
+# Card-hour ratio per pool, applied to the measured MIG-slice cost, with whether it is a
+# MEASUREMENT for that pool or a floor. A ratio above 1 makes a cell cheaper, so a ratio
+# that is not measured for the class makes the row a LOWER BOUND on the cost.
+POOL_RATIO = {
+    "a100-40": (1.0, True,
+                "MEASURED on this pool and this card type: job 826025 ran the arms on "
+                "one MIG 3g.40gb slice at concurrency 32 with the flag on, and the cost "
+                "model below is that run's own per-call seconds."),
+    "a100-80": (1.7371, False,
+                "FLOOR. 1.7371 is the whole-a100-80 to MIG ratio measured at ONE request "
+                "in flight on an 8B model (job 826028, 1,469 calls in 369.0 s, against "
+                "run B's identical work in 641.0 s). Applying it to a concurrency-32 "
+                "flag-on MIG cost assumes the ratio survives under load, which no run "
+                "has measured, and the models on this pool are 3 to 4 times the size of "
+                "the 8B the cost model is built on. The hours below are a lower bound."),
+    "h100-96": (1.0, False,
+                "FLOOR. No throughput measurement exists for the 70B dense tensor-"
+                "parallel-2 line or for gpt-oss-120b mxfp4; the TP=2 serving test (job "
+                "825253) is still PENDING with ReqNodeNotAvail. These rows carry the 8B "
+                "MIG cost with no credit for the larger card, which is a lower bound."),
+    "h200-141": (1.0, False,
+                "FLOOR. No throughput measurement exists for GLM-4.5-Air FP8 on the "
+                "h200-141. Same treatment and the same caveat as h100-96."),
+}
+
+# Models inside the class the cost model was measured on: up to 14B, bf16, one card.
+# gpt-oss-20b sits in the same POOL but is a 20B mxfp4 MoE, so it is a floor row even
+# though its pool is the measured one.
+MEASURED_CLASS_MODELS = frozenset({
+    "Qwen/Qwen3-8B",
+    "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    "meta-llama/Llama-3.1-8B-Instruct",
+    "google/gemma-2-9b-it",
+    "allenai/Olmo-3-7B-Think",
+    "microsoft/Phi-4-reasoning",
+})
+
+# CONTRACT.md's compute budget of record, quoted verbatim so the element 16 trigger
+# comparison names what it compares against: "about 650 card-hours for 18 models"
+# (CONTRACT.md, "Compute budget of record (first-order; replaced by Phase 1
+# measurements)"). Element 16 triggers when MEASURED throughput falls FAR BELOW the
+# budget of record, which is a comparison in the direction of more card-hours than the
+# budget assumed, not fewer.
+BUDGET_OF_RECORD_CARD_HOURS = 650
+BUDGET_OF_RECORD_SOURCE = (
+    "CONTRACT.md, line beginning 'Compute budget of record (first-order; replaced by "
+    "Phase 1 measurements)': about 650 card-hours for 18 models, at n=500 entered and "
+    "12 cells per model."
+)
 
 SUBSTRATES = ("arc_challenge", "aqua_rat", "logiqa2")
 # DECISION-LOG 2026-09-07 ruling (b): 1,500 entered for the two high-follow families,
@@ -95,31 +177,51 @@ SCALING_BASE_N = 30           # job 825511 entered 30 items
 SCALING_BASE_C = 29           # and 29 were clean-correct
 
 
-def load_measured() -> dict:
+# The intervals a powered cell actually runs: the two base passes plus the nine A2 arms.
+# A throughput file that also carries `sampling` and `repeat-curves` (job 826025 does) is
+# restricted to these before any per-call second is derived, so the cost model prices the
+# same work in both bases and the two are comparable.
+CELL_INTERVALS = ("clean_substrate", "cue_pass") + ARMS
+
+
+def load_measured(path: Path = MEASURED_FLAG_ON, job: str = "826025") -> dict:
     """Per-call seconds for a full generation and for a forced continuation, measured.
 
     The split matters: a full generation is num_predict 320 and a forced continuation is
     24, and the skeleton's own arms are a mix, so one blended calls-per-second would
     misprice any cell whose arm mix differs from the skeleton's.
+
+    Only the intervals in CELL_INTERVALS are read. Job 826025's file carries two more
+    arms (the element 9.2 sampling arm and the element 8.3 repeated curves), and folding
+    their 1,710 calls into a per-item cost would price cells for arms they do not run.
+    Those two are costed separately in the plan, by name.
     """
-    data = json.loads(MEASURED.read_text())
-    arms = {a["arm"]: a for a in data["arms"]}
-    full = sum(a["n_full_generations"] for a in data["arms"])
-    forced = sum(a["n_calls"] - a["n_full_generations"] for a in data["arms"])
+    data = json.loads(path.read_text())
+    intervals = [a for a in data["arms"] if a["arm"] in CELL_INTERVALS]
+    missing = [a for a in CELL_INTERVALS if a not in {x["arm"] for x in intervals}]
+    if missing:
+        raise SystemExit(
+            f"REFUSING: {path} has no interval for {missing}; a cost model built on a "
+            "file that is missing an arm would price that arm at zero."
+        )
+    arms = {a["arm"]: a for a in intervals}
+    full = sum(a["n_full_generations"] for a in intervals)
+    forced = sum(a["n_calls"] - a["n_full_generations"] for a in intervals)
     # Arms whose calls are ALL forced continuations give the forced-call rate directly.
-    forced_only = [a for a in data["arms"] if a["n_full_generations"] == 0]
+    forced_only = [a for a in intervals if a["n_full_generations"] == 0]
     sec_forced = (sum(a["seconds"] for a in forced_only)
                   / sum(a["n_calls"] for a in forced_only))
-    mixed = [a for a in data["arms"] if a["n_full_generations"] > 0]
+    mixed = [a for a in intervals if a["n_full_generations"] > 0]
     mixed_forced = sum(a["n_calls"] - a["n_full_generations"] for a in mixed)
     sec_full = ((sum(a["seconds"] for a in mixed) - mixed_forced * sec_forced)
                 / sum(a["n_full_generations"] for a in mixed))
     spec = arms["specificity"]
     return {
-        "source": str(MEASURED.relative_to(REPO)),
-        "job": "825511",
-        "total_calls": data["total_calls"],
-        "total_seconds": data["total_seconds"],
+        "source": str(path.relative_to(REPO)),
+        "job": job,
+        "intervals_used": list(CELL_INTERVALS),
+        "total_calls": sum(a["n_calls"] for a in intervals),
+        "total_seconds": sum(a["seconds"] for a in intervals),
         "n_full_generations": full,
         "n_forced_continuations": forced,
         "seconds_per_full_generation": sec_full,
@@ -143,23 +245,48 @@ def cost_model(m: dict) -> dict:
     return m
 
 
-def cell_seconds(m: dict, n_entered: int, retention: float, speedup: float) -> dict:
+def cell_calls(m: dict, n_entered: int, retention: float) -> tuple[float, float, float]:
+    """(clean-correct assumed, full generations, forced continuations) for one cell."""
     c = n_entered * retention
     n_full = n_entered * m["per_entered_full"] + c * m["per_clean_correct_full"] \
         + m["specificity_full_fixed"]
     n_forced = c * m["per_clean_correct_forced"] \
         + (m["specificity_calls_fixed"] - m["specificity_full_fixed"])
-    seq = (n_full * m["seconds_per_full_generation"]
-           + n_forced * m["seconds_per_forced_continuation"])
-    return {
+    return c, n_full, n_forced
+
+
+def cell_seconds(m: dict, n_entered: int, retention: float, ratio: float,
+                 m_seq: dict | None = None) -> dict:
+    """Cell cost under the pinned serving mode, with the sequential column beside it.
+
+    ``ratio`` is the pool's card-to-slice ratio from POOL_RATIO, a divisor on the
+    measured MIG-slice seconds. It is 1.0 for the pool the cost model was measured on
+    and a floor everywhere else, which is why the row carries whether it was measured.
+
+    The sequential column is not decoration. Element 16's ladder trigger is stated
+    against a budget of record that was priced at a sequential-client rate, so the
+    comparison the ruling asks for needs both numbers side by side.
+    """
+    c, n_full, n_forced = cell_calls(m, n_entered, retention)
+    secs = (n_full * m["seconds_per_full_generation"]
+            + n_forced * m["seconds_per_forced_continuation"]) / ratio
+    out = {
         "n_entered": n_entered,
         "n_clean_correct_assumed": round(c, 1),
         "n_full_generations": round(n_full),
         "n_forced_continuations": round(n_forced),
-        "sequential_seconds": round(seq, 1),
-        "sequential_hours": round(seq / 3600, 3),
-        "hours": round(seq / 3600 / speedup, 3),
+        "seconds": round(secs, 1),
+        "hours": round(secs / 3600, 3),
+        "pool_ratio": ratio,
     }
+    if m_seq is not None:
+        c2, f2, k2 = cell_calls(m_seq, n_entered, retention)
+        seq = (f2 * m_seq["seconds_per_full_generation"]
+               + k2 * m_seq["seconds_per_forced_continuation"])
+        out["sequential_seconds"] = round(seq, 1)
+        out["sequential_hours"] = round(seq / 3600, 3)
+        out["speedup_vs_sequential_client"] = round(seq / secs, 3) if secs else None
+    return out
 
 
 def read_speedup(path: Path | None, want: int) -> dict:
@@ -212,12 +339,22 @@ def read_speedup(path: Path | None, want: int) -> dict:
     }
 
 
-def build_cells(m: dict, speedup: float, retention: float, concurrency: int) -> list[dict]:
+def build_cells(m: dict, retention: float, concurrency: int, batch_invariant: int,
+                m_seq: dict | None = None) -> list[dict]:
+    """One row per cell, carrying its cost AND the serving constants it must run under.
+
+    The serving constants are on every row rather than in a header, because a row is what
+    wave.sh turns into an sbatch --export line. A cell whose manifest does not carry the
+    flag and the concurrency would be submitted at whatever the submission script's
+    defaults happen to be that week, and ruling R1 is exactly about that not being the
+    thing a powered measurement rests on.
+    """
     cells = []
     for hf_id, revision, family, pool, tp, quant, extra, size in ROSTER:
+        ratio, ratio_measured, ratio_why = POOL_RATIO[pool]
         for substrate in SUBSTRATES:
             for cue, n_items in CUE_FAMILIES.items():
-                cost = cell_seconds(m, n_items, retention, speedup)
+                cost = cell_seconds(m, n_items, retention, ratio, m_seq)
                 cells.append({
                     "model": hf_id, "revision": revision, "family": family,
                     "substrate": substrate, "cue_family": cue,
@@ -231,8 +368,16 @@ def build_cells(m: dict, speedup: float, retention: float, concurrency: int) -> 
                     "mem": MEM_BY_CLASS[size], "cpus": CPUS_BY_CLASS[size],
                     "size_class": size,
                     "concurrency": concurrency,
+                    "batch_invariant": batch_invariant,
                     "cards": tp,
-                    "measured_for_this_class": size == "small" and hf_id == "Qwen/Qwen3-8B",
+                    # Measured for THIS class means both halves: the pool's ratio was
+                    # measured on this card type AND the model is inside the size class
+                    # the per-call seconds were measured on.
+                    "measured_for_this_class": bool(
+                        ratio_measured and hf_id in MEASURED_CLASS_MODELS
+                    ),
+                    "pool_ratio_measured": ratio_measured,
+                    "pool_ratio_basis": ratio_why,
                     **cost,
                 })
     return cells
@@ -303,17 +448,27 @@ def write_tsv(wave: dict, path: Path) -> None:
         f"{wave['gpu_type']} bcf/waves/{wave['wave_id']}.tsv",
         f"# longest cell in this wave: {wave['wall_hours']} h; "
         f"card-hours: {wave['card_hours']}",
+        "# serving mode of record (ruling R1, A3.6): VLLM_BATCH_INVARIANT="
+        f"{SERVING['batch_invariant']}, {SERVING['concurrency']} requests in flight, "
+        f"vLLM {SERVING['vllm_version']}, {SERVING['attention_backend']} backend, "
+        f"VLLM_USE_FLASHINFER_SAMPLER={SERVING['vllm_use_flashinfer_sampler']}, the "
+        "revision pinned per row. Each cell re-proves the determinism preflight on its",
+        "# own server (30 items at 1 and 32 in flight, 30/30 identical and 0.0 max "
+        "letter-logprob difference) and refuses with exit 10 otherwise.",
         "# columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...",
     ]
     for c in wave["cells"]:
+        measured = ("measured for this class" if c["measured_for_this_class"]
+                    else "FLOOR, not measured for this class")
         lines.append(
             f"#   {c['model']} @ {c['revision']} | {c['substrate']} / {c['cue_family']} | "
             f"n {c['n_items']} | arms {','.join(c['arms'])} | "
             f"pool {c['pool']} tp {c['tensor_parallel']} "
             f"quant {c['quantization'] or 'none'} "
             f"flags {c['vllm_extra_flags'] or 'none'} | "
-            f"{c['hours']} h at concurrency {c['concurrency']} "
-            f"({c['sequential_hours']} h sequential)"
+            f"{c['hours']} h at concurrency {c['concurrency']} with the flag "
+            f"{'on' if c['batch_invariant'] else 'off'} "
+            f"({c.get('sequential_hours')} h sequential client) | {measured}"
         )
     for c in wave["cells"]:
         fields = [
@@ -324,6 +479,7 @@ def write_tsv(wave: dict, path: Path) -> None:
             f"BCF_ARMS={' '.join(c['arms'])}",
             f"BCF_TP={c['tensor_parallel']}",
             f"BCF_CONCURRENCY={c['concurrency']}",
+            f"BCF_BATCH_INVARIANT={c['batch_invariant']}",
             f"MEM={c['mem']}",
             f"CPUS={c['cpus']}",
             f"BCF_EXPECTED_HOURS={c['hours']}",
@@ -353,30 +509,109 @@ DEPENDENCY_ORDER = [
 ]
 
 
+def enrichment_pass(m: dict, pool_sizes: dict, per_item_seconds: float) -> dict:
+    """RULING R3(ii): the sampling arm on the FULL item pool, once per model x substrate.
+
+    This is NOT part of a cell row and is not folded into one. It is one request per
+    item on the clean prompt, run before the hinted arms so every right-but-uncertain
+    item the pool holds can be enriched into that cell. Job 826025 measured it at 30
+    calls in 64.0 s at 32 in flight with the flag on, which is 2.1333 s per item-request
+    on an 8B model; each request returns k = 32 completions, so the wall clock is the
+    32 generations and not the HTTP call.
+
+    Priced here as a named line so the budget shows it. It is a floor for every class
+    above 8B for the same reason the cell rows are.
+    """
+    per_model = sum(pool_sizes[sub] for sub in SUBSTRATES) * per_item_seconds
+    total = per_model * len(ROSTER)
+    return {
+        "what": ("ruling R3(ii): one k = 32 sampling request per item over the whole "
+                 "pool of each substrate, once per model, before that substrate's "
+                 "hinted arms"),
+        "per_item_seconds": round(per_item_seconds, 4),
+        "per_item_seconds_source": ("job 826025 throughput.json, arm `sampling`: 30 "
+                                    "calls in 64.0 s at concurrency 32 with the flag on"),
+        "pool_sizes": dict(pool_sizes),
+        "hours_per_model": round(per_model / 3600, 3),
+        "card_hours_total": round(total / 3600, 1),
+        "floor": True,
+    }
+
+
+def trigger_comparison(total_card_hours: float, total_sequential: float,
+                       enrichment_card_hours: float) -> dict:
+    """Element 16's ladder trigger, computed rather than asserted.
+
+    The trigger fires when MEASURED throughput falls FAR BELOW the budget of record.
+    Card-hours move the other way from throughput, so the comparison is: does the grid,
+    priced at the measured rates, cost MORE card-hours than the budget of record
+    assumed? It is stated with both totals and the budget's own source.
+    """
+    priced = total_card_hours + enrichment_card_hours
+    return {
+        "budget_of_record_card_hours": BUDGET_OF_RECORD_CARD_HOURS,
+        "budget_of_record_source": BUDGET_OF_RECORD_SOURCE,
+        "priced_card_hours_sweep_cells": round(total_card_hours, 1),
+        "priced_card_hours_enrichment_pass": round(enrichment_card_hours, 1),
+        "priced_card_hours_total": round(priced, 1),
+        "priced_card_hours_at_the_sequential_client_rate": round(total_sequential, 1),
+        "ratio_priced_over_budget": round(priced / BUDGET_OF_RECORD_CARD_HOURS, 3),
+        "triggered": priced > BUDGET_OF_RECORD_CARD_HOURS,
+        "reading": (
+            "NOT TRIGGERED" if priced <= BUDGET_OF_RECORD_CARD_HOURS else
+            "TRIGGERED: the grid prices ABOVE the budget of record"
+        ),
+        "caveat": (
+            "The budget of record is a first-order estimate at n=500 entered and 12 "
+            "cells per model, and this grid is 12 cells per model at 1,500 entered for "
+            "two cue families and 570 for two (ruling (b)), so the two are not the same "
+            "grid. They are compared because element 16 names the budget of record as "
+            "the trigger's reference and nothing has replaced it. Every non-8B row here "
+            "is a FLOOR, so the priced total can only rise as the missing serving tests "
+            "report."
+        ),
+    }
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--probe", type=Path, default=None,
-                    help="probe_results.json from bcf/concurrency_probe.py")
+    ap.add_argument("--probe", type=Path, default=PROBE_FLAG_ON,
+                    help="probe_results.json from bcf/concurrency_probe.py; the default "
+                         "is the committed flag-on probe of job 826020, whose numbers "
+                         "are quoted into plan.json.")
     ap.add_argument("--sequential-only", action="store_true",
-                    help="no probe available: price every cell at concurrency 1 and say so")
+                    help="price every cell at the pre-R2 sequential-client rate of job "
+                         "825511 and label it. The comparison column, not the plan.")
     ap.add_argument("--retention", choices=["run_a", "banked_worst"], default="run_a")
-    ap.add_argument("--concurrency", type=int, default=1,
-                    help="requests in flight per cell. Default 1: the only probed level "
-                         "whose completions and letter logprobs match the sequential "
-                         "client exactly. Any other value must be a probed level and "
-                         "carries that level's measured divergence into plan.json.")
+    ap.add_argument("--concurrency", type=int, default=SERVING["concurrency"],
+                    help="requests in flight per cell. Default 32: ruling R1 pins the "
+                         "batch-invariant flag on, and job 826020 measured 30/30 "
+                         "identical completions and a 0.0 max letter-logprob difference "
+                         "at that level under it. Any other value must be a probed level.")
+    ap.add_argument("--batch-invariant", type=int, choices=[0, 1],
+                    default=SERVING["batch_invariant"],
+                    help="the serving flag written into every manifest row. 0 is an "
+                         "EXPLORATORY plan: A3.6 pins it on for every powered cell.")
     ap.add_argument("--out-dir", type=Path, default=WAVES)
     a = ap.parse_args(argv)
-    if not a.probe and not a.sequential_only:
-        print("REFUSING: pass --probe with a measured probe_results.json, or "
-              "--sequential-only to price everything at concurrency 1 and label it.")
-        return 2
 
-    speed = read_speedup(a.probe, a.concurrency)
+    if a.batch_invariant != 1 or a.concurrency != SERVING["concurrency"]:
+        print(f"[plan] NOTE: batch_invariant={a.batch_invariant} concurrency="
+              f"{a.concurrency} is NOT the A3.6 pinned serving mode "
+              f"(flag 1, {SERVING['concurrency']} in flight). This plan is exploratory.")
+
     retention = RETENTION_RUN_A if a.retention == "run_a" else RETENTION_BANKED_WORST
-    m = cost_model(load_measured())
-    cells = build_cells(m, speed["speedup"], retention, speed["concurrency"])
+    m_seq = cost_model(load_measured(MEASURED_SEQ, "825511"))
+    if a.sequential_only:
+        m = cost_model(load_measured(MEASURED_SEQ, "825511"))
+        basis = "sequential_client_825511"
+    else:
+        m = cost_model(load_measured(MEASURED_FLAG_ON, "826025"))
+        basis = "flag_on_concurrency_32_826025"
+    probe = read_speedup(a.probe, a.concurrency) if a.probe and a.probe.exists() else None
+
+    cells = build_cells(m, retention, a.concurrency, a.batch_invariant, m_seq)
     waves = group_waves(cells)
 
     a.out_dir.mkdir(parents=True, exist_ok=True)
@@ -387,14 +622,29 @@ def main(argv=None) -> int:
 
     by_pool: dict[str, dict] = {}
     for cell in cells:
-        row = by_pool.setdefault(cell["pool"], {"cells": 0, "card_hours": 0.0,
-                                                "sequential_card_hours": 0.0})
+        row = by_pool.setdefault(cell["pool"], {
+            "cells": 0, "card_hours": 0.0, "sequential_card_hours": 0.0,
+            "pool_ratio": cell["pool_ratio"],
+            "pool_ratio_measured": cell["pool_ratio_measured"],
+            "pool_ratio_basis": cell["pool_ratio_basis"],
+            "n_cells_measured_for_their_class": 0,
+        })
         row["cells"] += 1
         row["card_hours"] += cell["hours"] * cell["cards"]
-        row["sequential_card_hours"] += cell["sequential_hours"] * cell["cards"]
+        row["sequential_card_hours"] += cell.get("sequential_hours", 0.0) * cell["cards"]
+        row["n_cells_measured_for_their_class"] += int(cell["measured_for_this_class"])
     for row in by_pool.values():
         row["card_hours"] = round(row["card_hours"], 1)
         row["sequential_card_hours"] = round(row["sequential_card_hours"], 1)
+
+    total_card_hours = round(sum(r["card_hours"] for r in by_pool.values()), 1)
+    total_sequential = round(sum(r["sequential_card_hours"] for r in by_pool.values()), 1)
+    # Pool sizes for the enrichment pass: the entered n of the largest cue family is the
+    # pool a substrate must hold (ruling (b) raised two families to 1,500).
+    pool_sizes = {sub: max(CUE_FAMILIES.values()) for sub in SUBSTRATES}
+    enrichment = enrichment_pass(m, pool_sizes, 64.0 / 30.0)
+    trigger = trigger_comparison(total_card_hours, total_sequential,
+                                 enrichment["card_hours_total"])
 
     plan = {
         "n_models": len(ROSTER), "n_substrates": len(SUBSTRATES),
@@ -402,24 +652,51 @@ def main(argv=None) -> int:
         "n_waves": len(waves),
         "n_items_per_cell": CUE_FAMILIES,
         "arms": list(ARMS),
+        "serving_mode_of_record": SERVING | {
+            "concurrency_used": a.concurrency,
+            "batch_invariant_used": a.batch_invariant,
+        },
+        "determinism_probe": probe,
         "clean_correct_retention": {"choice": a.retention, "value": retention},
+        "cost_basis_id": basis,
         "measured_cost_model": m,
-        "concurrency": speed,
+        "measured_cost_model_sequential_comparison": m_seq,
+        "pool_ratio": {k: {"ratio": v[0], "measured_for_this_pool": v[1], "why": v[2]}
+                       for k, v in POOL_RATIO.items()},
+        "measured_class_models": sorted(MEASURED_CLASS_MODELS),
         "caps_counting_all_campaigns": POOL_CAP,
         "gpu_total_cap": GPU_TOTAL_CAP,
         "sweep_slots_planned": POOL_SWEEP_SLOTS,
         "card_hours_by_pool": by_pool,
         "cost_basis": (
-            "Every per-cell hour is the 8B cost measured on ONE MIG 3g.40gb slice by job "
-            "825511 (Qwen/Qwen3-8B, arc_challenge, stated-hint, exit 0), scaled by item "
-            "count and divided by the probed concurrency speedup. The 24B-to-35B, 70B and "
-            "120B classes have NO throughput measurement of their own, so their rows are a "
-            "FLOOR, not a forecast, and are marked measured_for_this_class false. The "
-            "whole-a100-80 rerun is job 825510, still PENDING with reason Resources, so the "
-            "a100-80-versus-MIG ratio is unmeasured too."),
-        "total_card_hours": round(sum(r["card_hours"] for r in by_pool.values()), 1),
-        "total_sequential_card_hours": round(
-            sum(r["sequential_card_hours"] for r in by_pool.values()), 1),
+            "RULING R2. Every per-cell hour is the 8B cost measured on ONE MIG 3g.40gb "
+            "slice by job 826025 (Qwen/Qwen3-8B, arc_challenge, stated-hint, exit 0) at "
+            "32 requests in flight with VLLM_BATCH_INVARIANT=1, restricted to the eleven "
+            "intervals a powered cell runs, and scaled by item count. The a100-80 pool "
+            "divides that by the measured whole-card to MIG ratio of 1.7371, which is a "
+            "sequential-client ratio on an 8B model and therefore a FLOOR. The 24B-to-"
+            "35B, 70B and 120B classes have no throughput measurement of their own, so "
+            "their rows are a FLOOR, not a forecast, and carry measured_for_this_class "
+            "false. gpt-oss-20b sits on the measured pool but is a 20B mxfp4 MoE, so it "
+            "is a floor row too."),
+        "not_priced_in_these_rows": [
+            {"what": "the U6 on-policy resampling arm of section 9.3",
+             "why": "it has never run, so there is no measured per-call cost for it, and "
+                    "no number is invented here"},
+            {"what": "the chain-level repeat arm of ruling R4",
+             "why": "it is a Phase 1 skeleton done-when, not an arm of every powered "
+                    "cell; its cost on a 28-item cell is measured only by the skeleton "
+                    "run that carries it"},
+            {"what": "the element 8.3 repeated-curve arm",
+             "why": "measured at 1,680 forced continuations in 37.0 s on a 28-item cell "
+                    "(job 826025) but not part of the nine A2 arms these cells run"},
+            {"what": "judging",
+             "why": "CONTRACT.md carries the judging budget separately, in server-hours"},
+        ],
+        "enrichment_pass": enrichment,
+        "ladder_trigger_element_16": trigger,
+        "total_card_hours": total_card_hours,
+        "total_sequential_card_hours": total_sequential,
         "dependency_order": [{"pool_key": k, "why": w} for k, w in DEPENDENCY_ORDER],
         "waves": [{k: v for k, v in w.items() if k != "cells"} |
                   {"n_cells": len(w["cells"]),
@@ -428,12 +705,25 @@ def main(argv=None) -> int:
     }
     (a.out_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n")
 
-    print(f"{len(cells)} cells, {len(waves)} waves, "
-          f"{plan['total_card_hours']} card-hours at concurrency {speed['concurrency']} "
-          f"({plan['total_sequential_card_hours']} sequential)")
+    print(f"{len(cells)} cells, {len(waves)} waves, basis {basis}")
+    print(f"serving mode: VLLM_BATCH_INVARIANT={a.batch_invariant}, "
+          f"{a.concurrency} in flight, vLLM {SERVING['vllm_version']}, "
+          f"{SERVING['attention_backend']}")
+    print(f"{total_card_hours} card-hours for the sweep cells "
+          f"({total_sequential} at the sequential-client rate)")
     for pool, row in sorted(by_pool.items()):
+        flag = "measured" if row["pool_ratio_measured"] else "FLOOR"
         print(f"  {pool:<10} {row['cells']:>4} cells  {row['card_hours']:>9.1f} card-h  "
-              f"({row['sequential_card_hours']:.1f} sequential)")
+              f"(ratio {row['pool_ratio']}, {flag}; "
+              f"{row['n_cells_measured_for_their_class']}/{row['cells']} cells measured "
+              f"for their class)")
+    print(f"  enrichment pass (R3(ii)): {enrichment['card_hours_total']} card-h over "
+          f"{len(ROSTER)} models x {len(SUBSTRATES)} substrates x "
+          f"{max(CUE_FAMILIES.values())} pool items")
+    print(f"ELEMENT 16 TRIGGER: priced {trigger['priced_card_hours_total']} card-h "
+          f"against the budget of record {trigger['budget_of_record_card_hours']} card-h "
+          f"({BUDGET_OF_RECORD_SOURCE.split(':')[0]}); ratio "
+          f"{trigger['ratio_priced_over_budget']} -> {trigger['reading']}")
     return 0
 
 

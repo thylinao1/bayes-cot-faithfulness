@@ -21,13 +21,112 @@
     "anchor",
     "specificity"
   ],
+  "serving_mode_of_record": {
+    "batch_invariant": 1,
+    "concurrency": 32,
+    "vllm_version": "0.28.0",
+    "attention_backend": "FLASH_ATTN",
+    "vllm_use_flashinfer_sampler": 0,
+    "generations_per_second_per_slice": 2.9196,
+    "source": "ruling R1 / A3.6: job 826020 measured 30/30 identical completions and a max absolute letter-logprob difference of 0.0 at 1, 8, 32 and 64 in flight with the flag on, against 13/30 and 0.875 nats at 32 with it off (job 825548). Every cell re-proves it on its own server before its arms.",
+    "concurrency_used": 32,
+    "batch_invariant_used": 1
+  },
+  "determinism_probe": {
+    "speedup": 20.374,
+    "concurrency": 32,
+    "baseline_generations_per_second": 0.1433,
+    "generations_per_second": 2.9196,
+    "identical_completions": "30/30",
+    "max_abs_letter_logprob_diff": 0.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_exactly_zero_diff": "120/120",
+    "probed_levels": [
+      {
+        "concurrency": 1,
+        "generations_per_second": 0.1433,
+        "speedup_vs_concurrency_1": 1.0,
+        "identical_completions": "30/30",
+        "max_abs_letter_logprob_diff": 0.0,
+        "n_letter_logprobs_exactly_zero_diff": "120/120"
+      },
+      {
+        "concurrency": 8,
+        "generations_per_second": 0.8556,
+        "speedup_vs_concurrency_1": 5.971,
+        "identical_completions": "30/30",
+        "max_abs_letter_logprob_diff": 0.0,
+        "n_letter_logprobs_exactly_zero_diff": "120/120"
+      },
+      {
+        "concurrency": 32,
+        "generations_per_second": 2.9196,
+        "speedup_vs_concurrency_1": 20.374,
+        "identical_completions": "30/30",
+        "max_abs_letter_logprob_diff": 0.0,
+        "n_letter_logprobs_exactly_zero_diff": "120/120"
+      },
+      {
+        "concurrency": 64,
+        "generations_per_second": 2.9208,
+        "speedup_vs_concurrency_1": 20.382,
+        "identical_completions": "30/30",
+        "max_abs_letter_logprob_diff": 0.0,
+        "n_letter_logprobs_exactly_zero_diff": "120/120"
+      }
+    ],
+    "no_ruling": "The probe reports these numbers and makes no ruling on them. Levels above 1 change the completions and the letter logprobs on this card; whether a pre-registered cell may be run that way is the operator's call, not this script's.",
+    "source": "/Users/maksimsilchenko/Developer/bcf-a3final/bcf/measured/w3b-probe-bi-826020/probe_results.json"
+  },
   "clean_correct_retention": {
     "choice": "run_a",
     "value": 0.9666666666666667
   },
+  "cost_basis_id": "flag_on_concurrency_32_826025",
   "measured_cost_model": {
+    "source": "experiments/results/w3b-skeleton/qwen3-8b/arc_challenge/stated-hint/throughput.json",
+    "job": "826025",
+    "intervals_used": [
+      "clean_substrate",
+      "cue_pass",
+      "replay",
+      "placebo",
+      "direct",
+      "twostep",
+      "filler",
+      "curves",
+      "transplant",
+      "anchor",
+      "specificity"
+    ],
+    "total_calls": 1467,
+    "total_seconds": 122.0,
+    "n_full_generations": 153,
+    "n_forced_continuations": 1314,
+    "seconds_per_full_generation": 0.41004685959401904,
+    "seconds_per_forced_continuation": 0.04510108864696734,
+    "specificity_calls_fixed": 39,
+    "specificity_full_fixed": 39,
+    "per_entered_full": 1.0,
+    "per_clean_correct_full": 2.896551724137931,
+    "per_clean_correct_forced": 45.310344827586206
+  },
+  "measured_cost_model_sequential_comparison": {
     "source": "bcf/measured/run-a-825511/throughput.json",
     "job": "825511",
+    "intervals_used": [
+      "clean_substrate",
+      "cue_pass",
+      "replay",
+      "placebo",
+      "direct",
+      "twostep",
+      "filler",
+      "curves",
+      "transplant",
+      "anchor",
+      "specificity"
+    ],
     "total_calls": 1520,
     "total_seconds": 660.0,
     "n_full_generations": 156,
@@ -40,52 +139,37 @@
     "per_clean_correct_full": 3.0,
     "per_clean_correct_forced": 46.86206896551724
   },
-  "concurrency": {
-    "speedup": 1.0,
-    "concurrency": 1,
-    "baseline_generations_per_second": 0.3539,
-    "generations_per_second": 0.3539,
-    "identical_completions": "30/30",
-    "max_abs_letter_logprob_diff": 0.0,
-    "n_letter_logprobs_compared": 120,
-    "n_letter_logprobs_exactly_zero_diff": "120/120",
-    "probed_levels": [
-      {
-        "concurrency": 1,
-        "generations_per_second": 0.3539,
-        "speedup_vs_concurrency_1": 1.0,
-        "identical_completions": "30/30",
-        "max_abs_letter_logprob_diff": 0.0,
-        "n_letter_logprobs_exactly_zero_diff": "120/120"
-      },
-      {
-        "concurrency": 8,
-        "generations_per_second": 1.8868,
-        "speedup_vs_concurrency_1": 5.331,
-        "identical_completions": "11/30",
-        "max_abs_letter_logprob_diff": 0.625,
-        "n_letter_logprobs_exactly_zero_diff": "52/120"
-      },
-      {
-        "concurrency": 32,
-        "generations_per_second": 5.965,
-        "speedup_vs_concurrency_1": 16.855,
-        "identical_completions": "13/30",
-        "max_abs_letter_logprob_diff": 0.875,
-        "n_letter_logprobs_exactly_zero_diff": "28/120"
-      },
-      {
-        "concurrency": 64,
-        "generations_per_second": 5.9647,
-        "speedup_vs_concurrency_1": 16.854,
-        "identical_completions": "13/30",
-        "max_abs_letter_logprob_diff": 0.875,
-        "n_letter_logprobs_exactly_zero_diff": "28/120"
-      }
-    ],
-    "no_ruling": "The probe reports these numbers and makes no ruling on them. Levels above 1 change the completions and the letter logprobs on this card; whether a pre-registered cell may be run that way is the operator's call, not this script's.",
-    "source": "bcf/measured/trackg-probe-825548/probe_results.json"
+  "pool_ratio": {
+    "a100-40": {
+      "ratio": 1.0,
+      "measured_for_this_pool": true,
+      "why": "MEASURED on this pool and this card type: job 826025 ran the arms on one MIG 3g.40gb slice at concurrency 32 with the flag on, and the cost model below is that run's own per-call seconds."
+    },
+    "a100-80": {
+      "ratio": 1.7371,
+      "measured_for_this_pool": false,
+      "why": "FLOOR. 1.7371 is the whole-a100-80 to MIG ratio measured at ONE request in flight on an 8B model (job 826028, 1,469 calls in 369.0 s, against run B's identical work in 641.0 s). Applying it to a concurrency-32 flag-on MIG cost assumes the ratio survives under load, which no run has measured, and the models on this pool are 3 to 4 times the size of the 8B the cost model is built on. The hours below are a lower bound."
+    },
+    "h100-96": {
+      "ratio": 1.0,
+      "measured_for_this_pool": false,
+      "why": "FLOOR. No throughput measurement exists for the 70B dense tensor-parallel-2 line or for gpt-oss-120b mxfp4; the TP=2 serving test (job 825253) is still PENDING with ReqNodeNotAvail. These rows carry the 8B MIG cost with no credit for the larger card, which is a lower bound."
+    },
+    "h200-141": {
+      "ratio": 1.0,
+      "measured_for_this_pool": false,
+      "why": "FLOOR. No throughput measurement exists for GLM-4.5-Air FP8 on the h200-141. Same treatment and the same caveat as h100-96."
+    }
   },
+  "measured_class_models": [
+    "Qwen/Qwen3-8B",
+    "allenai/Olmo-3-7B-Think",
+    "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    "google/gemma-2-9b-it",
+    "meta-llama/Llama-3.1-8B-Instruct",
+    "microsoft/Phi-4-reasoning"
+  ],
   "caps_counting_all_campaigns": {
     "a100-40": 8,
     "a100-80": 4,
@@ -102,27 +186,86 @@
   "card_hours_by_pool": {
     "a100-40": {
       "cells": 96,
-      "card_hours": 503.4,
-      "sequential_card_hours": 503.4
+      "card_hours": 98.0,
+      "sequential_card_hours": 503.4,
+      "pool_ratio": 1.0,
+      "pool_ratio_measured": true,
+      "pool_ratio_basis": "MEASURED on this pool and this card type: job 826025 ran the arms on one MIG 3g.40gb slice at concurrency 32 with the flag on, and the cost model below is that run's own per-call seconds.",
+      "n_cells_measured_for_their_class": 84
     },
     "a100-80": {
       "cells": 72,
-      "card_hours": 377.5,
-      "sequential_card_hours": 377.5
+      "card_hours": 42.3,
+      "sequential_card_hours": 377.5,
+      "pool_ratio": 1.7371,
+      "pool_ratio_measured": false,
+      "pool_ratio_basis": "FLOOR. 1.7371 is the whole-a100-80 to MIG ratio measured at ONE request in flight on an 8B model (job 826028, 1,469 calls in 369.0 s, against run B's identical work in 641.0 s). Applying it to a concurrency-32 flag-on MIG cost assumes the ratio survives under load, which no run has measured, and the models on this pool are 3 to 4 times the size of the 8B the cost model is built on. The hours below are a lower bound.",
+      "n_cells_measured_for_their_class": 0
     },
     "h100-96": {
       "cells": 36,
-      "card_hours": 314.6,
-      "sequential_card_hours": 314.6
+      "card_hours": 61.2,
+      "sequential_card_hours": 314.6,
+      "pool_ratio": 1.0,
+      "pool_ratio_measured": false,
+      "pool_ratio_basis": "FLOOR. No throughput measurement exists for the 70B dense tensor-parallel-2 line or for gpt-oss-120b mxfp4; the TP=2 serving test (job 825253) is still PENDING with ReqNodeNotAvail. These rows carry the 8B MIG cost with no credit for the larger card, which is a lower bound.",
+      "n_cells_measured_for_their_class": 0
     },
     "h200-141": {
       "cells": 12,
-      "card_hours": 62.9,
-      "sequential_card_hours": 62.9
+      "card_hours": 12.2,
+      "sequential_card_hours": 62.9,
+      "pool_ratio": 1.0,
+      "pool_ratio_measured": false,
+      "pool_ratio_basis": "FLOOR. No throughput measurement exists for GLM-4.5-Air FP8 on the h200-141. Same treatment and the same caveat as h100-96.",
+      "n_cells_measured_for_their_class": 0
     }
   },
-  "cost_basis": "Every per-cell hour is the 8B cost measured on ONE MIG 3g.40gb slice by job 825511 (Qwen/Qwen3-8B, arc_challenge, stated-hint, exit 0), scaled by item count and divided by the probed concurrency speedup. The 24B-to-35B, 70B and 120B classes have NO throughput measurement of their own, so their rows are a FLOOR, not a forecast, and are marked measured_for_this_class false. The whole-a100-80 rerun is job 825510, still PENDING with reason Resources, so the a100-80-versus-MIG ratio is unmeasured too.",
-  "total_card_hours": 1258.4,
+  "cost_basis": "RULING R2. Every per-cell hour is the 8B cost measured on ONE MIG 3g.40gb slice by job 826025 (Qwen/Qwen3-8B, arc_challenge, stated-hint, exit 0) at 32 requests in flight with VLLM_BATCH_INVARIANT=1, restricted to the eleven intervals a powered cell runs, and scaled by item count. The a100-80 pool divides that by the measured whole-card to MIG ratio of 1.7371, which is a sequential-client ratio on an 8B model and therefore a FLOOR. The 24B-to-35B, 70B and 120B classes have no throughput measurement of their own, so their rows are a FLOOR, not a forecast, and carry measured_for_this_class false. gpt-oss-20b sits on the measured pool but is a 20B mxfp4 MoE, so it is a floor row too.",
+  "not_priced_in_these_rows": [
+    {
+      "what": "the U6 on-policy resampling arm of section 9.3",
+      "why": "it has never run, so there is no measured per-call cost for it, and no number is invented here"
+    },
+    {
+      "what": "the chain-level repeat arm of ruling R4",
+      "why": "it is a Phase 1 skeleton done-when, not an arm of every powered cell; its cost on a 28-item cell is measured only by the skeleton run that carries it"
+    },
+    {
+      "what": "the element 8.3 repeated-curve arm",
+      "why": "measured at 1,680 forced continuations in 37.0 s on a 28-item cell (job 826025) but not part of the nine A2 arms these cells run"
+    },
+    {
+      "what": "judging",
+      "why": "CONTRACT.md carries the judging budget separately, in server-hours"
+    }
+  ],
+  "enrichment_pass": {
+    "what": "ruling R3(ii): one k = 32 sampling request per item over the whole pool of each substrate, once per model, before that substrate's hinted arms",
+    "per_item_seconds": 2.1333,
+    "per_item_seconds_source": "job 826025 throughput.json, arm `sampling`: 30 calls in 64.0 s at concurrency 32 with the flag on",
+    "pool_sizes": {
+      "arc_challenge": 1500,
+      "aqua_rat": 1500,
+      "logiqa2": 1500
+    },
+    "hours_per_model": 2.667,
+    "card_hours_total": 48.0,
+    "floor": true
+  },
+  "ladder_trigger_element_16": {
+    "budget_of_record_card_hours": 650,
+    "budget_of_record_source": "CONTRACT.md, line beginning 'Compute budget of record (first-order; replaced by Phase 1 measurements)': about 650 card-hours for 18 models, at n=500 entered and 12 cells per model.",
+    "priced_card_hours_sweep_cells": 213.7,
+    "priced_card_hours_enrichment_pass": 48.0,
+    "priced_card_hours_total": 261.7,
+    "priced_card_hours_at_the_sequential_client_rate": 1258.4,
+    "ratio_priced_over_budget": 0.403,
+    "triggered": false,
+    "reading": "NOT TRIGGERED",
+    "caveat": "The budget of record is a first-order estimate at n=500 entered and 12 cells per model, and this grid is 12 cells per model at 1,500 entered for two cue families and 570 for two (ruling (b)), so the two are not the same grid. They are compared because element 16 names the budget of record as the trigger's reference and nothing has replaced it. Every non-8B row here is a FLOOR, so the priced total can only rise as the missing serving tests report."
+  },
+  "total_card_hours": 213.7,
   "total_sequential_card_hours": 1258.4,
   "dependency_order": [
     {
@@ -154,8 +297,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 7.585,
-      "card_hours": 60.68,
+      "wall_hours": 1.477,
+      "card_hours": 11.816,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -175,8 +318,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 7.585,
-      "card_hours": 60.68,
+      "wall_hours": 1.477,
+      "card_hours": 11.816,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -196,8 +339,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 2.902,
-      "card_hours": 23.216,
+      "wall_hours": 0.564,
+      "card_hours": 4.512,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -217,8 +360,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 2.902,
-      "card_hours": 23.216,
+      "wall_hours": 0.564,
+      "card_hours": 4.512,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -238,8 +381,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 7.585,
-      "card_hours": 60.68,
+      "wall_hours": 1.477,
+      "card_hours": 11.816,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -259,8 +402,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 7.585,
-      "card_hours": 60.68,
+      "wall_hours": 1.477,
+      "card_hours": 11.816,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -280,8 +423,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 2.902,
-      "card_hours": 23.216,
+      "wall_hours": 0.564,
+      "card_hours": 4.512,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -301,8 +444,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 2.902,
-      "card_hours": 23.216,
+      "wall_hours": 0.564,
+      "card_hours": 4.512,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -322,8 +465,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 7.585,
-      "card_hours": 60.68,
+      "wall_hours": 1.477,
+      "card_hours": 11.816,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -343,8 +486,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 7.585,
-      "card_hours": 60.68,
+      "wall_hours": 1.477,
+      "card_hours": 11.816,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -364,8 +507,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 2.902,
-      "card_hours": 23.216,
+      "wall_hours": 0.564,
+      "card_hours": 4.512,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -385,8 +528,8 @@
       "cards": 8,
       "cap": 8,
       "sweep_slots": 8,
-      "wall_hours": 2.902,
-      "card_hours": 23.216,
+      "wall_hours": 0.564,
+      "card_hours": 4.512,
       "n_cells": 8,
       "models": [
         "Qwen/Qwen3-8B",
@@ -406,8 +549,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -421,8 +564,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -436,8 +579,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -451,8 +594,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -466,8 +609,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -481,8 +624,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -496,8 +639,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -511,8 +654,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -526,8 +669,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -541,8 +684,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -556,8 +699,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -571,8 +714,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "Qwen/Qwen3-32B",
@@ -586,8 +729,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -601,8 +744,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -616,8 +759,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -631,8 +774,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -646,8 +789,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -661,8 +804,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -676,8 +819,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -691,8 +834,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -706,8 +849,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -721,8 +864,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -736,8 +879,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -751,8 +894,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "allenai/Olmo-3-32B-Think",
@@ -766,8 +909,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -781,8 +924,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -796,8 +939,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -811,8 +954,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -826,8 +969,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -841,8 +984,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -856,8 +999,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -871,8 +1014,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -886,8 +1029,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -901,8 +1044,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 0.85,
+      "card_hours": 1.7,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -916,8 +1059,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -931,8 +1074,8 @@
       "cards": 2,
       "cap": 4,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.325,
+      "card_hours": 0.65,
       "n_cells": 2,
       "models": [
         "mistralai/Magistral-Small-2509",
@@ -946,8 +1089,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -960,8 +1103,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -974,8 +1117,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -988,8 +1131,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -1002,8 +1145,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -1016,8 +1159,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -1030,8 +1173,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -1044,8 +1187,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -1058,8 +1201,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -1072,8 +1215,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -1086,8 +1229,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -1100,8 +1243,8 @@
       "cards": 1,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "openai/gpt-oss-120b"
@@ -1114,8 +1257,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1128,8 +1271,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1142,8 +1285,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1156,8 +1299,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1170,8 +1313,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1184,8 +1327,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1198,8 +1341,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1212,8 +1355,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1226,8 +1369,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1240,8 +1383,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1254,8 +1397,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1268,8 +1411,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -1282,8 +1425,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1296,8 +1439,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1310,8 +1453,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1324,8 +1467,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1338,8 +1481,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1352,8 +1495,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1366,8 +1509,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1380,8 +1523,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1394,8 +1537,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1408,8 +1551,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 7.585,
-      "card_hours": 15.17,
+      "wall_hours": 1.477,
+      "card_hours": 2.954,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1422,8 +1565,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1436,8 +1579,8 @@
       "cards": 2,
       "cap": 2,
       "sweep_slots": 2,
-      "wall_hours": 2.902,
-      "card_hours": 5.804,
+      "wall_hours": 0.564,
+      "card_hours": 1.128,
       "n_cells": 1,
       "models": [
         "meta-llama/Llama-3.3-70B-Instruct"
@@ -1450,8 +1593,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1464,8 +1607,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1478,8 +1621,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1492,8 +1635,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1506,8 +1649,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1520,8 +1663,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1534,8 +1677,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1548,8 +1691,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1562,8 +1705,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1576,8 +1719,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 7.585,
-      "card_hours": 7.585,
+      "wall_hours": 1.477,
+      "card_hours": 1.477,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1590,8 +1733,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"
@@ -1604,8 +1747,8 @@
       "cards": 1,
       "cap": 1,
       "sweep_slots": 1,
-      "wall_hours": 2.902,
-      "card_hours": 2.902,
+      "wall_hours": 0.564,
+      "card_hours": 0.564,
       "n_cells": 1,
       "models": [
         "zai-org/GLM-4.5-Air"

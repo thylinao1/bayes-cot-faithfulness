@@ -1,0 +1,14 @@
+# bcf/check_wave_manifests.py, proven able to refuse
+# generated 2026-09-07T02:08:14Z
+#
+# The mutation: BCF_BATCH_INVARIANT=1 removed from ONE of the 216 manifest rows.
+committed manifests (96 files, 216 rows): exit 0  (expected 0)
+one row missing the serving flag:         exit 1  (expected 1)
+
+bcf/check_wave_manifests.py: the structural half of wave.sh --check-only
+  96 manifest file(s), 216 row(s), 18 model(s), pools a100-40, a100-80, h100-96, h200-141
+  NOT checked here (needs the cluster): the live per-user card caps read from
+  squeue, the 32-jobs-in-system limit, and sbatch --test-only on each command
+  line. Those are wave.sh --check-only's own job and land in dry-run-<wave>.txt.
+  1 PROBLEM(S):
+    - a100-40-01.tsv:15: BCF_BATCH_INVARIANT=None, and the plan's serving mode of record is 1 (ruling R1)

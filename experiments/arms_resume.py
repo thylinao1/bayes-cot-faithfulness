@@ -114,7 +114,10 @@ PARAM_FIELDS = (
     # base seed, r, the temperature list), so a resumed leg cannot merge samples drawn at
     # a different k or repeats drawn at a different temperature. They are None when the
     # arms are off, and None == None keeps every pre-existing checkpoint loadable.
-    "sampling", "repeat_curves",
+    # Ruling R4 added the CHAIN-level repeats, whose draw parameters (r, temperature,
+    # base seed) change what is drawn in the same way, and which is None when that arm
+    # is off, so every pre-existing checkpoint still loads.
+    "sampling", "repeat_curves", "chain_repeats",
 )
 
 # Fields always present on a substrate record (set in substrate_pass before any arm runs).
@@ -194,7 +197,8 @@ def build_params(model: str, backend: str, n_items: int, data: Path, taxonomy: s
                  specificity_holdout: Path, data_sha256: str | None = None,
                  specificity_holdout_sha256: str | None = None,
                  sampling: dict | None = None,
-                 repeat_curves: dict | None = None) -> dict:
+                 repeat_curves: dict | None = None,
+                 chain_repeats: dict | None = None) -> dict:
     """The parameter fingerprint stored in (and checked against) a checkpoint.
 
     ``arms`` is kept in CLI order exactly as ``resolve_arms`` returns it: the enabled-arms
@@ -218,6 +222,7 @@ def build_params(model: str, backend: str, n_items: int, data: Path, taxonomy: s
         "specificity_holdout_sha256": specificity_holdout_sha256,
         "sampling": sampling,
         "repeat_curves": repeat_curves,
+        "chain_repeats": chain_repeats,
     }
 
 
