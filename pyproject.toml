@@ -34,7 +34,7 @@ dependencies = [
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
-    "ruff>=0.4",
+    "ruff>=0.16.6,<0.17",
     "matplotlib>=3.8",
 ]
 
