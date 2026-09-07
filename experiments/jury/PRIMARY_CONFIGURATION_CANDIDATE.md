@@ -494,3 +494,62 @@ budget that gave Qwen3-32B 164 malformed of 342 rows in job 826023 and that `num
 1024 reduced to 11 of 5,313 in job 826783. gpt-oss-20b is a reasoning model with an analysis
 channel, so the same explanation fits without needing a new one. What would settle it is a
 gpt-oss rerun at 1024, which is a submission and therefore not this lane's to make.
+
+## Closing state, 2026-09-07 17:40 (W2f)
+
+Still no candidate. No Q1 file is named, no judge is named, no bar moved, no prompt file
+changed, and `gate_thresholds.py` still hashes `b39f1d4b...`.
+
+### The panel of record, all three Q1 files
+
+| Q1 file | Verdict | Passed | Failing metrics | Pooled malformed | panel_unlabeled |
+|---|---|---|---|---|---|
+| a | FAIL | 8/10 | paraphrase 0/53, malformed | 2902/15939 = 0.1821 | 26/483 |
+| b | FAIL | 8/10 | restated 3/46, malformed | 2732/15939 = 0.1714 | 5/483 |
+| c | FAIL | 7/10 | paraphrase 17/31, restated 0/52, malformed | 3141/15939 = 0.1971 | 3/483 |
+
+Every one of those malformed votes is gpt-oss-20b's. Its per-judge rates are 2902, 2732 and
+3141 of 5,313, so between 51 and 59 percent of what it cast was unusable.
+
+### Leave one judge out, all three files
+
+| Panel | Q1 a | Q1 b | Q1 c |
+|---|---|---|---|
+| all three | FAIL 8/10 | FAIL 8/10 | FAIL 7/10 |
+| minus gemma-3-27b-it | FAIL 7/10 | FAIL 7/10 | FAIL 7/10 |
+| minus gpt-oss-20b | FAIL 8/10 | FAIL 9/10 | FAIL 8/10 |
+| minus llama-3.3-70b-fp8 | FAIL 7/10 | FAIL 8/10 | FAIL 6/10 |
+
+Twelve configurations, twelve FAILs. No judge's inclusion or removal flips a verdict on any
+file. The strongest cell in the table is minus gpt-oss on file b, 9 of 10 with
+`specificity_restated_cue_only` the only failure, and it is the same two-judge panel the
+record already carried.
+
+### The per-judge rows now cover four judges
+
+| Judge | Q1 a | Q1 b | Q1 c | Line | Budget |
+|---|---|---|---|---|---|
+| llama-3.3-70b-fp8 | 8/10 | 8/10 | 8/10 | pinned | as run |
+| gemma-3-27b-it | 8/10 | 8/10 | 7/10 | exploratory-h200-141 | as run |
+| qwen3-32b | 9/10 | 8/10 | 9/10 | exploratory-h200-141 | `num_predict` 1024 |
+| gpt-oss-20b | 7/10 | 7/10 | 8/10 | exploratory-h100-47 | `num_predict` 256 default |
+
+The Qwen row is the only 9 anywhere, and it is unusable for THIS corpus because Qwen3-8B is
+the subject model, so section 6.2 routes it out. Read the gpt-oss row with its malformed
+rate attached; a "7/10" whose denominators are 2/2 and 1/1 is not a comparable score.
+
+### What the freeze still needs
+
+| Question | State |
+|---|---|
+| Is the three-judge panel of record computed | YES, on all three Q1 files, as of 16:26 to 17:33. Every one FAILS |
+| Does any Q1 file clear the bars for the panel | NO. 8/10, 8/10, 7/10 |
+| Which judge's inclusion changes a verdict | NONE. Twelve configurations, twelve FAILs. What changes is which metrics fail |
+| Is any judge on its PINNED line | Only llama-3.3-70b-fp8. Gemma, Qwen and gpt-oss are all exploratory; job 826784 (Qwen, pinned a100-80) is still PENDING |
+| Is the gpt-oss malformed rate explained | It matches the budget explanation exactly, and the test of it is a gpt-oss run at `num_predict` 1024, which has not been submitted |
+| Does a chain-level lambda exist | YES, job 826596, `docs/A4-CHAIN-LAMBDA-NOTE.md` |
+
+The one thing on this page that a reader should NOT carry forward is any comparison of judges
+by "passed of ten" while one judge's denominators are two rows wide. Until gpt-oss runs at a
+budget that lets it answer, the panel of record measures the instrument's availability and
+not the Q1 construct.
