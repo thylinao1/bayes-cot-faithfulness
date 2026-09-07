@@ -21,3 +21,4 @@
 1   # falsification P1, an enrichment wave filed as a sweep wave: cells reads 224
 1   # falsification P2, one enrichment wave deleted: enrich reads 16
 0   # the four named test files after the repair: 77 passed
+3   # 16:05 second live feeder poll, refused by the caps again, a100-40-02.tsv stays next

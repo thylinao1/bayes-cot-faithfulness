@@ -206,3 +206,49 @@ LIVE_FEEDER_EXIT=3
 [feeder]   pending    a100-40-11.tsv
 [feeder]   pending    a100-40-12.tsv
 [feeder] 1/12 wave file(s) of a100-40-*.tsv already submitted
+
+=======================================================================================
+SECOND LIVE POLL, 2026-09-07 16:05, real submit path and not --check-only
+=======================================================================================
+Same command as the 15:39 one:
+
+  bash bcf/ssh_retry.sh --wall 240 --tries 2 --gap 20 -- \
+    'bash $HOME/bcf/src-feeder/bcf/wave_feeder.sh --pool a100-40 \
+       --repo-tree $HOME/bcf/repo-5d40e5224ac0'
+
+  [feeder] next unsubmitted wave for sweep/a100-40: a100-40-02.tsv
+  [feeder] jobs in system 12/32; headroom 20, floor 8
+  [feeder] asking wave.sh --check-only about a100-40-02.tsv
+  [feeder]   | [wave] file bcf/waves/a100-40-02.tsv: 8 cell(s), 8 card(s), max tp 1
+  [feeder]   | [wave] jobs in system: 12/32; this wave adds 8 -> 20/32
+  [feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 4/8 (2 more pending, not counted)
+  [feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 6/12
+  [feeder]   | [wave] a100-40 cards in use, bcf-sweep: 3/8 (CONTRACT.md split)
+  [feeder]   | [wave] REFUSING to submit:
+  [feeder]   |   a100-40 cards would reach 12 > 8 (per-user cap, all campaigns)
+  [feeder]   |   total gpu cards would reach 14 > 12 (per-user cap across ALL types, all campaigns)
+  [feeder]   |   bcf-sweep cards on a100-40 would reach 11 > 8 (CONTRACT.md sweep budget)
+  [feeder] REFUSED by wave.sh (exit 1): the split or a cap has no room.
+  [feeder]   Nothing was submitted; a100-40-02.tsv stays next.
+  FEEDER_EXIT=3
+
+A second refusal for the same reason as the first, and the reason is a cap rather than a
+defect: wave 1's last three cells (826737 gemma-2-9b-it, 826738 llama-3.1-8b-instruct,
+826739 phi-4-reasoning, all arc_challenge) still hold three of the eight sweep cards, and
+other campaigns hold the rest. a100-40-02.tsv stays next, and 1/12 a100-40 wave files are
+submitted.
+
+WAVE 1 AT 16:05, sacct -X:
+  826733 qwen3-8b-arc_challenge               COMPLETED 0:0  00:55:19
+  826734 olmo-3-7b-think-arc_challenge        COMPLETED 0:0  00:25:04
+  826735 deepseek-r1-0528-qwen3-8b-arc_chall  COMPLETED 0:0  00:22:13
+  826736 deepseek-r1-distill-llama-8b-arc_ch  COMPLETED 0:0  00:30:48
+  826737 gemma-2-9b-it-arc_challenge          RUNNING   0:0  00:39:34
+  826738 llama-3.1-8b-instruct-arc_challenge  RUNNING   0:0  00:37:04
+  826739 phi-4-reasoning-arc_challenge        RUNNING   0:0  00:33:03
+  826740 gpt-oss-20b-arc_challenge            FAILED    5:0  00:02:00
+
+THE h100-47 JUDGE LINE AT 16:05, sacct -X:
+  826859 bcf-jury-gpt-oss-20b  FAILED     5:0  00:04:36   (this lane, KV cache memory)
+  826880 bcf-jury-gpt-oss-20b  RUNNING    0:0  00:18:31   (the other lane's resubmit, collectible)
+  826888 bcf-jury-gpt-oss-20b  CANCELLED  0:0  00:01:36   (this lane's duplicate, cancelled 15:52)
