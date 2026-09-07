@@ -202,3 +202,35 @@ The OFFLINE projection in `project_echo_strip.py`, computed under the stipulatio
 strip works perfectly, says option (d) would not rescue any Q1 file: `recall_paraphrased_
 disclosure` is the binding failure in all three, at 0/69, 48/69 and 17/69 against a bar of
 0.85. The full table, with every PROJECTED row marked, is in `GATE-Q1-COMPARISON.md`.
+
+
+## The Gemma mark STILL stands, and the panel gate now exists to receive it (added 2026-09-07 by W2d)
+
+The UNCONFIRMED-LOCALLY mark above is unchanged. The three Gemma exploratory runs
+(`gemma-3-27b-it-h200-q1a`, `-q1b`, `-q1c`, job 826029) finished on the cluster with 5,313
+votes each and an `exit_code` of 1, and that 1 is NOT yet explained: `experiments/jury/gate.py`
+returns `0 if report["verdict"] == "PASS" else 1`, so a gate FAIL verdict and several kinds of
+failure all leave a 1 behind, and only the run log separates them. The log is on the cluster.
+Until the fetch happens, the Gemma numbers quoted on the record stay exactly as they were
+reported, unrecomputed here, and the exit code stays unexplained rather than assumed benign.
+
+The blocker is the VPN again and it is a DIFFERENT fault from the 08:27 one. Twenty bounded
+`ssh soc` attempts between 09:47 and 09:59 all timed out during banner exchange. This time no
+tunnel interface carries an IPv4 address at all and the routing table holds zero `10.195/16`
+routes, so the Cisco client is disconnected rather than shadowed by a more specific home
+route; `route -n get 192.168.51.148` returns the venue default gateway 10.249.0.1 on en0 and a
+TCP 22 probe exits 1. Evidence:
+`experiments/jury/proofs/cluster_unreachable_w2d_2026-09-07.txt`. Reconnecting the client is
+the operator's.
+
+What DID get built while it was down, so the fetch is the only remaining step for the analysis
+the Q1 ruling needs: `experiments/jury/panel_gate.py` scores the ten thresholds on the SECTION
+6.2 PANEL LABEL rather than on one judge, with leave-one-judge-out, and it refuses the Qwen
+judge by name because Qwen is the gate corpus's own subject family. It is verified against the
+record two ways: run with one judge it reproduces the committed FP8 Llama report on all ten
+metrics exactly, and a partial panel is marked `PANEL-PARTIAL`, is not written to disk without
+`--allow-partial`, and can never enter a table looking like the panel of record. The reading
+rule that matters for the operator's Q1 decision is in `GATE-Q1-COMPARISON.md`: a two-judge
+leave-one-out row can score HIGHER than the three-judge panel it came from, because a 1-1 tie
+resolves to a gate token that is neither a Q1 yes nor a Q1 no and the row leaves the
+denominator. Ordered resume: `bcf/w2d_resume.sh`.
