@@ -296,14 +296,28 @@ pinned line plus the same override refuses (exit 12), an unset `BCF_SERVING_LINE
 Resubmitted at 15:49:59 with `BCF_JUDGE_GPU_UTIL=0.90` in the row: **job 826888**, dry run
 exit 0 (h100-47 2/4 -> 3/4), submit exit 0.
 
-**Collision to know about.** Another lane ran the command above at 15:47:02 and got **job
-826880**, the same row, the same tree and the same `BCF_OUT_SLUG`, but submitted two
-minutes before the patched sbatch reached the cluster, so it carries no override and fails
-the same way 826859 did. Two jobs with one slug write one results directory. This lane
-cancelled neither (its cancel permission names `bcf-enrich-*` and `bcf-jury-gptoss-h100-*`,
-and `jury_wave.sh` names both of these `bcf-jury-gpt-oss-20b`). 826880 dies on its own a
-few minutes after it starts serving; if it is somehow still alive when 826888 starts, one
-of the two should be cancelled by whoever owns it, and it should be 826880.
+**826888 lasted 96 seconds and the live line is somebody else's.** Another lane had already
+resubmitted the same row at 15:47:02 as **job 826880**, same tree, same `BCF_OUT_SLUG`, and
+cancelled 826888 at 15:52:01 as the duplicate it was. That is the right call: two jobs with
+one slug write one results directory, and 826888's SIGTERM left `143` in the shared
+`exit_code.txt`, which 826880 overwrites when it ends. This lane cancelled nothing (its
+cancel permission names `bcf-enrich-*` and `bcf-jury-gptoss-h100-*`, and `jury_wave.sh`
+names every one of these `bcf-jury-gpt-oss-20b`).
+
+**826880 is serving**, `[serve] gpt-oss-20b up on port 8100` at 15:49:51, at util 0.9.
+Fetch it by slug when it finishes:
+
+```bash
+bcf/w2e_resume.sh fetch gpt-oss-20b-h100-47-q1a gpt-oss-20b-h100-47-q1b gpt-oss-20b-h100-47-q1c
+```
+
+**One thing for whoever owns 826880.** It reaches 0.9 by a different route: that lane set
+`gpu_memory_utilization=0.90` on **all four** judges in
+`~/bcf/repo-jury-h100/experiments/jury/family_map.py`, Gemma's 0.65 included, while every
+`serving_line` string still reads 0.25 and 0.65. In that tree the code and the 6.1 prose
+now disagree, and any judge launched from it serves at 0.9 whatever the table says. Nothing
+of record is affected today, because only this exploratory row names that tree. The row
+override exists so the fix does not have to live in the table copy at all.
 
 When it runs it writes three results directories, one per Q1 prompt variant:
 `gpt-oss-20b-h100-47-q1a`, `-q1b`, `-q1c`. The collector fetches them the usual way:
