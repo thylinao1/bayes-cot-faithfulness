@@ -573,7 +573,7 @@ it is 28 items on one cell, which is not a result about the design.
 
 ### 4.4 The caveat this lane found, which a later lane must not skip past
 
-The raw letter mass on the anchor prompts is essentially zero. Across all 112
+The raw letter mass on the anchor prompts is close to zero. Across all 112
 cells, `letter_probability_mass` runs from 3.29e-18 to 3.96e-14 with a median of
 5.36e-17, and 112 of 112 sit below 0.01. So the renormalized distribution those
 margins come from is a ratio of very small numbers: the model's next token after
@@ -593,7 +593,7 @@ What follows: element 0 already requires the raw mass to be "recorded alongside"
 and a logprob-scale column B must print it as a per-cell diagnostic, not bury it.
 A margin computed where the letters hold 1e-17 of the mass is a well defined
 conditional quantity, and it is also a quantity about a region the model
-essentially never enters. Whether it is a good outcome is an empirical question
+almost never enters. Whether it is a good outcome is an empirical question
 this note does not settle; whether it is reportable without the mass beside it is
 settled, and the answer is no.
 
