@@ -6,7 +6,17 @@ was merged and nothing was pushed. One powered sweep wave exists (wave 1, jobs 8
 submitted no sweep cell and no enrichment job. It did submit one exploratory judge, job
 826859 on h100-47, which is section 4 and is the one thing here that spends a card.
 
-Three pieces, in the order the campaign uses them.
+`trackg/feeder` was merged into `main` at 16:12 (commit `ecf13b2`). **Update, same day,
+branch `feeder/hold` off that merge:** the feeder still submitted whole wave files only,
+and wave 2 onward mixes usable rows with rows that are not (the thinking-model truncation
+found at 15:39, the gpt-oss mxfp4 failure that became ruling R11 at 16:22). Section 1a adds
+`bcf/waves/HOLD_MODELS.txt` and `bcf/hold_filter.py`: the feeder now submits the rest of
+each wave as a filtered partial file, holds back only the named rows, and a new
+`held-only` command replays them once a hold lifts. Nothing in this update touches
+`wave.sh` (unchanged, sha256 `b070bcaa...`) or any existing `bcf/waves/*.tsv` manifest;
+the hold list is a separate file, and `feeder/hold` was not merged or pushed either.
+
+Three pieces, in the order the campaign uses them, plus the hold list as section 1a.
 
 ---
 
@@ -56,9 +66,10 @@ bash bcf/ssh_retry.sh --wall 240 --tries 2 --gap 20 -- \
 |---:|---|---|
 | 0 | a wave was submitted; its ids are on stdout and in the state file | log it and carry on |
 | 3 | refused this round: no MaxSubmit headroom, `wave.sh` said no, or another feeder holds the lock | nothing is wrong; poll again |
-| 4 | nothing left: every wave for this pool is already in the state file | stop polling this pool |
-| 2 | usage or configuration error | fix the command |
+| 4 | nothing left: every wave for this pool is already in the state file, or (`held-only`) nothing is currently held for this pool/type | stop polling this pool (or this `held-only` line) |
+| 2 | usage or configuration error, including a malformed line in the hold file | fix the command or the hold file |
 | 1 | a submission was attempted and something went wrong | read the output |
+| 5 | (section 1a) the next wave was recorded SKIPPED: every row is on the hold list | nothing is wrong; the wave after it is next |
 
 ### The state file
 
@@ -95,6 +106,96 @@ Adopting a wave twice is refused (exit 8) rather than overwriting what is record
 
 The MaxSubmit floor is 8 free slots, wider than `wave.sh`'s own edge, because the 33rd
 sbatch is rejected rather than queued and an automated poll should stop well before that.
+
+---
+
+## 1a. The hold list: rows a ruling has not cleared yet
+
+`bcf/waves/HOLD_MODELS.txt` names HF model ids whose rows the feeder must not submit,
+each with a comment naming the DECISION-LOG entry that raised it and the ruling that
+lifts it. Two live entries, both traced back to wave 1:
+
+* Four thinking models (`allenai/Olmo-3-7B-Think`, `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`,
+  `deepseek-ai/DeepSeek-R1-Distill-Llama-8B`, `microsoft/Phi-4-reasoning`) — DECISION-LOG
+  15:37/15:39, `num_predict 320` truncates the chain before an answer letter, confirmed
+  below the 350 clean-correct floor for three of the four. Lifted by the **element 9.4**
+  ruling, not yet made as of 16:22 (waiting on the Track V audit lane).
+* `openai/gpt-oss-20b` — DECISION-LOG 15:40 HOLD (wave-1 cell 826740 FAILED, no
+  batch-invariant mxfp4 MoE backend on any card class in vLLM 0.28.0), firmed up into
+  **RULING R11** at 16:22: suspended from the powered sweep as a subject. This is a ruling
+  already made, not a pending investigation, so this row does not lift on its own.
+
+**A hold-list line is `org/name`, one model id, exactly one slash.** `#` starts a comment
+(a whole line, or trailing after the id); blank lines are skipped. Anything else refuses
+the entire poll (exit 2) with the line number and the offending text, rather than holding
+the wrong model or holding nothing — proof (5) below.
+
+### What the feeder does with it, before `wave.sh` ever sees a wave
+
+`bcf/hold_filter.py` (pure Python, unit tested with no cluster in `tests/test_hold_filter.py`;
+falsification proof in `docs/trackg-proofs/hold_filter_falsification.txt`, three mutations
+each caught by name) reads column 1 of every data row in the next wave file:
+
+* **nothing held** → the wave is checked and submitted exactly as it always was; no new
+  file is written. An empty (or absent) `HOLD_MODELS.txt` reproduces the pre-hold-list
+  feeder byte for byte.
+* **some rows held** → a filtered copy, header and comments kept verbatim, is written to
+  `bcf/waves/partial/<wave>-<n>rows.tsv` (generated at poll time, never committed —
+  gitignored), and *that* file is what `wave.sh --check-only` sees and what gets
+  submitted. The state entry records `submitted_models`, `held_models` and `held_rows`
+  (the exact TSV lines, so they can be replayed later without re-deriving them) apart
+  from the usual job ids and note.
+* **every row held** → nothing is submitted; the wave is recorded `status: "skipped"`
+  (exit 5) so the next poll moves on to the wave after it instead of offering the same
+  fully-held wave forever.
+
+The split rule still applies to the **partial** wave's card count, not the original wave's:
+`wave.sh` never sees more cards than the filtered file actually asks for.
+
+### `held-only`: replaying what a lift clears
+
+```bash
+bash $HOME/bcf/src-feeder/bcf/wave_feeder.sh --pool a100-40 held-only
+# add --type enrich for the enrichment-pass hold, same as any other command
+```
+
+Reads every recorded wave for this pool and job type (an original sweep/enrich wave, or
+an earlier `held-only` wave that itself still left something held), collects their
+`held_rows`, and checks that collected bag **again** against the *current* hold list — a
+hold that has lifted for four models and not the fifth still holds the fifth here. What
+survives is written to `bcf/waves/partial/held-<pool>-<type>-NN.tsv` and goes through the
+same `wave.sh --check-only` / submit path as any other wave. On a real (non-`--dry-run`)
+submission the source waves' `held_rows` are cleared (with `held_lifted_by` recording
+which `held-only` wave carried them out), so a later `held-only` run does not offer the
+same rows twice; `held_models` stays as the historical record of what *was* held.
+
+A wave whose collected rows are all still held reports "still held" by name and exits 4
+without touching `wave.sh` at all — a `held-only` run before any ruling lifts anything
+correctly submits nothing.
+
+### The five proofs
+
+`docs/trackg-proofs/feeder_hold_proofs.txt`, run on the cluster from `~/bcf/src-feeder-hold`
+(a deployed copy, sha256-verified against the committed `wave_feeder.sh` and
+`hold_filter.py`; `wave.sh` unchanged). Every case is `--dry-run` or `--check-only`; the
+live `~/bcf/feeder-state.json` (holding only wave 1) was never opened.
+
+1. Dry run with the real hold list: `a100-40-02.tsv` 8 rows → 3 kept (Qwen3-8B,
+   Gemma-2-9B-it, Llama-3.1-8B-Instruct), the 5 held named exactly.
+2. Dry run with an empty hold list: "8 row(s), 8 submittable, 0 held", the *original*
+   wave file used unfiltered. A companion run with an injected empty queue shows
+   `wave.sh` ACCEPTS all 8 — proof (2) is a filtering question, caps are unaffected.
+3. `held-only` after a recorded partial wave (hand-seeded from `hold_filter.py`'s own
+   `filter` output into a scratch state file, synthetic job ids labelled as such, never
+   the live state): with the hold list emptied (a full lift) it collects and `wave.sh`
+   ACCEPTS the 5-row wave; with only `gpt-oss-20b` still named it accepts a 4-row wave
+   and reports the fifth still held; against the real, unchanged hold list it correctly
+   submits nothing (exit 4).
+4. The refuse case: with this campaign's a100-40 sweep cards injected at 6 of 8 RUNNING,
+   the reduced **3-card** partial wave still cannot fit (would reach 9) — `wave.sh`
+   refuses on the partial wave's own card count, not the original wave's 8.
+5. A hold-list line with no slash (`gpt-oss-20b`) refuses the whole poll before anything
+   is read or written; no scratch state file is created.
 
 ### What changed in `wave.sh`
 
@@ -347,3 +448,21 @@ because `--check-only` writes nothing; the live feeder run named the real
 `~/bcf/repo-5d40e5224ac0` and never got as far as reading it; the judge row reads
 `~/bcf/repo-jury-h100`, a separate copy, so the W2f lane's `~/bcf/repo-jury` is not shared.
 The frozen files are byte-identical to main and `tests/test_frozen_guard.py` passes.
+
+---
+
+## What the `feeder/hold` update did not do
+
+No wave, sweep cell, enrichment job, or `held-only` wave was submitted: every proof in
+section 1a is `--dry-run` or `--check-only`, run from `~/bcf/src-feeder-hold` (a copy of
+this branch, never `~/bcf/src`, `~/bcf/repo`, or any other lane's `~/bcf/repo-<sha>` tree),
+against `--repo-tree ~/bcf/repo-feeder-hold-proof`, a path that was never created because
+`--check-only` writes nothing. Nothing was cancelled. `~/bcf/feeder-state.json` (the live
+state file, still holding only wave 1, adopted 15:00:33) was not opened by any proof; the
+recorded-partial-wave setup for the `held-only` proofs used a separate scratch state file
+(`~/bcf/feeder-hold-proof-state.json`, deleted at the end) seeded from `hold_filter.py`'s
+own `filter` output with synthetic job ids labelled as such. `bcf/wave.sh` and every
+existing `bcf/waves/*.tsv` manifest are byte-identical to what `trackg/feeder` merged; only
+`bcf/wave_feeder.sh` changed (plus the two new files, `bcf/hold_filter.py` and
+`bcf/waves/HOLD_MODELS.txt`). The frozen files are byte-identical to main and
+`tests/test_frozen_guard.py` passes.

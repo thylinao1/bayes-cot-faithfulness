@@ -1,0 +1,140 @@
+=== bcf/hold_filter.py: falsification, three mutations against tests/test_hold_filter.py ===
+
+--- baseline: the unmutated file, full suite
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/maksimsilchenko/Developer/bcf-feed
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 21 items
+
+tests/test_hold_filter.py .....................                          [100%]
+
+============================== 21 passed in 0.08s ==============================
+BASELINE_EXIT=0
+
+--- mutation 1: the hold-set membership check never fires (every row is 'kept')
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/maksimsilchenko/Developer/bcf-feed
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 21 items / 19 deselected / 2 selected
+
+tests/test_hold_filter.py FF                                             [100%]
+
+=================================== FAILURES ===================================
+__ test_filter_wave_text_keeps_header_and_splits_rows_on_the_five_held_models __
+tests/test_hold_filter.py:90: in test_filter_wave_text_keeps_header_and_splits_rows_on_the_five_held_models
+    assert result.n_kept == 3
+E   AssertionError: assert 8 == 3
+E    +  where 8 = FilterResult(header=('# wave a100-40-02  pool a100-40  8 card(s)', '# columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> K...gemma-2-9b-it', 'meta-llama/Llama-3.1-8B-Instruct', 'microsoft/Phi-4-reasoning', 'openai/gpt-oss-20b'), held_models=()).n_kept
+__________ test_cli_filter_writes_the_partial_file_and_the_extra_json __________
+tests/test_hold_filter.py:187: in test_cli_filter_writes_the_partial_file_and_the_extra_json
+    assert partial.exists()
+E   AssertionError: assert False
+E    +  where False = exists()
+E    +    where exists = PosixPath('/private/var/folders/m7/3b38xcb97vq1rhp8j68wynn80000gn/T/pytest-of-maksimsilchenko/pytest-239/test_cli_filter_writes_the_par0/waves/partial/a100-40-02-3rows.tsv').exists
+----------------------------- Captured stdout call -----------------------------
+N_TOTAL=8
+N_KEPT=8
+N_HELD=0
+STATUS=submitted
+PARTIAL_FILE=
+HELD_MODELS=
+SUBMITTED_MODELS=Qwen/Qwen3-8B,allenai/Olmo-3-7B-Think,deepseek-ai/DeepSeek-R1-0528-Qwen3-8B,deepseek-ai/DeepSeek-R1-Distill-Llama-8B,google/gemma-2-9b-it,meta-llama/Llama-3.1-8B-Instruct,microsoft/Phi-4-reasoning,openai/gpt-oss-20b
+=========================== short test summary info ============================
+FAILED tests/test_hold_filter.py::test_filter_wave_text_keeps_header_and_splits_rows_on_the_five_held_models
+FAILED tests/test_hold_filter.py::test_cli_filter_writes_the_partial_file_and_the_extra_json
+======================= 2 failed, 19 deselected in 0.03s =======================
+MUTATION_1_EXIT=1 (expected nonzero: filtering that never holds anything should fail the split tests)
+
+--- mutation 2: the malformed-id regex is skipped (every non-blank line is accepted)
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/maksimsilchenko/Developer/bcf-feed
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 21 items / 18 deselected / 3 selected
+
+tests/test_hold_filter.py FFF                                            [100%]
+
+=================================== FAILURES ===================================
+_____ test_parse_hold_list_refuses_a_line_with_no_slash_and_names_the_line _____
+tests/test_hold_filter.py:68: in test_parse_hold_list_refuses_a_line_with_no_slash_and_names_the_line
+    with pytest.raises(HoldListError) as exc:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE HoldListError
+_____________ test_parse_hold_list_refuses_a_line_with_two_slashes _____________
+tests/test_hold_filter.py:76: in test_parse_hold_list_refuses_a_line_with_two_slashes
+    with pytest.raises(HoldListError) as exc:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE HoldListError
+_______ test_cli_filter_refuses_a_malformed_hold_line_and_writes_nothing _______
+tests/test_hold_filter.py:238: in test_cli_filter_refuses_a_malformed_hold_line_and_writes_nothing
+    assert rc == 13
+E   assert 0 == 13
+----------------------------- Captured stdout call -----------------------------
+N_TOTAL=8
+N_KEPT=7
+N_HELD=1
+STATUS=submitted
+PARTIAL_FILE=a100-40-02-7rows.tsv
+HELD_MODELS=openai/gpt-oss-20b
+SUBMITTED_MODELS=Qwen/Qwen3-8B,allenai/Olmo-3-7B-Think,deepseek-ai/DeepSeek-R1-0528-Qwen3-8B,deepseek-ai/DeepSeek-R1-Distill-Llama-8B,google/gemma-2-9b-it,meta-llama/Llama-3.1-8B-Instruct,microsoft/Phi-4-reasoning
+=========================== short test summary info ============================
+FAILED tests/test_hold_filter.py::test_parse_hold_list_refuses_a_line_with_no_slash_and_names_the_line
+FAILED tests/test_hold_filter.py::test_parse_hold_list_refuses_a_line_with_two_slashes
+FAILED tests/test_hold_filter.py::test_cli_filter_refuses_a_malformed_hold_line_and_writes_nothing
+======================= 3 failed, 18 deselected in 0.03s =======================
+MUTATION_2_EXIT=1 (expected nonzero: a malformed line that is silently accepted should fail the refusal tests)
+
+--- mutation 3: the held-only rebuild stops re-checking the current hold list (everything collected is kept)
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/maksimsilchenko/Developer/bcf-feed
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 21 items / 19 deselected / 2 selected
+
+tests/test_hold_filter.py FF                                             [100%]
+
+=================================== FAILURES ===================================
+__________ test_compose_rebuild_with_nothing_lifted_yet_keeps_nothing __________
+tests/test_hold_filter.py:157: in test_compose_rebuild_with_nothing_lifted_yet_keeps_nothing
+    assert result.n_kept == 0
+E   AssertionError: assert 2 == 0
+E    +  where 2 = FilterResult(header=('# held-only rebuild',), kept_rows=('allenai/Olmo-3-7B-Think\tarc_challenge\tprofessor\tBCF_REVIS...essor\tBCF_REVISION=hhh'), held_rows=(), kept_models=('allenai/Olmo-3-7B-Think', 'openai/gpt-oss-20b'), held_models=()).n_kept
+_____ test_cli_compose_with_gpt_oss_still_held_clears_only_the_other_four ______
+tests/test_hold_filter.py:358: in test_cli_compose_with_gpt_oss_still_held_clears_only_the_other_four
+    assert extra_data["held_models"] == ["openai/gpt-oss-20b"]
+E   AssertionError: assert [] == ['openai/gpt-oss-20b']
+E     
+E     Right contains one more item: 'openai/gpt-oss-20b'
+E     Use -v to get more diff
+----------------------------- Captured stdout call -----------------------------
+N_TOTAL=5
+N_KEPT=5
+N_HELD=0
+STATUS=submitted
+PARTIAL_FILE=held-a100-40-sweep-01-5rows.tsv
+HELD_MODELS=
+SUBMITTED_MODELS=allenai/Olmo-3-7B-Think,deepseek-ai/DeepSeek-R1-0528-Qwen3-8B,deepseek-ai/DeepSeek-R1-Distill-Llama-8B,microsoft/Phi-4-reasoning,openai/gpt-oss-20b
+=========================== short test summary info ============================
+FAILED tests/test_hold_filter.py::test_compose_rebuild_with_nothing_lifted_yet_keeps_nothing
+FAILED tests/test_hold_filter.py::test_cli_compose_with_gpt_oss_still_held_clears_only_the_other_four
+======================= 2 failed, 19 deselected in 0.03s =======================
+MUTATION_3_EXIT=1 (expected nonzero: a rebuild that ignores the live hold list should fail the still-held tests)
+
+--- restored: the unmutated file, full suite again
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/maksimsilchenko/Developer/bcf-feed
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 21 items
+
+tests/test_hold_filter.py .....................                          [100%]
+
+============================== 21 passed in 0.03s ==============================
+FINAL_EXIT=0 (expected 0: the file on disk is exactly what it was before this script ran)
