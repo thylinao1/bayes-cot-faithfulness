@@ -44,9 +44,14 @@
 # Exit codes: 2 results path, 3 device assertion, 4 revision unresolvable, 5 server died,
 # 6 server timeout, 7 forced-logprob unit check, 8 revision drift, 9 arm-count mismatch,
 # 10 DETERMINISM PREFLIGHT REFUSED (ruling R1), 11 item list named but not readable,
-# 13 SERVE PORT NOT OURS: the port answers, but with a foreign model list or from a
-#    process this job did not start (bcf/serve_ready.py, which returns 11 for that
-#    case; the job maps it to 13 because 11 already means the item list here).
+# 12 FINISHED WITHOUT A COMPLETION MARKER: the shell reached its own exit with status 0
+#    but arms_summary.json was never written (bcf_install_exit_guard, bcf/env.sh; the
+#    827052/827096 postmortem, 2026-09-07 -- a job Slurm CANCELLED with SIGTERM used to
+#    read exit_code.txt=0 here), 13 SERVE PORT NOT OURS: the port answers, but with a
+#    foreign model list or from a process this job did not start (bcf/serve_ready.py,
+#    which returns 11 for that case; the job maps it to 13 because 11 already means the
+#    item list here). 128+signal on a Slurm cancel or interrupt (143 SIGTERM, 130
+#    SIGINT), from the same guard.
 
 set -uo pipefail
 source "${BCF_ENV_SH:-$HOME/bcf/repo/bcf/env.sh}"
@@ -147,6 +152,19 @@ case "$OUT_DIR" in
   *) echo "[path] REFUSING: ${OUT_DIR} does not end in /${SUBSTRATE}/${CUE}" >&2; exit 2 ;;
 esac
 mkdir -p "$OUT_DIR"
+LOG="${OUT_DIR}/run.log"
+BASE_URL="http://127.0.0.1:${PORT}/v1"
+export BCF_REQUEST_LOG="${OUT_DIR}/requests.jsonl"
+
+# exit_code.txt is written on EVERY exit path, including a kill, and a 0 is written
+# ONLY once arms_summary.json (bcf/contract_layout.py's step 6, below) actually exists:
+# jobs 827052 and 827096 were CANCELLED by Slurm with SIGTERM on 2026-09-07 and still
+# wrote exit_code.txt=0 with no arms_summary.json, because the old finish() here had no
+# TERM trap and just read $? whenever the EXIT trap happened to fire. See
+# bcf/env.sh:bcf_install_exit_guard for the full docstring and tests/test_exit_guard.py
+# for the revert proof (the old shape really does write 0 on this exact scenario).
+bcf_install_exit_guard "$OUT_DIR" "arms_summary.json"
+
 # A named list file that is not there means the enrichment pass this cell depends on has
 # not landed. Refusing HERE costs nothing; refusing after the server is up costs the
 # weight download and the queue wait, and refusing NOT AT ALL would silently run the
@@ -154,30 +172,8 @@ mkdir -p "$OUT_DIR"
 if [ -n "$ITEM_LIST" ] && [ ! -f "$ITEM_LIST" ]; then
   echo "[item-list] REFUSING: BCF_ITEM_LIST=${ITEM_LIST} does not exist. This cell would" >&2
   echo "[item-list]   otherwise run on the regular n under an enrichment name." >&2
-  echo 11 > "${OUT_DIR}/exit_code.txt"
   exit 11
 fi
-LOG="${OUT_DIR}/run.log"
-EXIT_FILE="${OUT_DIR}/exit_code.txt"
-BASE_URL="http://127.0.0.1:${PORT}/v1"
-export BCF_REQUEST_LOG="${OUT_DIR}/requests.jsonl"
-
-# exit_code.txt is written on EVERY exit path, including a kill: a cell with no exit
-# file is an unfinished cell, and that has to be readable without the Slurm log.
-finish() {
-  local code=$?
-  # Enumerate and kill only THIS job's server. Never a wildcard kill: other campaigns
-  # share this account (NUS-COMPUTE.md 1.9 etiquette).
-  if [ -n "${SERVER_PID:-}" ]; then
-    kill "$SERVER_PID" 2>/dev/null || true
-    sleep 5
-    kill -9 "$SERVER_PID" 2>/dev/null || true
-  fi
-  echo "$code" > "$EXIT_FILE"
-  echo "[done] exit_code=${code} -> ${EXIT_FILE}" | ts | tee -a "$LOG"
-  exit "$code"
-}
-trap finish EXIT
 
 {
   echo "=== bcf serve_and_run: job ${SLURM_JOB_ID} on $(hostname) at $(date -Is) ==="
@@ -287,6 +283,7 @@ echo "[serve] VLLM_BATCH_INVARIANT=${VLLM_BATCH_INVARIANT:-<unset>}" | ts | tee 
 echo "[serve] vllm serve ${MODEL} ${VLLM_ARGS[*]}" | ts | tee -a "$LOG"
 vllm serve "$MODEL" "${VLLM_ARGS[@]}" >> "${OUT_DIR}/server.log" 2>&1 &
 SERVER_PID=$!
+bcf_guard_register_child "$SERVER_PID"
 
 echo "[serve] waiting up to ${SERVER_WAIT}s for the server (pid ${SERVER_PID}) on port ${PORT}" | ts | tee -a "$LOG"
 DEADLINE=$(( $(date +%s) + SERVER_WAIT ))

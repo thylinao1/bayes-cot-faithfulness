@@ -1,0 +1,22 @@
+# RESUBMIT wave: the four a100-40 cells voided by the fixed-port collision on xgph12.
+# Reason: DECISION-LOG.md 2026-09-07 17:41 -- two of our jobs shared one node's loopback
+# port 8000 (every serving sbatch defaulted to it before fix/serve-port). 827052 (Gemma
+# professor) and 827096 (Gemma metadata) were CANCELLED mid-run when the collision was
+# found; 827053 (Llama professor) and 827095 (Qwen metadata) FAILED exit 7 (the
+# forced-logprob check certified against the wrong server). All four are VOID, moved to
+# ~/bcf/results-void/<jobid>-<cell> (2026-09-07 18:03 entry), and are re-run here against
+# the fixed tree (fix/serve-port merged into main as d4fbc7d): a free loopback port per
+# job plus the ownership-checked readiness probe (bcf/serve_ready.py) makes the collision
+# structurally impossible, not merely less likely.
+# submit with:  bcf/wave.sh --type sweep --gpu-type a100-40 bcf/waves/a100-40-resub-01.tsv
+# columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
+# Rows copied VERBATIM (every KEY=VALUE, unedited) from the manifests that produced the
+# void cells:
+#   google/gemma-2-9b-it row            <- bcf/waves/a100-40-02.tsv (professor cue; was 827052)
+#   meta-llama/Llama-3.1-8B-Instruct row <- bcf/waves/a100-40-02.tsv (professor cue; was 827053)
+#   Qwen/Qwen3-8B row                   <- bcf/waves/a100-40-03.tsv (metadata cue; was 827095)
+#   google/gemma-2-9b-it row            <- bcf/waves/a100-40-03.tsv (metadata cue; was 827096)
+google/gemma-2-9b-it	arc_challenge	professor	BCF_REVISION=11c9b309abf73637e4b6f9a3fa1e92e615547819	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.477
+meta-llama/Llama-3.1-8B-Instruct	arc_challenge	professor	BCF_REVISION=0e9e39f249a16976918f6564b8830bc894c89659	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.477
+Qwen/Qwen3-8B	arc_challenge	metadata	BCF_REVISION=b968826d9c46dd6066d109eabc6255188de91218	BCF_N_ITEMS=570	BCF_CURVE_CAP=570	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=0.564
+google/gemma-2-9b-it	arc_challenge	metadata	BCF_REVISION=11c9b309abf73637e4b6f9a3fa1e92e615547819	BCF_N_ITEMS=570	BCF_CURVE_CAP=570	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=0.564

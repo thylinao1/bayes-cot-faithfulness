@@ -18,6 +18,11 @@
 #
 # Cheap: server start plus eight requests. Do not fold this into serve_and_run's
 # --resume, which would overwrite that cell's measured throughput with a second leg.
+#
+# Exit codes: 3 device assertion, 5 server died, 6 server timeout, 12 FINISHED WITHOUT
+# A COMPLETION MARKER (logprob_check_thinking_off.json never written despite an exit 0;
+# bcf_install_exit_guard, bcf/env.sh), 13 SERVE PORT NOT OURS. 128+signal on a Slurm
+# cancel or interrupt (143 SIGTERM, 130 SIGINT).
 
 set -uo pipefail
 source "${BCF_ENV_SH:-$HOME/bcf/repo/bcf/env.sh}"
@@ -35,16 +40,11 @@ mkdir -p "$OUT_DIR"
 LOG="${OUT_DIR}/run.log"
 BASE_URL="http://127.0.0.1:${PORT}/v1"
 
-finish() {
-  local code=$?
-  if [ -n "${SERVER_PID:-}" ]; then
-    kill "$SERVER_PID" 2>/dev/null || true; sleep 5; kill -9 "$SERVER_PID" 2>/dev/null || true
-  fi
-  echo "$code" > "${OUT_DIR}/exit_code.txt"
-  echo "[done] exit_code=${code}" | tee -a "$LOG"
-  exit "$code"
-}
-trap finish EXIT
+# exit_code.txt is written on EVERY exit path, including a kill, and a 0 is written
+# ONLY once logprob_check_thinking_off.json actually exists. See
+# bcf/env.sh:bcf_install_exit_guard for the docstring (the 827052/827096 2026-09-07
+# postmortem this closes) and tests/test_exit_guard.py for the revert proof.
+bcf_install_exit_guard "$OUT_DIR" "logprob_check_thinking_off.json"
 
 echo "=== bcf logprob recheck: job ${SLURM_JOB_ID} on $(hostname) at $(date -Is) ===" | tee -a "$LOG"
 if ! bcf_assert_devices 1 2>&1 | tee -a "$LOG"; then exit 3; fi
@@ -57,6 +57,7 @@ vllm serve "$MODEL" --revision "$REVISION" --served-model-name "$MODEL" \
   --max-model-len 8192 --gpu-memory-utilization 0.90 --seed "$SEED" \
   --download-dir "${HF_HOME}/download" >> "${OUT_DIR}/server.log" 2>&1 &
 SERVER_PID=$!
+bcf_guard_register_child "$SERVER_PID"
 
 DEADLINE=$(( $(date +%s) + 2400 ))
 # Ready means OUR server answers, not just that something does: the model list names
