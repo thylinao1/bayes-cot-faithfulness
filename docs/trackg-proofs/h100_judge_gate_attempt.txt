@@ -1,0 +1,48 @@
+=== R7 extension: gpt-oss-20b exploratory judge gate on h100-47 ===
+host xlogin1  2026-09-07T14:56:43+08:00
+
+the tree this row would run from (NEVER ~/bcf/repo-jury, which the W2f lane reads):
+  /home/e/e1506804/bcf/repo-jury-h100
+  /home/e/e1506804/bcf/repo-jury-h100/experiments/jury
+
+the row:
+  gpt-oss-20b	h100-47	08:00:00	MEM=64G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gpt-oss-20b-h100-47	BCF_SERVING_LINE=exploratory-h100-47	BCF_REPO=/home/e/e1506804/bcf/repo-jury-h100	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-h100/bcf/env.sh
+
+--- jury_wave.sh --dry-run, live denominators
+[wave] denominators, live, ALL campaigns on this account (2026-09-07T14:56:43+08:00):
+[wave]   jobs in system : 12/32   (this wave adds 1 -> 13/32)
+[wave]   jobs running   : 2/16
+[wave]   gpu cards total: 12/12   (this wave adds 1 -> 13/12)
+[wave]   h100-47 cards    : 0/4   (this wave adds 1 -> 1/4)
+[wave] REFUSING to submit:
+  total gpu cards would reach 13 > 12 (QOS gpu cap, all types, all campaigns)
+[wave] nothing was submitted and nothing was cancelled. Wait for cards to free, or split the wave.
+DRY_RUN_EXIT=1
+
+--- the queue that holds the 12 gpu cards
+826796      alta-m2-foldrep                     PENDING   cpu=8,mem=64G,node=1,billing=20,gres/gpu=1,gres/gpu:a100-80=
+826792      alta-oofckpt                        PENDING   cpu=8,mem=64G,node=1,billing=20,gres/gpu=1,gres/gpu:a100-80=
+826783      bcf-jury-qwen3-32b                  RUNNING   cpu=20,mem=160G,node=1,billing=62,gres/gpu=1,gres/gpu:h200-1
+826784      bcf-jury-qwen3-32b                  PENDING   cpu=12,mem=128G,node=1,billing=22,gres/gpu=1,gres/gpu:a100-8
+826740      bcf-sweep-gpt-oss-20b-arc_challenge-PENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826739      bcf-sweep-phi-4-reasoning-arc_challePENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826734      bcf-sweep-olmo-3-7b-think-arc_challePENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826735      bcf-sweep-deepseek-r1-0528-qwen3-8b-PENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826736      bcf-sweep-deepseek-r1-distill-llama-PENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826737      bcf-sweep-gemma-2-9b-it-arc_challengPENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826738      bcf-sweep-llama-3-1-8b-instruct-arc_PENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826733      bcf-sweep-qwen3-8b-arc_challenge-staRUNNING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+
+--- h100-47 itself is not the constraint
+gpu xgpi11 gpu:h100-47:4 mix
+gpu xgpi12 gpu:h100-47:4 mix
+gpu xgpi13 gpu:h100-47:4 mix
+gpu xgpi14 gpu:h100-47:4 mix
+gpu xgpi15 gpu:h100-47:4 mix
+gpu xgpi16 gpu:h100-47:4 mix
+gpu xgpi17 gpu:h100-47:4 mix
+gpu xgpi18 gpu:h100-47:4 mix
+gpu xgpi19 gpu:h100-47:4 mix
+gpu xgpi20 gpu:h100-47:4 mix
+gpu-long xgpi11 gpu:h100-47:4 mix
+gpu-long xgpi12 gpu:h100-47:4 mix
