@@ -19,9 +19,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from openai_client import OpenAIClient, OpenAIClientError  # noqa: E402
+from openai_client import OpenAIClient, OpenAIClientError
 
-from .family_map import JUDGE_BY_KEY  # noqa: E402
+from .family_map import JUDGE_BY_KEY
 
 SOCLAAS_ELIGIBLE_MARK = "ELIGIBLE for jury VOTES"
 
@@ -101,7 +101,7 @@ def resolve_soclaas_model(client: OpenAIClient, judge_family: str) -> str | None
     if not prefixes:
         return None
     try:
-        body = client._get(f"{client.base_url.rstrip('/')}/models")  # noqa: SLF001
+        body = client._get(f"{client.base_url.rstrip('/')}/models")
     except Exception:  # noqa: BLE001
         return None
     ids = [str(m.get("id", "")) for m in (body.get("data") or [])]
@@ -135,7 +135,7 @@ class JudgeEndpoint:
     # property. The floor is recorded rather than the default quietly raised for everyone.
     min_num_predict: int = 0
 
-    def for_seed(self, seed: int) -> "JudgeEndpoint":
+    def for_seed(self, seed: int) -> JudgeEndpoint:
         """A copy of this endpoint bound to one seed, safe to use from one thread."""
         client = copy.copy(self.client)
         client.seed = seed

@@ -40,6 +40,7 @@ from __future__ import annotations
 import math
 from collections import Counter
 from collections.abc import Sequence
+from itertools import pairwise
 
 # Frozen in Amendment A2 / section 9.2. Not a tunable: a run that wants a different
 # threshold is an amendment, and the stability report is what shows whether the
@@ -245,7 +246,7 @@ def stability_across_k(
     """
     steps = []
     grid = list(k_grid)
-    for lo, hi in zip(grid, grid[1:]):
+    for lo, hi in pairwise(grid):
         n = 0
         changed_stratum = 0
         changed_flag = 0

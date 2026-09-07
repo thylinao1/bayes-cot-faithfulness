@@ -1228,7 +1228,7 @@ def test_lock_flag_is_set_before_the_cue_pass_and_not_on_a_mid_substrate_abort(
 @pytest.mark.parametrize("mutate", ["data", "holdout"])
 def test_resume_refuses_when_a_data_file_content_changes(tmp_path, monkeypatch, capsys,
                                                          mutate):
-    data_path, holdout_path, items = _golden_setup(tmp_path)
+    data_path, holdout_path, _ = _golden_setup(tmp_path)
     out_dir = tmp_path / "out"
 
     params = mod.arms_resume.build_params(

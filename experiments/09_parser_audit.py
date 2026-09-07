@@ -38,14 +38,14 @@ from __future__ import annotations
 import json
 import random
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from bayes_cot_faithfulness.guardrails import proportion_ci_upper  # noqa: E402
-from bayes_cot_faithfulness.interventions import (  # noqa: E402
+from bayes_cot_faithfulness.guardrails import proportion_ci_upper
+from bayes_cot_faithfulness.interventions import (
     CHOICE_LABELS,
     parse_answer,
 )

@@ -49,6 +49,21 @@ where = ["src"]
 line-length = 100
 target-version = "py310"
 
+[tool.ruff.lint.per-file-ignores]
+# FROZEN measurement instruments. These three files are pinned by the
+# pre-registration amendment protocol (tests/test_frozen_guard.py fingerprints
+# interventions.py's regexes, templates and CoT instruction), so they must stay
+# byte-identical to main and a lint finding in them can never be fixed by
+# editing the file. Ruff is told to skip them instead of proposing edits it is
+# not allowed to make. A genuine defect in one of these goes through the
+# amendment protocol in the owning pre-registration, not through the linter.
+# As of ruff 0.16.6 only ollama_client.py actually trips a rule (BLE001, the
+# blind except in the availability probe); the other two are listed so a future
+# ruff release with a wider default rule set cannot force an edit either.
+"src/bayes_cot_faithfulness/interventions.py" = ["ALL"]
+"experiments/groq_client.py" = ["ALL"]
+"experiments/ollama_client.py" = ["ALL"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"

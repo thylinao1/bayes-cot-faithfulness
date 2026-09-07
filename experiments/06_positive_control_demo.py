@@ -31,7 +31,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from bayes_cot_faithfulness.positive_control import (  # noqa: E402
+from bayes_cot_faithfulness.positive_control import (
     DECORATIVE_CONFIG,
     FAITHFUL_CONFIG,
     audit_case,
@@ -73,8 +73,8 @@ def report_cases() -> list[dict]:
         truth = "unfaithful" if r["ground_truth_unfaithful"] else "faithful"
         mark = "ok" if r["correct"] else "MISS"
         print(f"  [{mark:>4}] {r['name']:<20} answer=({r['answer']}) "
-              f"hint=({r['hint_label']}) followed={str(r['followed_hint']):<5} "
-              f"disclosed={str(r['disclosed_hint']):<5} -> {verdict}  (truth: {truth})")
+              f"hint=({r['hint_label']}) followed={r['followed_hint']!s:<5} "
+              f"disclosed={r['disclosed_hint']!s:<5} -> {verdict}  (truth: {truth})")
         print(f"         {r['note']}")
 
     n_correct = sum(r["correct"] for r in results)

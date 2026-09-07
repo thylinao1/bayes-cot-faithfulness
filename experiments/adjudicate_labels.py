@@ -35,8 +35,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from labeling_columns import ITEM_ID  # noqa: E402  (reuse the item-id column convention)
-from score_labels import load_labeled  # noqa: E402  (reuse the frozen-design loader; do not rewrite)
+from labeling_columns import ITEM_ID  # reuse the item-id column convention
+from score_labels import load_labeled  # the frozen-design loader; do not rewrite it
 
 # The two human judgments, in the order they appear on the worklist. These are the keys
 # load_labeled returns, mapped to the guide's question numbers for the human-facing summary.

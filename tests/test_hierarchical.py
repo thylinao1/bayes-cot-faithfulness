@@ -44,7 +44,7 @@ def test_true_betas_spread_around_mu() -> None:
 
 def test_no_pool_beta_recovers_sign() -> None:
     cfg = HierarchicalCoTConfig(n_groups=6, mu_beta=1.3, rng_seed=4)
-    group, X, M, Y, truth = simulate_hierarchical_cot(cfg)
+    group, X, M, Y, _truth = simulate_hierarchical_cot(cfg)
     betas = no_pool_beta(group, X, M, Y)
     finite = betas[np.isfinite(betas)]
     assert finite.size >= 4

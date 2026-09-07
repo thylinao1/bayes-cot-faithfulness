@@ -30,7 +30,7 @@ from bayes_cot_faithfulness.interventions import QAItem
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "experiments" / "08_additive_arms.py"
 sys.path.insert(0, str(REPO / "experiments"))
-from openai_client import OpenAIClient, OpenAIClientError  # noqa: E402
+from openai_client import OpenAIClient, OpenAIClientError
 
 
 def _load_arms_module():

@@ -75,7 +75,7 @@ def fit_mediation_model(
     progressbar: bool = True,
     intercepts: bool = True,
     link: str = "probit",
-) -> "az.InferenceData":
+) -> az.InferenceData:
     """Fit a Bayesian mediation model and return posterior samples.
 
     Parameters
@@ -235,7 +235,7 @@ def _mediator_scale(M: np.ndarray) -> float:
 
 
 def extract_parameter_samples(
-    trace: "az.InferenceData",
+    trace: az.InferenceData,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Flatten posterior samples for (alpha, beta, gamma, sigma_m).
 

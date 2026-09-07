@@ -15,13 +15,13 @@ import json
 import time
 from pathlib import Path
 
-from . import records as rec
 from . import echo_strip as es
+from . import records as rec
 from .aggregate import test_retest
 from .family_map import JUDGE_BY_KEY
 from .gate_thresholds import HIGHER_IS_BETTER, THRESHOLDS, thresholds_sha256
 from .prompt_files import load_prompts, q1_variant_of
-from .runner import JuryItem, JuryRunner, load_items
+from .runner import JuryItem, JuryRunner
 from .synthetic_gate import TRUTH
 
 

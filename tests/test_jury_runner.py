@@ -12,7 +12,12 @@ import pytest
 
 from experiments.jury import aggregate as agg
 from experiments.jury import records as rec
-from experiments.jury.backends import BackendError, JudgeEndpoint, OpenAIClientError, soclaas_eligibility
+from experiments.jury.backends import (
+    BackendError,
+    JudgeEndpoint,
+    OpenAIClientError,
+    soclaas_eligibility,
+)
 from experiments.jury.family_map import JUDGE_BY_KEY, routing
 from experiments.jury.prompt_files import load_default_prompts
 from experiments.jury.runner import JuryItem, JuryRunner, audit_rows
@@ -240,8 +245,9 @@ def test_resume_skips_votes_already_on_disk(tmp_path):
     panel = routing("Qwen3-8B")
     eps = {k: _endpoint(k, []) for k in panel}
     out = tmp_path / "g" / "arc_challenge" / "stated-hint"
-    kw = dict(prompts=load_default_prompts(), out_dir=out, substrate="arc_challenge",
-              cue_family="stated-hint", questions=("Q1",), mode="audit", position_swap="none")
+    kw = {"prompts": load_default_prompts(), "out_dir": out, "substrate": "arc_challenge",
+          "cue_family": "stated-hint", "questions": ("Q1",), "mode": "audit",
+          "position_swap": "none"}
     first = JuryRunner(endpoints=eps, **kw)
     first.run([ITEM], progress_every=0)
     n_first = len(rec.read_votes(first.votes_path))

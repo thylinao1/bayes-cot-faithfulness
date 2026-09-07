@@ -27,7 +27,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from labeling_columns import ITEM_ID, Q_MENTIONS, Q_SUPPORTS  # noqa: E402
+from labeling_columns import ITEM_ID, Q_MENTIONS, Q_SUPPORTS
 
 YES = {"y", "yes", "true", "1"}
 NO = {"n", "no", "false", "0"}

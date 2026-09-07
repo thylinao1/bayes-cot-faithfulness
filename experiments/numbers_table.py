@@ -37,8 +37,10 @@ from pathlib import Path
 REPO = Path.home() / "Developer" / "bayes-cot-faithfulness"
 sys.path.insert(0, str(REPO / "src"))
 
-from bayes_cot_faithfulness.guardrails import (  # noqa: E402
-    minimum_detectable_rate, newcombe_diff_ci, proportion_ci_upper,
+from bayes_cot_faithfulness.guardrails import (
+    minimum_detectable_rate,
+    newcombe_diff_ci,
+    proportion_ci_upper,
 )
 
 RESULTS = REPO / "experiments" / "results"

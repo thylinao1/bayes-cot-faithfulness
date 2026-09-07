@@ -118,7 +118,7 @@ def rows_from_report(path: Path, jobs: dict) -> list[dict]:
             })
         return out
     if "observed" in data and "projected" in data:
-        base = slug[len("projected_"):] if slug.startswith("projected_") else slug
+        base = slug.removeprefix("projected_")
         meta = jobs.get(base, {})
         for judge_key, block in data["projected"].items():
             out.append({

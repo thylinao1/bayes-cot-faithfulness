@@ -42,28 +42,14 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))  # local sibling clients, exactly like 05
-from groq_client import GroqClient  # noqa: E402
-from ollama_client import OllamaClient  # noqa: E402
-from openai_client import OpenAIClient, openai_setup_message  # noqa: E402
-import arms_resume  # noqa: E402  # sibling checkpoint/resume module, imported like the clients
+import arms_resume  # sibling checkpoint/resume module, imported like the clients
+from groq_client import GroqClient
+from ollama_client import OllamaClient
+from openai_client import OpenAIClient, openai_setup_message
 
-from bayes_cot_faithfulness.interventions import (  # noqa: E402
-    _HINT_TEMPLATES,
-    acknowledges_hint,
-    clean_prompt,
-    continuation_prompt,
-    hinted_prompt,
-    is_unfaithful_on_hint,
-    parse_answer,
-)
-from bayes_cot_faithfulness.outcome_scale import (  # noqa: E402
-    assert_records_scaled,
-    check_outcome_scale,
-    letter_logprob_fields,
-)
-from bayes_cot_faithfulness.arms import (  # noqa: E402
-    ANCHOR_CELLS,
+from bayes_cot_faithfulness.arms import (
     _TAXONOMY_TEMPLATES,
+    ANCHOR_CELLS,
     anchor_cell_means,
     anchor_outcome,
     anchor_prompt,
@@ -72,9 +58,9 @@ from bayes_cot_faithfulness.arms import (  # noqa: E402
     assert_donor_pool_unselected,
     cot_only_prompt,
     cued_continuation_prompt,
+    direct_prompt,
     draw_donor,
     falsifier_donor_texts,
-    direct_prompt,
     filler_prompt,
     placebo_prompt,
     pre_cot_committed,
@@ -82,25 +68,41 @@ from bayes_cot_faithfulness.arms import (  # noqa: E402
     replay_prompt,
     taxonomy_hinted_prompt,
 )
-from bayes_cot_faithfulness.curves import (  # noqa: E402
+from bayes_cot_faithfulness.chain_repeats import (
+    summarize_chain_repeats as summarize_chain_repeats_block,
+)
+from bayes_cot_faithfulness.curves import (
     curve_covariates,
     curve_prompts,
     summarize_curve,
 )
-from bayes_cot_faithfulness.sampling_arm import (  # noqa: E402
+from bayes_cot_faithfulness.interventions import (
+    _HINT_TEMPLATES,
+    acknowledges_hint,
+    clean_prompt,
+    continuation_prompt,
+    hinted_prompt,
+    is_unfaithful_on_hint,
+    parse_answer,
+)
+from bayes_cot_faithfulness.outcome_scale import (
+    assert_records_scaled,
+    check_outcome_scale,
+    letter_logprob_fields,
+)
+from bayes_cot_faithfulness.repeat_curves import (
+    identical_repeat_fraction,
+    variance_components,
+)
+from bayes_cot_faithfulness.sampling_arm import (
     SAMPLING_K,
     SAMPLING_TEMPERATURE,
     STABILITY_K_GRID,
     UNCERTAIN_ENTROPY_THRESHOLD,
     summarize_item_samples,
+)
+from bayes_cot_faithfulness.sampling_arm import (
     summarize_sampling as summarize_sampling_block,
-)
-from bayes_cot_faithfulness.repeat_curves import (  # noqa: E402
-    identical_repeat_fraction,
-    variance_components,
-)
-from bayes_cot_faithfulness.chain_repeats import (  # noqa: E402
-    summarize_chain_repeats as summarize_chain_repeats_block,
 )
 
 CONTROL_SCRIPT = HERE / "05_realmodel_control.py"
@@ -176,7 +178,7 @@ class RunCtx:
     backend: str
     model: str
     curve_cap: int
-    checkpoint: "arms_resume.CheckpointWriter | None" = None
+    checkpoint: arms_resume.CheckpointWriter | None = None
     # How many requests this run may have in flight at once. 1 is the pre-concurrency
     # code path (see map_in_order), and it is the default so an existing call site that
     # builds a RunCtx positionally keeps the behavior it had.

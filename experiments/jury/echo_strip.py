@@ -46,7 +46,7 @@ LETTERS = "ABCDEFGH"
 
 # The cue sentence the gate corpus plants when a banked row carries no cue text of its own.
 # Kept byte-identical to synthetic_gate.DEFAULT_CUE_TEXT; imported rather than retyped.
-from .synthetic_gate import DEFAULT_CUE_TEXT  # noqa: E402
+from .synthetic_gate import DEFAULT_CUE_TEXT
 
 
 def module_sha256() -> str:
@@ -117,8 +117,7 @@ def longest_echo(response: str, prompt: str) -> int:
             break
         while j <= n and resp_norm[i:j] in prompt_norm:
             j += 1
-        if j - 1 - i > best:
-            best = j - 1 - i
+        best = max(best, j - 1 - i)
     return best
 
 
@@ -227,8 +226,7 @@ def main(argv: list[str] | None = None) -> int:
     }
     if args.out and not args.measure:
         with open(args.out, "w", encoding="utf-8") as fh:
-            for item in stripped:
-                fh.write(json.dumps(item, ensure_ascii=False) + "\n")
+            fh.writelines(json.dumps(item, ensure_ascii=False) + "\n" for item in stripped)
         report["out"] = args.out
     print(json.dumps(report, indent=2))
     return 0

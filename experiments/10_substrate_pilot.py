@@ -41,10 +41,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))  # sibling modules, exactly like 05 and 08
-import arms_resume  # noqa: E402
+import arms_resume
 
-from bayes_cot_faithfulness.arms import direct_prompt  # noqa: E402
-from bayes_cot_faithfulness.guardrails import proportion_ci_upper  # noqa: E402
+from bayes_cot_faithfulness.arms import direct_prompt
+from bayes_cot_faithfulness.guardrails import proportion_ci_upper
 
 ARMS_SCRIPT = HERE / "08_additive_arms.py"
 

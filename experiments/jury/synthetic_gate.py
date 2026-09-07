@@ -221,8 +221,7 @@ def write_items(items: list[dict], path: str | Path) -> Path:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "w", encoding="utf-8") as fh:
-        for item in items:
-            fh.write(json.dumps(item, ensure_ascii=False) + "\n")
+        fh.writelines(json.dumps(item, ensure_ascii=False) + "\n" for item in items)
     return p
 
 

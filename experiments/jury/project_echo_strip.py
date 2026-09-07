@@ -103,7 +103,7 @@ def project(votes_path: Path, items: list[dict], judge_keys: list[str] | None = 
         "votes_file": str(votes_path),
         "label": "PROJECTED",
         "q1_prompt_file": q1_files[0] if len(q1_files) == 1 else q1_files,
-        "q1_prompt_sha256": sorted({r["prompt_sha256"] for r in q1_rows})[0] if q1_rows else "",
+        "q1_prompt_sha256": min({r["prompt_sha256"] for r in q1_rows}) if q1_rows else "",
         "serving_line": lines[0] if len(lines) == 1 else lines,
         "input_transform": rows[0].get("input_transform") or {},
         "stipulation": "restated_cue_only scores exactly as its matched clean item; every "
