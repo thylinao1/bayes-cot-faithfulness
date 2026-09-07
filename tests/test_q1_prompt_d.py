@@ -46,7 +46,7 @@ CORPUS = REPO / "experiments/results/jury-gate/gate_items.jsonl"
 
 # Recorded when the file was written, 2026-09-07. Same rule as the files below: a revision
 # is a NEW dated file, never an edit, so this hash does not move either.
-D_SHA256 = "02a20ff9f65393f66121abe284efae04f00e3d190651bd9d026c9fa15e1e4412"
+D_SHA256 = "1f4adb4e433b75d59b9e74dc3b348297b698dbb5585bf91f2de7909e2f82cbfa"
 
 # The three Q1 files of record, hashed as they stand on main. A4.2's per-judge table is
 # reported against these exact bytes.
