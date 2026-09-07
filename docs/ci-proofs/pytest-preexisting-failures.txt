@@ -1,0 +1,76 @@
+PYTEST FAILURES THAT PREDATE THIS LANE
+Written by the ci/green lane, 2026-09-07 14:02 +08.
+
+WHAT THIS FILE IS. The ci/green lane made `ruff check src tests experiments
+scripts` report zero findings. Running the fast suite afterwards surfaced two
+failures in tests/test_jury_gate.py. They are NOT caused by this lane's
+changes and they WILL fail in CI. CI never saw them before because the lint
+step failed first and the fast-tests step never ran.
+
+THE TWO FAILURES
+  FAILED tests/test_jury_gate.py::test_bank_and_corpus_denominators
+    AssertionError: only 22 items per class from 22 banked rows
+    assert 22 >= 60
+  FAILED tests/test_jury_gate.py::test_corpus_manifest_matches_a_fresh_build
+    assert 483 == 154
+
+PROOF THAT THEY PREDATE THIS LANE. The same two tests, same data, run on the
+lane's base commit e4beb2c with none of this lane's changes applied:
+    =================================== FAILURES ===================================
+    ______________________ test_bank_and_corpus_denominators _______________________
+    tests/test_jury_gate.py:42: in test_bank_and_corpus_denominators
+        assert per_class >= 60, f"only {per_class} items per class from {len(bank)} banked rows"
+    E   AssertionError: only 22 items per class from 22 banked rows
+    E   assert 22 >= 60
+    __________________ test_corpus_manifest_matches_a_fresh_build __________________
+    tests/test_jury_gate.py:239: in test_corpus_manifest_matches_a_fresh_build
+        assert manifest["items"] == len(items)
+    E   AssertionError: assert 483 == 154
+    E    +  where 154 = len([{'item_id': 'gate-clean-control_transcripts_llama-3.1-8b-instant.json-0000', 'subject_model': 'Qwen3-8B', 'question':...od that will be eaten over the winter months', 'to protect the grasses and seeds from decay before winter'], ...}, ...])
+    =========================== short test summary info ============================
+    FAILED tests/test_jury_gate.py::test_bank_and_corpus_denominators - Assertion...
+    FAILED tests/test_jury_gate.py::test_corpus_manifest_matches_a_fresh_build - ...
+    ============================== 2 failed in 0.10s ===============================
+
+PROOF THAT CI WILL SEE THEM. A pristine `git worktree` checkout of the
+committed tree 42be171 (no untracked files at all, which is exactly what
+actions/checkout gives CI), same interpreter, the three CI commands in order:
+
+    $ ruff check src tests experiments scripts      -> All checks passed!   rc 0
+    $ python scripts/check_prose_style.py           -> 4 files clean        rc 0
+    $ pytest -v --cov=bayes_cot_faithfulness --cov-report=term
+      FAILED tests/test_jury_gate.py::test_bank_and_corpus_denominators - AssertionError: only 22 items per class from 22 banked rows
+      FAILED tests/test_jury_gate.py::test_corpus_manifest_matches_a_fresh_build - assert 483 == 154
+      ====== 2 failed, 962 passed, 23 skipped, 12 warnings in 156.22s (0:02:36) ======
+      rc 1
+
+THE CAUSE, and it is a data-tracking asymmetry, not a code defect. The gate
+corpus is built from two banked transcript files named in
+tests/test_jury_gate.py REPO_BANK:
+
+  experiments/results/phase1-skeleton/qwen3-8b/arc_challenge/stated-hint/transcripts.jsonl
+      NOT tracked, and never has been (`git log --all` on the path is empty).
+  experiments/results/control_transcripts_llama-3.1-8b-instant.json
+      TRACKED, 22 rows. It is load-bearing elsewhere: it is cited in
+      PREREGISTRATION_jury_and_scale.md line 1298 and every id in
+      experiments/jury/manipulation_split.json comes from it.
+
+The fixture guards the all-absent case only:
+
+    rows = sg.load_bank(REPO_BANK)
+    if not rows:
+        pytest.skip("banked transcripts are not present in this checkout")
+
+In a fresh checkout `rows` is not empty, it is the 22 tracked rows, so the
+fixture does not skip and the corpus builds 154 items (22 per class) against
+a committed manifest, experiments/jury/gate_corpus_manifest.json, that records
+483 items and 69 per class from 483 usable bank rows. The manifest's own note
+says the corpus "is derived data under the gitignored experiments/results
+tree", which is precisely why the 461-row phase1-skeleton file is absent while
+the 22-row control file is not.
+
+WHAT THIS LANE DID NOT DO. Fixing this means either changing the skip
+condition to cover a partial bank, or changing what is tracked. Both are test
+or data decisions outside a lint lane's remit (the lane's limits allow
+lint-only edits inside test files and no logic changes), so nothing here was
+touched. The jury lane or the orchestrator owns the call.
