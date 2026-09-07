@@ -75,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
                 "stratum": STRATUM,
                 "all_judge_row": True,
                 "meta": {
+                    "corpus": "faithcot",
                     "dataset": item.dataset,
                     "generator_model": item.generator_model,
                     "gold_answer": item.gold_answer,
