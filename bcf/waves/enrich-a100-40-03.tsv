@@ -1,0 +1,39 @@
+# wave enrich-a100-40-03  pool a100-40  8 card(s) of the 8 per-user cap
+# submit with:  bcf/wave.sh --type enrich --gpu-type a100-40 bcf/waves/enrich-a100-40-03.tsv
+#   (or let bcf/wave_feeder.sh --type enrich do it when the pool has room)
+#
+# RULING R3(ii), the ENRICHMENT PASS. One k = 32 sampling request per item at
+# temperature 0.7 on the CLEAN prompt, over the whole 1500-item logiqa2
+# pool, for each of the eight small models. The sampling arm is the ONLY arm:
+# BCF_ARMS=sampling with BCF_N_ARMS=1, so a truncated arm list refuses (exit 9)
+# instead of quietly running something else.
+#
+# PRICE, per job: sampling 0.889 h at 2.1333 s per item
+#   (source: job 826025 throughput.json, arm `sampling`: 30 calls in 64.0 s at concurrency 32 with the flag on).
+# The runner ALSO makes its clean substrate pass and its cue pass before any arm,
+#   which the R3 line does not price: 0.171 h over the pool plus
+#   0.159 h over the clean-correct subset at the measured retention of
+#   0.9333 and 0.41005 s per full generation.
+# TOTAL per job 1.219 h; per wave 9.754 card-hours.
+# Every figure is a FLOOR for a model with no throughput measurement of its own.
+#
+# Serving mode of record (ruling R1, A3.6): VLLM_BATCH_INVARIANT=1, 32 requests in
+# flight, vLLM 0.28.0, FLASH_ATTN, VLLM_USE_FLASHINFER_SAMPLER=0, the revision
+# pinned per row (taken verbatim from bcf/waves/a100-40-01.tsv). Each job re-proves
+# the determinism preflight on its own server and refuses with exit 10 otherwise.
+#
+# OUTPUT: $BCF_RESULTS/enrichment/<model>/<substrate>/stated-hint. The subroot is
+# what keeps this pass out of the sweep cell's directory: model, substrate and cue
+# are the same three values there.
+# Each job ends by running bcf/enrich_report.py, which writes uncertain_items.json
+# beside the arm artifacts. That file is the --item-list an enrichment CELL runs on.
+#
+# columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
+Qwen/Qwen3-8B	logiqa2	stated-hint	BCF_REVISION=b968826d9c46dd6066d109eabc6255188de91218	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=sampling	BCF_N_ARMS=1	BCF_SAMPLING_K=32	BCF_SAMPLING_TEMPERATURE=0.7	BCF_ENRICH_REPORT=1	BCF_OUT_SUBROOT=enrichment	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.219
+allenai/Olmo-3-7B-Think	logiqa2	stated-hint	BCF_REVISION=d97e442d7cc678210054dbcc9b440894d62c89a4	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=sampling	BCF_N_ARMS=1	BCF_SAMPLING_K=32	BCF_SAMPLING_TEMPERATURE=0.7	BCF_ENRICH_REPORT=1	BCF_OUT_SUBROOT=enrichment	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.219
+deepseek-ai/DeepSeek-R1-0528-Qwen3-8B	logiqa2	stated-hint	BCF_REVISION=6e8885a6ff5c1dc5201574c8fd700323f23c25fa	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=sampling	BCF_N_ARMS=1	BCF_SAMPLING_K=32	BCF_SAMPLING_TEMPERATURE=0.7	BCF_ENRICH_REPORT=1	BCF_OUT_SUBROOT=enrichment	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.219
+deepseek-ai/DeepSeek-R1-Distill-Llama-8B	logiqa2	stated-hint	BCF_REVISION=6a6f4aa4197940add57724a7707d069478df56b1	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=sampling	BCF_N_ARMS=1	BCF_SAMPLING_K=32	BCF_SAMPLING_TEMPERATURE=0.7	BCF_ENRICH_REPORT=1	BCF_OUT_SUBROOT=enrichment	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.219
+google/gemma-2-9b-it	logiqa2	stated-hint	BCF_REVISION=11c9b309abf73637e4b6f9a3fa1e92e615547819	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=sampling	BCF_N_ARMS=1	BCF_SAMPLING_K=32	BCF_SAMPLING_TEMPERATURE=0.7	BCF_ENRICH_REPORT=1	BCF_OUT_SUBROOT=enrichment	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.219
+meta-llama/Llama-3.1-8B-Instruct	logiqa2	stated-hint	BCF_REVISION=0e9e39f249a16976918f6564b8830bc894c89659	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=sampling	BCF_N_ARMS=1	BCF_SAMPLING_K=32	BCF_SAMPLING_TEMPERATURE=0.7	BCF_ENRICH_REPORT=1	BCF_OUT_SUBROOT=enrichment	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.219
+microsoft/Phi-4-reasoning	logiqa2	stated-hint	BCF_REVISION=1de18ec97600877ce63dbf60c73b998da99f0195	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=sampling	BCF_N_ARMS=1	BCF_SAMPLING_K=32	BCF_SAMPLING_TEMPERATURE=0.7	BCF_ENRICH_REPORT=1	BCF_OUT_SUBROOT=enrichment	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.219	BCF_EXTRA_VLLM=--max-num-seqs 64
+openai/gpt-oss-20b	logiqa2	stated-hint	BCF_REVISION=6cee5e81ee83917806bbde320786a8fb61efebee	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=sampling	BCF_N_ARMS=1	BCF_SAMPLING_K=32	BCF_SAMPLING_TEMPERATURE=0.7	BCF_ENRICH_REPORT=1	BCF_OUT_SUBROOT=enrichment	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.219	BCF_QUANT=mxfp4

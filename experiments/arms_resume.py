@@ -118,6 +118,12 @@ PARAM_FIELDS = (
     # base seed) change what is drawn in the same way, and which is None when that arm
     # is off, so every pre-existing checkpoint still loads.
     "sampling", "repeat_curves", "chain_repeats",
+    # Ruling R3(ii) added the enrichment item list: the file (by path and content hash)
+    # that decides WHICH items a cell runs on. A resumed leg that pointed at a different
+    # list would merge two different populations into one checkpoint, so it refuses. It
+    # is None on every regular cell, and None == None keeps every pre-existing checkpoint
+    # loadable.
+    "item_list",
 )
 
 # Fields always present on a substrate record (set in substrate_pass before any arm runs).
@@ -198,7 +204,8 @@ def build_params(model: str, backend: str, n_items: int, data: Path, taxonomy: s
                  specificity_holdout_sha256: str | None = None,
                  sampling: dict | None = None,
                  repeat_curves: dict | None = None,
-                 chain_repeats: dict | None = None) -> dict:
+                 chain_repeats: dict | None = None,
+                 item_list: dict | None = None) -> dict:
     """The parameter fingerprint stored in (and checked against) a checkpoint.
 
     ``arms`` is kept in CLI order exactly as ``resolve_arms`` returns it: the enabled-arms
@@ -223,6 +230,7 @@ def build_params(model: str, backend: str, n_items: int, data: Path, taxonomy: s
         "sampling": sampling,
         "repeat_curves": repeat_curves,
         "chain_repeats": chain_repeats,
+        "item_list": item_list,
     }
 
 

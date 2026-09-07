@@ -30,10 +30,20 @@
 #            BCF_PREFLIGHT_ITEMS(30) BCF_PREFLIGHT_LEVELS(1,$BCF_CONCURRENCY)
 #            BCF_CHAIN_REPEATS(3) BCF_CHAIN_REPEAT_TEMPERATURE(0.7)
 #            BCF_CHAIN_REPEAT_SEED(20260907)
+#            BCF_ITEM_LIST() BCF_ENRICH_REPORT(0) BCF_OUT_SUBROOT()
+#
+# RULING R3(ii), the two enrichment shapes this one script serves:
+#   the enrichment PASS   BCF_ARMS=sampling, BCF_N_ITEMS=<the whole pool>,
+#                         BCF_ENRICH_REPORT=1. One k = 32 draw per item on the clean
+#                         prompt; the report step writes uncertain_items.json.
+#   the enrichment CELL   BCF_ITEM_LIST=<that uncertain_items.json>, the hinted arms.
+#                         The runner runs on exactly those items, every record carries
+#                         enrichment=true, and the summary counts the regular and the
+#                         enrichment populations apart.
 #
 # Exit codes: 2 results path, 3 device assertion, 4 revision unresolvable, 5 server died,
 # 6 server timeout, 7 forced-logprob unit check, 8 revision drift, 9 arm-count mismatch,
-# 10 DETERMINISM PREFLIGHT REFUSED (ruling R1).
+# 10 DETERMINISM PREFLIGHT REFUSED (ruling R1), 11 item list named but not readable.
 
 set -uo pipefail
 source "${BCF_ENV_SH:-$HOME/bcf/repo/bcf/env.sh}"
@@ -107,6 +117,18 @@ CHAIN_REPEAT_TEMPERATURE="${BCF_CHAIN_REPEAT_TEMPERATURE:-0.7}"
 CHAIN_REPEAT_SEED="${BCF_CHAIN_REPEAT_SEED:-20260907}"
 TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}"
 OUT_ROOT="${BCF_OUT_ROOT:-$BCF_RESULTS}"
+# A relative subdirectory under the results root, so a wave file can separate a line's
+# output without hard-coding a home directory into a manifest that travels between
+# machines. The enrichment pass uses it (BCF_OUT_SUBROOT=enrichment): its model,
+# substrate and cue are the SAME three values as the regular stated-hint cell's, so
+# without this the pass and the cell would share one directory, one checkpoint and one
+# summary file.
+if [ -n "${BCF_OUT_SUBROOT:-}" ]; then OUT_ROOT="${OUT_ROOT}/${BCF_OUT_SUBROOT}"; fi
+# RULING R3(ii). An enrichment CELL names its items in a list file written by the
+# enrichment pass; an enrichment PASS asks for the report step that writes one. Both are
+# empty on a regular cell, which is why a regular cell's command line is unchanged.
+ITEM_LIST="${BCF_ITEM_LIST:-}"
+ENRICH_REPORT="${BCF_ENRICH_REPORT:-0}"
 
 MODEL_SLUG="$(echo "${MODEL##*/}" | tr '[:upper:]' '[:lower:]')"
 OUT_DIR="${OUT_ROOT}/${MODEL_SLUG}/${SUBSTRATE}/${CUE}"
@@ -118,6 +140,16 @@ case "$OUT_DIR" in
   *) echo "[path] REFUSING: ${OUT_DIR} does not end in /${SUBSTRATE}/${CUE}" >&2; exit 2 ;;
 esac
 mkdir -p "$OUT_DIR"
+# A named list file that is not there means the enrichment pass this cell depends on has
+# not landed. Refusing HERE costs nothing; refusing after the server is up costs the
+# weight download and the queue wait, and refusing NOT AT ALL would silently run the
+# cell on the first BCF_N_ITEMS of the pool under a name that says otherwise.
+if [ -n "$ITEM_LIST" ] && [ ! -f "$ITEM_LIST" ]; then
+  echo "[item-list] REFUSING: BCF_ITEM_LIST=${ITEM_LIST} does not exist. This cell would" >&2
+  echo "[item-list]   otherwise run on the regular n under an enrichment name." >&2
+  echo 11 > "${OUT_DIR}/exit_code.txt"
+  exit 11
+fi
 LOG="${OUT_DIR}/run.log"
 EXIT_FILE="${OUT_DIR}/exit_code.txt"
 BASE_URL="http://127.0.0.1:${PORT}/v1"
@@ -201,6 +233,12 @@ pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "chain_repeat_temperature": ${CHAIN_REPEAT_TEMPERATURE},
     "chain_repeat_seed": ${CHAIN_REPEAT_SEED},
     "plan_commit": "${BCF_PLAN_COMMIT:-}", "bcf_repo": "${BCF_REPO}",
+    # RULING R3(ii). Which of the two enrichment shapes this job is, on the record that
+    # the analysis reads, so an enrichment cell can never be pooled with a regular one by
+    # accident. Both are absent/false on a regular cell.
+    "item_list": "${ITEM_LIST}" or None,
+    "enrichment_cell": bool("${ITEM_LIST}"),
+    "enrichment_pass": "${ENRICH_REPORT}" == "1",
     "temperature": 0.0, "num_predict": ${NUM_PREDICT}, "curve_cap": ${CURVE_CAP},
     # CONTRACT record schema. Round-1 verification check 4 failed because
     # intervention_level was absent from every summary; it is written here AND by the
@@ -363,6 +401,11 @@ if [ -n "${BCF_N_ARMS:-}" ] && [ "$N_ARMS_SEEN" -ne "${BCF_N_ARMS}" ]; then
 fi
 TAXONOMY_FLAGS=()
 if [ "$CUE" != "stated-hint" ]; then TAXONOMY_FLAGS=(--taxonomy "$CUE"); fi
+ITEM_LIST_FLAGS=()
+if [ -n "$ITEM_LIST" ]; then
+  ITEM_LIST_FLAGS=(--item-list "$ITEM_LIST")
+  echo "[item-list] this cell runs on the items named in ${ITEM_LIST}" | ts | tee -a "$LOG"
+fi
 
 echo "[arms] starting at $(date -Is)" | ts | tee -a "$LOG"
 python "${BCF_REPO}/experiments/08_additive_arms.py" \
@@ -379,7 +422,7 @@ python "${BCF_REPO}/experiments/08_additive_arms.py" \
   --chain-repeat-temperature "$CHAIN_REPEAT_TEMPERATURE" \
   --chain-repeat-seed "$CHAIN_REPEAT_SEED" \
   --out "$OUT_DIR" --timeout 600 --resume \
-  "${ARM_FLAGS[@]}" "${TAXONOMY_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
+  "${ARM_FLAGS[@]}" "${TAXONOMY_FLAGS[@]}" "${ITEM_LIST_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
 ARMS_STATUS=${PIPESTATUS[0]}
 echo "[arms] finished at $(date -Is) with status ${ARMS_STATUS}" | ts | tee -a "$LOG"
 
@@ -389,5 +432,21 @@ python "${BCF_REPO}/bcf/contract_layout.py" --out-dir "$OUT_DIR" 2>&1 | ts | tee
 # --- 7. throughput, measured from this run's own log ---------------------------
 python "${BCF_REPO}/bcf/throughput.py" --run-log "$LOG" --out-dir "$OUT_DIR" \
   2>&1 | ts | tee -a "$LOG" || true
+
+# --- 8. RULING R3(ii): the enrichment pass's own product ------------------------
+# Only for a pass (BCF_ENRICH_REPORT=1). It reads the per-item sampling blocks this run
+# just wrote and turns them into uncertain_items.json, the list file an enrichment cell
+# is submitted with. It never changes the arms' own artifacts, and its status is reported
+# but does NOT replace the arms status: a pass whose arm finished and whose report failed
+# is a pass whose data is intact.
+if [ "$ENRICH_REPORT" = "1" ]; then
+  python "${BCF_REPO}/bcf/enrich_report.py" \
+    --out-dir "$OUT_DIR" --data "${BCF_REPO}/experiments/data/${SUBSTRATE}.json" \
+    --substrate "$SUBSTRATE" 2>&1 | ts | tee -a "$LOG"
+  ENRICH_STATUS=${PIPESTATUS[0]}
+  echo "$ENRICH_STATUS" > "${OUT_DIR}/enrich_report_exit.txt"
+  echo "[enrich] report exit ${ENRICH_STATUS} -> ${OUT_DIR}/enrich_report_exit.txt" \
+    | ts | tee -a "$LOG"
+fi
 
 exit "$ARMS_STATUS"

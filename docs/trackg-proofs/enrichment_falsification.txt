@@ -1,0 +1,132 @@
+=== Track G follow-up lane: every check proven able to fail (2026-09-07T14:51:46+0800) ===
+Each block runs the check clean, breaks exactly one thing, and restores it.
+
+--- 1a. enrichment suite, unmutated
+$ python -m pytest tests/test_enrichment.py -q
+plugins: cov-7.1.0
+collected 16 items
+
+tests/test_enrichment.py ................                                [100%]
+
+============================== 16 passed in 0.67s ==============================
+exit=0
+
+--- 1b. MUTATION: select_items stops checking the question hash
+$ python -m pytest tests/test_enrichment.py -q
+FAILED tests/test_enrichment.py::test_select_returns_the_named_items_in_list_order
+FAILED tests/test_enrichment.py::test_select_refuses_when_the_question_hash_does_not_match
+FAILED tests/test_enrichment.py::test_the_cell_runs_on_exactly_the_listed_items_and_marks_them_enriched
+FAILED tests/test_enrichment.py::test_a_stale_list_refuses_before_any_model_call
+FAILED tests/test_enrichment.py::test_the_written_list_resolves_against_the_pool_it_names
+========================= 5 failed, 11 passed in 0.56s =========================
+exit=1
+
+--- 1c. MUTATION: every record is serialized with enrichment=false
+$ python -m pytest tests/test_enrichment.py -q
+
+wrote summary + 3 arm transcripts -> /private/var/folders/m7/3b38xcb97vq1rhp8j68wynn80000gn/T/pytest-of-maksimsilchenko/pytest-202/test_the_cell_runs_on_exactly_0/cell
+  status: exploratory Phase-2 arms; not part of the frozen pre-registered controls; no verdict.
+=========================== short test summary info ============================
+FAILED tests/test_enrichment.py::test_the_cell_runs_on_exactly_the_listed_items_and_marks_them_enriched
+========================= 1 failed, 15 passed in 0.53s =========================
+exit=1
+
+--- 1d. MUTATION: the summary counts an empty record list
+$ python -m pytest tests/test_enrichment.py -q
+wrote summary + 6 arm transcripts -> /private/var/folders/m7/3b38xcb97vq1rhp8j68wynn80000gn/T/pytest-of-maksimsilchenko/pytest-203/test_a_regular_cell_is_untouch0/cell
+  status: exploratory Phase-2 arms; not part of the frozen pre-registered controls; no verdict.
+=========================== short test summary info ============================
+FAILED tests/test_enrichment.py::test_the_cell_runs_on_exactly_the_listed_items_and_marks_them_enriched
+FAILED tests/test_enrichment.py::test_a_regular_cell_is_untouched_and_reports_a_zero_enrichment_count
+========================= 2 failed, 14 passed in 0.53s =========================
+exit=1
+
+--- 1e. RESTORED: the suite is green again
+$ python -m pytest tests/test_enrichment.py -q
+plugins: cov-7.1.0
+collected 16 items
+
+tests/test_enrichment.py ................                                [100%]
+
+============================== 16 passed in 0.52s ==============================
+exit=0
+
+--- 2a. bcf/check_wave_manifests.py on the tree as it stands
+$ python bcf/check_wave_manifests.py
+bcf/check_wave_manifests.py: the structural half of wave.sh --check-only
+  99 manifest file(s), 216 cell row(s), 24 enrichment-pass row(s), 18 model(s), pools a100-40, a100-80, h100-96, h200-141
+  NOT checked here (needs the cluster): the live per-user card caps read from
+  squeue, the 32-jobs-in-system limit, and sbatch --test-only on each command
+  line. Those are wave.sh --check-only's own job and land in dry-run-<wave>.txt.
+  no structural problem found
+exit=0
+
+--- 2b. MUTATION: one enrichment row carries a revision the roster does not pin
+$ python bcf/check_wave_manifests.py
+  99 manifest file(s), 216 cell row(s), 24 enrichment-pass row(s), 18 model(s), pools a100-40, a100-80, h100-96, h200-141
+  NOT checked here (needs the cluster): the live per-user card caps read from
+  squeue, the 32-jobs-in-system limit, and sbatch --test-only on each command
+  line. Those are wave.sh --check-only's own job and land in dry-run-<wave>.txt.
+  1 PROBLEM(S):
+    - enrich-a100-40-02.tsv:32: BCF_REVISION=deadbeef9c46dd6066d109eabc6255188de91218 but the roster pins b968826d9c46dd6066d109eabc6255188de91218 for Qwen/Qwen3-8B
+exit=1
+
+--- 2c. MUTATION: one model is missing from an enrichment wave (23 rows, not 24)
+$ python bcf/check_wave_manifests.py
+  99 manifest file(s), 216 cell row(s), 23 enrichment-pass row(s), 18 model(s), pools a100-40, a100-80, h100-96, h200-141
+  NOT checked here (needs the cluster): the live per-user card caps read from
+  squeue, the 32-jobs-in-system limit, and sbatch --test-only on each command
+  line. Those are wave.sh --check-only's own job and land in dry-run-<wave>.txt.
+  1 PROBLEM(S):
+    - the enrichment manifests hold 23 rows and the a100-40 roster times the three substrates is 24
+exit=1
+
+--- 2d. RESTORED: the checker is clean again
+$ python bcf/check_wave_manifests.py
+bcf/check_wave_manifests.py: the structural half of wave.sh --check-only
+  99 manifest file(s), 216 cell row(s), 24 enrichment-pass row(s), 18 model(s), pools a100-40, a100-80, h100-96, h200-141
+  NOT checked here (needs the cluster): the live per-user card caps read from
+  squeue, the 32-jobs-in-system limit, and sbatch --test-only on each command
+  line. Those are wave.sh --check-only's own job and land in dry-run-<wave>.txt.
+  no structural problem found
+exit=0
+
+--- 3a. bcf/plan_enrich_waves.py --check against what is on disk
+$ python bcf/plan_enrich_waves.py --check
+[enrich-waves] 3 wave file(s) match the generator
+exit=0
+
+--- 3b. MUTATION: k is 8 in a wave file, so it no longer matches the generator
+$ python bcf/plan_enrich_waves.py --check
+[enrich-waves] DIFFERS: /Users/maksimsilchenko/Developer/bcf-trackg2/bcf/waves/enrich-a100-40-01.tsv
+exit=1
+
+--- 3c. RESTORED
+$ python bcf/plan_enrich_waves.py --check
+[enrich-waves] 3 wave file(s) match the generator
+exit=0
+
+=== files restored, hashes after ===
+3d4004ba03146d11846d437652669eb621dc5d0a4bd72e267c0aca495045feed  src/bayes_cot_faithfulness/item_list.py
+3feac8641fd17dcfbcfba8423218c4c815b30bf171ddadee6f85b421176c37ff  experiments/08_additive_arms.py
+de167f208ab09fe0cdb6af66a70b703db4cde52707c7130ed0abdc542a41d323  bcf/waves/enrich-a100-40-01.tsv
+1513d0206e5b2b5a1ba23333675858d04f6c4116a983caa52d8d6565bc4d79e2  bcf/waves/enrich-a100-40-02.tsv
+1e9586b9fabbc7c24c7beae22a7aaa21f2290d8f925786d47fb606cd6c5fb5ed  bcf/waves/enrich-a100-40-03.tsv
+
+=== git status (nothing should be left mutated) ===
+ M bcf/check_wave_manifests.py
+ M bcf/serve_and_run.sbatch
+ M bcf/wave.sh
+ M experiments/08_additive_arms.py
+ M experiments/arms_resume.py
+ M tests/test_arms_resume.py
+?? bcf/enrich_report.py
+?? bcf/plan_enrich_waves.py
+?? bcf/wave_feeder.sh
+?? bcf/waves/enrich-a100-40-01.tsv
+?? bcf/waves/enrich-a100-40-02.tsv
+?? bcf/waves/enrich-a100-40-03.tsv
+?? docs/trackg-proofs/enrichment_falsification.txt
+?? docs/trackg-proofs/exit_codes.txt
+?? src/bayes_cot_faithfulness/item_list.py
+?? tests/test_enrichment.py

@@ -65,17 +65,24 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
     plan = json.loads((waves_dir / "plan.json").read_text())
     roster = {hf: (rev, pool, tp) for hf, rev, _fam, pool, tp, *_ in pw.ROSTER}
     problems: list[str] = []
-    counts = {"tsv_files": 0, "rows": 0, "models": set(), "pools": set()}
+    counts = {"tsv_files": 0, "rows": 0, "enrich_rows": 0, "models": set(), "pools": set()}
 
     want_flag = str(plan["serving_mode_of_record"]["batch_invariant_used"])
     want_conc = str(plan["serving_mode_of_record"]["concurrency_used"])
 
     for tsv in sorted(waves_dir.glob("*.tsv")):
         counts["tsv_files"] += 1
-        pool = tsv.stem.rsplit("-", 1)[0].replace("-single", "").replace("-tp2", "")
+        # RULING R3(ii). An enrichment-pass manifest is NOT a cell manifest: it is one
+        # sampling-arm job per model per substrate, it is not part of the 216-cell grid,
+        # and counting its rows as cells is how the grid total silently grows. Its rows
+        # take every other structural check below, which is the point of naming it here
+        # rather than skipping the file.
+        is_enrich = tsv.name.startswith("enrich-")
+        stem = tsv.stem[len("enrich-"):] if is_enrich else tsv.stem
+        pool = stem.rsplit("-", 1)[0].replace("-single", "").replace("-tp2", "")
         cards = 0
         for n, model, substrate, cue, kv, bad in rows_of(tsv):
-            counts["rows"] += 1
+            counts["enrich_rows" if is_enrich else "rows"] += 1
             where = f"{tsv.name}:{n}"
             if bad:
                 problems.append(f"{where}: {bad}")
@@ -129,6 +136,17 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
         problems.append(
             f"the manifests hold {counts['rows']} rows and plan.json says "
             f"{plan['n_cells']} cells")
+    # The enrichment pass is one job per model per substrate over the small-model pool.
+    # Its own denominator, stated rather than inferred: eight a100-40 models times three
+    # substrates. A missing row means a model or a substrate would never be enriched.
+    enrich_files = sorted(waves_dir.glob("enrich-*.tsv"))
+    if enrich_files:
+        want_enrich = len({m for m in roster
+                           if roster[m][1] == "a100-40"}) * len(pw.SUBSTRATES)
+        if counts["enrich_rows"] != want_enrich:
+            problems.append(
+                f"the enrichment manifests hold {counts['enrich_rows']} rows and the "
+                f"a100-40 roster times the three substrates is {want_enrich}")
     counts["models"] = len(counts["models"])
     counts["pools"] = sorted(counts["pools"])
     return problems, counts
@@ -144,7 +162,8 @@ def main(argv=None) -> int:
     problems, counts = check(a.waves_dir)
     lines = [
         "bcf/check_wave_manifests.py: the structural half of wave.sh --check-only",
-        f"  {counts['tsv_files']} manifest file(s), {counts['rows']} row(s), "
+        f"  {counts['tsv_files']} manifest file(s), {counts['rows']} cell row(s), "
+        f"{counts['enrich_rows']} enrichment-pass row(s), "
         f"{counts['models']} model(s), pools {', '.join(counts['pools'])}",
         "  NOT checked here (needs the cluster): the live per-user card caps read from",
         "  squeue, the 32-jobs-in-system limit, and sbatch --test-only on each command",

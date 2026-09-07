@@ -85,6 +85,16 @@ from bayes_cot_faithfulness.interventions import (
     is_unfaithful_on_hint,
     parse_answer,
 )
+from bayes_cot_faithfulness.item_list import (
+    ItemListError,
+    parse_item_list,
+)
+from bayes_cot_faithfulness.item_list import (
+    refusal_message as item_list_refusal,
+)
+from bayes_cot_faithfulness.item_list import (
+    select_items as select_item_list,
+)
 from bayes_cot_faithfulness.outcome_scale import (
     assert_records_scaled,
     check_outcome_scale,
@@ -822,10 +832,30 @@ def build_blocks(records: list[dict], arms: list[str]) -> dict:
     return {arm: builders[arm](records) for arm in arms if arm in builders}
 
 
+def enrichment_counts(records: list[dict]) -> dict:
+    """RULING R3(iii): the regular and enrichment populations, counted apart.
+
+    The regular-cell estimands are computed on the REGULAR n only, so a cell that
+    carries enriched items has to say how many of each it holds; a single total would
+    let the two populations be read as one. Every count here is derived from the records
+    themselves rather than from a parameter, so a summary cannot disagree with the
+    transcripts beside it.
+    """
+    enriched = [r for r in records if r.get("enrichment")]
+    regular = [r for r in records if not r.get("enrichment")]
+    return {
+        "n_records_regular": len(regular),
+        "n_records_enrichment": len(enriched),
+        "n_clean_correct_regular": sum(1 for r in regular if r.get("clean_correct")),
+        "n_clean_correct_enrichment": sum(1 for r in enriched if r.get("clean_correct")),
+    }
+
+
 def assemble_summary(backend: str, model: str, n_items: int, n_clean_correct: int,
                      cue_kind: str, arms: list[str], blocks: dict,
                      attrition: dict, n_invocations: int = 1, curve_cap: int | None = None,
-                     num_predict: int | None = None) -> dict:
+                     num_predict: int | None = None,
+                     enrichment: dict | None = None) -> dict:
     """The final exploratory summary dict (carries the no-verdict status string).
 
     ``n_invocations`` / ``resumed`` disclose that the artifact came from a multi-leg
@@ -854,6 +884,14 @@ def assemble_summary(backend: str, model: str, n_items: int, n_clean_correct: in
         # argument, so a summary can never disagree with the records it summarizes.
         "intervention_level": INTERVENTION_LEVEL,
         "outcome_scale": OUTCOME_SCALE,
+        # RULING R3(ii)/(iii). Present on every summary, with a zero enrichment count on a
+        # regular cell, so the enrichment population is never invisible by omission.
+        "enrichment": enrichment or {
+            "n_records_regular": n_clean_correct, "n_records_enrichment": 0,
+            "n_clean_correct_regular": n_clean_correct,
+            "n_clean_correct_enrichment": 0,
+            "item_list": None,
+        },
     }
 
 
@@ -879,6 +917,12 @@ def serialize_arm_record(r: dict) -> dict:
         # CONTRACT fields, on every record, written by construction rather than by hand.
         "intervention_level": INTERVENTION_LEVEL,
         "outcome_scale": OUTCOME_SCALE,
+        # RULING R3(ii): which population this record belongs to. False on every record
+        # of a regular cell; True on an item the enrichment pass added to the cell's
+        # hinted arms in addition to the regular n. It is written on EVERY record, not
+        # only the enriched ones, so a reader never has to infer the population from the
+        # absence of a field.
+        "enrichment": bool(r.get("enrichment", False)),
         "logprob_source_token": r.get("logprob_source_token"),
         "answer_logprobs": r.get("answer_logprobs"),
         "question": it.question,
@@ -2247,7 +2291,8 @@ def _gate_client(backend, model, host, timeout, *, base_url=None,
     return client
 
 
-def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_block=None):
+def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_block=None,
+              enrichment=None):
     """Report the enabled arms, then write the exploratory summary and transcripts.
 
     ``specificity_block`` arrives pre-built (the A9 arm runs on the holdout items, not
@@ -2262,6 +2307,7 @@ def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_bloc
         ctx.backend, ctx.model, n_items, len(correct), cue_kind, arms, blocks, attrition,
         n_invocations=(1 if ctx.checkpoint is None else ctx.checkpoint.n_invocations),
         curve_cap=ctx.curve_cap, num_predict=ctx.num_predict,
+        enrichment=enrichment,
     )
     (ctx.out_dir / f"arms_summary_{ctx.safe_model}.json").write_text(
         json.dumps(summary, indent=2)
@@ -2280,7 +2326,7 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         sampling_k=SAMPLING_K, sampling_temperature=SAMPLING_TEMPERATURE,
         sampling_seed=None, curve_repeats=3, repeat_temperatures=(0.0, 0.7),
         repeat_seed=9101, chain_repeats=3, chain_repeat_temperature=0.7,
-        chain_repeat_seed=20260907):
+        chain_repeat_seed=20260907, item_list=None):
     arms = resolve_arms(arms)
     if not arms:
         print(no_arms_hint())
@@ -2292,6 +2338,43 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
     if "specificity" in arms and not Path(specificity_holdout).exists():
         print(specificity_setup_message(Path(specificity_holdout)))
         return 0
+
+    # RULING R3(ii): an enrichment cell names the items it runs on, one per
+    # right-but-uncertain item the sampling arm found in this substrate's pool. Resolved
+    # HERE, before the resume gate and long before the client gate, so an unreadable or
+    # stale list refuses with zero model calls and zero checkpoint writes.
+    selected_items = None
+    item_list_meta = None
+    if item_list is not None:
+        item_list_path = Path(item_list)
+        try:
+            payload = json.loads(item_list_path.read_text())
+        except (OSError, ValueError) as exc:
+            print(item_list_refusal(ItemListError(f"unreadable list file ({exc})"),
+                                    item_list_path))
+            return 0
+        try:
+            parsed = parse_item_list(payload)
+            selected_items, item_list_report = select_item_list(
+                load_items(data_path), parsed["entries"],
+                pool_sha256=arms_resume.file_sha256(data_path), meta=parsed["meta"],
+            )
+        except ItemListError as exc:
+            print(item_list_refusal(exc, item_list_path))
+            return 0
+        item_list_meta = {
+            "path": str(item_list_path),
+            "sha256": arms_resume.file_sha256(item_list_path),
+            "n_selected": item_list_report["n_selected"],
+            "n_verified_by_question_hash": item_list_report["n_verified_by_question_hash"],
+            "n_unverified": item_list_report["n_unverified"],
+            "selector": item_list_report["selector"],
+            "indices": item_list_report["indices"],
+        }
+        print(f"[item-list] {item_list_report['n_selected']} item(s) selected from "
+              f"{data_path.name}, {item_list_report['n_verified_by_question_hash']} "
+              f"verified by question hash; every record of this cell is marked "
+              f"enrichment=true (ruling R3(ii)).")
 
     safe_model = model.replace(":", "_").replace("/", "_")
     checkpoint_path = out_dir / f"arms_checkpoint_{safe_model}.json"
@@ -2323,6 +2406,7 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         arms_resume.file_sha256(holdout_path),
         sampling=sampling_params, repeat_curves=repeat_params,
         chain_repeats=chain_repeat_params,
+        item_list=item_list_meta,
     )
     # Resume gate BEFORE the backend gate: an unreadable version, a parameter mismatch,
     # or a data file whose duplicate keys would alias banked records must refuse with
@@ -2353,7 +2437,9 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         # the whole daily budget banking records the merge silently aliased. The guard
         # exists to protect a multi-leg run, and leg 1 is where that run starts.
         for label, path, loader_items in (
-            ("--data", data_path, load_items(data_path)[:n_items]),
+            ("--data", data_path,
+             selected_items if selected_items is not None
+             else load_items(data_path)[:n_items]),
             ("A9 holdout", holdout_path,
              load_items(holdout_path) if holdout_path.exists() else []),
         ):
@@ -2368,7 +2454,8 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
     if client is None:
         return 0
 
-    items = load_items(data_path)[:n_items]
+    items = (selected_items if selected_items is not None
+             else load_items(data_path)[:n_items])
     n_choices = max(len(it.choices) for it in items)
     cue_kind = f"taxonomy:{taxonomy}" if taxonomy else "stated-hint:strong"
 
@@ -2391,6 +2478,14 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
     if not ok:
         return 0
     writer.write()  # substrate complete (a fresh run's write overwrites any stale file)
+    # RULING R3(ii). Flagged by item KEY rather than by position: substrate_pass leaves a
+    # hole for every item it could not generate, so records and items are not index
+    # aligned once anything has failed.
+    if selected_items is not None:
+        enrich_keys = {(it.question, tuple(it.choices)) for it in selected_items}
+        for r in records:
+            it = r["item"]
+            r["enrichment"] = (it.question, tuple(it.choices)) in enrich_keys
     correct = [r for r in records if r["clean_correct"]]
     print(clean_accuracy_line(len(correct), len(records), attrition))
     if len(correct) < 3:
@@ -2441,7 +2536,10 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
             writer.write()
             return 0
 
-    _finalize(correct, arms, ctx, len(items), cue_kind, attrition, specificity_block)
+    enrichment_block = enrichment_counts(records)
+    enrichment_block["item_list"] = item_list_meta
+    _finalize(correct, arms, ctx, len(items), cue_kind, attrition, specificity_block,
+              enrichment=enrichment_block)
     return 0
 
 
@@ -2520,6 +2618,13 @@ def build_parser() -> argparse.ArgumentParser:
                          "every Phase-1 measurement was taken with). Above 1 the records "
                          "are still written in item order and the checkpoint still holds "
                          "a prefix; only the HTTP calls overlap.")
+    ap.add_argument("--item-list", type=Path, default=None,
+                    help="ruling R3(ii): run on EXACTLY the items this list file names "
+                         "(the uncertain_items.json an enrichment pass wrote), instead of "
+                         "the first --n-items of --data. Every record of the cell is "
+                         "marked enrichment=true and the summary counts the two "
+                         "populations apart. Refuses, with no model call, when an index "
+                         "is out of range or its question hash does not match the pool.")
     ap.add_argument("--resume", action="store_true", default=False,
                     help="continue a run stopped mid-flight from its checkpoint "
                          "(arms_checkpoint_<model>.json in --out); re-spends at most the "
@@ -2579,7 +2684,8 @@ def main(argv: list[str] | None = None) -> int:
                repeat_temperatures=repeat_temperatures, repeat_seed=a.repeat_seed,
                chain_repeats=a.chain_repeats,
                chain_repeat_temperature=a.chain_repeat_temperature,
-               chain_repeat_seed=a.chain_repeat_seed)
+               chain_repeat_seed=a.chain_repeat_seed,
+               item_list=a.item_list)
 
 
 if __name__ == "__main__":
