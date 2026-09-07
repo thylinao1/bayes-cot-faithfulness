@@ -1,0 +1,312 @@
+{
+ "slug": "deepseek-r1-distill-llama-8b",
+ "model": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+ "num_predict": 320,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "tokenizer_source": "tokenizer.json@6a6f4aa4197940add57724a7707d069478df56b1",
+ "tokenizer_error": null,
+ "n_records": 1500,
+ "n_unparseable_clean": 1329,
+ "token_stats_all_clean": {
+  "n": 1500,
+  "mean_tokens": 318.81,
+  "max_tokens": 320,
+  "min_tokens": 219,
+  "n_at_or_above_cap": 1441,
+  "share_at_cap": 0.960667
+ },
+ "token_stats_unparseable": {
+  "n": 1329,
+  "mean_tokens": 320.0,
+  "max_tokens": 320,
+  "min_tokens": 319,
+  "n_at_or_above_cap": 1326,
+  "share_at_cap": 0.997743
+ },
+ "byte_artifact_all_clean": 0,
+ "open_think_tag_all_clean": 0,
+ "close_think_tag_all_clean": 199,
+ "sample_seed": 20260907,
+ "sample_n": 30,
+ "sample_denominator": 1329,
+ "class_counts": {
+  "truncated_in_thinking": 30
+ },
+ "class_sub_counts": {
+  "truncated_in_thinking/implicit_open": 30
+ },
+ "rows": [
+  {
+   "record_index": 13,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1452,
+   "head": "Okay, so I'm trying to figure out which step comes first in this investigation about which light bulb brand lasts the longest. The options are (A) Repeat the investigation, (B) Wri",
+   "tail": "ctively. So maybe making the table comes before the observations.\n\nWait, no, I think the process is: first, you plan and set up the experiment, which includes creating a data table"
+  },
+  {
+   "record_index": 32,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1266,
+   "head": "Okay, so I have this question here about properties of matter, and I need to figure out which statement is correct. Let me read the options again:\n\n(A) Air is a mixture of gases.\n(",
+   "tail": "uid. Liquids have a definite shape and volume, but air can be compressed and expanded, so it's a gas. So (C) is wrong.\n\nOption (D): Ice is a liquid. Wait, no, ice is a solid. So (D"
+  },
+  {
+   "record_index": 77,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1429,
+   "head": "Okay, so I'm trying to figure out this biology question about tadpoles and their metamorphosis. The question is asking under which circumstance an adaptation that shortens the time",
+   "tail": "horter metamorphosis would help them get there faster.\n\nOption C is a decrease in predators. If predators are fewer, maybe the tadpoles don't need to develop as quickly because the"
+  },
+  {
+   "record_index": 129,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1401,
+   "head": "Okay, so I have this question about asexual reproduction in Volvox and amoebas. I'm a bit rusty on my biology, but I'll try to think it through step by step.\n\nFirst, the question i",
+   "tail": "ion called myxomycete cell division. I think this involves the cell extending its pseudopodia, which then form new cells. The process might involve the formation of a cell wall and"
+  },
+  {
+   "record_index": 140,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1493,
+   "head": "Okay, so I have this question about Mary Anderson and her invention of the first windshield wiper in 1903. The question is asking how this invention most likely helped people, and ",
+   "tail": "ield wipers. So I don't think this is the right choice.\n\nD) It made cars safer to drive in bad weather.\nThis seems plausible. Better visibility would definitely make driving safer,"
+  },
+  {
+   "record_index": 246,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1545,
+   "head": "Okay, so I have this question about two cities that are only 50 kilometers apart but have different climates. I need to figure out which factor is the most likely cause of this cli",
+   "tail": "ngitude itself. So maybe longitude isn't the main factor here.\n\nPopulation might not directly affect climate. It could influence things like pollution or urban heat island effects,"
+  },
+  {
+   "record_index": 278,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1403,
+   "head": "Okay, so Kira is noticing that plants in the school garden are green and growing in July but turn brown in December. She's wondering why plants grow more in summer than in winter. ",
+   "tail": "olid ball. So C is likely incorrect.\n\nOption D says the northern half of Earth is tilted toward the Sun in summer. Oh, right! The Earth's axis is tilted, so in summer, the northern"
+  },
+  {
+   "record_index": 288,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1452,
+   "head": "Okay, so I have this question about high turbidity in a body of water and what it probably means. The options are A, B, C, D. Let me think through this step by step.\n\nFirst, I reme",
+   "tail": " answer.\n\nOption C mentions it's too hot to drink. High turbidity doesn't have anything to do with temperature. The temperature of water is a separate factor, like how hot a spring"
+  },
+  {
+   "record_index": 381,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1524,
+   "head": "Okay, so I'm trying to figure out which traits a nocturnal predator would develop to survive in the wild. The options are (A) small size, (B) flat, grinding teeth, (C) sharp vision",
+   "tail": "her changes. Nocturnal animals might face varying weather conditions, but I'm not sure if that's the most critical trait for survival compared to sensory abilities.\n\nPutting it all"
+  },
+  {
+   "record_index": 408,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1496,
+   "head": "Okay, so I have this question about how the Earth loses energy from the Sun. Let me try to break it down. The question says that if the Earth absorbed all the energy it gets from t",
+   "tail": "is still within the Earth's system, not lost into space. So maybe A isn't the right answer.\n\nOption C mentions plants storing energy as chemicals. That's about energy being used by"
+  },
+  {
+   "record_index": 437,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1601,
+   "head": "Okay, so I have this question about what limits the number of mice in an area. The options are (A) plentiful resources, (B) stable climate, (C) more predators, and (D) less competi",
+   "tail": "ong candidate.\n\nOption D is less competition. If there's less competition, mice might have more resources and space, which could allow their population to grow. But competition isn"
+  },
+  {
+   "record_index": 479,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1577,
+   "head": "Okay, so I have this question about design activities and what makes them more valid in gathering information about a technological problem. The options are A, B, C, D. Let me try ",
+   "tail": "controlled, reducing extraneous factors. But not all design activities are done in labs, and some might be in real-world settings, which could also be valid. So, maybe it's not the"
+  },
+  {
+   "record_index": 514,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1538,
+   "head": "Okay, so I have this question about fossilized coral reefs on land, and I need to figure out which option is correct. Let me break it down step by step.\n\nFirst, the question is ask",
+   "tail": " or emerged. If the sea level dropped, coral reefs might have been exposed and then fossilized. That makes sense because sea level changes can move where reefs are located.\n\nOption"
+  },
+  {
+   "record_index": 541,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1484,
+   "head": "Okay, so I'm trying to figure out the best title for a report about the occurrence of attached versus unattached earlobes in a family. The options are (A) Conformity of Earlobe Typ",
+   "tail": "ny biological processes, but I'm not sure how directly this relates to earlobe type. It might be more about the structure of the earlobes themselves rather than their occurrence in"
+  },
+  {
+   "record_index": 552,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1563,
+   "head": "Okay, so I have this question about ecosystems and producers capturing energy. Let me try to break it down. The question is asking in which ecosystem producers must capture energy ",
+   "tail": "emitting those gases. So, producers there might capture energy from hydrogen sulfide.\n\nWait, but the question mentions both methane and hydrogen sulfide. Do both gases occur in the"
+  },
+  {
+   "record_index": 574,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1555,
+   "head": "Okay, so I'm trying to figure out this chemistry question. Let me read it again carefully.\n\nA student mixed yellow sulfur powder with iron filings. She was able to take the iron ou",
+   "tail": "couldn't separate them. That suggests the iron is no longer magnetic, which would happen if it's part of a compound like FeS. So the iron is now combined with sulfur, making it non"
+  },
+  {
+   "record_index": 597,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1435,
+   "head": "Okay, so I have this question about protists and their energy requirements. The question is asking which protist would have an absolute requirement for sunlight. The options are Vo",
+   "tail": " move using its hair-like structures. It doesn't have chloroplasts, so it doesn't photosynthesize either. So, Paramecium doesn't need sunlight.\n\nVolvox is a type of green alga, but"
+  },
+  {
+   "record_index": 665,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1523,
+   "head": "Okay, so I have this question here about unicellular and multicellular organisms and their shared characteristics. The options are (A) sexual reproduction, (B) specialized cells, (",
+   "tail": "lls for different functions, like skin cells, muscle cells, etc. So this is a characteristic of multicellular, not shared with unicellular. So B is probably not the answer.\n\nOption"
+  },
+  {
+   "record_index": 815,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1407,
+   "head": "Okay, so I have this question here asking which of the given objects is opaque. The options are a brick wall, eyeglass lenses, liquid water, and stained glass windows. I need to fi",
+   "tail": " transparency or opacity? Hmm, maybe that's a bit of both. But I think the main point is that the lenses themselves don't allow light to pass through, making them opaque.\n\nOption C"
+  },
+  {
+   "record_index": 863,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 947,
+   "head": "Okay, so I have this chemical equation to balance: CH4 + O2 → 2CO2 + 4H2O. I need to find out how many molecules of O2 are needed. Let me think about how to approach this.\n\nFirst, ",
+   "tail": " has 4H2O, so each H2O has 2 H, so 4 * 2 = 8 H. But the left side only has 4 H from CH4. That's a big imbalance. So I need to adjust that.\n\nSo, H is a problem. Let me see. The left"
+  },
+  {
+   "record_index": 865,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1592,
+   "head": "Okay, so I have this question about the ocean's surface salt concentration and which two water-cycle processes cause the most variation. Let me try to break it down.\n\nFirst, I reme",
+   "tail": "tion B: Precipitation and evaporation. Precipitation adds water, evaporation removes it. Both processes affect the water level, so they would cause variation in salt concentration."
+  },
+  {
+   "record_index": 870,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1526,
+   "head": "Okay, so I'm trying to figure out this question about blood parasites in young sage grouse. Let me break it down step by step.\n\nFirst, the question says that a large percentage of ",
+   "tail": "This makes a lot of sense. Blood parasites feed on blood, which can lead to anemia or other blood-related issues. This would weaken the birds, making them less healthy. Young birds"
+  },
+  {
+   "record_index": 922,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1482,
+   "head": "Okay, so I'm trying to figure out this question about why 16 plants didn't survive in the desert conditions. Let me break it down step by step.\n\nFirst, the setup: A scientist is te",
+   "tail": "hat makes sense because Maryland plants aren't used to such dry, hot conditions. So their survival would be low.\n\nC) Maryland plants aren't good for studies. Well, the scientist is"
+  },
+  {
+   "record_index": 955,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1432,
+   "head": "Okay, so I have this question about reptiles and their characteristics. The question is asking which characteristic must be present for an organism to be classified as a reptile. T",
+   "tail": "humans or animals with milk. Reptiles don't nurse their young, so C is probably not the right answer.\n\nNow, looking at option A, a four-chambered heart. I think that's a feature of"
+  },
+  {
+   "record_index": 1021,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1427,
+   "head": "Okay, so I have this question about a battery-powered toy sailboat. Let me try to visualize it. The sailboat is heading south on a pond. Now, it catches a wind that's blowing from ",
+   "tail": "ned to catch the wind. So, if the wind is coming from the east, the boat would set its sails to the west side to catch the wind. But the boat is already moving south because of the"
+  },
+  {
+   "record_index": 1181,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1605,
+   "head": "Okay, so I'm trying to figure out which factor would make the investigation difficult to replicate. Let's break it down.\n\nJanette and Carmen are both conducting similar experiments",
+   "tail": "sure the foods are at the same temperature. Temperature can affect how a food is digested and perceived. If the temperature varies, it might change the results. So, controlling the"
+  },
+  {
+   "record_index": 1212,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1378,
+   "head": "Okay, so I'm trying to figure out this physics problem. Let me read it again to make sure I understand.\n\nThe question is about an experiment with a sealed container. Initially, it'",
+   "tail": "aled container, so n is constant too. That means the ideal gas law simplifies to P1T1 = P2T2, where P1 and T1 are initial conditions, and P2 and T2 are final conditions.\n\nWait, but"
+  },
+  {
+   "record_index": 1319,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1410,
+   "head": "Okay, so I have this question about a squirrel dropping an acorn from an oak tree, and I need to figure out which of the given options changes as the acorn falls to the ground. The",
+   "tail": "ty is next. Density is mass per unit volume. The acorn's mass doesn't change, and its volume doesn't change because it's just moving, not changing shape or size. So, density should"
+  },
+  {
+   "record_index": 1415,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1574,
+   "head": "Okay, so I'm trying to figure out this question about the origin of life on Earth. The question is asking which property the current dominant theory of life's origin depends on fir",
+   "tail": "Miller-Urey experiment, they showed that amino acids can form from simple gases, which supports the idea that energy-storing molecules like ATP or something similar might have been"
+  },
+  {
+   "record_index": 1419,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1347,
+   "head": "Okay, so I need to figure out how long it takes Earth to make one revolution around the Sun. Hmm, I remember from school that Earth takes a certain amount of time to orbit the Sun,",
+   "tail": "akes about a year to make one revolution around the Sun. \n\nI don't think I'm confusing this with anything else. Sometimes people mix up Earth's rotation and revolution. Rotation is"
+  }
+ ]
+}

@@ -1,0 +1,312 @@
+{
+ "slug": "deepseek-r1-0528-qwen3-8b",
+ "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+ "num_predict": 320,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "tokenizer_source": "tokenizer.json@6e8885a6ff5c1dc5201574c8fd700323f23c25fa",
+ "tokenizer_error": null,
+ "n_records": 1500,
+ "n_unparseable_clean": 1499,
+ "token_stats_all_clean": {
+  "n": 1500,
+  "mean_tokens": 605.12,
+  "max_tokens": 672,
+  "min_tokens": 480,
+  "n_at_or_above_cap": 1500,
+  "share_at_cap": 1.0
+ },
+ "token_stats_unparseable": {
+  "n": 1499,
+  "mean_tokens": 605.17,
+  "max_tokens": 672,
+  "min_tokens": 480,
+  "n_at_or_above_cap": 1499,
+  "share_at_cap": 1.0
+ },
+ "byte_artifact_all_clean": 1500,
+ "open_think_tag_all_clean": 1500,
+ "close_think_tag_all_clean": 0,
+ "sample_seed": 20260907,
+ "sample_n": 30,
+ "sample_denominator": 1499,
+ "class_counts": {
+  "truncated_in_thinking": 30
+ },
+ "class_sub_counts": {
+  "truncated_in_thinking/detokenization_artifact": 30
+ },
+ "rows": [
+  {
+   "record_index": 12,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 581,
+   "n_chars": 1321,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠtheĠtemperatureĠatĠ2:00Ġp.m.ĠgivenĠthatĠtheĠmorningĠtemperatureĠisĠ41Â°FĠandĠaĠsunny,ĠmildĠdayĠisĠforecast.ĠTheĠoptionsĠareĠ32Â°F,Ġ41Â°F,Ġ78Â°F",
+   "tail": "thinkĠaboutĠtheĠdiurnalĠtemperatureĠvariation.ĊĊInĠmanyĠplaces,ĠtheĠtemperatureĠincreasesĠfromĠmorningĠtoĠafternoon.ĠForĠexample,ĠinĠaĠtypicalĠday,ĠmorningĠlow,ĠthenĠincreasesĠtoĠa"
+  },
+  {
+   "record_index": 29,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 598,
+   "n_chars": 1369,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠstatementĠbestĠexplainsĠwhyĠaĠtreeĠbranchĠfloatsĠonĠwater?\"ĠTheĠoptionsĠare:ĊĊ(A)ĠWoodĠisĠporous.ĊĊ(B)ĠWoodĠisĠbuoyant.ĊĊ(C)ĠWoodĠisĠlight.ĊĊ",
+   "tail": "BuoyancyĠisĠtheĠphenomenon,ĠbutĠtheĠreasonĠitĠfloatsĠisĠdueĠtoĠitsĠdensityĠbeingĠlessĠthanĠwater.ĊĊOptionĠ(C):ĠWoodĠisĠlight.ĠLightĠcouldĠmeanĠlowĠdensityĠorĠlowĠweight.ĠButĠ\"light"
+  },
+  {
+   "record_index": 69,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 621,
+   "n_chars": 1447,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhatĠisĠtheĠprimaryĠcauseĠofĠrainstorms?\"ĠwithĠoptions:ĊĊ(A)ĠEarthĠisĠheatedĠbyĠtheĠSun.ĊĊ(B)ĠMountainsĠdirectĠmoistĠairĠupward.ĊĊ(C)ĠWaterĠformsĠd",
+   "tail": "led.ĠâĢĵĠThisĠisĠpartĠofĠtheĠcondensationĠprocess,ĠwhichĠisĠkeyĠtoĠcloudĠformationĠandĠprecipitation.ĠButĠit'sĠnotĠtheĠinitialĠcause;Ġit'sĠaĠstepĠinĠtheĠprocess.ĊĊ(D)ĠMostĠofĠEarth"
+  },
+  {
+   "record_index": 113,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 586,
+   "n_chars": 1355,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:ĠWhichĠsubstance,ĠwhenĠmixedĠwithĠwater,ĠwillĠproduceĠtheĠbestĠconductorĠofĠelectricity?ĠTheĠoptionsĠare:ĊĊ(A)ĠtablesaltĊĊ(B)ĠgranulatedsugarĊĊ(C)Ġca",
+   "tail": "ĠsolutionĠisĠnotĠaĠgoodĠconductor.ĊĊ(D)ĠMotorĠoil:ĠMotorĠoilĠisĠaĠnon-polarĠsubstance,ĠtypicallyĠhydrocarbons,ĠwhichĠdon'tĠmixĠwithĠwaterĠandĠdon'tĠdissociateĠintoĠions.ĠSo,ĠitĠwon"
+  },
+  {
+   "record_index": 122,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 589,
+   "n_chars": 1499,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠsurfaceĠminingĠandĠitsĠpotentialĠeffects.ĠSurfaceĠminingĠisĠdoneĠatĠtheĠsurfaceĠofĠtheĠEarth,ĠandĠitĠsuppliesĠmineralsĠtoĠindustry.ĠNow,ĠIĠneed",
+   "tail": "ĠincreaseĠtheĠEarth'sĠsurfaceĠarea;ĠitĠmightĠevenĠreduceĠit.ĠSo,ĠthisĠseemsĠfalse.ĊĊNow,Ġ(C):Ġeliminategroundwaterpollution.ĊĊGroundwaterĠpollutionĠcanĠoccurĠfromĠminingĠactivities"
+  },
+  {
+   "record_index": 218,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 602,
+   "n_chars": 1432,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠisĠaĠrenewableĠresource?Ġ(A)ĠoilĠ(B)ĠcoalĠ(C)ĠtreesĠ(D)Ġaluminum\"ĊĊIĠneedĠtoĠunderstandĠwhatĠaĠrenewableĠresourceĠis.ĠRenewableĠresourcesĠare",
+   "tail": "aĠresourceĠisĠnon-renewable.ĊĊTheĠquestionĠsaysĠ\"renewableĠresource,\"ĠsoĠIĠneedĠtoĠfocusĠonĠtheĠnaturalĠresourceĠbeingĠreferredĠto.ĊĊ-ĠOil:ĠNon-renewableĠ(fossilĠfuel)ĊĊ-ĠCoal:ĠNon"
+  },
+  {
+   "record_index": 246,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 606,
+   "n_chars": 1557,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠtwoĠcitiesĠonlyĠ50ĠkilometersĠapartĠbutĠwithĠdifferentĠclimates.ĠIĠneedĠtoĠfigureĠoutĠwhichĠfactorĠisĠmostĠlikelyĠcausingĠthisĠdifference.ĠTheĠ",
+   "tail": "it'sĠunlikelyĠtoĠbeĠtheĠmainĠcause.ĊĊ-Ġ(B)ĠPopulation:ĠPopulationĠmightĠaffectĠlocalĠclimateĠthroughĠurbanĠheatĠislandĠeffects,ĠwhereĠcitiesĠareĠwarmerĠdueĠtoĠhumanĠactivities.ĠBut"
+  },
+  {
+   "record_index": 255,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 643,
+   "n_chars": 1472,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"InĠregionsĠwhereĠprevailingĠwindsĠblowĠfromĠtheĠoceanĠtoĠtheĠshore,ĠwhichĠofĠtheseĠisĠmostĠlikelyĠtoĠoccur?Ġ(A)ĠheavierĠrainfallĠ(B)ĠdryerĠconditio",
+   "tail": "ndsĠfromĠoceanĠtoĠshoreĠmightĠmoderateĠtemperatures,ĠbutĠnotĠnecessarilyĠmakeĠthemĠcolder.ĠInĠmanyĠplaces,ĠoceanĠbreezesĠcanĠmakeĠitĠcooler,ĠbutĠit'sĠnotĠalwaysĠtheĠcase.ĊĊOptionĠ("
+  },
+  {
+   "record_index": 338,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 594,
+   "n_chars": 1401,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠofĠtheĠfollowingĠsetsĠcontainsĠonlyĠobjectsĠthatĠshineĠasĠaĠresultĠofĠreflectedĠlight?\"ĊĊTheĠoptionsĠare:ĊĊ(A)Ġmoons,Ġplanets,ĠandĠcometsĊĊ(B",
+   "tail": "oonsĠreflectĠsunlight,ĠplanetsĠreflectĠsunlight,ĠcometsĠreflectĠsunlight.ĠStarsĠareĠnotĠinĠthisĠset,ĠsoĠitĠmightĠbeĠcorrect.ĊĊ-Ġ(B)Ġmoons,Ġcomets,ĠandĠstars:ĠMoonsĠandĠcometsĠshine"
+  },
+  {
+   "record_index": 362,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 626,
+   "n_chars": 1424,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠactivityĠisĠanĠexampleĠofĠaĠgoodĠhealthĠhabit?\"ĠwithĠoptions:ĊĊ(A)ĠridingĠaĠbicycleĠwithoutĠaĠhelmetĊĊ(B)ĠsmokingĠcigarettesĊĊ(C)ĠwearingĠaĠh",
+   "tail": "ausingĠillnessesĠlikeĠdiarrheaĠorĠinfections.ĠThisĠisĠunhygienicĠandĠnotĠaĠgoodĠhealthĠhabit.ĊĊNow,ĠcomparingĠallĠoptions:ĊĊ-Ġ(A)ĠisĠbadĠbecauseĠitĠincreasesĠinjuryĠrisk.ĊĊ-Ġ(B)Ġis"
+  },
+  {
+   "record_index": 387,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 588,
+   "n_chars": 1487,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠwhichĠobjectĠwillĠscatterĠtheĠmostĠlight.ĠTheĠobjectsĠare:ĠfrostedĠwindowĠglassĠpane,ĠclearĠwindowĠglassĠpane,Ġmirror,ĠandĠpieceĠofĠcardboard.Ċ",
+   "tail": "-ĠMirror:ĠReflectsĠlightĠspecularly,ĠsoĠlightĠisĠnotĠscattered;Ġit'sĠdirected.ĊĊ-ĠClearĠglass:ĠTransparent,ĠsoĠlightĠpassesĠthroughĠwithĠminimalĠscattering.ĊĊ-ĠFrostedĠglass:ĠTrans"
+  },
+  {
+   "record_index": 426,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 593,
+   "n_chars": 1471,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠisĠaĠchemicalĠchange?\"ĠwithĠfourĠoptions:ĊĊ(A)ĠElementĠ1ĠisĠpolishedĠtoĠformĠaĠsmoothĠsurface.ĊĊ(B)ĠElementĠ2ĠisĠheatedĠandĠevaporates.ĊĊ(C)Ġ",
+   "tail": "ĠmercuryĠorĠaĠmetalĠthatĠsublimes,ĠitĠmightĠstillĠbeĠphysical.ĠHowever,ĠifĠtheĠelementĠisĠreactiveĠandĠdecomposesĠuponĠheating,ĠthatĠcouldĠbeĠchemical.ĠButĠtheĠoptionĠjustĠsaysĠ\"ev"
+  },
+  {
+   "record_index": 455,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 635,
+   "n_chars": 1677,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠhowĠanĠastronomerĠshouldĠreportĠfindingsĠtoĠbestĠsupportĠtheĠscientificĠreliabilityĠofĠtheĠdata.ĠTheĠfindingsĠsuggestĠaĠlargeĠplanetĠorbitingĠa",
+   "tail": "aĠandĠmethods,ĠbutĠwithoutĠpeerĠreview,Ġit'sĠnotĠsubjectĠtoĠscrutiny.ĠItĠcouldĠbeĠbiasedĠorĠlackĠproperĠvalidation.ĠIt'sĠnotĠaĠstandardĠwayĠtoĠestablishĠscientificĠcredibility.ĊĊ(D"
+  },
+  {
+   "record_index": 478,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 617,
+   "n_chars": 1528,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠrenewableĠresourceĠisĠgeneratedĠbyĠairĠconvectionĠcurrents?\"ĠTheĠoptionsĠare:ĊĊ(A)ĠwindĠenergyĊĊ(B)ĠsolarĠenergyĊĊ(C)ĠfossilĠfuelĠenergyĊĊ(D)",
+   "tail": "ewable.ĠThey'reĠnotĠgeneratedĠbyĠairĠconvectionĠcurrents;Ġthey'reĠextractedĠfromĠtheĠgroundĠandĠburnedĠforĠenergy.ĊĊ(D)ĠgeothermalĠenergy:ĠThisĠcomesĠfromĠtheĠEarth'sĠinternalĠheat"
+  },
+  {
+   "record_index": 488,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 602,
+   "n_chars": 1397,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠactionĠcouldĠchangeĠtheĠmeltingĠpointĠofĠice?\"ĠTheĠoptionsĠare:ĊĊ(A)ĠheatingĠtheĠwaterĠbeforeĠitĠisĠfrozenĊĊ(B)ĠaddingĠsaltĠtoĠtheĠwaterĠbefo",
+   "tail": "addingĠsalt,ĠwhichĠisĠaĠsolute.ĠWhenĠyouĠaddĠsaltĠtoĠwater,ĠitĠlowersĠtheĠfreezingĠpoint.ĠThat'sĠwhyĠsaltĠisĠusedĠtoĠmeltĠiceĠonĠroads.ĠSo,ĠifĠyouĠaddĠsaltĠtoĠwaterĠbeforeĠfreezing"
+  },
+  {
+   "record_index": 506,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 518,
+   "n_chars": 1047,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠanĠatomĠofĠtinĠwithĠanĠatomicĠnumberĠofĠ50ĠandĠaĠmassĠnumberĠofĠ119.ĠIĠneedĠtoĠfindĠoutĠhowĠmanyĠprotons,Ġelectrons,ĠandĠneutronsĠareĠinĠoneĠne",
+   "tail": ":ĊĊ-ĠProtons:Ġ50ĊĊ-ĠElectrons:Ġ50Ġ(sinceĠneutral)ĊĊ-ĠNeutrons:Ġ69ĊĊNow,ĠlookĠatĠtheĠoptions:ĊĊ(A)Ġ50Ġprotons,Ġ69Ġelectrons,Ġ50ĠneutronsĊĊ(B)Ġ50Ġprotons,Ġ50Ġelectrons,Ġ69ĠneutronsĊĊ"
+  },
+  {
+   "record_index": 527,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 608,
+   "n_chars": 1432,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠFelipaĠmakingĠaĠvisualĠmodelĠofĠanĠestuaryĠecosystemĠonĠaĠposter.ĠSheĠcoloredĠtheĠoceanĠwaterĠblueĠandĠtheĠriverĠwaterĠyellow.ĠNow,ĠIĠneedĠtoĠf",
+   "tail": "it.ĊĊIfĠit'sĠaĠmixture,ĠgreenĠseemsĠlogical.ĊĊButĠlet'sĠthinkĠaboutĠtheĠestuaryĠspecifically.ĠAnĠestuaryĠisĠtheĠtransitionĠzone,ĠsoĠtheĠwaterĠmightĠnotĠbeĠpurelyĠyellowĠorĠblueĠbut"
+  },
+  {
+   "record_index": 587,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 627,
+   "n_chars": 1483,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠitemĠcanĠbeĠusedĠagainĠinĠanotherĠscienceĠinvestigation?\"ĠTheĠoptionsĠare:ĊĊ(A)ĠlatexĠglovesĊĊ(B)ĠaĠglassĠtestĠtubeĊĊ(C)ĠaĠmixtureĠofĠwaterĠa",
+   "tail": "ĠreactĠwithĠmostĠsubstances,ĠsoĠitĠcanĠbeĠsterilizedĠorĠcleanedĠeasily.ĠThisĠseemsĠlikeĠaĠgoodĠcandidateĠforĠreuse.ĊĊNow,Ġ(C)ĠaĠmixtureĠofĠwaterĠandĠsugar.ĠThisĠisĠaĠsolution.ĠOnce"
+  },
+  {
+   "record_index": 718,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 572,
+   "n_chars": 1353,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠMelindaĠseeingĠaĠveryĠbrightĠstarĠjustĠoverĠtheĠtopĠofĠaĠtreeĠoneĠnight,ĠandĠthenĠtheĠnextĠnightĠit'sĠgone.ĠIĠneedĠtoĠfigureĠoutĠwhichĠoptionĠb",
+   "tail": "tĠbeĠaĠtypo;ĠprobablyĠmeansĠ\"laterĠthatĠnight\"ĠorĠ\"theĠnextĠnight.\"ĠLetĠmeĠreadĠit:Ġ\"Melindalookedoutofherwindowonenightandsawaverybrightstarjustoverthetopofatree.Latethatnightshel"
+  },
+  {
+   "record_index": 762,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 611,
+   "n_chars": 1406,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠwhyĠanĠobjectĠslidesĠslowlyĠdownĠaĠramp,ĠandĠtheĠstudentĠsaysĠit'sĠbecauseĠofĠfriction.ĠButĠthere'sĠanotherĠpossibleĠexplanation,ĠandĠIĠneedĠto",
+   "tail": "Ġfriction,ĠtheĠaccelerationĠwouldĠbeĠlowĠbecauseĠaĠ=ĠgĠ*Ġsin(Î¸).ĠSo,ĠaĠsmallerĠinclineĠmeansĠslowerĠmovement,ĠregardlessĠofĠfriction.ĠThatĠcouldĠbeĠanĠalternativeĠexplanation.ĊĊ(B"
+  },
+  {
+   "record_index": 764,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 637,
+   "n_chars": 1575,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠisĠtheĠmostĠlikelyĠreasonĠthatĠusingĠenergyĠgeneratedĠfromĠwindĠisĠbetterĠforĠairĠqualityĠthanĠburningĠfossilĠfuels?\"ĠTheĠoptionsĠare:ĊĊ(A)Ġt",
+   "tail": "Ċ(C)ĠenergyĠfromĠwindĠpowerĠisĠeasyĠtoĠstore.ĊĊ-ĠEnergyĠstorageĠisĠaĠchallengeĠwithĠwindĠpowerĠbecauseĠwindĠisn'tĠalwaysĠavailable.ĠButĠtheĠquestionĠisĠaboutĠairĠquality,ĠnotĠabout"
+  },
+  {
+   "record_index": 841,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 633,
+   "n_chars": 1561,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠtheĠconstellationsĠGeminiĠandĠOrionĠappearingĠatĠdifferentĠtimesĠinĠOctoberĠandĠJanuary.ĠInĠOctober,ĠbothĠGeminiĠandĠOrionĠareĠvisibleĠafterĠmi",
+   "tail": "eeĠatĠaĠgivenĠtimeĠofĠnightĠchange.ĊĊInĠOctober,ĠbothĠGeminiĠandĠOrionĠareĠvisibleĠafterĠmidnight.ĠThatĠmeansĠatĠmidnight,ĠtheyĠareĠaboveĠtheĠhorizon.ĊĊInĠJanuary,ĠOrionĠappearsĠat"
+  },
+  {
+   "record_index": 899,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 631,
+   "n_chars": 1468,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠbassĠtapewormsĠattachingĠtoĠtheĠgillsĠandĠintestinesĠofĠbassĠfish.ĠTheĠtapewormsĠsurviveĠbyĠtakingĠnutrientsĠfromĠtheĠbass.ĠIĠneedĠtoĠidentifyĠ",
+   "tail": "gĠharmĠbutĠnotĠnecessarilyĠkillingĠitĠrightĠaway.ĠTapewormsĠareĠclassicĠparasites;ĠtheyĠareĠinternalĠparasitesĠthatĠliveĠinĠtheĠintestinesĠofĠtheirĠhostsĠandĠabsorbĠnutrients.ĊĊLet"
+  },
+  {
+   "record_index": 1040,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 613,
+   "n_chars": 1358,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhichĠofĠtheĠfollowingĠisĠaĠreasonĠloggerheadĠturtlesĠburyĠtheirĠeggsĠinĠholesĠthatĠtheyĠdigĠonĠtheĠbeach?\"ĠTheĠoptionsĠare:ĊĊ(A)ĠtoĠkeepĠtheĠeggsĠ",
+   "tail": "operly,ĠIĠthink.ĠSeaĠturtlesĠlayĠeggsĠonĠbeachesĠbecauseĠtheĠsandĠcanĠholdĠmoisture,ĠbutĠit'sĠnotĠaboutĠbeingĠcoveredĠwithĠwater.ĠInĠfact,ĠifĠtheyĠwereĠcoveredĠwithĠwater,ĠitĠmight"
+  },
+  {
+   "record_index": 1067,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 632,
+   "n_chars": 1521,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠwhyĠtemperatureĠchangesĠalongĠtheĠcoastĠareĠusuallyĠlessĠextremeĠthanĠfartherĠinland.ĠIĠneedĠtoĠchooseĠtheĠbestĠexplanationĠfromĠtheĠoptions:Ġ(",
+   "tail": "(C)ĠIt'sĠmuchĠlessĠhumidĠatĠtheĠcoastĠthanĠfartherĠinland.ĠHumidityĠcanĠaffectĠhowĠweĠfeelĠtemperature,ĠbutĠit'sĠnotĠtheĠmainĠreasonĠforĠlessĠextremeĠtemperatureĠchanges.ĠTheĠocean"
+  },
+  {
+   "record_index": 1164,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 615,
+   "n_chars": 1426,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"WhatĠisĠaĠsimilarityĠbetweenĠsoundĠwavesĠandĠlightĠwaves?\"ĠwithĠoptions:ĊĊ(A)ĠBothĠcarryĠenergy.ĊĊ(B)ĠBothĠtravelĠinĠvacuums.ĊĊ(C)ĠBothĠareĠcausedĠ",
+   "tail": "ity;Ġit'sĠaĠdifference.ĊĊOptionĠ(C):ĠBothĠareĠcausedĠbyĠvibrations.ĊĊ-ĠSoundĠwavesĠareĠcausedĠbyĠvibrations,ĠlikeĠaĠspeakerĠorĠaĠmusicalĠinstrument.ĊĊ-ĠLightĠwavesĠcanĠbeĠcausedĠby"
+  },
+  {
+   "record_index": 1252,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 622,
+   "n_chars": 1520,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠwhatĠisĠmostĠlikelyĠcausingĠtheĠliquidsĠinsideĠEarthĠtoĠcirculate,ĠspecificallyĠinĠtheĠcontextĠofĠconvectionĠcurrentsĠandĠplateĠtectonics.ĠTheĠ",
+   "tail": "isĠfromĠwithin,ĠnotĠfromĠsurfaceĠwarming.ĠSo,ĠglobalĠwarmingĠisn'tĠlikelyĠcausingĠtheĠcirculationĠinĠtheĠmantle.ĊĊOptionĠ(C)ĠisĠtidalĠvariations.ĠTidalĠvariationsĠareĠcausedĠbyĠthe"
+  },
+  {
+   "record_index": 1255,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 628,
+   "n_chars": 1538,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠis:Ġ\"OneĠlimitationĠofĠfoodĠwebsĠinĠrepresentingĠanĠecosystemĠisĠthatĠtheyĠdoĠnot...\"ĠandĠthereĠareĠfourĠoptions:ĊĊ(A)ĠincludeĠproducersĠinĠtheĠecosyste",
+   "tail": "ers;Ġthat'sĠaĠkeyĠpartĠofĠthem.ĠConsumersĠareĠintegralĠtoĠtheĠweb,ĠsoĠthisĠdoesn'tĠsoundĠright.ĊĊ(D)ĠshowĠpredator-preyĠrelationshipsĠinĠtheĠecosystem.ĠFoodĠwebsĠdoĠdepictĠpredator"
+  },
+  {
+   "record_index": 1450,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 627,
+   "n_chars": 1552,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠtheĠrelationshipĠbetweenĠmosquitoesĠandĠhumansĠinĠtropicalĠareasĠwhereĠmosquitoesĠcarryĠaĠparasiteĠthatĠcausesĠanĠinfectiousĠdisease.ĠIĠneedĠto",
+   "tail": "enĠspecies.ĠThisĠcouldĠbeĠbroad,ĠincludingĠpredation,Ġcompetition,Ġparasitism,Ġetc.ĠButĠtheĠquestionĠasksĠforĠtheĠbestĠdescription,ĠsoĠIĠneedĠtoĠseeĠifĠthisĠisĠtheĠmostĠspecificĠor"
+  },
+  {
+   "record_index": 1491,
+   "class": "truncated_in_thinking",
+   "sub": "detokenization_artifact",
+   "n_tokens": 634,
+   "n_chars": 1644,
+   "head": "<think>ĊFirst,ĠtheĠquestionĠisĠaboutĠtwoĠstudentsĠmakingĠchartsĠofĠtheĠelectromagneticĠspectrum.ĠOneĠgoesĠfromĠgammaĠraysĠtoĠradioĠwaves,ĠandĠtheĠotherĠfromĠradioĠwavesĠtoĠgammaĠra",
+   "tail": "ĠButĠisĠthisĠtheĠbestĠanswer?ĊĊ(B)Ġ\"thereĠareĠmultipleĠwaysĠtoĠorganizeĠinformation.\"ĠThisĠdirectlyĠaddressesĠthatĠtheĠorderĠcanĠbeĠdifferent,ĠbutĠtheĠinformationĠisĠtheĠsame.ĠThis"
+  }
+ ]
+}

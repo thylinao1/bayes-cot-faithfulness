@@ -1,0 +1,17 @@
+deepseek-r1-0528-qwen3-8b      re-evaluated PASS   stored PASS   agree=True | c=1 30/30 diff 0.0 (120 compared, 0 missing); c=32 30/30 diff 0.0 (120 compared, 0 missing)
+deepseek-r1-distill-llama-8b   re-evaluated PASS   stored PASS   agree=True | c=1 30/30 diff 0.0 (120 compared, 0 missing); c=32 30/30 diff 0.0 (120 compared, 0 missing)
+gemma-2-9b-it                  re-evaluated PASS   stored PASS   agree=True | c=1 30/30 diff 0.0 (120 compared, 0 missing); c=32 30/30 diff 0.0 (120 compared, 0 missing)
+gpt-oss-20b                    NO PROBE ON DISK
+llama-3.1-8b-instruct          re-evaluated PASS   stored PASS   agree=True | c=1 30/30 diff 0.0 (120 compared, 0 missing); c=32 30/30 diff 0.0 (120 compared, 0 missing)
+olmo-3-7b-think                re-evaluated PASS   stored PASS   agree=True | c=1 30/30 diff 0.0 (120 compared, 0 missing); c=32 30/30 diff 0.0 (120 compared, 0 missing)
+phi-4-reasoning                re-evaluated PASS   stored PASS   agree=True | c=1 30/30 diff 0.0 (120 compared, 0 missing); c=32 30/30 diff 0.0 (120 compared, 0 missing)
+qwen3-8b                       re-evaluated PASS   stored PASS   agree=True | c=1 30/30 diff 0.0 (120 compared, 0 missing); c=32 30/30 diff 0.0 (120 compared, 0 missing)
+
+FAIL PROOF on deepseek-r1-0528-qwen3-8b (in memory; nothing on disk is touched):
+  one non-identical completion     -> REFUSE ['concurrency 32: identical completions 29/30, and the rule needs 30/30']
+  a 1e-9 letter-logprob diff       -> REFUSE ['concurrency 32: max abs letter-logprob difference 1e-09, and the rule needs exactly 0.0']
+  one missing letter logprob       -> REFUSE ['concurrency 32: 1 letter logprob(s) missing from the comparison; a missing value is not an equal one']
+  zero logprobs compared           -> REFUSE ['concurrency 32: 0 letter logprobs compared, so the logprob half of the check certifies nothing']
+  the batch-invariant flag off     -> REFUSE ["VLLM_BATCH_INVARIANT on the probing client was '0', not '1'; the pinned serving mode of A3.6 is the flag ON, and a flag-off run is exploratory"]
+  only 29 items probed             -> REFUSE ['the probe ran 29 items, not the 30 the rule names; a shorter set makes 30/30 unreachable and a longer one is a different measurement']
+FAIL PROOF: every perturbation refuses

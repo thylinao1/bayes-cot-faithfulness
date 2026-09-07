@@ -1,0 +1,333 @@
+{
+ "model": "allenai/Olmo-3-7B-Think",
+ "config": "A",
+ "num_predict": 320,
+ "n_items": 30,
+ "concurrency": 32,
+ "seed": 7,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "prefill_mode": "closed_think",
+ "extraction": "whole completion",
+ "pass": {
+  "n": 30,
+  "n_parsed": 29,
+  "parse_rate": 0.966667,
+  "n_correct": 23,
+  "clean_accuracy": 0.766667,
+  "seconds_total": 15.693,
+  "seconds_per_item": 0.5231,
+  "mean_completion_tokens": 160.27,
+  "max_completion_tokens": 320,
+  "n_finish_length": 1,
+  "n_closing_think_tag": 0,
+  "client_stats": {
+   "requests_ok": 30,
+   "retries": 0,
+   "requests_failed": 0
+  },
+  "prefill_branch": "closed_the_block_the_template_opened",
+  "rendered_prompt_tail": ".\n(D) Penguins make great pets.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+ },
+ "rows": [
+  {
+   "completion_tokens": 105,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "s result from a higher rotational speed, not changes in density, gravity, or year length.  \n5. Planetary years (orbital period around the star) are unaffected by surface rotation speed.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 103,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "enhancing safety for occupants and reducing structural failure.\n5. While speed, aesthetics, or cost might be secondary factors, the primary outcome of such testing is safety optimization.\n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 83,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "absorbed energy is then used to convert carbon dioxide and water into glucose (sugar) and oxygen.  \n4. The initial step involving light energy conversion marks the start of the process.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 117,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": true,
+   "tail": "ed, which in this case is whether the car jumps over the ramp.  \n5. The independent variable is the factor that is intentionally changed to observe its effect on the dependent variable.  \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "c energy.  \n11. The question asks which statement *best describes* the objects after 1.0 m.  \n12. All options except (A) mention energy changes, but (A) is true: both lost potential energy (and gained"
+  },
+  {
+   "completion_tokens": 197,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "ong-term, non-acute condition; it is often fatal quickly due to tumor growth.  \n8. The term \"chronic\" typically implies persistent, long-lasting illness, which may not fully apply here.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 231,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "sure survival during food scarcity, not just to prevent immediate decay.\n8. The most consistent explanation across seasonal patterns and mammalian behavior is storing food for winter use.\n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 282,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "ecological requirements of palm trees.  \n8. Option (D) refers to \"active faults,\" but the question provides no geological evidence (e.g., seismic activity, fault lines) to support this.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 243,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "s, which is unrelated to the removal of hawks.  \n9. The most direct and likely outcome is that prey populations (like mice and rats) would rise if their predator (hawks) was eliminated.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 135,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": false,
+   "tail": "neutrons but is not the smallest unit; it is composed of protons and neutrons.  \n5. The proton (D) is the smallest subatomic particle that defines the element's identity and properties.  \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 195,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "organization differ.\n6. Energy molecules (D) like ATP are used by both types of cells and are not unique to either.\n7. The most distinguishing feature listed here is size differences (B).\n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 96,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "light warms the Earth, it does not provide minerals to oceans.  \n5. Organisms rising to the surface are influenced by factors like temperature and light, not directly by the Sun's rays.  \n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 138,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "ion (C) 78°F aligns with a typical afternoon temperature rise on a sunny day.  \nOption (D) 98°F is extremely hot and unlikely for a \"mild\" day.  \nThe most reasonable choice is (C) 78°F.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 92,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "  \n5. Analyze the collected data to determine which brand lasts longest.  \n6. Write a report summarizing the findings.  \n7. Repeat the investigation if initial results are inconclusive.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 139,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": false,
+   "tail": "gas in the Earth's atmosphere overall.\n5. Carbon dioxide (CO₂) is the most abundant long-lived greenhouse gas in the lower atmosphere, contributing significantly to the greenhouse effect.\n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 31,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "Water freezes at 0 degrees Celsius because that is the temperature at which liquid water turns into ice under standard atmospheric pressure. \n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 219,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": " the scientific process, not erasure.\n6. The best approach is to integrate new findings with existing knowledge, ensuring reports reflect the most current and comprehensive understanding.\n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 95,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "rally.  \n4. The tea is initially hotter than the ice, so heat will move from the tea to the ice.  \n5. This transfer cools the tea and warms the ice until thermal equilibrium is reached.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 74,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": false,
+   "tail": "to produce boards. Since the question asks why this might affect people who need boards in the future, the key impact is reduced availability of the resource (boards) due to fewer trees. \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 195,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": false,
+   "tail": "primary reason; specific tools and observations were.  \n7. The microscope enabled direct evidence against spontaneous generation by revealing existing life forms in non-living material.  \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 189,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "tion (C) refers to cellular control, which is more associated with the nucleus or other regulatory organelles.\n10. The key role in food digestion is enzymatic breakdown of food particles.\n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 184,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "Option (A) and (C) are unbalanced and lack proper chemical formulas.  \n7. The reaction requires an electric current (electrolysis), but the question only asks for the chemical equation.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 144,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "most beautiful birds\" is subjective and not a scientific fact.  \n6. Keeping penguins as pets is illegal in most countries due to their specialized habitat needs and conservation status.  \n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 227,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "warm more than the room temperature but not as much as the difference between 50°F and 73°F.  \n8. The result is that both final temperatures will be approximately the same, around 73°F.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 153,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "or helium.\n7. Wind is the movement of air, not a form of water.\n8. Clouds are collections of water droplets or ice crystals in the atmosphere, but they are not a form of water themselves.\n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 145,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": true,
+   "tail": "that occur between liquid and gas at the surface of a liquid, not due to freezing.\n6. While gases can form in cold environments, the primary effect of freezing on juice is solidification.\n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 137,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "e (eliminating option D), as heavy rain is part of the region's climate variability.  \n5. Flash floods are seasonal but irregular, depending on monsoon patterns or other weather events.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 163,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "m highest to lowest temperature should be blue (Object 1) > orange (Object 3) > red (Object 2).\n8. Comparing the options, only option (B) matches this order: Object 1, Object 3, Object 2.\n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 201,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": false,
+   "tail": "7. This energy is transferred to higher trophic levels, including fish, whales, and other marine animals.  \n8. Thus, plankton are most useful as a primary food source for ocean animals.  \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 175,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": false,
+   "tail": " with low density, a key factor in floating.  \n7. Option (D) mentions magnetism, which is irrelevant to floating.  \n8. The correct explanation is that wood's low density makes it float.  \n\nAnswer: (C)"
+  }
+ ],
+ "r1_preflight": {
+  "rule": "30/30 identical completions and max abs letter-logprob diff exactly 0.0 at 1 and at the run concurrency, VLLM_BATCH_INVARIANT=1",
+  "verdict": "PASS",
+  "levels": [
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 1,
+    "generations_per_second": 0.1335
+   },
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 32,
+    "generations_per_second": 1.9828
+   }
+  ]
+ }
+}

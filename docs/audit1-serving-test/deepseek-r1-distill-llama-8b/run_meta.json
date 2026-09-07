@@ -1,0 +1,17 @@
+{
+ "job_id": "827137",
+ "model": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+ "hf_revision": "6a6f4aa4197940add57724a7707d069478df56b1",
+ "slug": "deepseek-r1-distill-llama-8b",
+ "substrate": "arc_challenge",
+ "n_items": 30,
+ "num_predict_A": 320,
+ "num_predict_B": 4096,
+ "concurrency": 32,
+ "seed": 7,
+ "vllm_batch_invariant_env": "1",
+ "vllm_use_flashinfer_sampler": "0",
+ "hostname": "xgpg6",
+ "run_label": "audit_serving_test_exploratory",
+ "note": "element 9.4 serving test; data only, no ruling, not a cell of record"
+}

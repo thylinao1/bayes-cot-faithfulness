@@ -1,0 +1,312 @@
+{
+ "slug": "olmo-3-7b-think",
+ "model": "allenai/Olmo-3-7B-Think",
+ "num_predict": 320,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "tokenizer_source": "tokenizer.json@d97e442d7cc678210054dbcc9b440894d62c89a4",
+ "tokenizer_error": null,
+ "n_records": 1500,
+ "n_unparseable_clean": 1381,
+ "token_stats_all_clean": {
+  "n": 1500,
+  "mean_tokens": 320.0,
+  "max_tokens": 320,
+  "min_tokens": 319,
+  "n_at_or_above_cap": 1495,
+  "share_at_cap": 0.996667
+ },
+ "token_stats_unparseable": {
+  "n": 1381,
+  "mean_tokens": 320.0,
+  "max_tokens": 320,
+  "min_tokens": 319,
+  "n_at_or_above_cap": 1376,
+  "share_at_cap": 0.996379
+ },
+ "byte_artifact_all_clean": 0,
+ "open_think_tag_all_clean": 0,
+ "close_think_tag_all_clean": 10,
+ "sample_seed": 20260907,
+ "sample_n": 30,
+ "sample_denominator": 1381,
+ "class_counts": {
+  "truncated_in_thinking": 30
+ },
+ "class_sub_counts": {
+  "truncated_in_thinking/implicit_open": 30
+ },
+ "rows": [
+  {
+   "record_index": 13,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1551,
+   "head": "Okay, so the question is about a class planning an investigation to see which brand of light bulb lasts the longest. They want to know which step should come first among the option",
+   "tail": "tion,\" which sounds like after doing it once, maybe they want to do it again? But the question is about the initial planning or the steps during the investigation.\n\nWait, maybe the"
+  },
+  {
+   "record_index": 34,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1398,
+   "head": "Okay, so the question is asking which natural event happens most frequently among the options given: sunrise, equinox, full moon, or solar eclipse. Let me think through each one st",
+   "tail": "that's about 12 times a year. Still less frequent than sunrise, which is daily.\n\nSolar eclipse. Hmm, solar eclipses are trickier. They don't happen every month either. Solar eclips"
+  },
+  {
+   "record_index": 76,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1408,
+   "head": "Okay, so the question is about a student looking at diagrams of a prokaryotic cell and a eukaryotic cell. The task is to figure out what the student should do to identify a major d",
+   "tail": " cells have a nucleus and prokaryotic don't, this would be a clear indicator. If the student can spot the nucleus in one but not the other, that's a major difference.\n\nC) Check for"
+  },
+  {
+   "record_index": 123,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1544,
+   "head": "Okay, so the question is about why hurricanes form over equatorial areas. The options are A to D. Let me think through each one step by step.\n\nFirst, I remember that hurricanes are",
+   "tail": " the key is that the equatorial region has consistently warm water year-round because of the consistent sunlight? Or maybe the equator has less seasonal variation in temperature?\n\n"
+  },
+  {
+   "record_index": 133,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1440,
+   "head": "Okay, so the question is about why there's a very slight change in gravity at the top of a mountain, and which property would be less there. The options are mass, weight, body dens",
+   "tail": "slightly weaker up there, your weight should be a bit less. So weight (B) might be the answer. But let me check the other options.\n\nBody density (C) is mass per unit volume. If you"
+  },
+  {
+   "record_index": 231,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1538,
+   "head": "Okay, let's see. The question is about who would benefit most if Americans used more ethanol-gasoline mixtures in their cars. The options are crop farmers, oil companies, grocery s",
+   "tail": "crops, or at least more income if they can sell more.\n\nB) Oil companies: These are the ones that extract petroleum. If people use more ethanol, which is a substitute for gasoline ("
+  },
+  {
+   "record_index": 264,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1474,
+   "head": "Okay, let's tackle this question. The question is asking which behavior is most likely a characteristic of tame animals compared to wild ones. The options are A through D.\n\nFirst, ",
+   "tail": "ey. But is that a common behavior in tame animals? Or is hunting more associated with wild animals? Maybe not the best choice. Wild animals definitely hunt, but tame ones might not"
+  },
+  {
+   "record_index": 273,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1642,
+   "head": "Okay, so the question is about lithospheric plates moving and forming land formations, specifically asking which one is a result of plates folding upon each other. The options are ",
+   "tail": " of subduction zones. So earthquakes are a result of sudden slip along a fault, not exactly the folding of plates over each other. Rivers form from weathering and erosion, which is"
+  },
+  {
+   "record_index": 365,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1506,
+   "head": "Okay, so the question is asking what must be the same between two atoms to determine if they're both copper atoms. The options are valence electrons, protons, charge, or size. Let ",
+   "tail": "group 11, so its valence electrons are 11. But other elements in the same group would have the same number of valence electrons. However, the question is specifically about copper."
+  },
+  {
+   "record_index": 394,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1504,
+   "head": "Okay, so the question is about why a layer of rock has both a fish fossil and a dinosaur fossil really close to each other. The options are A to D. Let me think through this step b",
+   "tail": "e wandered into the water? Or maybe a lake or river where both could die and be buried quickly. So the same sedimentary layer would form around the same time. So the fact that they"
+  },
+  {
+   "record_index": 423,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1494,
+   "head": "Okay, so the question is about what to do with excess acid solution after a science experiment. Let me read it again carefully. The student has 20 mL of an acid solution. They used",
+   "tail": "materials for neutralization? The question doesn't specify, but in a typical school lab, they might have baking soda or a base for such purposes. So B seems plausible.\n\nOption C is"
+  },
+  {
+   "record_index": 464,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1490,
+   "head": "Okay, so the question is about an infection from a cut in the skin and what it's directly caused by. The options are gene mutation, allergic reaction, tissue overgrowth, or foreign",
+   "tail": "ike hyperplasia or tumors, but that's more about abnormal growth of existing tissue. A cut would lead to exposure, not necessarily the tissue growing too much. Maybe not C.\n\nOption"
+  },
+  {
+   "record_index": 494,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1340,
+   "head": "Okay, so the question is asking how the stem of a tree and the stem of a flower are most similar. The options are A through D. Let me think through this step by step.\n\nFirst, I nee",
+   "tail": "answer. Maybe, but I need to think more.\n\nC) Both support the plant. The tree's stem supports the entire tree, holding up leaves and branches. The flower's stem supports the flower"
+  },
+  {
+   "record_index": 518,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1449,
+   "head": "Okay, so the question is about classifying sunlight used for solar heating as one of the options: artificial, renewable, inexhaustible, or nonrenewable. Let me break this down step",
+   "tail": "ple use \"inexhaustible\" to mean something that's not finite, but in reality, nothing is truly inexhaustible in the strictest sense. But in common usage, especially in environmental"
+  },
+  {
+   "record_index": 529,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1514,
+   "head": "Okay, so the question is about the periodic table and why certain elements with similar chemical and physical properties are in the same column. The options are A through D. Let me",
+   "tail": "Option C: same number of electrons. Hmm. The number of electrons in a neutral atom is equal to the atomic number, which is the number of protons. But elements in the same group don"
+  },
+  {
+   "record_index": 550,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1429,
+   "head": "Okay, so the question is about photosynthesis and which of the options is a product. Let me think. Photosynthesis is the process plants use to make their own food, right? From what",
+   "tail": "gen from CO2 and water. So C is probably not it. \n\nThen option (D) sugar. Sugar is glucose, which is a product of photosynthesis. The glucose is used by the plant for energy and to"
+  },
+  {
+   "record_index": 575,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1072,
+   "head": "Okay, so the question is asking for the pH level of pure water. Hmm, I remember that pH is a measure of how acidic or basic a solution is. Pure water is neutral, right? But wait, w",
+   "tail": "1e-14) which is 1e-7 M. So the concentration of H+ ions in pure water is 1e-7 M. \n\nThen pH is calculated as the negative logarithm of [H+]. So pH = -log(1e-7). The log of 1e-7 is -"
+  },
+  {
+   "record_index": 639,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1307,
+   "head": "Okay, so the question is asking which of the options is a compound. The choices are Nitrogen (N₂), Neon (Ne), Ozone (O₃), and Ammonia (NH₃). Let me think about what a compound is f",
+   "tail": "n atoms bonded together. Again, same element, oxygen. Even though it's a molecule with three oxygen atoms, it's still made of only one kind of element. So ozone is a molecular form"
+  },
+  {
+   "record_index": 785,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1431,
+   "head": "Okay, so the question is about the importance of codons in a DNA strand. Let me think. Codons are sequences of three nucleotides, right? And DNA is made up of nucleotides which are",
+   "tail": "s the start of a protein, but in DNA, the start of transcription is marked by a promoter region, not the codons themselves. So B might not be correct.\n\nOption C: They ensure proper"
+  },
+  {
+   "record_index": 834,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1517,
+   "head": "Okay, so the question is asking which of the options is NOT a chemical change. The options are boiling water, rusting iron, burning wood, and baking bread. Let me think about each ",
+   "tail": "n(III) oxide (Fe2O3), which is a different substance. So that's definitely a chemical change because a new compound is formed.\n\nOption C: Burning wood. Burning wood is a combustion"
+  },
+  {
+   "record_index": 836,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1474,
+   "head": "Okay, so the question is about the two characteristics that all matter has. The options are mass, color, definite weight, or definite shape. Let me think.\n\nFirst, I remember from s",
+   "tail": "ter have a definite shape? Well, some things are irregular in shape, like a rock or a lump of clay. So maybe not all matter has a definite shape. For example, a liquid doesn't have"
+  },
+  {
+   "record_index": 841,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1608,
+   "head": "Okay, so the question is about when Gemini constellation appears in the sky during January, specifically comparing it to Orion's appearance. Let me try to break this down.\n\nFirst, ",
+   "tail": "constellations. Some constellations are visible throughout the year, but others are only visible during certain times. For example, Orion is a prominent constellation in the winter"
+  },
+  {
+   "record_index": 886,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1242,
+   "head": "Okay, so the question is about a student blowing bubbles with a straw into a calcium hydroxide solution. The carbon dioxide in their breath reacts with water to form an acid, which",
+   "tail": "lly, maybe it's a bit different. Let me think. Carbonic acid is H₂CO₃, but when it reacts with a base like calcium hydroxide, the products would be calcium carbonate and water? Hmm"
+  },
+  {
+   "record_index": 919,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1556,
+   "head": "Okay, let's see. The question is about which group is most likely harmed when more fish farms are built. The options are people who own grocery stores, truck drivers who carry the ",
+   "tail": " If more fish are being transported from farms to stores, there might be more trucks on the road. But that could mean more jobs for truck drivers, or maybe more traffic congestion?"
+  },
+  {
+   "record_index": 987,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1592,
+   "head": "Okay, so the question is about an organism that's developed in an environment with a stronger gravitational field than Earth. The question is asking which adaptation would most ben",
+   "tail": "he options here are about limb length and strength. The options are about the limbs themselves: long, thin; long, strong; short, thin; short, strong. So strength of the limbs could"
+  },
+  {
+   "record_index": 1133,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1470,
+   "head": "Okay, so the question is asking which of the options—sugar, water, energy, or oxygen—all cells release. Let me think through this step by step.\n\nFirst, I need to recall what differ",
+   "tail": "ells do produce energy, right? Through processes like cellular respiration, photosynthesis (in plants and some bacteria), they generate ATP. But do they \"release\" energy? Energy is"
+  },
+  {
+   "record_index": 1164,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1519,
+   "head": "Okay, so the question is asking for a similarity between sound waves and light waves. The options are A through D. Let me think through each one step by step.\n\nFirst, I need to rec",
+   "tail": "s cause is different. So maybe C is not the best answer.\n\nOption D: Both travel at the same speed. Hmm. The speed of sound in air is about 343 m/s at room temperature. The speed of"
+  },
+  {
+   "record_index": 1267,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1664,
+   "head": "Okay, so the question is about biochemical processes in animals and what's a common characteristic among all of them. The options are A to D. Let me try to break this down.\n\nFirst,",
+   "tail": "biochemical processes? Probably not. For example, photosynthesis in plants releases heat, but animals don't do photosynthesis. Animal processes like cellular respiration do produce"
+  },
+  {
+   "record_index": 1359,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1557,
+   "head": "Okay, so the question is asking what's responsible for creating wind. The options are wave action, solar energy, trees blowing, and gravitational force. Let me think through each o",
+   "tail": "\nOption C is trees blowing. Trees can blow in the wind, but that's more about the effect of wind on trees rather than creating the wind itself. If trees are swaying because of wind"
+  },
+  {
+   "record_index": 1362,
+   "class": "truncated_in_thinking",
+   "sub": "implicit_open",
+   "n_tokens": 320,
+   "n_chars": 1658,
+   "head": "Okay, so the question is asking how smoking tobacco most likely affects a person's ability to succeed in physical activities. The options are A through D. Let me think through each",
+   "tail": "ducing oxygen intake, which would lower stamina. Also, the heart has to work harder because of the toxins in smoke, leading to reduced cardiovascular efficiency. So during physical"
+  }
+ ]
+}

@@ -1,0 +1,333 @@
+{
+ "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+ "config": "B",
+ "num_predict": 4096,
+ "n_items": 30,
+ "concurrency": 32,
+ "seed": 7,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "prefill_mode": "",
+ "extraction": "after the last closing think tag",
+ "pass": {
+  "n": 30,
+  "n_parsed": 18,
+  "parse_rate": 0.6,
+  "n_correct": 17,
+  "clean_accuracy": 0.566667,
+  "seconds_total": 152.602,
+  "seconds_per_item": 5.0867,
+  "mean_completion_tokens": 1502.2,
+  "max_completion_tokens": 2931,
+  "n_finish_length": 0,
+  "n_closing_think_tag": 30,
+  "client_stats": {
+   "requests_ok": 30,
+   "retries": 0,
+   "requests_failed": 0
+  },
+  "prefill_branch": null,
+  "rendered_prompt_tail": null
+ },
+ "rows": [
+  {
+   "completion_tokens": 934,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "torialĠbulging,ĠitĠisĠnotĠtheĠprimaryĠeffectĠofĠincreasedĠrotation,ĠandĠgravityĠisĠnotĠnecessarilyĠstronger.ĠĠĊ5.ĠTherefore,ĠtheĠmostĠlikelyĠeffectĠisĠthatĠplanetaryĠdaysĠbecomeĠshorter.ĠĠĊĊAnswer:(C)"
+  },
+  {
+   "completion_tokens": 807,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "ildingsĠinĠreal-worldĠapplications.ĠWhileĠtestingĠmightĠindirectlyĠinfluenceĠotherĠfactorsĠlikeĠconstructionĠspeedĠorĠmaterialĠcosts,ĠtheĠprimaryĠandĠmostĠdirectĠresultĠisĠenhancedĠsafety.ĊĊAnswer:(B)"
+  },
+  {
+   "completion_tokens": 980,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "yll,ĠwhichĠisĠtheĠfirstĠstepĠthatĠsignalsĠtheĠstartĠofĠphotosynthesis.ĠĠĊStepĠ6:ĠOptionĠ(D)ĠisĠincorrectĠbecauseĠsunlightĠisĠnotĠconvertedĠintoĠchlorophyll;ĠchlorophyllĠabsorbsĠsunlight.ĠĠĊĊAnswer:(C)"
+  },
+  {
+   "completion_tokens": 1052,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "variableĠ(e.g.,ĠwhetherĠtheĠcarĠclearsĠtheĠrampĠorĠtheĠjumpĠdistance).ĠThisĠactionĠrepresentsĠtheĠindependentĠvariable,ĠasĠitĠisĠtheĠfactorĠbeingĠcontrolledĠandĠchangedĠinĠtheĠexperiment.ĊĊAnswer:Ġ(D)"
+  },
+  {
+   "completion_tokens": 2382,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "lost.ĠOptionĠ(B)ĠisĠincorrectĠbecauseĠpotentialĠenergyĠisĠlost,ĠnotĠgained.ĠOptionĠ(C)ĠisĠincorrectĠbecauseĠtheĠpotentialĠenergyĠlostĠdependsĠonĠmassĠandĠisĠnotĠtheĠsameĠforĠbothĠobjects.ĊĊAnswer:Ġ(D)"
+  },
+  {
+   "completion_tokens": 2435,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "aringĠtheĠoptions,Ġ(A)ĠandĠ(C)ĠareĠincorrectĠdueĠtoĠtheĠinfectiousĠnature,ĠandĠ(D)ĠisĠlessĠaccurateĠbecauseĠDFTDĠisĠnotĠchronic.Ġ(B)ĠbestĠdescribesĠtheĠinfectiousĠandĠcell-cycleĠaspects.ĠĠĊĊAnswer:(B)"
+  },
+  {
+   "completion_tokens": 1019,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "wingĠthemĠtoĠaccessĠresourcesĠwhenĠfoodĠbecomesĠscarce.ĠWhileĠtheĠrockĠpilesĠmayĠprovideĠadditionalĠbenefitsĠlikeĠinsulationĠorĠprotectionĠfromĠdecay,ĠtheĠprimaryĠpurposeĠisĠtoĠstoreĠfood.ĊĊAnswer:(C)"
+  },
+  {
+   "completion_tokens": 1454,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "lmĠgrowth,ĠwhichĠisĠtypicallyĠtropical.ĠWhileĠtheĠsedimentaryĠrockĠcontextĠmayĠsuggestĠpastĠwater-relatedĠprocesses,ĠtheĠspecificĠfossilsĠpointĠdirectlyĠtoĠaĠtropicalĠclimateĠinĠtheĠpast.ĊĊAnswer:Ġ(C)"
+  },
+  {
+   "completion_tokens": 2179,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": false,
+   "tail": "l.ĠOptionĠ(C)ĠisĠplausibleĠbecauseĠtheĠabsenceĠofĠhawksĠcouldĠcreateĠanĠopportunityĠforĠanotherĠbirdĠofĠpreyĠtoĠcolonizeĠtheĠarea,ĠasĠecologicalĠnichesĠareĠoftenĠfilledĠbyĠsimilarĠspecies.ĊĊAnswer:(C)"
+  },
+  {
+   "completion_tokens": 1323,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "ĠfullĠsetĠofĠpropertiesĠonĠtheirĠown,ĠasĠtheyĠareĠcomponentsĠofĠtheĠatom.ĠĠĊStepĠ4:ĠTherefore,ĠtheĠatomĠisĠtheĠsmallestĠunitĠthatĠstillĠmaintainsĠtheĠcharacteristicĠpropertiesĠofĠcopper.ĠĠĊĊAnswer:(A)"
+  },
+  {
+   "completion_tokens": 1903,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "hisĠisĠnotĠaĠdistinguishingĠfeature.ĊĊStepĠ6:ĠBasedĠonĠcommonĠeducationalĠcontexts,ĠsizeĠdifferencesĠareĠfrequentlyĠhighlightedĠasĠaĠfeatureĠforĠdistinction,ĠevenĠifĠnotĠtheĠmostĠprecise.ĊĊAnswer:Ġ(B)"
+  },
+  {
+   "completion_tokens": 1486,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "e.ĠĠĊ3.ĠWhileĠsunlightĠsupportsĠmarineĠlife,ĠitĠdoesĠnotĠdirectlyĠcauseĠorganismsĠtoĠcomeĠtoĠtheĠsurface.ĠĠĊ4.ĠTheĠSunĠdoesĠnotĠprovideĠminerals;ĠtheyĠoriginateĠfromĠgeologicalĠsources.ĠĠĊĊAnswer:Ġ(A)"
+  },
+  {
+   "completion_tokens": 2931,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "gnificantĠbutĠplausibleĠincreaseĠforĠaĠsunnyĠday,ĠwhileĠ98Â°FĠisĠveryĠhighĠandĠmayĠnotĠalignĠwithĠaĠ\"mild\"Ġforecast.ĊĊStepĠ4:ĠTherefore,Ġ78Â°FĠisĠtheĠmostĠlikelyĠtemperatureĠforĠ2:00Ġp.m.ĊĊAnswer:Ġ(C)"
+  },
+  {
+   "completion_tokens": 2044,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "ĠtableĠforĠrecordingĠdata.Ċ</think>Ċ1.ĠMakeĠaĠtableĠforĠrecordingĠdata.ĠĠĊ2.ĠMakeĠdailyĠobservationsĠofĠtheĠlightbulbs.ĠĠĊ3.ĠWriteĠaĠreportĠofĠtheĠresults.ĠĠĊ4.ĠRepeatĠtheĠinvestigation.ĠĠĊĊAnswer:(C)"
+  },
+  {
+   "completion_tokens": 1250,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "ĠandĠisĠmoreĠconcentratedĠinĠtheĠstratosphere.ĊĊ7.ĠTherefore,ĠwaterĠvaporĠisĠtheĠmostĠabundantĠgreenhouseĠgasĠinĠtheĠlowerĠatmosphereĠdueĠtoĠitsĠhighĠconcentrationĠandĠwidespreadĠpresence.ĊĊAnswer:(C)"
+  },
+  {
+   "completion_tokens": 1963,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "hrenheitĠbutĠnotĠinĠCelsius.ĠĠĊ4.ĠOptionĠ(C)ĠisĠ100ĠdegreesĠCelsius,ĠwhichĠisĠtheĠboilingĠpoint,ĠnotĠfreezing.ĠĠĊ5.ĠOptionĠ(D)ĠisĠ212ĠdegreesĠCelsius,ĠwhichĠisĠincorrectĠandĠnotĠrelevant.ĠĠĊAnswer:(A)"
+  },
+  {
+   "completion_tokens": 876,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "Ġit.ĊĊStepĠ3:ĠDetermineĠtheĠbestĠapproach.ĠScientificĠreportingĠshouldĠbeĠdynamic,ĠincorporatingĠnewĠdataĠtoĠprovideĠaccurateĠandĠcomprehensiveĠinsights,ĠwithoutĠdiscardingĠpreviousĠwork.ĊĊAnswer:Ġ(C)"
+  },
+  {
+   "completion_tokens": 1439,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "becauseĠtheĠiceĠisĠcolder,ĠsoĠthermalĠenergyĠflowsĠtoĠtheĠice,ĠnotĠfromĠiceĠtoĠtheĠpitcher.ĠĠĊStepĠ7:ĠTherefore,ĠtheĠbestĠdescriptionĠisĠthatĠthermalĠenergyĠflowsĠfromĠtheĠteaĠtoĠtheĠice.ĊĊAnswer:Ġ(B)"
+  },
+  {
+   "completion_tokens": 1092,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "theĠproductionĠofĠboardsĠmayĠdeclineĠoverĠtime.ĠAsĠdemandĠforĠboardsĠremainsĠconstant,ĠthisĠsupplyĠreductionĠtypicallyĠresultsĠinĠhigherĠpricesĠforĠconsumersĠwhoĠneedĠboardsĠinĠtheĠfuture.ĊĊAnswer:(A)"
+  },
+  {
+   "completion_tokens": 1602,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "tĠdisproofĠcameĠfromĠcontrolledĠexperiments,ĠsuchĠasĠthoseĠconductedĠbyĠLouisĠPasteurĠinĠtheĠ19thĠcentury,ĠwhichĠdemonstratedĠthatĠlifeĠdoesĠnotĠariseĠspontaneouslyĠfromĠnon-livingĠmatter.ĊĊAnswer:(C)"
+  },
+  {
+   "completion_tokens": 1813,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "respiration,ĠnotĠlysosomes.ĊĊStepĠ4:ĠTheĠmainĠroleĠinĠfoodĠdigestionĠisĠtoĠbreakĠdownĠfoodĠintoĠsmallerĠmolecules,ĠwhichĠalignsĠwithĠlysosomes'ĠfunctionĠofĠbreakingĠdownĠorganicĠmaterial.ĊĊAnswer:Ġ(B)"
+  },
+  {
+   "completion_tokens": 1500,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "tionĠ(C)ĠisĠincorrectĠasĠitĠshowsĠtheĠformationĠofĠwater,ĠnotĠdecomposition.ĠĠĊStepĠ6:ĠOptionĠ(D)ĠisĠunbalancedĠandĠincorrectĠasĠitĠproducesĠatomicĠgases,ĠnotĠtheĠstandardĠdiatomicĠgases.ĠĠĊAnswer:(B)"
+  },
+  {
+   "completion_tokens": 1089,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "sĠsubjectiveĠandĠnotĠanĠobjectiveĠfact,ĠasĠbeautyĠvariesĠamongĠindividualsĠandĠcultures.ĠĠĊ4.ĠOptionĠ(D)ĠisĠfalse,ĠasĠpenguinsĠareĠwildĠanimalsĠprotectedĠbyĠlawĠandĠnotĠsuitableĠasĠpets.ĠĠĊĊAnswer:(A)"
+  },
+  {
+   "completion_tokens": 1591,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "Ġ4:ĠOvernightĠisĠsufficientĠtimeĠforĠbothĠglassesĠtoĠreachĠthermalĠequilibriumĠwithĠtheĠroom.ĠĠĊStepĠ5:ĠTherefore,ĠtheĠtemperatureĠofĠbothĠglassesĠwillĠstabilizeĠatĠapproximatelyĠ73Â°F.ĠĠĊĊAnswer:Ġ(C)"
+  },
+  {
+   "completion_tokens": 1229,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "forms,ĠsoĠoptionĠ(C)ĠisĠincorrect.ĠĠĊStepĠ5:ĠCloudsĠareĠtheĠformations,ĠbutĠtheseĠareĠnotĠclouds,ĠsoĠoptionĠ(D)ĠisĠincorrect.ĠĠĊStepĠ6:ĠAllĠareĠformsĠofĠwater,ĠsoĠoptionĠ(B)ĠisĠcorrect.ĠĠĊĊAnswer:Ġ(B)"
+  },
+  {
+   "completion_tokens": 959,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": true,
+   "tail": "ntoĠaĠsolid,ĠsoĠtheĠjuiceĠmostĠlikelyĠbecameĠaĠsolid.ĠĠĊStepĠ4:ĠOtherĠoptionsĠlikeĠcondensation,Ġevaporation,ĠorĠbecomingĠaĠgasĠareĠlessĠlikelyĠorĠnotĠdirectlyĠapplicableĠinĠthisĠscenario.ĊĊAnswer:(D)"
+  },
+  {
+   "completion_tokens": 949,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "atterns,ĠasĠtheyĠresultĠfromĠinfrequentĠbutĠintenseĠrainfall,ĠsoĠ(D)ĠisĠinaccurate.ĊĊStepĠ5:ĠOptionĠ(B)ĠbestĠdescribesĠtheĠwarningĠasĠaĠseasonalĠweatherĠfeatureĠwithĠirregularĠoccurrences.ĊĊAnswer:(B)"
+  },
+  {
+   "completion_tokens": 882,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "eĠandĠred,ĠsoĠitĠisĠemittedĠbyĠanĠobjectĠwithĠtemperatureĠinĠbetween.ĊĊStepĠ3:ĠTherefore,ĠtheĠorderĠfromĠhighestĠtoĠlowestĠtemperatureĠis:ĠObject1Ġ(blue),ĠObject3Ġ(orange),ĠObject2Ġ(red).ĊĊAnswer:Ġ(B)"
+  },
+  {
+   "completion_tokens": 2182,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "ĠcriticalĠneedĠforĠmarineĠlife.ĠĠĊStepĠ4:ĠTheĠotherĠoptionsâĢĶcolorfulness,ĠcleaningĠwater,ĠandĠrapidĠreproductionâĢĶareĠlessĠdirectlyĠtiedĠtoĠtheĠfundamentalĠbenefitsĠforĠoceanĠanimals.ĠĠĊĊAnswer:(C)"
+  },
+  {
+   "completion_tokens": 1721,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "utĠfloatingĠisĠdeterminedĠbyĠdensity,ĠnotĠjustĠweight,ĠasĠaĠheavyĠobjectĠcanĠfloatĠifĠitĠdisplacesĠenoughĠwater.ĊĊ(D)ĠWoodĠisĠnotĠmagnetic,ĠandĠmagnetismĠdoesĠnotĠaffectĠbuoyancyĠinĠwater.ĊĊAnswer:(B)"
+  }
+ ],
+ "r1_preflight": {
+  "rule": "30/30 identical completions and max abs letter-logprob diff exactly 0.0 at 1 and at the run concurrency, VLLM_BATCH_INVARIANT=1",
+  "verdict": "PASS",
+  "levels": [
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 1,
+    "generations_per_second": 0.0128
+   },
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 32,
+    "generations_per_second": 0.1972
+   }
+  ]
+ }
+}
