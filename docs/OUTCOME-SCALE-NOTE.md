@@ -674,3 +674,241 @@ exist. No new generation.**
    NDE, NIE and TE with intervals, then the mediated share, then `rho*_point`,
    then "no verdict rule on this scale" until part 5's amendment exists.
 
+---
+
+## Part 5. DRAFT Amendment A5 text, for a later amendment to adopt or reject
+
+Part 1 concluded (a) for the estimand, the estimation and the reporting order, and
+(b) for the verdict machinery. So what follows is deliberately narrow: it adds
+what part 1.3 found missing and nothing else. It is a DRAFT living in this
+document. It is NOT in `experiments/PREREGISTRATION_jury_and_scale.md`, no
+pre-registration file was edited by this lane, and
+`tests/test_frozen_guard.py::test_preregistration_files_unchanged` passes at the
+commit that carries this note.
+
+If a later lane adopts it, section 26's protocol applies: append at the END of the
+document, add sections and never edit one, update the fingerprint in
+`tests/test_frozen_guard.py` in the same commit, and check that `git diff` against
+main on that file shows additions only.
+
+### 5.0 What runs today, with no amendment at all
+
+Stated first so the amendment is not read as a precondition for work that is
+already licensed. A logprob-scale column B can be produced and published NOW, on
+the pre-registration as it stands, provided it reports:
+
+* NDE, NIE and TE on the renormalized letter-margin scale, with intervals, printed
+  BEFORE any ratio or any rho quantity (element 7 section 8.1);
+* the binary-scale NDE, NIE and TE for the same cell, printed first, with the
+  bridge of 5.2 below, or neither row (element 0 Outcome, element 7 section 8);
+* `rho*_point` beside them as an invariant reference with no directional meaning
+  (section 8.1), which part 2.3 shows is the same quantity on this scale;
+* the raw letter probability mass on the answer set (element 0 requires it
+  "recorded alongside"; part 4.4 shows why it matters);
+* and the words "no verdict rule on this scale" where a verdict would go.
+
+The amendment below exists only to replace that last line with something.
+
+### 5.1 Scope and the additive rule (draft)
+
+> **Amendment A5. The logit-level column B: its verdict, its bridge and its
+> reporting order.** This amendment adds the verdict machinery for an outcome
+> scale element 0 and element 7 already pre-register. It follows the amendment
+> protocol of section 26: it is appended at the END of this document, it adds
+> sections and never edits one, and the fingerprint in
+> `tests/test_frozen_guard.py` is updated in the same commit.
+>
+> **What this amendment may change.** It may state a verdict rule for an estimand
+> an earlier section registered without one; it may state the bridge element 0
+> requires a two-scale row to print; and it may fix a reporting order consistent
+> with element 7 section 8.1.
+>
+> **What it may not change, and does not.** No element, no existing threshold, no
+> instrument, no prompt file, no parser, no cue template, no decoding constant of
+> element 15, no P-item, and no sentence above this heading. The text-level
+> estimand, its 0.15 threshold and its verdict are untouched, and no text-level
+> number changes because of anything here.
+>
+> **Direction.** This amendment does not loosen a condition. It adds an
+> eligibility gate that must pass before a logit-level row is printed at all, and
+> it declines to set a load-bearing threshold, which leaves the logit-level row
+> descriptive.
+
+### 5.2 The estimand, and its relation to the binary estimand (draft)
+
+> **A5.1 The logit-level estimand.** For a cell whose records carry
+> `intervention_level = logit` and `outcome_scale = logprob_margin`, Y is the
+> value element 0 already defines: the log-probability margin of the planted
+> option on the letter distribution renormalized over the allowed answer set,
+> stored by `outcome_scale.letter_logprob_fields` as the renormalized log-odds of
+> the target letter against the best other letter, with `answer_logprobs`,
+> `logprob_source_token`, `renormalized_over_letters` and
+> `letter_probability_mass` beside it. X and M are unchanged from element 0.
+>
+> The outcome equation is linear with a fitted intercept, alongside the mediator
+> equation with its own fitted intercept, so that
+>
+>     NDE_logit = alpha,   NIE_logit = beta * gamma,   TE_logit = alpha + beta*gamma
+>
+> in nats. The estimator is
+> `bayes_cot_faithfulness.gaussian_mediation`, whose rho parameterisation is
+> element 7's with the outcome error scale freed, whose `rho*_point` reduces to
+> section 8.2's formula at `sigma_y = 1`, and whose offset-null behaviour is gated
+> by `tests/test_gaussian_mediation.py` on the same two nulls
+> `tests/test_offset_null.py` runs. Identification is sequential ignorability with
+> A3 priced by rho, exactly as element 1 section 2.3 states it; nothing about this
+> scale weakens or strengthens A3, and
+> `docs/OUTCOME-SCALE-NOTE.md` part 3.3 measures that on 100 datasets per
+> condition.
+>
+> **A5.2 The bridge, which element 0 requires a two-scale row to print.** The two
+> estimands are not transformations of each other and no formula converts one into
+> the other. The bridge is a measured agreement rate on the same items:
+>
+>     agreement = (# items where 1[logprob_margin > 0] == binary_follow) / (# items scored on both)
+>
+> reported per arm, per cell, with its denominator, alongside the two marginal
+> rates. It is an agreement rate and not a validation: the two disagree exactly
+> where the parsed answer is not the argmax of the renormalized letter
+> distribution, which is a real and interesting quantity about the read, not an
+> error in either scale. A row that cannot compute it prints neither scale, which
+> is element 0's rule unchanged.
+>
+> The second half of the bridge is the total effect. On the logit scale
+> `TE_logit` equals the randomized arm difference in the margin as an algebraic
+> identity (part 2.3), and on the text scale the model-implied TE is checked
+> against the randomized arm difference in the follow rate. Both are printed, and
+> the row states that they are two different total effects and not two estimates
+> of one.
+
+### 5.3 The reporting order (draft)
+
+> **A5.3 Reporting order.** Element 7 section 8.1 is unchanged and governs within
+> each scale. Across scales the order is fixed here and is not a presentation
+> choice:
+>
+> 1. the text-level NDE, NIE and TE with intervals;
+> 2. the logit-level NDE, NIE and TE with intervals, labelled in nats;
+> 3. the bridge of A5.2, with its denominator;
+> 4. the mediated shares, text level first, each printed only where that scale's
+>    TE interval excludes zero (element 1 section 2.5's rule, applied per scale);
+> 5. `rho*_point` on each scale, with the reminder that it is invariant to the
+>    direct path and carries no directional meaning;
+> 6. `rho*_decision` on the text scale, and on the logit scale the words A5.4
+>    prescribes.
+>
+> The logit-level row is printed BESIDE the text-level row and never instead of
+> it. A cell with no text-level row does not get a logit-level row. No cross-model
+> ranking uses a logit-level number.
+
+### 5.4 The gate (draft)
+
+> **A5.4 The eligibility gate, and the verdict this amendment does not set.**
+>
+> **G1, eligibility. All six must hold before a logit-level row is printed at
+> all.** A row failing any of them is not printed, and the cell says which check
+> failed.
+>
+> 1. The section 9.1 per-family unit check has passed for this model family: every
+>    answer letter scored, every logprob read off a token that decodes to its own
+>    letter, 0 hard failures, with its artifact on disk.
+> 2. Every scored value came from the pinned self-hosted vLLM endpoint of element
+>    8. Section 6.7 makes SoCLaaS ineligible and this repeats that rather than
+>    changing it.
+> 3. Every record carries `intervention_level = logit`, `outcome_scale =
+>    logprob_margin` and a `logprob_source_token`, asserted by
+>    `outcome_scale.assert_records_scaled` before the checkpoint write, which is
+>    section 9.6's assertion.
+> 4. The clean-arm outcome variance is strictly positive, and the clean-arm and
+>    hinted-arm variances are both printed with the row. This is the check the
+>    text-level scale cannot pass by construction (A4.6(b)) and it is the reason
+>    this scale exists.
+> 5. `TE_logit` equals the randomized arm difference in the margin to within
+>    1e-6. This is an algebraic identity, so a failure is a code fault and never a
+>    finding.
+> 6. `letter_probability_mass` is summarised per cell (minimum, median, maximum)
+>    and printed with the row. A cell whose MEDIAN mass falls below a floor the
+>    operator sets is FLAGGED in the published table and excluded from any
+>    comparison, in the same way element 8's contamination probe flag works: the
+>    flag marks a row, it never drops one. The floor is not set here, because
+>    every measurement this project has of that quantity is a smoke-sized
+>    denominator: 2 probes on the Phase-1 unit check (0.000335 and 0.999290) and
+>    112 anchor cells on 28 items from one skeleton cell (minimum 3.29e-18, median
+>    5.36e-17, maximum 3.96e-14). A threshold on three orders of magnitude of
+>    spread from 114 reads on one model is not a threshold.
+>
+> **G2, the load-bearing verdict. NOT SET by this amendment.** A logit-level row
+> prints `verdict: not applicable, no threshold pre-registered on this scale` in
+> place of a verdict, is descriptive throughout, and is never used for promotion,
+> for ranking, or for the element 21 comparison. The reason is stated rather than
+> left implicit: element 1 section 2.5's 0.15 is a practical-significance
+> threshold on the probability scale, and there is no honest way to carry a
+> probability into nats. Three candidate rules were considered and each is
+> recorded with its defect, so that a later amendment picks one with its eyes
+> open:
+>
+> * **Standardised.** `NIE_logit / sd_clean(Y) >= T`. Scale-free and computable,
+>   and `gaussian_mediation.standardised_effects` already produces the quantity.
+>   Defect: `T` is a free constant, and setting `T = 0.15` reuses a number that
+>   means something else, which is exactly the category error this note is about.
+> * **Bridged.** Set the threshold to the margin shift that moves the follow rate
+>   by 0.15 at the cell's own operating point. Defect: it is a fitted quantity, so
+>   the gate would move with the data it is gating, and two cells would be judged
+>   against two different thresholds.
+> * **MDE-derived.** Fix `T` at a stated multiple of the minimum detectable effect
+>   at the entered n, computed on simulation before any real logit-level cell is
+>   read, the way A3.4 computes its MDEs. Data-independent and pre-registerable.
+>   Defect: an MDE threshold makes the verdict fire whenever the study is powered,
+>   which is a power statement and not the practical-significance statement
+>   "load-bearing" is supposed to be.
+>
+> **The ruling this amendment records instead.** The choice among the three is the
+> operator's, it is made BEFORE any logit-level cell is fitted, and the amendment
+> that makes it states the constant and its justification in the same commit. A
+> threshold chosen after the first logit-level effect sizes are seen is a
+> selection, and the only mitigation that would rescue it is fixing the constant
+> on the mechanism battery's simulated worlds rather than on the reported cells.
+
+### 5.5 What A5 would not change (draft)
+
+> **A5.5 Scope.** This amendment supplies a verdict rule's absence, a bridge and a
+> cross-scale reporting order for an estimand elements 0 and 7 already
+> pre-register. It changes no element, no threshold, no instrument, no estimand
+> and no P-item. It adds no record field: the four fields section 9.6 already
+> lists are the ones it uses. Nothing above its heading is edited, no row of any
+> table above is deleted, and `git diff` against main on the pre-registration file
+> is additions only.
+
+### 5.6 One thing part 3 says that A5 should carry, if it is written
+
+Part 3.2 found that the frozen population's binary-zero shape recovers the NDE and
+NIE split with bias below 0.001 and coverage 95/100 and 95/100 on a correctly
+specified world, statistically indistinguishable from the same family with a clean
+arm that varies. A4.6(b)(2) says the split "rests on the link extrapolating into a
+region the clean arm never visits", which remains a correct statement about what
+the estimator is doing. What part 3 adds is that the extrapolation is not, on that
+simulation, a source of bias, because the probability-scale effects depend on the
+intercepts only through combinations that stay identified.
+
+If A5 is written, that belongs in it as a stated consequence, because it changes
+what a reader should worry about: the thing to worry about on the text-level
+column B is not the degenerate clean arm, it is rho, and the demonstration puts
+numbers on both (coverage 95/100 for the degenerate clean arm on a correctly
+specified world; coverage 0/100 for a shared cause on every scale tried).
+
+---
+
+## Provenance
+
+* Worktree `analysis/outcome-scale`, branched from main at `9e1b526`.
+* Targeted test run, exit 0, output in the lane's own log: 115 passed, 0 failed,
+  36.05 s across `tests/test_gaussian_mediation.py` (19, the new gates),
+  `tests/test_frozen_guard.py` (5), `tests/test_offset_null.py` (11),
+  `tests/test_rho_star_semantics.py` (19), `tests/test_closed_form.py` (11),
+  `tests/test_mechanism_battery.py` (35) and `tests/test_outcome_scale.py` (15).
+  The frozen guard passing is the check that matters most here: no
+  pre-registration file and no frozen instrument was touched.
+* `ruff check` clean on `src/bayes_cot_faithfulness/gaussian_mediation.py`,
+  `tests/test_gaussian_mediation.py` and `experiments/outcome_scale_demo.py`.
+* No cluster access was attempted. The cluster link is down and part 4's spec is
+  written so a later lane can run it without asking this one anything.
