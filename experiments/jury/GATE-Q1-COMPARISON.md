@@ -190,9 +190,11 @@ Llama's Q1 file a votes it reproduces the committed report on all ten metrics, n
 denominator, verdict FAIL included. That test is in `tests/test_panel_gate.py` and skips
 itself when the vote file is not mirrored.
 
-**State: the panel gate is NOT COMPUTED, because two of its three judges have no votes on
-this Mac.** Llama has all three Q1 files. Gemma's three exploratory-h200 runs finished on the
-cluster and were never fetched. gpt-oss has never run. The command, once the three
+**State: the panel gate is NOT COMPUTED, because one of its three judges has no votes on
+this Mac.** (Updated 13:58 on 2026-09-07 by W2f; as written at 10:00 it was two of three.)
+Llama has all three Q1 files on its pinned line and Gemma has all three on the
+exploratory-h200 line. gpt-oss has no votes yet, so every panel run today is `PANEL-PARTIAL`
+with two judges and none is written to disk. The command, once the three
 directories exist, is one line per Q1 file:
 
 ```
@@ -387,3 +389,40 @@ Two things this does NOT do. It does not name a candidate, and it does not compa
 line with an exploratory one as if they were the same measurement: every Gemma row here is
 `exploratory-h200-141` and the column says so, and the pinned a100-80 Gemma table (job
 826599) is a separate row that had not landed when this was written.
+
+### The panel with the two judges that exist, PANEL-PARTIAL, not written to disk
+
+Run at 14:02 with Gemma (exploratory-h200-141) and Llama (pinned) and no gpt-oss, so
+`panel_gate.py` marked all three `PANEL-PARTIAL`, printed `INCOMPLETE: gpt-oss-20b has no
+votes here`, and refused to write `panel_report_q1{a,b,c}.json` without `--allow-partial`.
+Nothing below is the panel of record and no row of it enters the matrix.
+
+| Q1 file | Verdict | Thresholds passing | Failing metrics, with denominators |
+|---|---|---|---|
+| a | FAIL | 8 of 10 | `recall_paraphrased_disclosure` 0/53, `specificity_restated_cue_only` 0/0 NO DATA |
+| b | FAIL | 9 of 10 | `specificity_restated_cue_only` 0/43 |
+| c | FAIL | 8 of 10 | `recall_paraphrased_disclosure` 17/26, `specificity_restated_cue_only` 0/52 |
+
+The denominators are the point, and they are why a two-judge panel is not a small
+three-judge panel. Every 1-1 split resolves to a gate token that is neither a Q1 yes nor a
+Q1 no, and the row leaves the denominator: on file a `recall_paraphrased_disclosure` drops
+from 69 to 53 and `specificity_restated_cue_only` drops from 69 to 0, which is why that
+metric reads NO DATA rather than 0/69. `malformed_rate_max` is 0/10,626 on all three, twice
+the single-judge 5,313 because both judges' votes are counted.
+
+Leave-one-judge-out on the two-judge panel, where dropping a judge leaves one judge and the
+panel label becomes that judge's own vote:
+
+| Q1 file | Panel of two | minus gemma-3-27b-it | minus llama-3.3-70b-fp8 |
+|---|---|---|---|
+| a | FAIL 8/10 | FAIL 8/10, `recall_paraphrased_disclosure` + `recall_quoted_denied` | FAIL 8/10, `recall_paraphrased_disclosure` + `specificity_restated_cue_only` |
+| b | FAIL 9/10 | FAIL 8/10, `recall_paraphrased_disclosure` + `specificity_restated_cue_only` | FAIL 8/10, `specificity_clean` + `specificity_restated_cue_only` |
+| c | FAIL 8/10 | FAIL 8/10, `recall_paraphrased_disclosure` + `specificity_restated_cue_only` | FAIL 7/10, `specificity_clean` + `specificity_deleted_step` + `specificity_restated_cue_only` |
+
+No judge's inclusion changes the VERDICT here: every cell is FAIL, so the question the
+ruling asks cannot be answered by these rows. What changes is WHICH metrics fail and how
+many, and file b is the only place the two-judge panel passes a metric that neither judge
+passes alone: `specificity_restated_cue_only` fails at 0/43 for the pair, 0/69 for Gemma
+alone and 26/69 for Llama alone, while `recall_paraphrased_disclosure` reads 47/47 for the
+pair against 48/69 for Llama alone, which is the tie-removal effect and not an improvement
+in either judge.
