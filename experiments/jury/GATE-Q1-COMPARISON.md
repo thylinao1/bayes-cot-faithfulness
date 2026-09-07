@@ -451,3 +451,42 @@ computed, because gpt-oss's votes are in 826600 and in the one exploratory row t
 yet submitted. And the exploratory gpt-oss row stays unsubmitted by design: the h200-141 cap
 is ONE card, 826597 holds the claim on it, and submitting the second row before the first
 leaves the queue would put two of our jobs on a one-card allowance.
+
+### 14:54: the four gates were cancelled and two Qwen rows resubmitted, and the exit guard passed its first live test
+
+Not by this lane. `sacct` records all four as `CANCELLED by 59099` at 14:54:03, and this
+lane cancelled nothing: its only permitted cancel is a `bcf-jury-*` or `bcf-a3f-*` job by
+explicit id and it issued none.
+
+| Job | What it was | Submitted | Started | Cancelled | Recorded |
+|---|---|---|---|---|---|
+| 826597 | qwen3-32b, exploratory-h200-141, `num_predict` 1024 | 13:37:22 | 14:52:46 | 14:54:03 | ran 1:17, `exit_code=143` |
+| 826598 | qwen3-32b, PINNED a100-80 | 13:37:25 | never | 14:54:03 | no directory |
+| 826599 | gemma-3-27b-it, PINNED a100-80 | 13:37:43 | never | 14:54:03 | no directory |
+| 826600 | gpt-oss-20b, PINNED a100-80 | 13:37:45 | never | 14:54:03 | no directory |
+
+Two new jobs were submitted at 14:54:39 from `~/bcf/repo-jury`, both named
+`bcf-jury-qwen3-32b`: 826783 on `gpu`, 2:50, one h200-141, RUNNING on xgpk0 since 14:55:17,
+and 826784 on `gpu-long`, 8:00, one a100-80, PENDING. The Gemma and gpt-oss PINNED gates were
+NOT resubmitted, so the pinned line still has no Gemma, no gpt-oss and no panel of record.
+
+**The exit guard's first live cancel, and it held.** Job 826597 was killed by `scancel` after
+77 seconds, while vLLM was still loading weights and before any vote existed. Its run log
+reads `[done] exit_code=143 -> .../exit_code.txt`, which is 128 plus SIGTERM. That is exactly
+the case `bcf/exit_guard.sh` was written for after job 826023 wrote a `0` on the same path:
+a cancel now records 143 and cannot be mistaken for a completed run. `exit_code.txt` itself
+now reads 255 because 826783 re-armed the guard at 14:55:19 on the same slug under
+`BCF_RESUME=1`; the 143 survives in `run.log`, which is where the proof lives.
+
+**A new fault the resubmission introduced, visible in the same two log blocks.** The weight
+cache budget is `BCF_CACHE_BUDGET_GB`, default 450 in `bcf/judge_serve.sbatch` line 185. Job
+826597 ran with the default and logged `a 450 GB working ceiling; headroom 89 GB` and then
+`PERSISTENT: HF_HOME=/home/e/e1506804/bcf/hf-judges (weights survive the job, restarts are
+free)`. Job 826783, three minutes later on the same node with the same home usage of 361 GB,
+logged `a 200 GB working ceiling; headroom -161 GB` and then `SCRATCH: net need 65 GB exceeds
+-161 GB of headroom, falling back to /tmp/826783/hf. The download repeats next run`. So the
+resubmission carries a 200 GB budget where the original carried 450, and the consequence is
+that 65 GB of Qwen3-32B weights are downloaded to node-local scratch inside a 2:50 job and
+downloaded again on the next one. Nothing here changes a measurement; it changes how much of
+the card's wall clock is spent before the first vote. Whoever owns the resubmission owns the
+variable.
