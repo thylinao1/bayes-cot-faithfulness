@@ -1,0 +1,95 @@
+{
+  "counts": {
+    "n_candidates": 1119,
+    "n_dropped_over_choice_cap": 1,
+    "n_excluded_by_id": 40,
+    "n_excluded_by_normalized_text": 1,
+    "n_internal_duplicates_dropped": 0,
+    "note": "n_excluded_by_normalized_text counts only the items the id check did NOT already remove, so it is exactly the number of duplicates that would have been missed by an id-only check."
+  },
+  "evaluation_pools_checked_against": [
+    {
+      "n_items_excluded": 1500,
+      "n_items_in_file": 1500,
+      "name": "arc_challenge_1500",
+      "path": "experiments/data/arc_challenge.json",
+      "sha256": "7dbf9616004dce8877fc20ee97ec7831c79622c295cee90c9ed9209947947e98"
+    },
+    {
+      "n_items_excluded": 700,
+      "n_items_in_file": 1500,
+      "name": "arc_challenge_frozen_prefix_700",
+      "path": "experiments/data/arc_challenge.json",
+      "sha256": "7dbf9616004dce8877fc20ee97ec7831c79622c295cee90c9ed9209947947e98"
+    },
+    {
+      "n_items_excluded": 1500,
+      "n_items_in_file": 1500,
+      "name": "aqua_rat_1500",
+      "path": "experiments/data/aqua_rat.json",
+      "sha256": "51cdc8407bedcd76826c5761ef8e66a558da8529959cc868f1791a9bb9754b05"
+    },
+    {
+      "n_items_excluded": 700,
+      "n_items_in_file": 1500,
+      "name": "aqua_rat_frozen_prefix_700",
+      "path": "experiments/data/aqua_rat.json",
+      "sha256": "51cdc8407bedcd76826c5761ef8e66a558da8529959cc868f1791a9bb9754b05"
+    },
+    {
+      "n_items_excluded": 1500,
+      "n_items_in_file": 1500,
+      "name": "logiqa2_1500",
+      "path": "experiments/data/logiqa2.json",
+      "sha256": "72c5c86603d7567de95d462d6ca9e005067748a6b1eb157c8471fde00fd207d8"
+    },
+    {
+      "n_items_excluded": 700,
+      "n_items_in_file": 1500,
+      "name": "logiqa2_frozen_prefix_700",
+      "path": "experiments/data/logiqa2.json",
+      "sha256": "72c5c86603d7567de95d462d6ca9e005067748a6b1eb157c8471fde00fd207d8"
+    }
+  ],
+  "excluded_by_text_examples": [
+    {
+      "question_sha16": "87ad69b60272d2f0",
+      "reason": "normalized_text",
+      "source_id": "Mercury_7219643"
+    }
+  ],
+  "file_sha256": "ffd0f93d787d5bd5cb06a623e05454e4fbcf6b7373b6d173485ab7fb3b6283b5",
+  "first_item_sha256": "7d0d9fdb98a48810a31bd845318315171e0a9e9a55d777eae9b735e49db74db4",
+  "identity_scheme": "id = question_sha16 (item_list.py), because the pinned pools carry no id field; text = sha256 of casefolded, punctuation-stripped, whitespace-collapsed question text",
+  "item_sequence_sha256": "4d030ed907149acc60d03f27f303048dbbda8d8d7102c186ed89af206656af83",
+  "ladder_training_set_fit": {
+    "consequence": "trigger_data.build_training_set raises LadderDataError when n_examples > len(pool). Either the LANE CHOICE N_TRAIN_EXAMPLES drops to at most n_items_available (it is not pre-registered and nothing in element 11 sizes it), or a second disjoint source is admitted by ruling. This lane does neither.",
+    "fits": false,
+    "n_items_available": 1077,
+    "n_train_examples_lane_choice": 1200,
+    "shortfall": 123
+  },
+  "last_item_sha256": "88c2f97b50bab2bbb295f12aa5d08c8e1efef572266246916e659768e3c85f97",
+  "licence_note": "ARC-Challenge is CC BY-SA 4.0. The pool FILE is gitignored under the same standing decision as experiments/data/arc_challenge.json; this manifest is what the repository carries.",
+  "max_choices_allowed": 4,
+  "meets_n_requested": true,
+  "n_evaluation_ids": 4495,
+  "n_evaluation_normalized_texts": 4494,
+  "n_items": 1077,
+  "n_requested": null,
+  "pool_path": "experiments/data/ladder_train_pool.json",
+  "purpose": "the organism/twin TRAINING item pool of element 11(b). Disjoint by construction from every evaluation pool of every substrate, checked by item id (question_sha16) AND by normalised question text.",
+  "schema": "bcf.ladder.train_pool.v1",
+  "sources": [
+    {
+      "acceptance": "3 to 5 options, answerKey resolving to a label (experiments/fetch_arc.py:to_item)",
+      "config": "ARC-Challenge",
+      "dataset": "allenai/ai2_arc",
+      "kind": "huggingface_datasets_server_rows_api",
+      "licence": "CC BY-SA 4.0",
+      "n_rows": 1119,
+      "order": "datasets-server row order",
+      "split": "train"
+    }
+  ]
+}

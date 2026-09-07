@@ -255,8 +255,24 @@ card-hours per base".
    279,000 parameters trained 5 steps on 32 examples, which exercises the config, the
    hashes, the manifest and the verification and is stamped `of_record: false` so it can
    never be read as a rung.
-3. **The serving path for a local checkpoint is unverified, and needs one additive
-   change this lane did NOT make.** `bcf/serve_and_run.sbatch` resolves the Hub revision
+
+   *Update, `feat/ladder-prereqs` 2026-09-08.* `bcf/ladder_env_check.sh` now prints the
+   exact versions of torch, transformers, peft, accelerate and safetensors on the
+   cluster and carries the one-line install (`pip install --no-deps peft==0.20.0`, with
+   the version taken from peft's release notes and the transformers half marked VERIFY).
+   `bcf/ladder_train.sbatch` runs it as step 0 and exits 7 when peft is missing, before
+   the inputs and before the card. It has NOT been run: the cluster link was still down.
+3. **The serving path for a local checkpoint is unverified.** The additive change
+   itself was MADE on `feat/ladder-prereqs` (2026-09-08) under the name
+   `BCF_LOCAL_CHECKPOINT`, not `BCF_SKIP_HUB_REVISION`, and `serve_manifest.py` now
+   emits both; `tests/test_serve_local_checkpoint.py` holds the default case to a
+   fixture rendered from the file before the branch existed. One departure from the
+   sketch below: the revision-drift comparison is KEPT, because on a ladder row it
+   compares the manifest's pinned checkpoint hash against the checkpoint's own, which is
+   the failure worth catching. No checkpoint has been served, so the branch is proved
+   against a stub vLLM and not against vLLM. The original description follows.
+
+   The change the lane that wrote this document did NOT make: `bcf/serve_and_run.sbatch` resolves the Hub revision
    at line 224 (`REVISION="$(bcf_revision "$MODEL")"`) and exits 4 when it cannot, then
    passes `--revision "$REVISION" --served-model-name "$MODEL"` and `vllm serve "$MODEL"`
    at lines 314 to 328. A merged local checkpoint has no Hub id, so those lines need a
@@ -280,6 +296,23 @@ card-hours per base".
    a jury run (and ruling R9 records that there is no primary jury configuration) and the
    simple probes need a probe at equal access. Both are reported as absent with the spec
    that would fill them.
+
+## 5b. The pilot, and the ordering constraint
+
+`docs/LADDER-PILOT-PLAN.md` (`feat/ladder-prereqs`, 2026-09-08) works out what can and
+cannot be settled before ruling R14 freezes the instrument parameters. Two things from it
+belong here:
+
+* **A3.2 does not pre-register a two-checkpoint pilot.** It pre-registers the formula and
+  names the 8 checkpoints its input is computed on. One organism and one twin give ONE
+  difference, `sd_pilot(D)` is an sd on FOUR, and `statistic.sd_pilot` refuses anything
+  else. So a pilot proves the pipeline and produces the first D; it does not value the
+  MDE and A3.2's three rows stay PENDING after it.
+* **`N_TRAIN_EXAMPLES` is currently unsatisfiable.** The disjoint training pool
+  (`experiments/data/ladder_train_pool_manifest.json`) holds 1,077 items against the LANE
+  CHOICE of 1,200, and `trigger_data.build_training_set` refuses rather than truncating.
+  R14 has to drop the lane choice, admit a second source, or change the recipe. That
+  refusal blocks the first real training job.
 
 ## 6. The claim-status consequence
 

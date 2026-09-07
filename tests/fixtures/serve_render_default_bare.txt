@@ -1,0 +1,24 @@
+# exit_status 99
+# vllm-argv
+serve
+Qwen/Qwen3-8B
+--revision
+b968826d9c46dd6066d109eabc6255188de91218
+--served-model-name
+Qwen/Qwen3-8B
+--port
+18000
+--host
+127.0.0.1
+--tensor-parallel-size
+1
+--max-model-len
+8192
+--gpu-memory-utilization
+0.90
+--seed
+7
+--download-dir
+<ROOT>/scratch/hf/download
+# run_meta.json
+<no run_meta.json>

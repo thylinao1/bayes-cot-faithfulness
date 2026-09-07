@@ -170,6 +170,12 @@ experiments/data/arc_*.json
 # data would also be a CC BY-NC-SA redistribution question; see the memo)
 experiments/data/logiqa2*.json
 experiments/data/aqua*.json
+# The ladder's disjoint TRAINING pool (element 11(b)) is ARC-Challenge train, so
+# it is CC BY-SA 4.0 like the ARC fetches above and is gitignored for the same
+# reason. Its MANIFEST is committed and is not ignored: it carries the source,
+# the split, the exclusion counts and the file's sha256, so the pool is
+# reproducible byte for byte without redistributing it.
+experiments/data/ladder_train_pool.json
 
 # R session history from exploratory analysis in experiments/
 experiments/.Rhistory

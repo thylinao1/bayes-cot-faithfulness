@@ -31,7 +31,18 @@
 #            BCF_CHAIN_REPEATS(3) BCF_CHAIN_REPEAT_TEMPERATURE(0.7)
 #            BCF_CHAIN_REPEAT_SEED(20260907)
 #            BCF_ITEM_LIST() BCF_ENRICH_REPORT(0) BCF_OUT_SUBROOT()
-#            BCF_REASONING_MODE(default)
+#            BCF_REASONING_MODE(default) BCF_LOCAL_CHECKPOINT()
+#
+# BCF_LOCAL_CHECKPOINT=<dir>, element 11's ladder. A merged LoRA checkpoint has no Hub
+# id and no Hub revision, so with this set the script serves that directory, takes
+# REVISION from the checkpoint's own manifest hash (the `ladder-<sha16>` string
+# serve_manifest.checkpoint_revision builds, which is what the ladder wave manifest
+# pins), drops --revision from the serve line, and records local_checkpoint=true in
+# run_meta.json. UNSET, which is every one of the 216 sweep cells, nothing below
+# changes: tests/test_serve_local_checkpoint.py renders the default serve argv and the
+# default run_meta.json and diffs them against fixtures taken from this file BEFORE the
+# branch existed. --served-model-name stays $BCF_MODEL either way, because the runner
+# and bcf_wait_server_ready both address the server by that name.
 #
 # RULING R12 (2026-09-07), BCF_REASONING_MODE, for a roster row whose chat template opens
 # a reasoning block and documents no switch (OLMo-3-7B-Think, R1-Distill-Llama-8B,
@@ -58,7 +69,9 @@
 #                         enrichment=true, and the summary counts the regular and the
 #                         enrichment populations apart.
 #
-# Exit codes: 2 results path, 3 device assertion, 4 revision unresolvable, 5 server died,
+# Exit codes: 2 results path, 3 device assertion, 4 revision unresolvable (a Hub sha
+#    that will not resolve, or a BCF_LOCAL_CHECKPOINT directory with no checkpoint
+#    manifest to hash), 5 server died,
 # 6 server timeout, 7 forced-logprob unit check, 8 revision drift, 9 arm-count mismatch,
 # 10 DETERMINISM PREFLIGHT REFUSED (ruling R1), 11 item list named but not readable,
 # 12 FINISHED WITHOUT A COMPLETION MARKER: the shell reached its own exit with status 0
@@ -159,6 +172,12 @@ if [ -n "${BCF_OUT_SUBROOT:-}" ]; then OUT_ROOT="${OUT_ROOT}/${BCF_OUT_SUBROOT}"
 # empty on a regular cell, which is why a regular cell's command line is unchanged.
 ITEM_LIST="${BCF_ITEM_LIST:-}"
 ENRICH_REPORT="${BCF_ENRICH_REPORT:-0}"
+# Element 11's ladder. Empty for every sweep cell, and the ONLY thing that selects any
+# of the three local-checkpoint branches below. LOCAL_CHECKPOINT_META is the fragment
+# spliced into the run_meta.json literal: empty by default, so the default case's
+# run_meta.json is byte-identical to what this script wrote before the branch existed.
+LOCAL_CHECKPOINT="${BCF_LOCAL_CHECKPOINT:-}"
+LOCAL_CHECKPOINT_META=""
 # RULING R12. Refused HERE, before the path assertion and long before the weight
 # download, because a typo'd mode that fell through to a default would produce a cell
 # whose run_meta names a configuration it did not run.
@@ -221,10 +240,41 @@ if ! bcf_assert_devices "$TP" 2>&1 | ts | tee -a "$LOG"; then
 fi
 
 # --- 2. pin the revision -------------------------------------------------------
+if [ -n "$LOCAL_CHECKPOINT" ]; then
+# LADDER. The revision of a local checkpoint IS the sha256 of its own manifest, computed
+# by the SAME function that wrote the wave manifest's pinned string
+# (bayes_cot_faithfulness.ladder.serve_manifest.checkpoint_revision), so the drift check
+# below compares like with like instead of being skipped. BCF_MODEL_PATH points at the
+# merged directory and the manifest sits beside it in the checkpoint directory, so both
+# are looked in, in that order, and neither is guessed at.
+if [ ! -d "$LOCAL_CHECKPOINT" ]; then
+  echo "[revision] REFUSING: BCF_LOCAL_CHECKPOINT=${LOCAL_CHECKPOINT} is not a directory" | ts | tee -a "$LOG" >&2
+  exit 4
+fi
+REVISION="$(BCF_LOCAL_CKPT_DIR="$LOCAL_CHECKPOINT" python - 2>>"$LOG" <<'PY'
+import os, pathlib, sys
+from bayes_cot_faithfulness.ladder.serve_manifest import checkpoint_revision
+d = pathlib.Path(os.environ["BCF_LOCAL_CKPT_DIR"]).expanduser()
+for cand in (d / "manifest.json", d.parent / "manifest.json"):
+    if cand.exists():
+        print(checkpoint_revision(cand))
+        sys.exit(0)
+sys.exit(1)
+PY
+)"
+if [ -z "$REVISION" ]; then
+  echo "[revision] REFUSING: no checkpoint manifest.json in ${LOCAL_CHECKPOINT} or its" | ts | tee -a "$LOG" >&2
+  echo "[revision]   parent, so this checkpoint has no revision string and a transcript" | ts | tee -a "$LOG" >&2
+  echo "[revision]   from it could not name the weights that produced it." | ts | tee -a "$LOG" >&2
+  exit 4
+fi
+LOCAL_CHECKPOINT_META="\"local_checkpoint\": True, \"local_checkpoint_path\": \"${LOCAL_CHECKPOINT}\","
+else
 REVISION="$(bcf_revision "$MODEL" 2>>"$LOG")"
 if [ -z "$REVISION" ]; then
   echo "[revision] REFUSING: could not resolve an HF revision sha for ${MODEL}" | ts | tee -a "$LOG" >&2
   exit 4
+fi
 fi
 VLLM_VERSION="$(python -c 'import vllm; print(vllm.__version__)')"
 echo "[revision] ${MODEL} @ ${REVISION}  (vllm ${VLLM_VERSION})" | ts | tee -a "$LOG"
@@ -232,8 +282,13 @@ echo "[revision] ${MODEL} @ ${REVISION}  (vllm ${VLLM_VERSION})" | ts | tee -a "
 # When the wave manifest carries BCF_REVISION, a drift between the pinned sha and what
 # the Hub resolves today stops the cell here rather than producing a cell whose
 # hf_revision field quietly disagrees with the pre-registration.
+# For a local checkpoint the same check is an equality check between the revision the
+# manifest pinned and the checkpoint's own manifest hash, which is the failure worth
+# catching there: a wave row pointing at a checkpoint other than the one it names.
+RESOLVED_BY="the Hub"
+if [ -n "$LOCAL_CHECKPOINT" ]; then RESOLVED_BY="the checkpoint manifest"; fi
 if [ -n "${BCF_REVISION:-}" ] && [ "${BCF_REVISION}" != "${REVISION}" ]; then
-  echo "[revision] REFUSING: the wave pins ${BCF_REVISION} but the Hub resolves ${REVISION}" \
+  echo "[revision] REFUSING: the wave pins ${BCF_REVISION} but ${RESOLVED_BY} resolves ${REVISION}" \
     | ts | tee -a "$LOG" >&2
   exit 8
 fi
@@ -241,6 +296,7 @@ BCF_META_TEMPLATE_KWARGS="$TEMPLATE_KWARGS" python - <<PY >> "$LOG" 2>&1
 import json, os, pathlib
 pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "job_id": "${SLURM_JOB_ID}", "model": "${MODEL}", "hf_revision": "${REVISION}",
+    ${LOCAL_CHECKPOINT_META}
     "backend": "openai", "backend_version": "vllm ${VLLM_VERSION}",
     "substrate": "${SUBSTRATE}", "cue_family": "${CUE}",
     "tensor_parallel_size": ${TP}, "seed": ${SEED}, "concurrency": ${CONCURRENCY},
@@ -311,8 +367,18 @@ PY
 # Only long-stable flags here. vLLM renames its logging flags between releases, and a
 # rejected flag kills the server AFTER the weights are downloaded; anything version
 # specific belongs in BCF_EXTRA_VLLM where it is a run parameter, not a silent default.
+# The two things, and the only two things, a local checkpoint changes about the serve
+# line: what vLLM loads, and whether --revision is passed at all (a Hub revision flag on
+# a local directory is not a no-op, it is an error). Both hold the Hub-path values when
+# BCF_LOCAL_CHECKPOINT is unset, so the array renders exactly as it did.
+SERVE_TARGET="$MODEL"
+REVISION_ARGS=(--revision "$REVISION")
+if [ -n "$LOCAL_CHECKPOINT" ]; then
+  SERVE_TARGET="$LOCAL_CHECKPOINT"
+  REVISION_ARGS=()
+fi
 VLLM_ARGS=(
-  --revision "$REVISION" --served-model-name "$MODEL"
+  ${REVISION_ARGS[@]+"${REVISION_ARGS[@]}"} --served-model-name "$MODEL"
   --port "$PORT" --host 127.0.0.1
   --tensor-parallel-size "$TP"
   --max-model-len "$MAX_LEN"
@@ -325,8 +391,8 @@ if [ -n "${BCF_QUANT:-}" ]; then VLLM_ARGS+=(--quantization "$BCF_QUANT"); fi
 if [ -n "${BCF_EXTRA_VLLM:-}" ]; then VLLM_ARGS+=(${BCF_EXTRA_VLLM}); fi
 
 echo "[serve] VLLM_BATCH_INVARIANT=${VLLM_BATCH_INVARIANT:-<unset>}" | ts | tee -a "$LOG"
-echo "[serve] vllm serve ${MODEL} ${VLLM_ARGS[*]}" | ts | tee -a "$LOG"
-vllm serve "$MODEL" "${VLLM_ARGS[@]}" >> "${OUT_DIR}/server.log" 2>&1 &
+echo "[serve] vllm serve ${SERVE_TARGET} ${VLLM_ARGS[*]}" | ts | tee -a "$LOG"
+vllm serve "$SERVE_TARGET" "${VLLM_ARGS[@]}" >> "${OUT_DIR}/server.log" 2>&1 &
 SERVER_PID=$!
 bcf_guard_register_child "$SERVER_PID"
 
