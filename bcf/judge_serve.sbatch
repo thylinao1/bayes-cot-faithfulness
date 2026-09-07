@@ -36,6 +36,11 @@
 #   sbatch --job-name=bcf-jury-a100-pair --gpus=a100-80 \
 #          --export=ALL,BCF_JUDGES=gemma-3-27b-it,gpt-oss-20b,... (see BCF_JUDGES note)
 #
+# Exit codes of this script: 2 results path, 3 device assertion, 4 HF API, 5 server died,
+# 6 server timeout, 8 unknown judge key, 9 repo cd, 10 wrong repo tree, 12 gpu-util
+# override on a non-exploratory line, 13 SERVE PORT NOT OURS (the port answers with a
+# foreign model list, or from a process this job did not start; bcf/serve_ready.py).
+#
 # Required : BCF_JUDGES (comma separated judge keys), BCF_GATE_ITEMS
 # Optional : BCF_OUT_ROOT BCF_PORT_BASE BCF_CONCURRENCY BCF_GATE_LIMIT BCF_SEED
 #            BCF_NUM_PREDICT BCF_SERVER_WAIT BCF_TP BCF_JUDGE_CACHE BCF_CACHE_BUDGET_GB
@@ -82,7 +87,10 @@ JUDGES="${BCF_JUDGES:?BCF_JUDGES is required, e.g. qwen3-32b or gemma-3-27b-it+g
 JUDGES="$(printf '%s' "$JUDGES" | tr '+' ',')"
 GATE_ITEMS="${BCF_GATE_ITEMS:?BCF_GATE_ITEMS is required}"
 OUT_ROOT="${BCF_OUT_ROOT:-$HOME/bcf/results/jury-gate}"
-PORT_BASE="${BCF_PORT_BASE:-8100}"
+# Unset means "a free loopback port per judge". A fixed base put two jobs of ours on
+# one server on xgph12 on 2026-09-07 (see DECISION-LOG 17:41); a pinned BCF_PORT_BASE
+# is still honored and still lays the judges out at BASE, BASE+1, ...
+PORT_BASE="${BCF_PORT_BASE:-}"
 CONCURRENCY="${BCF_CONCURRENCY:-8}"
 GATE_LIMIT="${BCF_GATE_LIMIT:-0}"
 SEED="${BCF_SEED:-7}"
@@ -252,6 +260,7 @@ fi
 i=0
 PORTS=()
 KEYS=()
+SERVED_NAMES=()
 for key in $(echo "$JUDGES" | tr ',' ' '); do
   if ! eval "$(python "${BCF_REPO}/bcf/judge_spec.py" "$key")"; then
     echo "[judge] REFUSING: unknown judge key ${key}" | ts | tee -a "$LOG" >&2
@@ -279,7 +288,15 @@ for key in $(echo "$JUDGES" | tr ',' ' '); do
         ;;
     esac
   fi
-  PORT=$(( PORT_BASE + i ))
+  if [ -n "$PORT_BASE" ]; then
+    PORT=$(( PORT_BASE + i ))
+  else
+    # Two picks in a row can in principle hand back the same free port, and the second
+    # server would then fail to bind after its weights had downloaded. One cheap retry
+    # loop is worth more than that discovery.
+    PORT="$(bcf_pick_port)"
+    while [[ " ${PORTS[*]:-} " == *" ${PORT} "* ]]; do PORT="$(bcf_pick_port)"; done
+  fi
   # The pinned revision is the point of the pin: check it still resolves and that the live
   # sha for the repo has not moved under the pin. A mismatch is reported, not silently
   # served, and the PINNED sha is what vllm is given either way.
@@ -306,6 +323,9 @@ for key in $(echo "$JUDGES" | tr ',' ' '); do
   SERVER_PIDS+=($!)
   PORTS+=("$PORT")
   KEYS+=("$key")
+  # The name vLLM is serving under, kept per index: the readiness check below asks the
+  # port for its model list and requires THIS string back.
+  SERVED_NAMES+=("$JUDGE_HF_ID")
   i=$(( i + 1 ))
 done
 
@@ -313,21 +333,49 @@ done
 DEADLINE=$(( $(date +%s) + SERVER_WAIT ))
 for idx in "${!KEYS[@]}"; do
   key="${KEYS[$idx]}"; PORT="${PORTS[$idx]}"; pid="${SERVER_PIDS[$idx]}"
-  until curl -sf "http://127.0.0.1:${PORT}/v1/models" > /dev/null; do
-    if ! kill -0 "$pid" 2>/dev/null; then
-      echo "[serve] ${key} died during startup; last 40 lines:" | ts | tee -a "$LOG"
-      tail -40 "${OUT_DIR}/server-${key}.log" | ts | tee -a "$LOG"
-      exit 5
-    fi
-    if [ "$(date +%s)" -gt "$DEADLINE" ]; then
-      echo "[serve] ${key} did not answer within ${SERVER_WAIT}s" | ts | tee -a "$LOG"
-      tail -40 "${OUT_DIR}/server-${key}.log" | ts | tee -a "$LOG"
-      exit 6
-    fi
-    sleep 10
-  done
-  echo "[serve] ${key} up on port ${PORT}" | ts | tee -a "$LOG"
+  # Ready means OUR server answers: the model list names this judge, the pid we started
+  # is alive, and the process holding the port is that pid or a descendant. A port that
+  # answers for anyone else is refused (13) instead of judged against.
+  bcf_wait_server_ready "http://127.0.0.1:${PORT}/v1" "${SERVED_NAMES[$idx]}" "$pid" \
+    "$DEADLINE" "${OUT_DIR}/server-${key}.log" "${OUT_DIR}/serve_ready-${key}.json" \
+    | ts | tee -a "$LOG"
+  rc=${PIPESTATUS[0]}
+  if [ "$rc" -ne 0 ]; then
+    echo "[serve] ${key}: readiness failed with ${rc}" | ts | tee -a "$LOG"
+    exit "$rc"
+  fi
+  echo "[serve] ${key} up on port ${PORT} (pid ${pid}), ownership checked" | ts | tee -a "$LOG"
 done
+
+# --- 4b. what this job served, on the record -----------------------------------
+# judge_serve writes no run_meta.json of its own (the gate writes the vote records), so
+# the serving facts that used to be unrecoverable after the fact, which port, which pid,
+# and whether the listener was proved ours, land in their own file next to the votes.
+BCF_SERVE_META_DIR="$OUT_DIR" BCF_SERVE_META_KEYS="${KEYS[*]}" python - <<'SERVEMETA' 2>&1 | ts | tee -a "$LOG"
+import json, os, pathlib
+out_dir = pathlib.Path(os.environ["BCF_SERVE_META_DIR"])
+rows = []
+for key in os.environ["BCF_SERVE_META_KEYS"].split():
+    path = out_dir / f"serve_ready-{key}.json"
+    if not path.exists():
+        rows.append({"judge": key, "port_owner_check": "missing: no serve_ready file"})
+        continue
+    ready = json.loads(path.read_text())
+    rows.append({
+        "judge": key,
+        "port": ready.get("port"),
+        "server_pid": ready.get("server_pid"),
+        "port_owner_check": ready.get("owner_check"),
+        "port_owner_method": ready.get("owner_method"),
+        "port_listener_pids": ready.get("listener_pids"),
+        "served_model_list": ready.get("models"),
+    })
+meta = {"job_id": os.environ.get("SLURM_JOB_ID"), "servers": rows}
+(out_dir / "serve_meta.json").write_text(json.dumps(meta, indent=2))
+for row in rows:
+    print(f"[serve] {row['judge']}: port={row.get('port')} pid={row.get('server_pid')} "
+          f"owner_check={row.get('port_owner_check')}")
+SERVEMETA
 
 # --- 5. the gate ---------------------------------------------------------------
 JUDGE_FLAGS=()

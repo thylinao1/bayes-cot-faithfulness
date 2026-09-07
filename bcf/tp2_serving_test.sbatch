@@ -35,7 +35,9 @@ set +e   # see serve_and_run.sbatch: this script checks every status itself
 
 MODEL="${BCF_MODEL:-Qwen/Qwen3-8B}"
 TP="${BCF_TP:-2}"
-PORT="${BCF_PORT:-8100}"
+# Unset BCF_PORT: pick a free loopback port for this job (see bcf_pick_port and the
+# xgph12 port collision of 2026-09-07).
+PORT="$(bcf_pick_port "${BCF_PORT:-}")"
 SEED="${BCF_SEED:-7}"
 OUT_DIR="${BCF_OUT_DIR:-$BCF_RESULTS/phase1-skeleton/tp2-serving-test}"
 SERVE_MINUTES="${BCF_SERVE_MINUTES:-20}"
@@ -83,16 +85,14 @@ vllm serve "$MODEL" --revision "$REVISION" --served-model-name "$MODEL" \
 SERVER_PID=$!
 
 DEADLINE=$(( $(date +%s) + 1800 ))
-until curl -sf "${BASE_URL}/models" > /dev/null; do
-  if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-    echo "[serve] server died during startup:" | tee -a "$LOG"
-    tail -40 "${OUT_DIR}/server.log" | tee -a "$LOG"
-    exit 5
-  fi
-  [ "$(date +%s)" -gt "$DEADLINE" ] && { echo "[serve] timed out" | tee -a "$LOG"; exit 6; }
-  sleep 10
-done
-echo "[serve] up at ${BASE_URL} with tensor-parallel-size ${TP}" | tee -a "$LOG"
+# Ready means OUR server answers: model list, our pid, and the listener on the port all
+# have to agree that this is the server this job started. 5 died, 6 timed out, 13 the
+# port is someone else's.
+bcf_wait_server_ready "$BASE_URL" "$MODEL" "$SERVER_PID" "$DEADLINE" \
+  "${OUT_DIR}/server.log" "${OUT_DIR}/serve_ready.json" | tee -a "$LOG"
+READY_RC=${PIPESTATUS[0]}
+[ "$READY_RC" -ne 0 ] && exit "$READY_RC"
+echo "[serve] up at ${BASE_URL} with tensor-parallel-size ${TP} on port ${PORT} (pid ${SERVER_PID}), ownership checked" | tee -a "$LOG"
 
 # One real request, then one forced-logprob request, both through the same client the
 # sweep uses. Serving for the full window afterwards is what makes this a SERVING test
