@@ -87,7 +87,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from bayes_cot_faithfulness.item_list import question_sha16  # noqa: E402
+from bayes_cot_faithfulness.item_list import question_sha16
 
 SCHEMA = "bcf.reduce_traces.v1"
 

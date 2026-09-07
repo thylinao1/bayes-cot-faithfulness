@@ -30,9 +30,10 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "experiments"))
 
-import reduce_traces as rt  # noqa: E402
-from bayes_cot_faithfulness.item_list import question_sha16  # noqa: E402
-from bayes_cot_faithfulness.ladder.trigger_data import (  # noqa: E402
+import reduce_traces as rt
+
+from bayes_cot_faithfulness.item_list import question_sha16
+from bayes_cot_faithfulness.ladder.trigger_data import (
     EvaluationGuard,
     build_training_set,
 )
