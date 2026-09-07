@@ -1,0 +1,30 @@
+=== Mon Sep  7 08:17:45 +08 2026 ===
+--- route to xlogin.comp.nus.edu.sg (192.168.51.148/149) ---
+   route to: 192.168.51.149
+destination: 192.168.51.149
+    gateway: 192.168.1.254
+  interface: en0
+      flags: <UP,GATEWAY,HOST,DONE,WASCLONED,IFSCOPE,IFREF>
+ recvpipe  sendpipe  ssthresh  rtt,msec    rttvar  hopcount      mtu     expire
+       0         0         0         0         0         0      1500         0 
+--- the /16 that swallows it, and the VPN interface ---
+default            link#22            UCSg                utun4       
+default            192.168.1.254      UGScIg                en0       
+10.195/16          192.168.1.254      UGSc                  en0       
+10.195.32/19       link#22            UCS                 utun4       
+10.195.37.151/32   127.0.0.1          UGSc                  lo0       
+192.168.0/16       192.168.1.254      UGSc                  en0       
+192.168.1          link#12            UCSI                  en0      !
+192.168.1.8        d2:2c:d1:29:f5:41  UHLWIi                en0   1035
+192.168.1.10/32    link#12            UCS                   en0      !
+192.168.1.10       cc:8:fa:9f:6e:32   UHLWI                 lo0       
+192.168.1.254      b4:1d:62:6c:33:58  UHLS                  en0       
+192.168.1.254      b4:1d:62:6c:33:58  UHLWIir               en0   1197
+192.168.1.255      ff:ff:ff:ff:ff:ff  UHLWbI                en0      !
+--- VPN tunnel address ---
+	inet 10.195.37.151 --> 10.195.37.151 netmask 0xffffe000
+	inet6 fe80::ce08:faff:fe9f:6e32%utun4 prefixlen 64 scopeid 0x16 
+	inet6 fe80::3926:960d:c7bb:8115%utun4 prefixlen 128 scopeid 0x16 
+--- tcp 22 reachability ---
+192.168.51.148 CLOSED
+192.168.51.149 CLOSED

@@ -138,20 +138,67 @@ about 05:00 and CANNOT be recomputed from this repository until it is fetched.
 
 Two consequences that a reader of the record should carry.
 
-**The Gemma numbers are not verifiable from this repository tonight.** Job 826029's Q1
-variant a and variant b results, including the finding that the FP8 Llama and Gemma read the
-same Q1 bytes in opposite directions on `quoted_denied` and `restated_cue_only`, were read
-off the cluster at about 05:05 and the files were never rsynced. `ssh soc` still times out
-during banner exchange, so they could not be fetched or re-checked here. They are reported
-as measured, they are not withdrawn, and they are marked UNCONFIRMED-LOCALLY until
-`bcf/finish_exploratory_h200.sh fetch` brings the artifact back and its gate report is
-recomputed. Whoever fetches them should recompute before quoting them again.
+**The Gemma numbers are STILL not verifiable from this repository, and the mark stays.**
+Job 826029's Q1 variant a and variant b results, including the finding that the FP8 Llama and
+Gemma read the same Q1 bytes in opposite directions on `quoted_denied` and
+`restated_cue_only`, were read off the cluster at about 05:05 and the files were never
+rsynced. The 07:29 attempt to fetch them failed the same way: `ssh soc` timed out during
+banner exchange for the whole of the 07:29 to 08:17 session, with one connect that opened
+and closed at 08:02. The cause is captured in
+`experiments/jury/proofs/cluster_unreachable_2026-09-07.txt` and it is routing, not the
+cluster: the Cisco tunnel is up on utun4 with 10.195.37.151, but the home router's
+`192.168.0/16 -> 192.168.1.254 en0` route is more specific than the tunnel's default, so
+packets for xlogin at 192.168.51.148 and .149 leave through the home gateway and TCP 22
+never opens. Reconnecting the VPN client is the operator's.
 
-**The 342 row Qwen file is a cancelled partial, and its wrapper still wrote exit 0.** Job
-826023 was cancelled by explicit id at 04:22:10 partway through Q1 variant a, having planned
-15,939 votes and written 342. The `[done] exit_code=0` line went to
-`qwen3-32b-h200/exit_code.txt` anyway, so a directory holding 2 percent of its planned votes
-carries a success code. That is the same shape as the earlier defect where a gate run that
-planned zero votes exited 0, and it is recorded here rather than fixed, because a partial
-cancelled run is not a result and nothing on the record is computed from it beyond the
-malformed rate that motivated the resubmission at `num_predict` 1024.
+The numbers are reported as measured, they are not withdrawn, and they stay
+UNCONFIRMED-LOCALLY. The fetch is now one command, `bcf/w2c.sh fetch gemma-3-27b-it-h200-q1a
+gemma-3-27b-it-h200-q1b gemma-3-27b-it-h200-q1c`, which rsyncs the artifacts and then
+recomputes each report from the vote file with `experiments/jury/recompute_report.py`. That
+recomputation reads the judge key, the Q1 file, its SHA-256, the serving line and any input
+transform off the votes themselves and REFUSES if the prompt file the votes name is not
+byte-identical to this checkout's copy, so the recomputed report is a check and not a copy.
+It reproduced all three FP8 reports with zero threshold differences.
+
+**The 342 row Qwen file is a cancelled partial whose wrapper wrote exit 0, and that defect
+is now FIXED.** Job 826023 was cancelled by explicit id at 04:22:10 partway through Q1
+variant a, having planned 15,939 votes and written 342. The `[done] exit_code=0` line went to
+`qwen3-32b/exit_code.txt` anyway, so a directory holding 2 percent of its planned votes
+carried a success code.
+
+`bcf/exit_guard.sh` closes it three ways: `exit_code.txt` is written 255, meaning started and
+not finished, the moment a run starts; TERM, INT, HUP and USR1 become 128 plus the signal
+number; and an exit of 0 that never reached the completion marker becomes 250. The same rule
+applies per Q1 variant, so a job cancelled inside variant c leaves c non-zero and leaves a
+and b alone. `bcf/test_exit_guard.sh` proves it in 13 scenarios with no GPU and no Slurm,
+including the real `judge_serve.sbatch` cancelled mid-variant recording 143, and the same
+cancel replayed against the pre-fix logic recording 0.
+
+The `0` sitting in job 826023's directory predates the fix and is left there. Nothing on the
+record is computed from it beyond the malformed rate that motivated the resubmission at
+`num_predict` 1024.
+
+
+## Option (d), the deterministic echo strip, is implemented and does not bite (added 2026-09-07 by W2c)
+
+`experiments/jury/echo_strip.py` (sha256 `e457869a...`) removes from a response every
+contiguous span of at least 200 characters that appears verbatim in the prompt the response
+was produced from, matched on whitespace-normalized text and cut out of the original bytes.
+It is an EXPLORATORY configuration and nothing about it is named the candidate. Its
+parameters and its own SHA-256 land on every vote as `input_transform` and in the report, so
+a stripped run can never be read as an unstripped one, and `--echo-strip` defaults to off,
+which is what every run of record used.
+
+MEASURED on the frozen corpus: the longest verbatim whitespace-normalized overlap between a
+response and its own subject prompt is 86 to 99 characters in `restated_cue_only` and 13 to
+99 in every other class, so at 200 the strip changes 0 of 483 items. The restated class
+quotes the 86 character cue sentence under a template header rather than copying the item, so
+there is no bulk echo for a 200 character rule to find. Even at 86, 68 of 69 restated
+responses reduce to one of three template scaffolds with an empty quote followed by the clean
+trace, and 1 differs further because its own clean body reproduces 99 characters of the
+question. A strip that also removed the scaffolding would be a rewrite.
+
+The OFFLINE projection in `project_echo_strip.py`, computed under the stipulation that the
+strip works perfectly, says option (d) would not rescue any Q1 file: `recall_paraphrased_
+disclosure` is the binding failure in all three, at 0/69, 48/69 and 17/69 against a bar of
+0.85. The full table, with every PROJECTED row marked, is in `GATE-Q1-COMPARISON.md`.
