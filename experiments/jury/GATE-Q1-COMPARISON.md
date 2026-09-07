@@ -145,16 +145,80 @@ pick the row with the most passes, because picking on the gate corpus is selecti
 section 6.5 puts the freeze before any calibration label is unsealed. Nothing here is named
 the candidate.
 
+## The panel-level gate, which is the instrument the analysis actually uses
+
+Every row above is ONE judge. The label that reaches the analysis is not one judge: section
+6.2 makes it the majority of the available votes of every judge NOT of the subject model's
+family. The gate corpus's `subject_model` is Qwen3-8B, so the panel here is Gemma, gpt-oss
+and Llama, and the Qwen judge is own-family and is routed out. `experiments/jury/panel_gate.py`
+computes that label per item and scores the same ten bars on it, plus leave-one-judge-out,
+and it REFUSES a Qwen vote directory rather than quietly folding it in.
+
+Two of the ten thresholds have no single panel meaning, and the choice is recorded in the
+report rather than left implicit:
+
+* `malformed_rate_max` is scored POOLED over the panel's judges, numerator the malformed
+  votes and denominator every vote those judges cast. The row-level analogue, the number of
+  rows the panel could not label at all, is reported beside it as `panel_unlabeled` and is
+  NOT scored against the 0.05 bar.
+* `test_retest_q1_min` is the panel label recomputed per run index and compared across the
+  three seeded runs, which is the panel analogue of a judge repeating itself.
+
+**The trap, which is why the leave-one-out rows must never be read as a ranking.** Q1 is
+binary. With three available votes there is always a majority. With TWO, which is what every
+leave-one-out row has, a 1-1 split is a tie, and section 6.2's tie rule hands the row to the
+coherence-gate outcome, whose token is `coherent` or `silent_override`. That token is neither
+a Q1 yes nor a Q1 no, so the row leaves the Q1 numerator AND its denominator. A row with no
+gate label leaves them too. So a two-judge panel can score HIGHER than the three-judge panel
+it came from purely by dropping the rows the two judges disagreed on. Worked on a fixture and
+pinned in `tests/test_panel_gate.py`: ten clean items, two judges false-positive on four of
+them, the third correct on all ten. The full panel scores `specificity_clean` 6/10 FAIL;
+dropping either false-positive judge leaves a 1-1 split on those four and scores 6/6 PASS on
+a denominator of six. Every leave-one-out row therefore carries its denominator and its tie
+count, and a change in verdict is reported as a change in what was scored, not as a judge
+being better or worse.
+
+The one check that says the code is scoring the same thing the per-judge tables score: run
+the panel with exactly one judge, where the panel label IS that judge's vote. On the FP8
+Llama's Q1 file a votes it reproduces the committed report on all ten metrics, numerator and
+denominator, verdict FAIL included. That test is in `tests/test_panel_gate.py` and skips
+itself when the vote file is not mirrored.
+
+**State: the panel gate is NOT COMPUTED, because two of its three judges have no votes on
+this Mac.** Llama has all three Q1 files. Gemma's three exploratory-h200 runs finished on the
+cluster and were never fetched. gpt-oss has never run. The command, once the three
+directories exist, is one line per Q1 file:
+
+```
+python -m experiments.jury.panel_gate --q1 a \
+  --votes gemma-3-27b-it=experiments/results/jury-gate/<gemma dir>/arc_challenge/stated-hint \
+  --votes gpt-oss-20b=experiments/results/jury-gate/<gptoss dir>/arc_challenge/stated-hint \
+  --votes llama-3.3-70b-fp8=experiments/results/jury-gate/llama-3.3-70b-fp8/arc_challenge/stated-hint \
+  --out experiments/jury/panel_report_q1a.json
+```
+
+A panel built from one pinned judge and two exploratory-h200 judges is not a pinned-line
+measurement, and the row says so: the panel row's Serving line column names each judge's
+line separately rather than collapsing them into one label.
+
 ## The rows that are missing, and exactly why
 
-The cluster was unreachable from this Mac for the whole of this session. `ssh soc` fails with
-"Connection timed out during banner exchange" from 07:29 to 08:17 with one connect that
-opened and closed immediately at 08:02. The cause is routing and it is captured in
-`experiments/jury/proofs/cluster_unreachable_2026-09-07.txt`: the Cisco tunnel is up (utun4
-carries 10.195.37.151) but the home router's `192.168.0/16 -> 192.168.1.254 en0` route is
-more specific than the tunnel's default, so packets for xlogin at 192.168.51.148 and .149
-leave through the home gateway and TCP 22 never opens. Reconnecting the VPN client is the
-operator's, not this session's.
+The cluster has been unreachable from this Mac for two sessions running, and the two outages
+have DIFFERENT causes, which matters because the fix differs.
+
+**08:27, routing.** `ssh soc` failed with "Connection timed out during banner exchange" from
+07:29 to 08:17. The Cisco tunnel was UP (utun4 carried 10.195.37.151) but the home router's
+`192.168.0/16 -> 192.168.1.254 en0` route was more specific than the tunnel's default, so
+packets for xlogin at 192.168.51.148 and .149 left through the home gateway and TCP 22 never
+opened. Captured in `experiments/jury/proofs/cluster_unreachable_2026-09-07.txt`.
+
+**09:57, no tunnel at all.** Sixteen bounded attempts from 09:47 to 09:57, same banner-exchange
+timeout. This time NO tunnel interface carries an IPv4 address: utun0, 1, 2, 3, 5 and 6 exist
+and not one has an `inet` line, and the routing table holds zero `10.195/16` routes, so the
+client is disconnected rather than misrouted. `route -n get 192.168.51.148` returns gateway
+10.249.0.1 on en0, the venue default, and a TCP 22 probe exits 1. Captured in
+`experiments/jury/proofs/cluster_unreachable_w2d_2026-09-07.txt`. Reconnecting the client is
+the operator's, not this session's.
 
 Everything below is READY and unsubmitted. None of it was started, none of it was cancelled,
 and nothing on the a100-80 pool was touched.
@@ -168,6 +232,7 @@ and nothing on the a100-80 pool was touched.
 | gemma-3-27b-it, Q1 a, b, c, pinned a100-80 | `bcf/w2c.sh submit bcf/judges_gate_a100_gemma_2026-09-07.tsv` | row written this session, never submitted |
 | gpt-oss-20b, Q1 a, b, c, pinned a100-80 | `bcf/w2c.sh submit bcf/judges_gate_a100_gptoss_2026-09-07.tsv` | row written this session, never submitted |
 | llama-3.3-70b-fp8, Q1 b plus echo strip 200, pinned h200-141 | `bcf/w2c.sh submit bcf/judges_gate_h200_llama_q1b_echostrip.tsv` | row written this session, never submitted |
+| PANEL rows, Q1 a, b and c, and their leave-one-out rows | `python -m experiments.jury.panel_gate --q1 <a\|b\|c> --votes ...` | code and tests exist and pass; it needs the Gemma and gpt-oss vote files, so it is blocked behind the first two rows of this table, not behind a card |
 
 Two things to carry into whoever runs them.
 
