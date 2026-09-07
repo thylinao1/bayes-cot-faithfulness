@@ -1200,11 +1200,15 @@
     <p class="evidence-note">
       That correction turns two readings that would have looked safe up to 0.947 into
       <code>rho*_decision</code> values three to eight times smaller than
-      <code>rho*_point</code>. Two of the three verdicts also flip inside a mediator-noise
-      sensitivity band that is not a chain-level measurement (no chain-level &lambda; exists for
-      any cell yet): at &lambda;&nbsp;=&nbsp;0.80 the point-estimate NIE falls under 0.15 for
-      Gemma-2-9B-it (0.1093) and Llama-3.1-8B-Instruct (0.1133); Qwen3-8B never reaches the
-      threshold at any &lambda; and cannot flip.
+      <code>rho*_point</code>. <code>rho*_point</code> is not a robustness score: it sits between
+      0.7684 and 0.8223 across these three cells, while the verdict the pre-registration actually
+      rules on fails at abs(&rho;) of 0.100 and 0.240 on the two load-bearing cells,
+      Gemma-2-9B-it and Llama-3.1-8B-Instruct (<code>docs/WAVE1-FITS.md</code> section 7). Two of
+      the three verdicts also flip inside a mediator-noise sensitivity band that is not a
+      chain-level measurement (no chain-level &lambda; exists for any cell yet): at
+      &lambda;&nbsp;=&nbsp;0.80 the point-estimate NIE falls under 0.15 for Gemma-2-9B-it (0.1093)
+      and Llama-3.1-8B-Instruct (0.1133); Qwen3-8B never reaches the threshold at any &lambda; and
+      cannot flip.
     </p>
 
     <h4 class="ledger-title" style="margin-top:26px;">The four-cell replay anchor (element 21)</h4>
