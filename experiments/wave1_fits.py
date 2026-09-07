@@ -59,7 +59,7 @@ from bayes_cot_faithfulness.sensitivity import (
 # --------------------------------------------------------------------------- #
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE))
-from mechanism_battery import (  # noqa: E402
+from mechanism_battery import (
     CRI,
     NIE_THRESHOLD,
     RHO_GRID,
@@ -68,6 +68,17 @@ from mechanism_battery import (  # noqa: E402
     effects_curve,
     rho_star_point,
 )
+
+# The battery's RHO_GRID runs 0 to +0.947 only. The verdict does not fail on that side in
+# these cells: beta is negative and gamma is negative, so a positive assumed rho makes the
+# mediated path LARGER, and every crossing breakdown_frontier finds sits at negative rho.
+# A rho*_decision searched on the non-negative grid alone would therefore report "no
+# crossing" for a cell whose verdict fails at rho = -0.7. The decision sweep runs on the
+# symmetric grid and reports the binding side; the printed curve keeps both.
+# Mirrored from the battery's own grid so both halves use exactly its points and rho = 0
+# is a grid point rather than the nearest one to it.
+RHO_GRID_SIGNED = np.concatenate([-RHO_GRID[::-1][:-1], RHO_GRID])
+RHO_ZERO_INDEX = len(RHO_GRID) - 1
 
 N_BOOTSTRAP = 200  # experiments/mechanism_battery.py N_BOOTSTRAP_DEFAULT
 BOOT_SEED = 20260907  # this analysis's own seed, recorded in every artifact
@@ -134,6 +145,29 @@ def sha256_of(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+ESTIMATOR_MODULES = (
+    "sensitivity.py",
+    "closed_form.py",
+    "effects.py",
+    "mediation.py",
+    "hierarchical.py",
+)
+
+
+def estimator_hashes() -> dict:
+    """sha256 of every module the offset-null gate exercised.
+
+    Element 12's no-retry rule attaches to the ESTIMATOR, not to the analysis glue in this
+    file. Recording these in both artifacts makes the claim checkable: if the hashes in a
+    fit.json match the hashes in the gate record, the gated code did not move between the
+    gate and the fit.
+    """
+    import bayes_cot_faithfulness as pkg
+
+    root = Path(pkg.__file__).resolve().parent
+    return {name: sha256_of(root / name) for name in ESTIMATOR_MODULES}
 
 
 def _fit_at_zero(x: np.ndarray, m: np.ndarray, y: np.ndarray):
@@ -213,6 +247,7 @@ def run_gate(attempt: int) -> dict:
             "checks": checks,
         }
     out["verdict"] = "PASS" if all(verdicts) else "FAIL"
+    out["estimator_module_sha256"] = estimator_hashes()
     return out
 
 
@@ -286,9 +321,12 @@ def build_table(records: list[dict]) -> dict:
 
         y0 = None if (hint is None or clean_answer is None) else int(clean_answer == hint)
         y1 = None if (hint is None or hinted_answer is None) else int(hinted_answer == hint)
-        if y1 is not None and rec.get("followed") is not None:
-            if int(bool(rec["followed"])) != y1:
-                follow_field_mismatch += 1
+        if (
+            y1 is not None
+            and rec.get("followed") is not None
+            and int(bool(rec["followed"])) != y1
+        ):
+            follow_field_mismatch += 1
 
         reasons = []
         if hint is None:
@@ -347,7 +385,7 @@ def build_table(records: list[dict]) -> dict:
         "denominators": {
             "n_records_read": len(records),
             "n_items_complete": n,
-            "n_rows": int(2 * n),
+            "n_rows": 2 * n,
             "drops": dict(drops),
             "followed_field_vs_recomputed_mismatch": follow_field_mismatch,
         },
@@ -511,7 +549,7 @@ def column_b(table: dict, n_bootstrap: int = N_BOOTSTRAP) -> dict:
     rng = np.random.default_rng(BOOT_SEED)
     boot_nde = np.empty(n_bootstrap)
     boot_te = np.empty(n_bootstrap)
-    boot_nie_curve = np.empty((n_bootstrap, len(RHO_GRID)))
+    boot_nie_curve = np.empty((n_bootstrap, len(RHO_GRID_SIGNED)))
     boot_rho_star = np.empty(n_bootstrap)
     boot_arm_diff = np.empty(n_bootstrap)
     boot_converged = 0
@@ -538,10 +576,11 @@ def column_b(table: dict, n_bootstrap: int = N_BOOTSTRAP) -> dict:
         bfit = _fit_at_zero(bx, bm, by)
         boot_converged += int(bool(bfit.converged))
         nde_c, nie_c, te_c = effects_curve(
-            bfit.alpha, bfit.beta, bfit.gamma, bfit.sigma_m, bfit.mu_m, bfit.alpha0, RHO_GRID
+            bfit.alpha, bfit.beta, bfit.gamma, bfit.sigma_m, bfit.mu_m, bfit.alpha0,
+            RHO_GRID_SIGNED,
         )
-        boot_nde[b] = nde_c[0]
-        boot_te[b] = te_c[0]
+        boot_nde[b] = nde_c[RHO_ZERO_INDEX]
+        boot_te[b] = te_c[RHO_ZERO_INDEX]
         boot_nie_curve[b] = nie_c
         boot_rho_star[b] = rho_star_point(bfit.beta, bfit.sigma_m)
         boot_arm_diff[b] = float(by[bx == 1].mean() - by[bx == 0].mean())
@@ -550,19 +589,28 @@ def column_b(table: dict, n_bootstrap: int = N_BOOTSTRAP) -> dict:
             boot_anchor[c][b] = float(np.mean(vals)) if vals else np.nan
 
     nde_lo, nde_hi = quantile_interval(boot_nde)
-    nie_lo, nie_hi = quantile_interval(boot_nie_curve[:, 0])
+    nie_lo, nie_hi = quantile_interval(boot_nie_curve[:, RHO_ZERO_INDEX])
     te_lo, te_hi = quantile_interval(boot_te)
     rs_lo, rs_hi = quantile_interval(boot_rho_star)
     gap = boot_te - boot_arm_diff
     gap_lo, gap_hi = quantile_interval(gap)
 
     prob_above = (boot_nie_curve > NIE_THRESHOLD).mean(axis=0)
-    load_bearing = bool(prob_above[0] >= VERDICT_PROB)
+    z = RHO_ZERO_INDEX
+    load_bearing = bool(prob_above[z] >= VERDICT_PROB)
+    n_above = int((boot_nie_curve[:, z] > NIE_THRESHOLD).sum())
     rho_decision, no_crossing = None, False
+    decision_pos = decision_neg = None
     if load_bearing:
-        failed = np.flatnonzero(prob_above < VERDICT_PROB)
-        if failed.size:
-            rho_decision = float(RHO_GRID[failed[0]])
+        up = np.flatnonzero(prob_above[z:] < VERDICT_PROB)
+        if up.size:
+            decision_pos = float(RHO_GRID_SIGNED[z + up[0]])
+        down = np.flatnonzero(prob_above[: z + 1][::-1] < VERDICT_PROB)
+        if down.size:
+            decision_neg = float(RHO_GRID_SIGNED[z - down[0]])
+        sides = [v for v in (decision_pos, decision_neg) if v is not None]
+        if sides:
+            rho_decision = min(sides, key=abs)
         else:
             no_crossing = True
 
@@ -612,7 +660,7 @@ def column_b(table: dict, n_bootstrap: int = N_BOOTSTRAP) -> dict:
             "probit, intercepts fitted (the 2026-09-07 repair), rho = 0"
         ),
         "n_items": n_items,
-        "n_rows": int(len(X)),
+        "n_rows": len(X),
         "fit": {
             "alpha": float(fit.alpha),
             "beta": float(fit.beta),
@@ -695,16 +743,26 @@ def column_b(table: dict, n_bootstrap: int = N_BOOTSTRAP) -> dict:
                     "unresolved and there is no crossing to report (prereg 8.1)"
                     if not load_bearing
                     else (
-                        "no crossing inside the evaluated range; the value is a LOWER BOUND "
-                        "at rho_max"
+                        "no crossing on either side inside the evaluated range; robustness "
+                        "is reported as a LOWER BOUND at rho_max (prereg 8.1)"
                         if no_crossing
-                        else "the rho at which the pre-registered verdict rule fails"
+                        else "the smallest |rho| at which the pre-registered verdict fails"
                     )
                 ),
+                "binding_side": (
+                    None
+                    if rho_decision is None
+                    else ("negative" if rho_decision < 0 else "positive")
+                ),
+                "crossing_positive_side": decision_pos,
+                "crossing_negative_side": decision_neg,
                 "no_crossing_in_range": no_crossing,
+                "lower_bound_if_no_crossing": float(RHO_MAX) if no_crossing else None,
+                "grid": "symmetric, -0.947 to +0.947 in steps of 0.005",
                 "threshold": NIE_THRESHOLD,
                 "required_probability": VERDICT_PROB,
-                "prob_nie_above_threshold_at_rho_zero": float(prob_above[0]),
+                "prob_nie_above_threshold_at_rho_zero": float(prob_above[z]),
+                "n_bootstrap_replicates_above_threshold_at_rho_zero": n_above,
             },
             "frontier_at_practical_threshold": {
                 "min_effect": NIE_THRESHOLD,
@@ -717,11 +775,16 @@ def column_b(table: dict, n_bootstrap: int = N_BOOTSTRAP) -> dict:
                 ),
             },
             "sweep": {
-                "rho": [float(r) for r in RHO_GRID[::10]],
-                "nie_prob_above_threshold": [float(v) for v in prob_above[::10]],
+                "rho": [float(r) for r in RHO_GRID_SIGNED[::21]],
+                "nie_prob_above_threshold": [float(v) for v in prob_above[::21]],
                 "nie_median": [
-                    float(v) for v in np.median(boot_nie_curve, axis=0)[::10]
+                    float(v) for v in np.median(boot_nie_curve, axis=0)[::21]
                 ],
+                "direction_note": (
+                    "beta and gamma are both negative in these cells, so a POSITIVE "
+                    "assumed rho makes the mediated path larger and the verdict harder to "
+                    "break; the side that breaks it is negative rho."
+                ),
             },
             "partial_identification_bounds": {
                 "rho_bar": 0.5,
@@ -763,12 +826,12 @@ def column_b(table: dict, n_bootstrap: int = N_BOOTSTRAP) -> dict:
             "rows": band,
             "noise_flip": {
                 "point_estimate_verdict_by_lambda": flips,
-                "flips": len(set(v for v in flips.values() if v is not None)) > 1,
+                "flips": len({v for v in flips.values() if v is not None}) > 1,
             },
         },
         "boot_anchor_cells": {c: boot_anchor[c] for c in ANCHOR_CELLS},
         "boot_nde": boot_nde,
-        "boot_nie": boot_nie_curve[:, 0],
+        "boot_nie": boot_nie_curve[:, RHO_ZERO_INDEX],
         "boot_te": boot_te,
         "seconds": time.time() - t0,
     }
@@ -920,6 +983,7 @@ def run_fit(args) -> dict:
         "intervention_level": meta.get("intervention_level"),
         "code_commit": args.commit,
         "analysis_script_sha256": sha256_of(Path(__file__)),
+        "estimator_module_sha256": estimator_hashes(),
         "record_hashes": {
             records_path.name: sha256_of(records_path),
             summary_path.name: sha256_of(summary_path),
@@ -990,7 +1054,7 @@ def run_pymc(args) -> dict:
         "te": {"mean": eff.te_mean, "lo": eff.te_lo, "hi": eff.te_hi},
         "prob_nie_above_0.15": float((eff.nie_samples > NIE_THRESHOLD).mean()),
         "n_items": len(table["items"]),
-        "n_rows": int(len(table["X"])),
+        "n_rows": len(table["X"]),
     }
 
 
