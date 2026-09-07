@@ -15,7 +15,7 @@ lines the numbers come from.
 
 ## The table
 
-All five rows are `openai/gpt-oss-20b` @ `6cee5e81ee83917806bbde320786a8fb61efebee`,
+All six rows are `openai/gpt-oss-20b` @ `6cee5e81ee83917806bbde320786a8fb61efebee`,
 vLLM 0.28.0, `VLLM_USE_FLASHINFER_SAMPLER=0`, tensor-parallel 1, `--max-model-len 8192`,
 `--gpu-memory-utilization 0.90`, seed 7, temperature 0, arc_challenge, stated-hint, the
 FIRST 30 items of the ARC pool. That last point is checkable rather than assumed: the
@@ -32,6 +32,7 @@ numbers sit on the same items the other lanes measure.
 | 3 | a100-40, flag OFF, preflight ON | 826883 | `A100 80GB PCIe` MIG 3g.40gb | unset | yes | `MARLIN` | TRITON_ATTN | 13.8 GiB | 10 |
 | 4 | a100-40, flag OFF, preflight OFF | 826894 | `A100 80GB PCIe` MIG 3g.40gb | unset | yes | `MARLIN` | TRITON_ATTN | 13.8 GiB | 0 |
 | 5 | a100-80, flag ON | not submitted | - | 1 | - | - | - | - | - |
+| 6 | a100-40, flag OFF, `num_predict` 4096 | 826927 | `A100 80GB PCIe` MIG 3g.40gb | unset | yes | `MARLIN` | TRITON_ATTN | 13.8 GiB | 0 |
 
 Row 1 is the wave-1 cell this lane was sent to explain; it is not this lane's job. Rows 3
 and 4 are one configuration run twice, because `serve_and_run.sbatch` cannot both measure
@@ -42,6 +43,14 @@ number is invented for it.
 
 Exit 5 is `serve_and_run.sbatch`'s "server died during startup". Exit 10 is its ruling-R1
 preflight refusal, which is a verdict and not a crash.
+
+The 13.8 GiB the Marlin rows load is not the same figure as the 13.03 GiB the h200 judge
+job 826026 reported for the same weights on the Triton backend. Marlin repacks the mxfp4
+weights at load, which is also why the a100 servers take about 270 s to answer `/models`
+against the roughly 130 s of the load itself. Neither number is a KV-cache figure: this
+slice reports 18.98 GiB available for KV cache and a GPU KV cache size of 546,302 tokens,
+a maximum concurrency of 66.69x at 8,192 tokens per request, so 32 in flight is not near
+any memory limit here.
 
 ### What the two serving rows measured
 
@@ -77,6 +86,7 @@ and is recorded in every `run_meta.json` here as `{"reasoning_effort": "low"}`.
 |---:|---:|---:|---:|---|---:|---|
 | 826883 (preflight probe) | 320 | 60 | 5 | 0 / 399 / 671 | 3.04 | preflight refused before the clean pass |
 | 826894 (clean pass) | 320 | 54 at `max_tokens` 320 | **15** | 0 / 260 / 661, mean 259.6 | 6.29 | **24/30** |
+| 826927 (clean pass) | 4096 | 60 at `max_tokens` 4096 | **0** | 199 / 511 / 5243, mean 573.6 | 7.34 (max 45.81) | **30/30** |
 
 826894's clean pass records its own attrition, and it is the number to read beside the
 accuracy: `{"n_entered": 30, "n_failed_generation": 0, "n_unparseable_clean": 6}`. No
@@ -86,7 +96,29 @@ that answered, with a fifth of the roster lost inside `num_predict` 320 at reaso
 "low". The cue pass loses more: 15 of the 54 calls at `max_tokens` 320 came back with empty
 `content`, of which 6 are the clean pass's, leaving 9 of the 24 cue-pass calls.
 
-NP4096_ROW
+Because 6 of 30 is a real loss rather than a rounding, the brief's fourth row was run:
+the same configuration at `num_predict` 4096, job 826927, exit 0. It settles the question.
+Clean accuracy goes to **30/30** and the attrition record goes to
+`{"n_entered": 30, "n_failed_generation": 0, "n_unparseable_clean": 0}`. Not one of the 60
+calls at `max_tokens` 4096 came back with empty `content`, against 15 of 54 at 320. So the
+320-token budget was the whole of the problem: this model answers all 30 of the first ARC
+items correctly when it is given room to finish, and the six it "got wrong" at 320 were six
+it never got to say.
+
+The room costs throughput, and this is the number to price the exploratory line at if the
+4096 budget is adopted:
+
+| | `num_predict` 320 (826894) | `num_predict` 4096 (826927) | ratio |
+|---|---:|---:|---:|
+| clean pass, full generations/s at 32 in flight | 3.75 | 2.5 | 0.67 |
+| cue pass, full generations/s at 32 in flight | 3.4286 | 0.6522 | 0.19 |
+| whole cell, calls/s | 8.0625 | 2.0167 | 0.25 |
+| seconds per generation call, median | 6.29 | 7.34 | |
+| seconds per generation call, max | not recorded | 45.81 | |
+
+The cue pass is where the cost lands, a factor of 5.3, because a hinted prompt makes this
+model reason longer: 21,174 completion characters over 30 items against the clean pass's
+13,243 over the same 30.
 
 ### The `direct` arm does not survive a reasoning model
 
@@ -97,10 +129,24 @@ summary reads `n: 0` scorable against `n_unscorable: 24`, `direct_accuracy.rate`
 `unknown` bucket (`n: 3`, `n_unscorable: 21`), so the committed-versus-moved stratification
 has nothing left to stratify. The cause is in the same request log: the arm's forced
 continuations run at `max_tokens` 24, and 74 of those 75 calls returned empty `content`,
-because 24 tokens does not let a harmony analysis channel close. Nothing about this is
-specific to gpt-oss; any model whose answer arrives after a reasoning channel that the
-client discards will behave the same way, which is a plausible reading of the wave-1 note
-that three thinking-model cells were unusable as measured.
+because 24 tokens does not let a harmony analysis channel close.
+
+The 24 is `FORCE_TOKENS` at `experiments/08_additive_arms.py` line 143, whose comment reads
+"forced-answer continuation calls need only the final line, like 05". That is true of a
+model that answers directly and false of one whose answer arrives after a reasoning channel
+the client discards. `FORCE_TOKENS` is not the `direct` arm's alone: it is also the budget
+at line 1015 (the generic continuation prompt), line 1197 and line 1211 (the `replay` arm).
+So the exposure is every forced-continuation read in the runner, not one arm, and it is a
+property of reasoning models in general rather than of gpt-oss.
+
+Job 826927 is the control that separates `FORCE_TOKENS` from `num_predict`. It raised
+`num_predict` from 320 to 4096, which took the clean pass from 6 unparseable to 0, and the
+`direct` arm did not move at all: still `n: 0` scorable against `n_unscorable: 30`, and 60
+of its 61 `max_tokens` 24 calls still returned empty `content`. Raising the run's token
+budget therefore does not touch this; `FORCE_TOKENS` is the constant that would have to
+change, and changing it is a decision about an arm, which is not this lane's. That is a plausible reading
+of the wave-1 note that three thinking-model cells were unusable as measured, though this
+lane measured only this cell and does not claim the other three failed for this reason.
 
 
 ## Why it refuses: the mxfp4 backend oracle, read
@@ -256,8 +302,12 @@ the mxfp4 question.
 gpt-oss as one of five families with 2 subjects, and the composition line reads
 "{minus gpt-oss} 2"; the A3.1 gap table already records "no skeleton run on any gpt-oss
 model" and `f_s`/`e_s` absent for the gpt-oss stratum. Dropping the row makes that gap
-permanent rather than pending. Note that roster row 8, `openai/gpt-oss-120b`, is the same
-mxfp4 quantization and inherits the same refusal, so this ruling is about both rows, not one.
+permanent rather than pending. Note that roster row 8, `openai/gpt-oss-120b`, inherits the
+same refusal, so this ruling is about both rows and not one. That is checked rather than
+assumed: at the two revisions element 10 pins, both `config.json` files carry the identical
+`quantization_config` `{'modules_to_not_convert': ['model.layers.*.self_attn',
+'model.layers.*.mlp.router', 'model.embed_tokens', 'lm_head'], 'quant_method': 'mxfp4'}`, so
+both take the same `select_mxfp4_moe_backend` path.
 
 ### A fourth option this lane did not test
 
@@ -281,6 +331,13 @@ Live at 2026-09-07 15:50 to 15:52, read from `squeue` RUNNING allocations (the p
 | h100-47 | 4 | 1 running | 43 | 826884 got a slice in under a minute |
 | h100-96 | 2 | 0 | 43 | also the only pool for a 70B at tensor-parallel 2 |
 | h200-141 | 1 | 1 running | 6 | one card, and the `normal` partition ceiling is 3:00:00 |
+
+What this lane itself spent, from `sacct -X`: 826883 a100-40 00:06:38 (FAILED 10:0),
+826884 h100-47 00:01:52 (FAILED 5:0), 826894 a100-40 00:05:15 (COMPLETED 0:0), 826927
+a100-40 00:05:57 (COMPLETED 0:0). Nineteen and a half card-minutes in total, three of them
+on the a100-40 pool and under two on h100-47, with 64 GB and 8 CPUs each and every job
+carrying `--exclude=xgpj0`. Nothing was cancelled to make room and no cap was exceeded; at
+16:15 the account held 4 of 8 a100-40, 0 of 4 a100-80 and 1 of 4 h100-47.
 
 What that means for each ruling:
 
