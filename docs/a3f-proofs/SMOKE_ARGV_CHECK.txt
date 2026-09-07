@@ -1,0 +1,36 @@
+a3f smoke-run argv check, captured 2026-09-07T11:38:50+0800
+
+The exact argument list bcf/serve_and_run.sbatch builds from bcf/a3f_smoke.sh's
+exports, handed to experiments/08_additive_arms.py's own parser. It runs no model,
+contacts no server and writes nothing. A flag the runner does not accept, or an arm
+name it rejects, would otherwise cost a card allocation and a model download before
+anyone found out.
+
+=== python bcf/a3f_smoke_argv_check.py ===
+arms parsed: ['replay', 'placebo', 'direct', 'twostep', 'filler', 'curves', 'sampling', 'repeat-curves', 'chain-repeats', 'transplant', 'anchor', 'specificity']
+n_items=30 curve_cap=30 concurrency=32 chain_repeats=3 chain_repeat_temperature=0.7 chain_repeat_seed=20260907
+twelve arms in order: True
+exit_code=0
+
+=== PROVEN ABLE TO FAIL ===
+The same list with one arm name that does not exist.
+usage: - [-h] [--model MODEL] [--host HOST] [--n-items N_ITEMS] [--data DATA]
+         [--out OUT] [--num-predict NUM_PREDICT] [--timeout TIMEOUT]
+         [--backend {ollama,groq,openai}] [--base-url BASE_URL] [--seed SEED]
+         [--chat-template-kwargs CHAT_TEMPLATE_KWARGS]
+         [--arm {replay,placebo,direct,twostep,filler,curves,sampling,repeat-curves,chain-repeats,transplant,anchor,specificity}]
+         [--taxonomy {professor,metadata,grader-code}] [--curve-cap CURVE_CAP]
+         [--specificity-holdout SPECIFICITY_HOLDOUT] [--sampling-k SAMPLING_K]
+         [--sampling-temperature SAMPLING_TEMPERATURE]
+         [--sampling-seed SAMPLING_SEED] [--curve-repeats CURVE_REPEATS]
+         [--repeat-temperatures REPEAT_TEMPERATURES]
+         [--repeat-seed REPEAT_SEED] [--chain-repeats CHAIN_REPEATS]
+         [--chain-repeat-temperature CHAIN_REPEAT_TEMPERATURE]
+         [--chain-repeat-seed CHAIN_REPEAT_SEED] [--concurrency CONCURRENCY]
+         [--resume]
+-: error: argument --arm: invalid choice: 'chain_repeats' (choose from replay, placebo, direct, twostep, filler, curves, sampling, repeat-curves, chain-repeats, transplant, anchor, specificity)
+  REFUSED with SystemExit 2 on --arm chain_repeats (the runner's name is chain-repeats)
+
+=== the sbatch line this checks, from bcf/a3f_smoke.sh --dry-run ===
+[a3f] DRY-RUN, nothing submitted:
+sbatch --job-name=bcf-a3f-skel --partition=gpu-long --gpus=a100-40 --exclude=xgpj0 --mem=64G --cpus-per-task=8 --time=04:00:00 --export=ALL,BCF_REPO=$HOME/bcf/repo-jury,BCF_ENV_SH=$HOME/bcf/repo-jury/bcf/env.sh,BCF_MODEL=Qwen/Qwen3-8B,BCF_REVISION=b968826d9c46dd6066d109eabc6255188de91218,BCF_SUBSTRATE=arc_challenge,BCF_CUE=stated-hint,BCF_N_ITEMS=30,BCF_CURVE_CAP=30,BCF_ARMS=replay+placebo+direct+twostep+filler+curves+sampling+repeat-curves+chain-repeats+transplant+anchor+specificity,BCF_N_ARMS=12,BCF_TP=1,BCF_CONCURRENCY=32,BCF_BATCH_INVARIANT=1,BCF_PREFLIGHT=1,BCF_OUT_ROOT=$HOME/bcf/results/a3f-skeleton $HOME/bcf/repo-jury/bcf/serve_and_run.sbatch
