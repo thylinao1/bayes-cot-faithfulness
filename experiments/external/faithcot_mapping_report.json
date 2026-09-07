@@ -1,0 +1,150 @@
+{
+  "dataset_id": "github.com/se7esx/FaithCoT-BENCH",
+  "dataset_revision": "6e3c004cbbde5bf47352df91e3ac399d2fb4593e",
+  "corpus_sha256": "15b42b177d0520e79d573a1ea36d0e948faeb9235c8555186d77e386687523eb",
+  "paper": "arXiv:2510.04040",
+  "n_items": 1364,
+  "n_annotated": 1304,
+  "n_unannotated": 60,
+  "cue": {
+    "n_items_with_a_cue": 0,
+    "denominator": 1364,
+    "consequence": "The frozen acknowledgment regex is defined only where a cue exists, so it has no Q1 ground truth on this corpus. What the corpus measures is specificity out of distribution: every positive from a cue-disclosure instrument here is a false positive by construction."
+  },
+  "q2": {
+    "field": "unfaithfulness",
+    "positive_class": "unfaithfulness == 1 (the CoT does not reflect the reasoning)",
+    "n_positive": 382,
+    "n_negative": 922,
+    "denominator": 1304
+  },
+  "taxonomy": {
+    "1": {
+      "name": "incorrect answer, faithful CoT",
+      "n": 281,
+      "n_answer_correct": 1,
+      "n_answer_incorrect": 280,
+      "implies_correct": false,
+      "implies_unfaithful": false
+    },
+    "2": {
+      "name": "incorrect answer, unfaithful CoT",
+      "n": 233,
+      "n_answer_correct": 1,
+      "n_answer_incorrect": 232,
+      "implies_correct": false,
+      "implies_unfaithful": true
+    },
+    "3": {
+      "name": "correct answer, faithful CoT",
+      "n": 682,
+      "n_answer_correct": 679,
+      "n_answer_incorrect": 3,
+      "implies_correct": true,
+      "implies_unfaithful": false
+    },
+    "4": {
+      "name": "correct answer, unfaithful CoT (post-hoc rationalization)",
+      "n": 107,
+      "n_answer_correct": 106,
+      "n_answer_incorrect": 1,
+      "implies_correct": true,
+      "implies_unfaithful": true
+    }
+  },
+  "label_disagreement": {
+    "n_type_contradicts_binary_label": 56,
+    "n_type_contradicts_derived_correctness": 6,
+    "n_inconsistent_rows": 62,
+    "n_consistent_rows": 1241,
+    "denominator": 1303,
+    "rule": "Primary analysis uses the unfaithfulness field on all annotated rows; a sensitivity analysis restricted to label_consistent rows is reported beside it. No row is repaired."
+  },
+  "correctness_strata": {
+    "correct": 787,
+    "incorrect": 517,
+    "denominator": 1304
+  },
+  "per_split": {
+    "HLE_BIO/Qwen2.5-7B-Instruct": {
+      "n": 41,
+      "n_annotated": 40,
+      "n_unfaithful": 16
+    },
+    "HLE_BIO/gemini-2.5-flash": {
+      "n": 41,
+      "n_annotated": 40,
+      "n_unfaithful": 13
+    },
+    "HLE_BIO/gpt-4o-mini": {
+      "n": 41,
+      "n_annotated": 41,
+      "n_unfaithful": 16
+    },
+    "HLE_BIO/llama-3.1-8b-instruct": {
+      "n": 41,
+      "n_annotated": 40,
+      "n_unfaithful": 20
+    },
+    "aqua/Qwen2.5-7B-Instruct": {
+      "n": 100,
+      "n_annotated": 88,
+      "n_unfaithful": 36
+    },
+    "aqua/gemini-2.5-flash": {
+      "n": 100,
+      "n_annotated": 90,
+      "n_unfaithful": 9
+    },
+    "aqua/gpt-4o-mini": {
+      "n": 100,
+      "n_annotated": 99,
+      "n_unfaithful": 14
+    },
+    "aqua/llama-3.1-8b-instruct": {
+      "n": 100,
+      "n_annotated": 77,
+      "n_unfaithful": 22
+    },
+    "logiqa/Qwen2.5-7B-Instruct": {
+      "n": 100,
+      "n_annotated": 100,
+      "n_unfaithful": 32
+    },
+    "logiqa/gemini-2.5-flash": {
+      "n": 100,
+      "n_annotated": 100,
+      "n_unfaithful": 22
+    },
+    "logiqa/gpt-4o-mini": {
+      "n": 100,
+      "n_annotated": 100,
+      "n_unfaithful": 29
+    },
+    "logiqa/llama-3.1-8b-instruct": {
+      "n": 100,
+      "n_annotated": 100,
+      "n_unfaithful": 44
+    },
+    "truthfulqa/Qwen2.5-7B-Instruct": {
+      "n": 100,
+      "n_annotated": 99,
+      "n_unfaithful": 34
+    },
+    "truthfulqa/gemini-2.5-flash": {
+      "n": 100,
+      "n_annotated": 100,
+      "n_unfaithful": 17
+    },
+    "truthfulqa/gpt-4o-mini": {
+      "n": 100,
+      "n_annotated": 100,
+      "n_unfaithful": 18
+    },
+    "truthfulqa/llama-3.1-8b-instruct": {
+      "n": 100,
+      "n_annotated": 90,
+      "n_unfaithful": 40
+    }
+  }
+}
