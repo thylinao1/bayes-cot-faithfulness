@@ -46,6 +46,7 @@ import arms_resume  # sibling checkpoint/resume module, imported like the client
 from groq_client import GroqClient
 from ollama_client import OllamaClient
 from openai_client import OpenAIClient, openai_setup_message
+from reasoning_client import ReasoningModeClient
 
 from bayes_cot_faithfulness.arms import (
     _TAXONOMY_TEMPLATES,
@@ -99,6 +100,23 @@ from bayes_cot_faithfulness.outcome_scale import (
     assert_records_scaled,
     check_outcome_scale,
     letter_logprob_fields,
+)
+from bayes_cot_faithfulness.reasoning_mode import (
+    REASONING_MODES,
+    assert_records_reasoning_mode,
+    parse_answer_after_think,
+)
+from bayes_cot_faithfulness.reasoning_mode import (
+    check_mode as check_reasoning_mode,
+)
+from bayes_cot_faithfulness.reasoning_mode import (
+    full_num_predict as reasoning_full_num_predict,
+)
+from bayes_cot_faithfulness.reasoning_mode import (
+    path_for as reasoning_path_for,
+)
+from bayes_cot_faithfulness.reasoning_mode import (
+    record_fields as reasoning_record_fields,
 )
 from bayes_cot_faithfulness.repeat_curves import (
     identical_repeat_fraction,
@@ -215,6 +233,41 @@ class RunCtx:
     # chain resample. cue_pass takes it as an argument; the chain arm runs later and has
     # only the records, so it is carried here rather than re-derived from a transcript.
     taxonomy: str | None = None
+    # RULING R12 (2026-09-07): "default" is today's behaviour byte for byte, "off" is the
+    # cell of record for a row whose template opens a reasoning block the frozen budget
+    # cuts, "on" is the exploratory additive arm. Default here, so every existing call
+    # site that builds a RunCtx positionally keeps exactly the behaviour it had.
+    reasoning_mode: str = "default"
+
+    @property
+    def extract_full(self):
+        """The extractor for a FULL generation under this run's reasoning mode.
+
+        The frozen parser everywhere but reasoning_mode "on", where R12 reads the answer
+        from the text AFTER the closing think tag. A property rather than a stored
+        callable so the mode and the extractor cannot drift apart, and so the ctx stays
+        made of data.
+        """
+        return parse_answer_after_think if self.reasoning_mode == "on" else parse_answer
+
+    def reasoning_fields(self) -> dict:
+        """The four RULING R12 fields this run puts on every record.
+
+        ``reasoning_block_closed`` is True under "off" by CONSTRUCTION, not by hope:
+        ``reasoning_mode.close_reasoning_block`` returns a prompt ending in a closed block
+        on both of its branches, so every "off" generation runs on a closed prompt. It is
+        None under "default" and "on", where no block was closed at all. WHICH branch
+        fired, the rendered prompt tail, and whether any continuation reopened a block
+        anyway are the client's own measurements and ride in the summary and run_meta,
+        because they are measured rather than constructed.
+        """
+        mode = check_reasoning_mode(self.reasoning_mode)
+        return reasoning_record_fields(
+            mode,
+            path=reasoning_path_for(mode),
+            block_closed=(True if mode == "off" else None),
+            num_predict_full_value=self.num_predict,
+        )
 
 
 # --- Small pure helpers -----------------------------------------------------
@@ -855,7 +908,8 @@ def assemble_summary(backend: str, model: str, n_items: int, n_clean_correct: in
                      cue_kind: str, arms: list[str], blocks: dict,
                      attrition: dict, n_invocations: int = 1, curve_cap: int | None = None,
                      num_predict: int | None = None,
-                     enrichment: dict | None = None) -> dict:
+                     enrichment: dict | None = None,
+                     reasoning: dict | None = None) -> dict:
     """The final exploratory summary dict (carries the no-verdict status string).
 
     ``n_invocations`` / ``resumed`` disclose that the artifact came from a multi-leg
@@ -884,6 +938,10 @@ def assemble_summary(backend: str, model: str, n_items: int, n_clean_correct: in
         # argument, so a summary can never disagree with the records it summarizes.
         "intervention_level": INTERVENTION_LEVEL,
         "outcome_scale": OUTCOME_SCALE,
+        # RULING R12. The per-cell summary carries the same four fields every record
+        # carries, plus whatever the client measured about the block close, so a reader
+        # never has to open a transcript to learn which configuration this cell is.
+        **(reasoning if reasoning is not None else reasoning_record_fields("default")),
         # RULING R3(ii)/(iii). Present on every summary, with a zero enrichment count on a
         # regular cell, so the enrichment population is never invisible by omission.
         "enrichment": enrichment or {
@@ -910,13 +968,25 @@ def _curve_to_dict(curve) -> dict:
     }
 
 
-def serialize_arm_record(r: dict) -> dict:
-    """Flatten one record (with its QAItem and any curves) into a JSON-safe dict."""
+def serialize_arm_record(r: dict, reasoning: dict | None = None) -> dict:
+    """Flatten one record (with its QAItem and any curves) into a JSON-safe dict.
+
+    ``reasoning`` is the RULING R12 block (reasoning_mode, reasoning_path,
+    reasoning_block_closed, num_predict_full). It defaults to the default-mode block, so
+    a caller that does not know about reasoning modes still writes a record that says
+    which mode produced it rather than a record with the fields missing.
+    """
     it = r["item"]
     out = {
         # CONTRACT fields, on every record, written by construction rather than by hand.
         "intervention_level": INTERVENTION_LEVEL,
         "outcome_scale": OUTCOME_SCALE,
+        # RULING R12: which reasoning-mode configuration produced this record, which
+        # request path it was generated through, whether the reasoning block was closed
+        # in the prompt, and the FULL-generation budget in force. A cell of record (off)
+        # and its exploratory arm (on) are never pooled, and these four fields are what
+        # makes that checkable from one record.
+        **(reasoning if reasoning is not None else reasoning_record_fields("default")),
         # RULING R3(ii): which population this record belongs to. False on every record
         # of a regular cell; True on an item the enrichment pass added to the cell's
         # hinted arms in addition to the regular n. It is written on EVERY record, not
@@ -956,7 +1026,8 @@ def serialize_arm_record(r: dict) -> dict:
     return out
 
 
-def write_arm_transcripts(out_dir: Path, safe_model: str, records: list[dict]) -> int:
+def write_arm_transcripts(out_dir: Path, safe_model: str, records: list[dict],
+                          reasoning: dict | None = None) -> int:
     """Persist every record that has been through the cue pass; return the count.
 
     Only records carrying a hinted answer are saved, so a run cut short by a rate limit
@@ -964,19 +1035,24 @@ def write_arm_transcripts(out_dir: Path, safe_model: str, records: list[dict]) -
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     processed = [r for r in records if "hinted_answer" in r]
-    transcripts = [serialize_arm_record(r) for r in processed]
+    transcripts = [serialize_arm_record(r, reasoning) for r in processed]
     # CONTRACT: "the runner asserts outcome_scale before writing a checkpoint". Every
     # checkpoint write in this runner goes through here, so this is the one place that
     # has to hold. It REFUSES rather than warns: a mislabelled record would be pooled
     # across intervention levels downstream, and banking it is worse than stopping.
     assert_records_scaled(transcripts)
+    # RULING R12, the same discipline for the same reason: a record with no
+    # reasoning_mode would be pooled with a default-mode cell downstream, and R12 says
+    # configuration A and configuration B are reported beside each other and never
+    # pooled. Refuse rather than warn, and refuse BEFORE the checkpoint is banked.
+    assert_records_reasoning_mode(transcripts)
     (out_dir / f"arms_transcripts_{safe_model}.json").write_text(
         json.dumps(transcripts, indent=2)
     )
     return len(transcripts)
 
 
-def serialize_specificity_record(r: dict) -> dict:
+def serialize_specificity_record(r: dict, reasoning: dict | None = None) -> dict:
     """Flatten one holdout specificity record into a JSON-safe dict.
 
     The holdout is a DIFFERENT item set than the main run, so these records never mix
@@ -987,6 +1063,7 @@ def serialize_specificity_record(r: dict) -> dict:
     out = {
         "intervention_level": INTERVENTION_LEVEL,
         "outcome_scale": OUTCOME_SCALE,
+        **(reasoning if reasoning is not None else reasoning_record_fields("default")),
         "logprob_source_token": r.get("logprob_source_token"),
         "answer_logprobs": r.get("answer_logprobs"),
         "question": it.question,
@@ -1004,7 +1081,8 @@ def serialize_specificity_record(r: dict) -> dict:
     return out
 
 
-def write_specificity_transcripts(out_dir: Path, safe_model: str, records: list[dict]) -> int:
+def write_specificity_transcripts(out_dir: Path, safe_model: str, records: list[dict],
+                                  reasoning: dict | None = None) -> int:
     """Persist the holdout records that got a placebo pass, to their OWN file.
 
     Same banking discipline as ``write_arm_transcripts`` (a run cut short keeps the work
@@ -1013,8 +1091,9 @@ def write_specificity_transcripts(out_dir: Path, safe_model: str, records: list[
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     processed = [r for r in records if "placebo_cot" in r]
-    transcripts = [serialize_specificity_record(r) for r in processed]
+    transcripts = [serialize_specificity_record(r, reasoning) for r in processed]
     assert_records_scaled(transcripts)
+    assert_records_reasoning_mode(transcripts)
     (out_dir / f"specificity_transcripts_{safe_model}.json").write_text(
         json.dumps(transcripts, indent=2)
     )
@@ -1023,13 +1102,15 @@ def write_specificity_transcripts(out_dir: Path, safe_model: str, records: list[
 
 def _checkpoint(ctx: RunCtx, records: list[dict], i: int) -> None:
     if (i + 1) % CHECKPOINT_EVERY == 0:
-        write_arm_transcripts(ctx.out_dir, ctx.safe_model, records)
+        write_arm_transcripts(ctx.out_dir, ctx.safe_model, records,
+                              ctx.reasoning_fields())
         if ctx.checkpoint is not None:
             ctx.checkpoint.write()
 
 
 def _bank_and_report(ctx: RunCtx, records: list[dict], err: Exception | None) -> None:
-    n = write_arm_transcripts(ctx.out_dir, ctx.safe_model, records)
+    n = write_arm_transcripts(ctx.out_dir, ctx.safe_model, records,
+                              ctx.reasoning_fields())
     # Write the resume checkpoint BEFORE the failure message, so a stop banks the full
     # state (records + attrition + specificity so far) as its last act.
     if ctx.checkpoint is not None:
@@ -1040,7 +1121,7 @@ def _bank_and_report(ctx: RunCtx, records: list[dict], err: Exception | None) ->
 
 
 # --- Model passes (every call goes through safe_generate) ---
-def parse_or_force_checked(client, item, text, n_choices):
+def parse_or_force_checked(client, item, text, n_choices, extract=parse_answer):
     """05's ``parse_or_force`` with the forced call's error SURFACED instead of swallowed.
 
     05 returns None both when the forced continuation call itself failed (a transient
@@ -1052,8 +1133,15 @@ def parse_or_force_checked(client, item, text, n_choices):
     deliberately changes fresh-run behavior ONLY on the transient-error path; a genuinely
     unparseable answer after a SUCCESSFUL forced call still returns ``(None, None)`` and
     is scored as unparseable exactly as before.
+
+    ``extract`` reads the FULL generation and defaults to the frozen parser, which is what
+    every mode but reasoning_mode "on" uses. Under "on" the caller passes
+    ``reasoning_mode.parse_answer_after_think``, which strips the reasoning block and then
+    applies the same frozen regexes. The FORCED continuation is always read with the
+    frozen parser: it is 24 tokens of answer line with no reasoning block of its own, and
+    requiring a closing tag there would score every continuation unparseable.
     """
-    ans = parse_answer(text, n_choices)
+    ans = extract(text, n_choices)
     if ans is not None:
         return ans, None
     forced, err = safe_generate(client, continuation_prompt(item, text), FORCE_TOKENS)
@@ -1064,7 +1152,7 @@ def parse_or_force_checked(client, item, text, n_choices):
 
 def substrate_pass(client, items, n_choices, num_predict, backend, model,
                    banked=None, records=None, on_checkpoint=None, locked=False,
-                   concurrency=1):
+                   concurrency=1, extract=parse_answer):
     """Clean arm over all items; same first-call / three-strikes stop as 05.
 
     Resume merge (``banked`` is None on a fresh run, keeping that path's model-call
@@ -1103,7 +1191,7 @@ def substrate_pass(client, items, n_choices, num_predict, backend, model,
         ans = None
         out, err = safe_generate(client, clean_prompt(it), num_predict)
         if err is None:
-            ans, err = parse_or_force_checked(client, it, out, n_choices)
+            ans, err = parse_or_force_checked(client, it, out, n_choices, extract=extract)
         return ("generated", (out, ans, err))
 
     def _consume(i, it, result):
@@ -1166,7 +1254,8 @@ def cue_pass(client, records, ctx, taxonomy):
         ans = None
         out, err = safe_generate(client, prompt, ctx.num_predict)
         if err is None:
-            ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
+            ans, err = parse_or_force_checked(client, it, out, ctx.n_choices,
+                                              extract=ctx.extract_full)
         return {"hint": hint, "cue_text": cue_text, "out": out, "ans": ans, "err": err}
 
     def _consume(i, r, res):
@@ -1275,7 +1364,8 @@ def arm_placebo(client, records, ctx):
             client, placebo_prompt(it, r["cue_text"], rng_seed=i), ctx.num_predict
         )
         if err is None:
-            ans, err = parse_or_force_checked(client, it, out, ctx.n_choices)
+            ans, err = parse_or_force_checked(client, it, out, ctx.n_choices,
+                                              extract=ctx.extract_full)
         if err is not None:
             return {}, err
         return {"placebo_answer": ans}, None
@@ -1435,7 +1525,7 @@ def arm_sampling(client, records, ctx):
         # unparsed sample and fold its answer into the distribution, which would make the
         # entropy a property of two different generations. An unparsed sample is counted
         # as unscorable instead.
-        answers = [parse_answer(o, ctx.n_choices) for o in outs]
+        answers = [ctx.extract_full(o, ctx.n_choices) for o in outs]
         block = summarize_item_samples(
             answers,
             n_options=len(it.choices),
@@ -1620,7 +1710,7 @@ def _one_chain_repeat(client, ctx, it, prompt, seed, keep_text=False):
     # No forced-answer fallback. parse_or_force would spend a second call and fold a
     # DIFFERENT generation's answer into this chain's curve, which is exactly the kind
     # of quiet mixing the sampling arm already refuses. An unparsed chain is counted.
-    chain_answer = parse_answer(chain, ctx.n_choices)
+    chain_answer = ctx.extract_full(chain, ctx.n_choices)
     row = {
         "seed": seed,
         "temperature": ctx.chain_repeat_temperature,
@@ -2018,14 +2108,16 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
             client, placebo_prompt(it, cue_text, rng_seed=i), ctx.num_predict
         )
         if err is None:
-            ans, err = parse_or_force_checked(client, it, out, n_choices)
+            ans, err = parse_or_force_checked(client, it, out, n_choices,
+                                              extract=ctx.extract_full)
         return {"hint": hint, "cue_text": cue_text, "out": out, "ans": ans, "err": err}
 
     def _consume(i, r, res):
         if res is None:
             return True
         if res["err"] is not None:
-            n_saved = write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct)
+            n_saved = write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct,
+                                                    ctx.reasoning_fields())
             if writer is not None:
                 writer.write()
             if n_saved:
@@ -2041,7 +2133,8 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
         })
         print(f"      ... specificity {i + 1}/{len(correct)}", end="\r", flush=True)
         if (i + 1) % CHECKPOINT_EVERY == 0:
-            write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct)
+            write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct,
+                                          ctx.reasoning_fields())
             if writer is not None:
                 writer.write()
         return True
@@ -2050,7 +2143,8 @@ def run_specificity_arm(client, ctx: RunCtx, holdout_path: Path):
     if not state["ok"]:
         return None, False
     print()
-    write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct)
+    write_specificity_transcripts(ctx.out_dir, ctx.safe_model, correct,
+                                  ctx.reasoning_fields())
     if writer is not None:
         writer.write()
     return summarize_specificity(correct, len(items), attrition), True
@@ -2249,7 +2343,8 @@ def no_arms_hint() -> str:
 
 # --- Orchestration ---
 def _gate_client(backend, model, host, timeout, *, base_url=None,
-                 seed=None, chat_template_kwargs=None, concurrency=1):
+                 seed=None, chat_template_kwargs=None, concurrency=1,
+                 reasoning_mode="default"):
     """Build the backend client, or print the setup message and return None ($0 gate).
 
     ``max_wait`` is raised from GroqClient's 25s default for THIS runner only (05 and the
@@ -2267,7 +2362,16 @@ def _gate_client(backend, model, host, timeout, *, base_url=None,
     if backend == "openai":
         # Self-hosted vLLM on a cluster card. The groq and ollama branches below are
         # untouched: this branch returns before either of them is reached.
-        client = OpenAIClient(
+        #
+        # RULING R12. Only reasoning_mode "off" needs a client of its own, because only
+        # "off" moves the request path (rendered prompt with the reasoning block closed,
+        # generated through /completions). "default" and "on" both run on the ordinary
+        # chat path with the ordinary client: "on" differs from a default cell in the
+        # full-generation budget, which run() sets, and in the answer extractor, which
+        # RunCtx.extract_full selects. So a default cell's client is the SAME class and
+        # the SAME constructor arguments it was before this ruling existed.
+        cls = ReasoningModeClient if reasoning_mode == "off" else OpenAIClient
+        client = cls(
             base_url=base_url, model=model, temperature=0.0, timeout=timeout,
             seed=seed, chat_template_kwargs=chat_template_kwargs,
             # The client's own ceiling matches the runner's pool, so no code path can
@@ -2291,8 +2395,44 @@ def _gate_client(backend, model, host, timeout, *, base_url=None,
     return client
 
 
+def reasoning_summary_block(ctx: RunCtx, client=None) -> dict:
+    """The four record fields plus whatever the CLIENT measured about the block close.
+
+    The fields are constructed from the mode (see ``RunCtx.reasoning_fields``); the
+    detail is measured: which close branch fired, the rendered prompt tail, and how many
+    forced continuations reopened a reasoning block anyway. A client that has no such
+    measurements (every mode but "off") contributes ``reasoning_detail`` None rather than
+    an empty dict that would read as "measured, and nothing happened".
+    """
+    fields = dict(ctx.reasoning_fields())
+    report = client.reasoning_report() if hasattr(client, "reasoning_report") else None
+    fields["reasoning_detail"] = report
+    return fields
+
+
+def update_run_meta_reasoning(out_dir: Path, ctx: RunCtx, client=None) -> bool:
+    """Merge the R12 fields into this cell's run_meta.json, if the job wrote one.
+
+    The sbatch writes run_meta.json before the server is even up, so it can name the mode
+    but not the rendered prompt. This adds the measured half after the arms finish, the
+    same way the script's own step 3b adds the attention backend it read back out of the
+    server log. Returns False when there is no run_meta.json (an offline run), which is
+    not an error.
+    """
+    meta_path = out_dir / "run_meta.json"
+    if not meta_path.exists():
+        return False
+    try:
+        meta = json.loads(meta_path.read_text())
+    except (OSError, ValueError):
+        return False
+    meta.update(reasoning_summary_block(ctx, client))
+    meta_path.write_text(json.dumps(meta, indent=2))
+    return True
+
+
 def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_block=None,
-              enrichment=None):
+              enrichment=None, client=None):
     """Report the enabled arms, then write the exploratory summary and transcripts.
 
     ``specificity_block`` arrives pre-built (the A9 arm runs on the holdout items, not
@@ -2307,14 +2447,16 @@ def _finalize(correct, arms, ctx, n_items, cue_kind, attrition, specificity_bloc
         ctx.backend, ctx.model, n_items, len(correct), cue_kind, arms, blocks, attrition,
         n_invocations=(1 if ctx.checkpoint is None else ctx.checkpoint.n_invocations),
         curve_cap=ctx.curve_cap, num_predict=ctx.num_predict,
-        enrichment=enrichment,
+        enrichment=enrichment, reasoning=reasoning_summary_block(ctx, client),
     )
     (ctx.out_dir / f"arms_summary_{ctx.safe_model}.json").write_text(
         json.dumps(summary, indent=2)
     )
-    n_saved = write_arm_transcripts(ctx.out_dir, ctx.safe_model, correct)
+    n_saved = write_arm_transcripts(ctx.out_dir, ctx.safe_model, correct,
+                                    ctx.reasoning_fields())
     if ctx.checkpoint is not None:
         ctx.checkpoint.write()  # final full-state checkpoint: a re-run with --resume no-ops
+    update_run_meta_reasoning(ctx.out_dir, ctx, client)
     print(f"\nwrote summary + {n_saved} arm transcripts -> {ctx.out_dir}")
     print("  status: " + STATUS_STRING + ".")
 
@@ -2326,8 +2468,14 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         sampling_k=SAMPLING_K, sampling_temperature=SAMPLING_TEMPERATURE,
         sampling_seed=None, curve_repeats=3, repeat_temperatures=(0.0, 0.7),
         repeat_seed=9101, chain_repeats=3, chain_repeat_temperature=0.7,
-        chain_repeat_seed=20260907, item_list=None):
+        chain_repeat_seed=20260907, item_list=None, reasoning_mode="default"):
     arms = resolve_arms(arms)
+    # RULING R12. Resolved FIRST, so an unknown mode refuses with zero model calls, and
+    # so the FULL-generation budget every later step reads is already the mode's budget:
+    # "on" raises it to 4,096 on this row only, the forced-continuation budget stays at
+    # the element 15 constant 24 wherever FORCE_TOKENS is used.
+    reasoning_mode = check_reasoning_mode(reasoning_mode)
+    num_predict = reasoning_full_num_predict(reasoning_mode, num_predict)
     if not arms:
         print(no_arms_hint())
         return 0
@@ -2407,6 +2555,11 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         sampling=sampling_params, repeat_curves=repeat_params,
         chain_repeats=chain_repeat_params,
         item_list=item_list_meta,
+        # RULING R12: None on a default cell, so every pre-existing checkpoint still
+        # loads (None == None), and a real mode on the two that move the request path or
+        # the budget, so a leg resumed under a different configuration refuses instead of
+        # merging records generated two different ways into one cell.
+        reasoning_mode=(None if reasoning_mode == "default" else reasoning_mode),
     )
     # Resume gate BEFORE the backend gate: an unreadable version, a parameter mismatch,
     # or a data file whose duplicate keys would alias banked records must refuse with
@@ -2450,7 +2603,7 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
 
     client = _gate_client(backend, model, host, timeout, base_url=base_url,
                           seed=seed, chat_template_kwargs=chat_template_kwargs,
-                          concurrency=concurrency)
+                          concurrency=concurrency, reasoning_mode=reasoning_mode)
     if client is None:
         return 0
 
@@ -2474,6 +2627,7 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         banked=banked, records=records, on_checkpoint=writer.write,
         locked=arms_resume.roster_locked((loaded or {}).get("records", [])),
         concurrency=concurrency,
+        extract=(parse_answer_after_think if reasoning_mode == "on" else parse_answer),
     )
     if not ok:
         return 0
@@ -2505,6 +2659,7 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         chain_repeat_temperature=float(chain_repeat_temperature),
         chain_repeat_seed=chain_repeat_seed,
         taxonomy=taxonomy,
+        reasoning_mode=reasoning_mode,
     )
     print(f"[2/3] Cue pass ({cue_kind}) on {len(correct)} clean-correct items")
     if not cue_pass(client, correct, ctx, taxonomy):
@@ -2532,14 +2687,15 @@ def run(model, host, n_items, data_path, out_dir, arms, taxonomy=None,
         if not spec_ok:
             # The holdout arm banks its own transcripts; still bank the main records and the
             # full-state checkpoint so the completed main arms are not lost with the stop.
-            write_arm_transcripts(ctx.out_dir, ctx.safe_model, correct)
+            write_arm_transcripts(ctx.out_dir, ctx.safe_model, correct,
+                                  ctx.reasoning_fields())
             writer.write()
             return 0
 
     enrichment_block = enrichment_counts(records)
     enrichment_block["item_list"] = item_list_meta
     _finalize(correct, arms, ctx, len(items), cue_kind, attrition, specificity_block,
-              enrichment=enrichment_block)
+              enrichment=enrichment_block, client=client)
     return 0
 
 
@@ -2569,6 +2725,18 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--chat-template-kwargs", default=None,
                     help="JSON object forwarded to the server's chat template for "
                          "--backend openai, e.g. '{\"enable_thinking\": false}'")
+    ap.add_argument("--reasoning-mode", choices=list(REASONING_MODES), default="default",
+                    help="RULING R12, for a roster row whose chat template opens a "
+                         "reasoning block and documents no switch. 'default' is today's "
+                         "behaviour byte for byte. 'off' is the cell of record: the "
+                         "prompt is rendered through the model's own template and the "
+                         "reasoning block CLOSED, generation moves to /completions, and "
+                         "every element 15 constant stays (320 full, 24 forced). 'on' is "
+                         "the exploratory additive arm: the ordinary chat path, "
+                         "num_predict 4096 for FULL generations on this row only, and "
+                         "the answer read after the closing think tag. Every record "
+                         "carries the mode, the request path, whether the block was "
+                         "closed, and the full-generation budget.")
     ap.add_argument("--arm", action="append", choices=list(ARM_CHOICES), default=None,
                     help="additive Phase-2 arm to run; repeatable. Choices: "
                          + ", ".join(ARM_CHOICES))
@@ -2685,7 +2853,7 @@ def main(argv: list[str] | None = None) -> int:
                chain_repeats=a.chain_repeats,
                chain_repeat_temperature=a.chain_repeat_temperature,
                chain_repeat_seed=a.chain_repeat_seed,
-               item_list=a.item_list)
+               item_list=a.item_list, reasoning_mode=a.reasoning_mode)
 
 
 if __name__ == "__main__":

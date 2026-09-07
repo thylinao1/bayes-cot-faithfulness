@@ -765,9 +765,24 @@ def test_summary_discloses_resume_provenance_and_curve_cap(tmp_path, monkeypatch
         # with a zero enrichment count on a regular cell, so the population split can
         # never be missing by omission.
         "enrichment",
+        # RULING R12, 2026-09-07: which reasoning-mode configuration produced this cell,
+        # which request path it generated through, whether the reasoning block was
+        # closed, the FULL-generation budget in force, and the client's own measurements
+        # of the close (None on every mode but "off"). Present on EVERY summary, with
+        # "default" on a cell that never asked for a mode, so configuration A and
+        # configuration B can never be pooled by a reader who cannot tell them apart.
+        "reasoning_mode", "reasoning_path", "reasoning_block_closed",
+        "num_predict_full", "reasoning_detail",
     }
     assert fresh["intervention_level"] == "text"
     assert fresh["outcome_scale"] == "binary_follow"
+    # A run that named no mode is the default configuration, on the chat path, at the
+    # element 15 full-generation budget, with no block closed and nothing measured.
+    assert fresh["reasoning_mode"] == "default"
+    assert fresh["reasoning_path"] == "chat"
+    assert fresh["reasoning_block_closed"] is None
+    assert fresh["num_predict_full"] == 320
+    assert fresh["reasoning_detail"] is None
     # A regular cell: no item list, nothing enriched, and the regular count is the
     # clean-correct count the summary already reports.
     assert fresh["enrichment"]["item_list"] is None

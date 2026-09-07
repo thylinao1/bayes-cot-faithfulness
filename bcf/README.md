@@ -73,6 +73,49 @@ Each of these exits before spending anything, with a distinct code in `exit_code
 Exit 3 is the one that matters most in practice. A 70B started on one card downloads
 140 GB to scratch and then OOMs; the assertion turns that into a five-second exit.
 
+## `BCF_REASONING_MODE` and the two-path gate (ruling R12)
+
+Four roster rows document no reasoning-mode switch and their chat templates open a
+reasoning block that the frozen 320-token budget cuts before an answer appears
+(`docs/WAVE1-AUDIT.md`). R12 defines the switch, for those rows, as closing the block the
+template opens, and `serve_and_run.sbatch` carries it as one variable:
+
+| `BCF_REASONING_MODE` | What the cell does | Status |
+|---|---|---|
+| `default` (the default) | today's behaviour, byte for byte: `/chat/completions`, `num_predict` 320 full and 24 forced | what every other row runs |
+| `off` | the prompt is rendered through the model's own template (`/tokenize` plus `/detokenize`), the reasoning block is CLOSED, generation moves to `/completions`, every element 15 constant unchanged | the CELL OF RECORD for those rows, once the gate below has passed |
+| `on` | the ordinary chat path, `num_predict` 4096 for FULL generations on that row only (forced stays 24), the answer read after the closing think tag | the EXPLORATORY additive arm; reported beside the `off` cell per model and never pooled with it |
+
+Every generation record, the cell summary and `run_meta.json` carry `reasoning_mode`,
+`reasoning_path` (`chat` or `completions`), `reasoning_block_closed` and
+`num_predict_full`; the runner refuses to write a checkpoint if any of them is missing.
+`run_meta.json` also gets the rendered prompt tail and the count of forced continuations
+that reopened a block anyway. An unknown mode exits 14 before the weights download.
+
+    sbatch --job-name=bcf-sweep-olmo-3-7b-think-arc-stated-hint \
+      --export=ALL,BCF_MODEL=allenai/Olmo-3-7B-Think,BCF_SUBSTRATE=arc_challenge,\
+    BCF_CUE=stated-hint,BCF_REASONING_MODE=off ~/bcf/repo/bcf/serve_and_run.sbatch
+
+Raise `BCF_MAX_LEN` to 16384 with `BCF_REASONING_MODE=on`; a 4096-token generation
+against the 8192 default leaves little room for the prompt, and the job warns rather than
+refuses.
+
+**The gate that precedes an `off` cell of record.** R12(2): the request path change has to
+be shown not to be a serving-mode change. `bcf/gate_twopath.sbatch` runs 30 ARC items on
+`Qwen/Qwen3-8B` at the pinned revision under `VLLM_BATCH_INVARIANT=1`, sending each item
+through `/chat/completions` and through the rendered `/completions` path with `default`
+semantics (nothing closed, nothing appended). PASS is 30/30 byte-identical completions, a
+max absolute letter-logprob difference of exactly 0.0, and a clean rendered-prompt round
+trip; anything else exits 10 and the path change needs its own preflight line.
+
+    ssh soc 'sbatch --export=ALL,BCF_REPO=$HOME/bcf/repo-rmode,\
+    BCF_ENV_SH=$HOME/bcf/repo-rmode/bcf/env.sh $HOME/bcf/repo-rmode/bcf/gate_twopath.sbatch'
+
+The determinism preflight and the forced-logprob check inside `serve_and_run.sbatch` stay
+on the CHAT path whatever the mode (they measure the server), and `run_meta.json` records
+that as `reasoning_preflight_path`. This gate is what certifies that the two paths render
+the same prompt.
+
 ## Throughput is measured, not estimated
 
 `OpenAIClient` appends one line per HTTP call to `$BCF_REQUEST_LOG`

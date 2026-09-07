@@ -809,8 +809,8 @@ def test_transcript_write_asserts_outcome_scale_before_writing(tmp_path, monkeyp
 
     real = mod.serialize_arm_record
 
-    def broken(r):
-        out = real(r)
+    def broken(r, reasoning=None):
+        out = real(r, reasoning)
         out["outcome_scale"] = "accuracy"
         return out
 
