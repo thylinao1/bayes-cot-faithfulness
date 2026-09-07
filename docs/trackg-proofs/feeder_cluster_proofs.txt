@@ -1,0 +1,159 @@
+=== bcf/wave_feeder.sh and bcf/wave.sh: the refusals and the submit path, on the cluster ===
+host xlogin1   2026-09-07T14:55:19+08:00
+queue at the time of these proofs:
+        826783                 bcf-jury-qwen3-32b   RUNNING
+        826603                       alta-oofckpt   PENDING
+        826602                    alta-m2-foldrep   PENDING
+        826784                 bcf-jury-qwen3-32b   PENDING
+        826740 bcf-sweep-gpt-oss-20b-arc_challeng   PENDING
+        826739 bcf-sweep-phi-4-reasoning-arc_chal   PENDING
+        826734 bcf-sweep-olmo-3-7b-think-arc_chal   PENDING
+        826735 bcf-sweep-deepseek-r1-0528-qwen3-8   PENDING
+        826736 bcf-sweep-deepseek-r1-distill-llam   PENDING
+        826737 bcf-sweep-gemma-2-9b-it-arc_challe   PENDING
+        826738 bcf-sweep-llama-3-1-8b-instruct-ar   PENDING
+        826733 bcf-sweep-qwen3-8b-arc_challenge-s   RUNNING
+
+--- A. a fresh state file: the next wave is 01, which the live split refuses
+[feeder] next unsubmitted wave for sweep/a100-40: a100-40-01.tsv
+[feeder] jobs in system 12/32; headroom 20, floor 8
+[feeder] asking wave.sh --check-only about a100-40-01.tsv
+[feeder]   | [wave] planning commit <none> at <no checkout>
+[feeder]   | [wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof
+[feeder]   | [wave] file bcf/waves/a100-40-01.tsv: 8 cell(s), 8 card(s), max tp 1
+[feeder]   | [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[feeder]   | [wave] jobs in system: 12/32; this wave adds 8 -> 20/32
+[feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 1/8 (7 more pending, not counted)
+[feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 2/12
+[feeder]   | [wave] a100-40 cards in use, bcf-sweep: 8/8 (CONTRACT.md split)
+[feeder]   | [wave] this wave wants 8 card(s) across 8 job(s)
+[feeder]   | [wave] REFUSING to submit:
+[feeder]   |   a100-40 cards would reach 9 > 8 (per-user cap, all campaigns)
+[feeder]   |   bcf-sweep cards on a100-40 would reach 16 > 8 (CONTRACT.md sweep budget)
+[feeder]   | [wave] nothing was submitted and nothing was cancelled. Wait for jobs to drain, or split the wave.
+[feeder] REFUSED by wave.sh (exit 1): the split or a cap has no room.
+[feeder]   Nothing was submitted; a100-40-01.tsv stays next.
+EXIT_A=3   (3 = refused this round)
+
+--- B. adopt wave 1, submitted by hand at 14:29, so the feeder never offers it again
+[feeder] recorded a100-40-01.tsv -> ['826733', '826734', '826735', '826736', '826737', '826738', '826739', '826740'] in /home/e/e1506804/bcf/feeder-proof-state.json
+[feeder] ADOPTED a100-40-01.tsv; it will never be offered again
+EXIT_B=0
+
+--- B2. adopting it twice is refused rather than overwritten
+[feeder] a100-40-01.tsv is ALREADY in the state file; not overwriting
+EXIT_B2=8
+
+--- C. next is wave 2 now, and the live split still refuses it (the state DID advance)
+[feeder] next unsubmitted wave for sweep/a100-40: a100-40-02.tsv
+[feeder] jobs in system 12/32; headroom 20, floor 8
+[feeder] asking wave.sh --check-only about a100-40-02.tsv
+[feeder]   | [wave] planning commit <none> at <no checkout>
+[feeder]   | [wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof
+[feeder]   | [wave] file bcf/waves/a100-40-02.tsv: 8 cell(s), 8 card(s), max tp 1
+[feeder]   | [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[feeder]   | [wave] jobs in system: 12/32; this wave adds 8 -> 20/32
+[feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 1/8 (7 more pending, not counted)
+[feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 2/12
+[feeder]   | [wave] a100-40 cards in use, bcf-sweep: 8/8 (CONTRACT.md split)
+[feeder]   | [wave] this wave wants 8 card(s) across 8 job(s)
+[feeder]   | [wave] REFUSING to submit:
+[feeder]   |   a100-40 cards would reach 9 > 8 (per-user cap, all campaigns)
+[feeder]   |   bcf-sweep cards on a100-40 would reach 16 > 8 (CONTRACT.md sweep budget)
+[feeder]   | [wave] nothing was submitted and nothing was cancelled. Wait for jobs to drain, or split the wave.
+[feeder] REFUSED by wave.sh (exit 1): the split or a cap has no room.
+[feeder]   Nothing was submitted; a100-40-02.tsv stays next.
+EXIT_C=3   (3 = refused this round)
+
+--- D. the SUBMIT path, dry run against an injected empty queue: wave.sh accepts
+[feeder] next unsubmitted wave for sweep/a100-40: a100-40-02.tsv
+[feeder] jobs in system 0/32; headroom 32, floor 8
+[feeder] asking wave.sh --check-only about a100-40-02.tsv
+[feeder]   | [wave] planning commit <none> at <no checkout>
+[feeder]   | [wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof
+[feeder]   | [wave] file bcf/waves/a100-40-02.tsv: 8 cell(s), 8 card(s), max tp 1
+[feeder]   | [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[feeder]   | [wave] jobs in system: 0/32; this wave adds 8 -> 8/32
+[feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 0/8 (7 more pending, not counted)
+[feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 0/12
+[feeder]   | [wave] a100-40 cards in use, bcf-sweep: 0/8 (CONTRACT.md split)
+[feeder]   | [wave] this wave wants 8 card(s) across 8 job(s)
+[feeder]   | [wave] CHECK-ONLY would sync  @  -> /home/e/e1506804/bcf/repo-feeder-proof
+[feeder]   | [wave]   (git archive of the commit, plus the gitignored pools verified
+[feeder]   | [wave]    against the manifest committed at ); nothing was written
+[feeder]   | [wave] all checks pass; would submit 8 job(s)
+[feeder]   | [wave] 8 of 8 row(s) could not be placed right now (advisory)
+[feeder]   | [wave] done (check-only, nothing submitted)
+[feeder] DRY RUN: wave.sh accepts a100-40-02.tsv and this is where it would be submitted.
+[feeder]   No sbatch was called and the state file was not written.
+EXIT_D=0   (0 = it would submit; nothing was submitted and the state file was not written)
+
+--- E. an injected count can never cause a real submission
+[wave] planning commit <none> at <no checkout>
+[wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof
+[wave] file bcf/waves/a100-40-02.tsv: 8 cell(s), 8 card(s), max tp 1
+[wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[wave] REFUSING: BCF_WAVE_FAKE_INSYSTEM / BCF_WAVE_FAKE_CARDS are set, which
+[wave]   makes every count below a fiction. They are for --check-only proofs.
+[wave]   Nothing was submitted.
+EXIT_E=2   (2 = refused because the counts are a fiction)
+
+--- F. the POOL GUARD: an enrichment wave while the sweep holds the pool
+[wave] planning commit <none> at <no checkout>
+[wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof
+[wave] file bcf/waves/enrich-a100-40-01.tsv: 8 cell(s), 8 card(s), max tp 1
+[wave] type enrich on a100-40, partition gpu-long (wall ceiling 72 h)
+[wave] jobs in system: 12/32; this wave adds 8 -> 20/32
+[wave] a100-40 cards RUNNING, ALL campaigns: 1/8 (7 more pending, not counted)
+[wave] gpu cards RUNNING, ALL types, ALL campaigns: 2/12
+[wave] a100-40 cards in use, bcf-enrich: 0/8 (CONTRACT.md split)
+[wave] this wave wants 8 card(s) across 8 job(s)
+[wave] POOL GUARD on: every bcf-* card on a100-40, running AND pending, all job types: 8/8
+[wave] REFUSING to submit:
+  a100-40 cards would reach 9 > 8 (per-user cap, all campaigns)
+  this campaign's own a100-40 cards would reach 16 > 8 counting its PENDING jobs of every type (pool guard)
+[wave] nothing was submitted and nothing was cancelled. Wait for jobs to drain, or split the wave.
+EXIT_F=1   (1 = refused: the campaign already holds the pool)
+
+--- G. the same enrichment wave with the pool empty: accepted (check-only)
+[wave] planning commit <none> at <no checkout>
+[wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof
+[wave] file bcf/waves/enrich-a100-40-01.tsv: 8 cell(s), 8 card(s), max tp 1
+[wave] type enrich on a100-40, partition gpu-long (wall ceiling 72 h)
+[wave] jobs in system: 0/32; this wave adds 8 -> 8/32
+[wave] a100-40 cards RUNNING, ALL campaigns: 0/8 (7 more pending, not counted)
+[wave] gpu cards RUNNING, ALL types, ALL campaigns: 0/12
+[wave] a100-40 cards in use, bcf-enrich: 0/8 (CONTRACT.md split)
+[wave] this wave wants 8 card(s) across 8 job(s)
+[wave] POOL GUARD on: every bcf-* card on a100-40, running AND pending, all job types: 0/8
+[wave] CHECK-ONLY would sync  @  -> /home/e/e1506804/bcf/repo-feeder-proof
+[wave]   (git archive of the commit, plus the gitignored pools verified
+[wave]    against the manifest committed at ); nothing was written
+[wave] all checks pass; would submit 8 job(s)
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-enrich-qwen3-8b-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=Qwen/Qwen3-8B\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=stated-hint\,BCF_REVISION=b968826d9c46dd6066d109eabc6255188de91218\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=sampling\,BCF_N_ARMS=1\,BCF_SAMPLING_K=32\,BCF_SAMPLING_TEMPERATURE=0.7\,BCF_ENRICH_REPORT=1\,BCF_OUT_SUBROOT=enrichment\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-proof/bcf/serve_and_run.sbatch
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-enrich-olmo-3-7b-think-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=allenai/Olmo-3-7B-Think\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=stated-hint\,BCF_REVISION=d97e442d7cc678210054dbcc9b440894d62c89a4\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=sampling\,BCF_N_ARMS=1\,BCF_SAMPLING_K=32\,BCF_SAMPLING_TEMPERATURE=0.7\,BCF_ENRICH_REPORT=1\,BCF_OUT_SUBROOT=enrichment\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-proof/bcf/serve_and_run.sbatch
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-enrich-deepseek-r1-0528-qwen3-8b-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=deepseek-ai/DeepSeek-R1-0528-Qwen3-8B\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=stated-hint\,BCF_REVISION=6e8885a6ff5c1dc5201574c8fd700323f23c25fa\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=sampling\,BCF_N_ARMS=1\,BCF_SAMPLING_K=32\,BCF_SAMPLING_TEMPERATURE=0.7\,BCF_ENRICH_REPORT=1\,BCF_OUT_SUBROOT=enrichment\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-proof/bcf/serve_and_run.sbatch
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-enrich-deepseek-r1-distill-llama-8b-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=deepseek-ai/DeepSeek-R1-Distill-Llama-8B\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=stated-hint\,BCF_REVISION=6a6f4aa4197940add57724a7707d069478df56b1\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=sampling\,BCF_N_ARMS=1\,BCF_SAMPLING_K=32\,BCF_SAMPLING_TEMPERATURE=0.7\,BCF_ENRICH_REPORT=1\,BCF_OUT_SUBROOT=enrichment\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-proof/bcf/serve_and_run.sbatch
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-enrich-gemma-2-9b-it-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=google/gemma-2-9b-it\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=stated-hint\,BCF_REVISION=11c9b309abf73637e4b6f9a3fa1e92e615547819\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=sampling\,BCF_N_ARMS=1\,BCF_SAMPLING_K=32\,BCF_SAMPLING_TEMPERATURE=0.7\,BCF_ENRICH_REPORT=1\,BCF_OUT_SUBROOT=enrichment\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-proof/bcf/serve_and_run.sbatch
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-enrich-llama-3-1-8b-instruct-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=meta-llama/Llama-3.1-8B-Instruct\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=stated-hint\,BCF_REVISION=0e9e39f249a16976918f6564b8830bc894c89659\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=sampling\,BCF_N_ARMS=1\,BCF_SAMPLING_K=32\,BCF_SAMPLING_TEMPERATURE=0.7\,BCF_ENRICH_REPORT=1\,BCF_OUT_SUBROOT=enrichment\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-proof/bcf/serve_and_run.sbatch
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-enrich-phi-4-reasoning-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=microsoft/Phi-4-reasoning\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=stated-hint\,BCF_REVISION=1de18ec97600877ce63dbf60c73b998da99f0195\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=sampling\,BCF_N_ARMS=1\,BCF_SAMPLING_K=32\,BCF_SAMPLING_TEMPERATURE=0.7\,BCF_ENRICH_REPORT=1\,BCF_OUT_SUBROOT=enrichment\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1\,BCF_EXPECTED_HOURS=1.219 /home/e/e1506804/bcf/repo-feeder-proof/bcf/serve_and_run.sbatch
+[wave] CHECK-ONLY would run: sbatch --job-name=bcf-enrich-gpt-oss-20b-arc_challenge-stated-hint --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=openai/gpt-oss-20b\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=stated-hint\,BCF_REVISION=6cee5e81ee83917806bbde320786a8fb61efebee\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=sampling\,BCF_N_ARMS=1\,BCF_SAMPLING_K=32\,BCF_SAMPLING_TEMPERATURE=0.7\,BCF_ENRICH_REPORT=1\,BCF_OUT_SUBROOT=enrichment\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1\,BCF_EXPECTED_HOURS=1.219 /home/e/e1506804/bcf/repo-feeder-proof/bcf/serve_and_run.sbatch
+[wave] 8 of 8 row(s) could not be placed right now (advisory)
+[wave] done (check-only, nothing submitted)
+EXIT_G=0   (0 = every cap holds)
+
+--- H. an unknown pool for the enrich type is a planning gap, not a default
+REFUSING: no CONTRACT budget for --type enrich on a100-80.
+  Known pairs: skel_a100-40 sweep_h100-96 ladder_a100-80 skel_a100-80 judge_h200-141 sweep_a100-80 probe_a100-40 judge_a100-80 skel_h100-96 enrich_a100-40 sweep_h200-141 sweep_a100-40 ladder_a100-40 probe_a100-80
+  A pool with no stated split for this job type is a planning gap, not a default.
+EXIT_H=2   (2 = no CONTRACT budget for that pair)
+
+--- I. serve_and_run.sbatch refuses a named-but-missing BCF_ITEM_LIST before any download
+[item-list] REFUSING: BCF_ITEM_LIST=/tmp/tmp.g4QWTkvVER/does-not-exist.json does not exist. This cell would
+[item-list]   otherwise run on the regular n under an enrichment name.
+EXIT_I=11   (11 = the item list is named and not readable)
+exit_code.txt says: 11
+
+--- J. nothing was submitted by any of the above
+12
+(jobs in system now; compare with the queue listed at the top)
