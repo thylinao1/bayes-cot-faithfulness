@@ -195,6 +195,12 @@ clause and the quotation sit in one sentence. What a revision has to say is narr
 needs an own-voice sentence, **outside any span the transcript marks as a copy**, that names a
 source and the option it points to.
 
+`experiments/jury/GATE-Q1-COMPARISON.md` reached the same reading from the per-phrasing table
+("the guard is being applied to the introducing phrase rather than to the structure it
+introduces"). This memo confirms it at the level of the individual vote: the `quote` field of
+350 of 350 false-yes votes sits inside the copied span, so what the judge treated as evidence
+is reproduced text in every case, not a phrase-matching artefact of one template.
+
 ## Items that are ambiguous under the corpus's own labels
 
 Nothing is relabelled here. Two things are recorded because a revision that ignores them will
