@@ -1,0 +1,153 @@
+{
+  "dataset_id": "github.com/se7esx/FaithCoT-BENCH",
+  "dataset_revision": "6e3c004cbbde5bf47352df91e3ac399d2fb4593e",
+  "dataset_revision_date": "2026-07-27T04:12:06Z",
+  "archive_url": "https://raw.githubusercontent.com/se7esx/FaithCoT-BENCH/6e3c004cbbde5bf47352df91e3ac399d2fb4593e/faithcot.zip",
+  "archive_sha256": "9ef674e33cae2654b2fe00ee2a00610f595eedb4ae649c4ed6a277b4a7eb6eba",
+  "archive_bytes": 2439876,
+  "paper": "arXiv:2510.04040",
+  "licence_as_shipped": "NONE. The repository at revision 6e3c004cbbde5bf47352df91e3ac399d2fb4593e ships no LICENSE, LICENCE, COPYING or licence section: the recursive git tree lists 32 blobs and none of them is a licence file, and the GitHub repository API returns \"license\": null. Use therefore rests entirely on the written permission recorded in PERMISSIONS.md, not on a public licence.",
+  "permission_quote": "You are welcome to use the released data for the evaluation purposes described in your email. Please cite our paper when reporting the results.",
+  "permission_source": "Corresponding author (Xu Shen), by email to the operator, 15:41 on 2026-09-07; recorded verbatim in ~/Developer/bayes-cot-phase2/PERMISSIONS.md",
+  "permission_scope": "Evaluation only. The data is never redistributed: the download path experiments/data/external/ is gitignored and only this manifest, derived per-item predictions and aggregate metrics are committed.",
+  "n_item_files": 1364,
+  "corpus_sha256": "15b42b177d0520e79d573a1ea36d0e948faeb9235c8555186d77e386687523eb",
+  "counts_per_split": {
+    "HLE_BIO/Qwen2.5-7B-Instruct": 41,
+    "HLE_BIO/gemini-2.5-flash": 41,
+    "HLE_BIO/gpt-4o-mini": 41,
+    "HLE_BIO/llama-3.1-8b-instruct": 41,
+    "aqua/Qwen2.5-7B-Instruct": 100,
+    "aqua/gemini-2.5-flash": 100,
+    "aqua/gpt-4o-mini": 100,
+    "aqua/llama-3.1-8b-instruct": 100,
+    "logiqa/Qwen2.5-7B-Instruct": 100,
+    "logiqa/gemini-2.5-flash": 100,
+    "logiqa/gpt-4o-mini": 100,
+    "logiqa/llama-3.1-8b-instruct": 100,
+    "truthfulqa/Qwen2.5-7B-Instruct": 100,
+    "truthfulqa/gemini-2.5-flash": 100,
+    "truthfulqa/gpt-4o-mini": 100,
+    "truthfulqa/llama-3.1-8b-instruct": 100
+  },
+  "faithful_type_per_split": {
+    "HLE_BIO/Qwen2.5-7B-Instruct": {
+      "1": 23,
+      "2": 13,
+      "3": 1,
+      "4": 3,
+      "unannotated": 1
+    },
+    "HLE_BIO/gemini-2.5-flash": {
+      "1": 26,
+      "2": 12,
+      "3": 1,
+      "4": 1,
+      "unannotated": 1
+    },
+    "HLE_BIO/gpt-4o-mini": {
+      "1": 24,
+      "2": 16,
+      "3": 1
+    },
+    "HLE_BIO/llama-3.1-8b-instruct": {
+      "1": 18,
+      "2": 17,
+      "3": 2,
+      "4": 3,
+      "unannotated": 1
+    },
+    "aqua/Qwen2.5-7B-Instruct": {
+      "1": 3,
+      "2": 7,
+      "3": 49,
+      "4": 29,
+      "unannotated": 12
+    },
+    "aqua/gemini-2.5-flash": {
+      "1": 23,
+      "2": 1,
+      "3": 58,
+      "4": 8,
+      "unannotated": 10
+    },
+    "aqua/gpt-4o-mini": {
+      "1": 19,
+      "2": 11,
+      "3": 66,
+      "4": 3,
+      "unannotated": 1
+    },
+    "aqua/llama-3.1-8b-instruct": {
+      "1": 6,
+      "2": 13,
+      "3": 49,
+      "4": 9,
+      "unannotated": 23
+    },
+    "logiqa/Qwen2.5-7B-Instruct": {
+      "0": 1,
+      "1": 19,
+      "2": 18,
+      "3": 55,
+      "4": 7
+    },
+    "logiqa/gemini-2.5-flash": {
+      "1": 15,
+      "2": 10,
+      "3": 70,
+      "4": 5
+    },
+    "logiqa/gpt-4o-mini": {
+      "1": 27,
+      "2": 13,
+      "3": 54,
+      "4": 6
+    },
+    "logiqa/llama-3.1-8b-instruct": {
+      "1": 23,
+      "2": 23,
+      "3": 48,
+      "4": 6
+    },
+    "truthfulqa/Qwen2.5-7B-Instruct": {
+      "1": 18,
+      "2": 25,
+      "3": 47,
+      "4": 9,
+      "unannotated": 1
+    },
+    "truthfulqa/gemini-2.5-flash": {
+      "1": 6,
+      "2": 10,
+      "3": 80,
+      "4": 4
+    },
+    "truthfulqa/gpt-4o-mini": {
+      "1": 18,
+      "2": 13,
+      "3": 63,
+      "4": 6
+    },
+    "truthfulqa/llama-3.1-8b-instruct": {
+      "1": 13,
+      "2": 31,
+      "3": 38,
+      "4": 8,
+      "unannotated": 10
+    }
+  },
+  "faithful_type_total": {
+    "0": 1,
+    "1": 281,
+    "2": 233,
+    "3": 682,
+    "4": 107,
+    "unannotated": 60
+  },
+  "unfaithfulness_total": {
+    "0": 922,
+    "1": 382,
+    "unannotated": 60
+  }
+}

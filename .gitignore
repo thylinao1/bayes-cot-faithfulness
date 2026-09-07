@@ -164,3 +164,6 @@ experiments/data/aqua*.json
 
 # R session history from exploratory analysis in experiments/
 experiments/.Rhistory
+
+# W6 external validity: FaithCoT-Bench third-party data, evaluation only, never redistributed
+experiments/data/external/
