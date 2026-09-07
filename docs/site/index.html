@@ -1257,12 +1257,14 @@
 <section id="roadmap" class="section section-tinted">
   <div class="section-head">
     <span class="eyebrow">09 &middot; roadmap &middot; phase 1 funded &rarr; phase 2</span>
-    <h2>Phase 1 is grant-funded and largely delivered. Phase 2 is scoped and seeking support.</h2>
+    <h2>Phase 1 is grant-funded and delivered. Phase 2 is running.</h2>
     <p class="head-sub">
       Phase 1 (Apr to Aug 2026) is funded by a BlueDot Impact Rapid Grant. Everything marked
-      <em>delivered</em> below is public in the repo now: code, figures, transcripts,
-      pre-registrations. Phase 2 turns the pilot into a benchmark the safety
-      community can rely on.
+      <em>delivered</em> below is public in the repo: code, figures, transcripts,
+      pre-registrations. Phase 2 started 2026-09-07: the estimator is repaired, the mechanism
+      battery has run, the serving layer is pinned for determinism, and the first powered sweep
+      is submitted, with three of its eight wave-1 cells usable as measured so far. The section
+      above has the numbers; this roadmap has the sequence.
     </p>
   </div>
 
@@ -1291,8 +1293,11 @@
     <div class="rmstep reveal">
       <div class="rmweek">wk 7 to 9 <span class="phase-badge progress">in progress</span></div>
       <div class="rmbody">
-        <strong>Golden set and open-source model sweep</strong>
-        <p>Human labeling of auditor verdicts (inter-rater reliability, validated ground truth), then the Llama-3-8B / Gemma-2-9B sweep with logit-level counterfactual forcing on GPU.</p>
+        <strong>Golden set and open-weights model sweep</strong>
+        <p>Human labeling of auditor verdicts is still pending. The powered open-weights sweep
+        started 2026-09-07 under a pinned, determinism-checked serving mode: wave 1 (ARC,
+        stated-hint) has Qwen3-8B, Gemma-2-9B, and Llama-3.1-8B usable as measured, with the
+        rest of the 216-cell grid queued behind two named rulings.</p>
       </div>
     </div>
     <div class="rmstep reveal">
@@ -1371,21 +1376,30 @@
 
   <div class="phase2-card reveal">
     <div class="phase2-head">
-      <span class="phase-badge next">phase 2 &middot; seeking support</span>
-      <h3>From working pilot to community benchmark</h3>
+      <span class="phase-badge progress">phase 2 &middot; running</span>
+      <h3>What phase 2 is doing right now</h3>
     </div>
     <ul class="phase2-list">
-      <li><strong>Validated auditor.</strong> Finish the human-labeled golden set; report inter-rater reliability and auditor error rates instead of heuristic verdicts.</li>
-      <li><strong>Adequately powered runs.</strong> Replace free-tier n = 11 to 103 runs with pre-registered, powered sweeps across model families (Llama, Gemma, Claude, GPT-class).</li>
-      <li><strong>Uncertainty-quantified public benchmark.</strong> Faithfulness posteriors with &rho;* robustness for every model &times; task cell, released with code and transcripts.</li>
-      <li><strong>Workshop paper.</strong> NeurIPS / AAAI safety-workshop writeup of the method: mediation + sensitivity analysis + hierarchical pooling for CoT oversight.</li>
+      <li><strong>Estimator repaired.</strong> Three defects fixed and gated by tests: no more
+      invented mediation on a null, one link for both estimator paths, priors scaled to the
+      mediator.</li>
+      <li><strong>Mechanism battery run.</strong> Eleven known-truth families, all three
+      pre-registered outcomes pass, and the finding that &rho;* cannot rank a zero-mediation
+      cell against a fully mediated one is measured and reported.</li>
+      <li><strong>Powered sweep started.</strong> Wave 1 is submitted under a pinned,
+      determinism-checked serving mode; three of eight cells are usable as measured so far, with
+      215 more cells queued behind two named rulings.</li>
+      <li><strong>Jury and external validity measured, not yet a benchmark.</strong> The
+      synthetic gate has no passing Q1 prompt yet, and the FaithCoT-Bench cross-check is
+      reported with <code>claim_status: EXPLORATORY</code> throughout.</li>
     </ul>
     <p class="phase2-note">
-      The method is validated on synthetic data, and on real models the heuristic auditor
-      flags silent hint-following, and the human-labeled golden set will test that flag.
-      Human labels can disagree with it, and the disagreement is a reported result either
-      way. What scales it from a pilot to a benchmark is compute and API budget, the same
-      specific, itemised bottleneck the first grant unblocked.
+      The gaps still open are named above rather than smoothed over: the golden-set human
+      labeling, the reasoning-mode ruling that would unblock three more wave-1 cells, and a jury
+      Q1 construct that clears its own thresholds. What scales this from a running sweep to a
+      published benchmark is compute and API budget, the same itemised bottleneck the first
+      grant unblocked.
+      <a href="#phase2-measured">See the measurements above</a>.
     </p>
   </div>
 </section>
