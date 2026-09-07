@@ -19,10 +19,9 @@ exercises the fixed helper cannot tell a working guard from a lucky one.
 
 The remaining cases source the real bcf/env.sh (no Slurm, no GPU, no network --
 SLURM_JOB_ID is set to a throwaway id so env.sh's own
-``${SLURM_JOB_ID:?SLURM_JOB_ID must be set}`` guard does not abort the source; the
-miniconda activate line env.sh runs is allowed to fail quietly on a machine with no
-miniconda3, since it is not on ``set -e``) and exercise ``bcf_install_exit_guard``
-itself through a tiny bash harness script:
+``${SLURM_JOB_ID:?SLURM_JOB_ID must be set}`` guard does not abort the source; env.sh
+skips its conda activation entirely on a machine with no miniconda under ``$HOME``)
+and exercise ``bcf_install_exit_guard`` itself through a tiny bash harness script:
 
   test_cancelled_writes_143            sleep 30 in the foreground, SIGTERM from
                                         Python mid-sleep -> 143 (128 + SIGTERM)
@@ -36,6 +35,14 @@ itself through a tiny bash harness script:
                                         gone shortly after -- proof of the "never a
                                         wildcard kill, but never an orphan either"
                                         requirement.
+  test_sourcing_env_alone_survives_sigterm_with_143   a cancel that arrives after
+                                        env.sh is sourced but BEFORE the caller
+                                        installs the guard exits 143 rather than
+                                        dying of the raw signal.
+  test_the_installed_guard_owns_the_signal_traps   the armed TERM/INT handlers are
+                                        the guard's own, not env.sh's bootstrap pair,
+                                        which is dumber and would otherwise hide the
+                                        deletion of the real ones.
 """
 
 from __future__ import annotations
@@ -61,8 +68,19 @@ ZERO_WITHOUT_MARKER_CODE = 12
 # fast-finishing test host somehow already reached exit; if the trap did not fire the
 # test times out instead of silently passing.
 FOREGROUND_SLEEP_SECONDS = 30
-SEND_SIGNAL_AFTER = 0.4
-WAIT_TIMEOUT = 10
+SEND_SIGNAL_AFTER = 0.2
+WAIT_TIMEOUT = 30
+
+# The harness touches this file the instant the guard is installed, and the signal is
+# sent only once it appears. A fixed delay instead of this handshake is a race against
+# however long the harness's own setup takes, and that setup is NOT fast everywhere:
+# bcf/env.sh activates a conda env, which costs 4.1 s on the cluster login node and
+# seconds on a CI runner, against 2 ms on a Mac with no miniconda at all. That is the
+# whole reason these tests passed on macOS and failed on Linux -- the Linux signal
+# landed while bash was still inside the activation, before any trap existed, so bash
+# died of the raw SIGTERM (wait status -15) and no exit_code.txt was ever written.
+GUARD_READY_FILE = "guard_ready"
+READY_TIMEOUT = 60
 
 
 def _job_id() -> str:
@@ -73,10 +91,28 @@ def _read_exit_code(out_dir: Path) -> str:
     return (out_dir / "exit_code.txt").read_text().strip()
 
 
+def _wait_for_ready(out_dir: Path, proc: subprocess.Popen) -> None:
+    """Block until the harness says its guard is armed."""
+    ready = out_dir / GUARD_READY_FILE
+    deadline = time.time() + READY_TIMEOUT
+    while not ready.exists() and time.time() < deadline:
+        if proc.poll() is not None:
+            raise AssertionError(
+                f"harness exited (status {proc.returncode}) before arming its guard"
+            )
+        time.sleep(0.02)
+    assert ready.exists(), f"harness never armed its guard within {READY_TIMEOUT}s"
+
+
 def _run_and_signal(
     script: Path, args: list[str], out_dir: Path, *, sig: int | None, job_id: str
 ) -> subprocess.CompletedProcess:
     """Launch ``bash script args...``, optionally signal it mid-run, and wait.
+
+    The signal is sent only after the harness reports, by touching
+    ``GUARD_READY_FILE``, that its guard is installed. What is under test is the
+    guard, not a race between a fixed delay and however long sourcing bcf/env.sh
+    takes on this machine.
 
     The harness is started in its OWN process group (``start_new_session=True``) and,
     when ``sig`` is given, the signal is sent to that whole group with ``os.killpg``
@@ -104,6 +140,7 @@ def _run_and_signal(
         start_new_session=True,
     )
     if sig is not None:
+        _wait_for_ready(out_dir, proc)
         time.sleep(SEND_SIGNAL_AFTER)
         assert proc.poll() is None, "harness exited before the signal was sent"
         os.killpg(os.getpgid(proc.pid), sig)
@@ -119,8 +156,11 @@ set -uo pipefail
 OUT_DIR="$1"
 finish() { code=$?; echo "$code" > "$OUT_DIR/exit_code.txt"; exit "$code"; }
 trap finish EXIT
+: > "$OUT_DIR/__READY__"
 sleep __SLEEP_SECONDS__
-""".replace("__SLEEP_SECONDS__", str(FOREGROUND_SLEEP_SECONDS))
+""".replace("__SLEEP_SECONDS__", str(FOREGROUND_SLEEP_SECONDS)).replace(
+    "__READY__", GUARD_READY_FILE
+)
 
 
 def test_old_guard_pattern_writes_zero_on_cancel(tmp_path: Path):
@@ -147,6 +187,7 @@ BEHAVIOUR="$2"
 MARKER="${3:-arms_summary.json}"
 mkdir -p "$OUT_DIR"
 bcf_install_exit_guard "$OUT_DIR" "$MARKER"
+: > "$OUT_DIR/__READY__"
 case "$BEHAVIOUR" in
   hang)
     sleep __SLEEP_SECONDS__
@@ -165,7 +206,7 @@ case "$BEHAVIOUR" in
 esac
 """.replace("__ENV_SH__", str(ENV_SH)).replace(
     "__SLEEP_SECONDS__", str(FOREGROUND_SLEEP_SECONDS)
-)
+).replace("__READY__", GUARD_READY_FILE)
 
 
 @pytest.fixture()
@@ -240,6 +281,100 @@ def test_zero_with_marker_writes_0(tmp_path: Path, guard_script: Path):
         f"a run that produced its own completion marker and exited 0 must read 0; "
         f"stdout:\n{result.stdout}"
     )
+
+
+# ------------------------------- the window BEFORE the caller installs the real guard
+PRE_INSTALL_HARNESS = """\
+#!/bin/bash
+# Sources env.sh and never installs the guard: the shape of a job cancelled during
+# env.sh's own conda activation, before the sbatch script reaches its guard call.
+set -uo pipefail
+OUT_DIR="$1"
+mkdir -p "$OUT_DIR"
+source "__ENV_SH__"
+: > "$OUT_DIR/__READY__"
+sleep __SLEEP_SECONDS__
+""".replace("__ENV_SH__", str(ENV_SH)).replace(
+    "__SLEEP_SECONDS__", str(FOREGROUND_SLEEP_SECONDS)
+).replace("__READY__", GUARD_READY_FILE)
+
+
+def test_sourcing_env_alone_survives_sigterm_with_143(tmp_path: Path):
+    """A cancel before bcf_install_exit_guard must not kill bash with the raw signal.
+
+    Every serving sbatch spends real time between ``source bcf/env.sh`` and its
+    ``bcf_install_exit_guard`` call: the conda activation inside env.sh measured 4.1 s
+    on the cluster login node on 2026-09-07. A SIGTERM landing in that window used to
+    kill bash under the signal's default disposition, so the job's wait status was
+    "killed by 15" and no handler of ours ever ran. env.sh now arms a bootstrap pair
+    at the top of the file for exactly this window.
+
+    exit_code.txt is deliberately NOT asserted here and is NOT written: the bootstrap
+    pair runs before any caller has said where OUT_DIR is. What it buys is a truthful
+    exit status, not a file.
+    """
+    out_dir = tmp_path / "pre-install"
+    out_dir.mkdir()
+    script = tmp_path / "pre_install.sh"
+    script.write_text(PRE_INSTALL_HARNESS)
+    result = _run_and_signal(
+        script, [str(out_dir)], out_dir, sig=signal.SIGTERM, job_id=_job_id()
+    )
+    assert result.returncode == SIGTERM_CODE, (
+        "a shell that has sourced env.sh but not yet installed the guard must exit "
+        f"{SIGTERM_CODE}, not die of the raw signal; got {result.returncode}, "
+        f"stdout:\n{result.stdout}"
+    )
+    assert not (out_dir / "exit_code.txt").exists()
+
+
+# --------------------------------------------- the guard owns the traps, not the stub
+TRAP_INSPECT_HARNESS = """\
+#!/bin/bash
+set -uo pipefail
+source "__ENV_SH__"
+OUT_DIR="$1"
+mkdir -p "$OUT_DIR"
+bcf_install_exit_guard "$OUT_DIR" "arms_summary.json"
+{ trap -p TERM; trap -p INT; trap -p EXIT; } > "$OUT_DIR/traps.txt"
+: > "$OUT_DIR/arms_summary.json"
+exit 0
+""".replace("__ENV_SH__", str(ENV_SH))
+
+
+def test_the_installed_guard_owns_the_signal_traps(tmp_path: Path):
+    """The guard's OWN handlers must be the armed ones, not env.sh's bootstrap pair.
+
+    Sourcing env.sh now arms a bootstrap ``trap 'BCF_GUARD_SIGNAL=15; exit 143' TERM``
+    so that the seconds between the source and bcf_install_exit_guard (4.1 s of conda
+    activation on the cluster login node, measured 2026-09-07) are not a raw-signal
+    death. That bootstrap is deliberately dumber than the real handler: it cannot
+    forward the signal to a child registered with bcf_guard_register_child, and it
+    knows no OUT_DIR.
+
+    This case exists because the bootstrap otherwise HIDES a regression. Deleting
+    ``trap '_bcf_guard_on_signal 15' TERM`` from bcf_install_exit_guard leaves every
+    behavioural test above still green (checked, 2026-09-07): the bootstrap catches
+    the signal, the EXIT trap still writes 143, and _bcf_guard_finish's KILL sweep
+    still reaches the child. Only reading the armed traps back tells the two apart.
+    """
+    out_dir = tmp_path / "traps"
+    out_dir.mkdir()
+    script = tmp_path / "trap_inspect.sh"
+    script.write_text(TRAP_INSPECT_HARNESS)
+    result = _run_and_signal(
+        script, [str(out_dir)], out_dir, sig=None, job_id=_job_id()
+    )
+    assert _read_exit_code(out_dir) == "0", result.stdout
+    traps = (out_dir / "traps.txt").read_text()
+    assert "_bcf_guard_on_signal 15" in traps, (
+        "TERM is not handled by the guard's own handler; env.sh's bootstrap trap or "
+        f"something else is armed instead:\n{traps}"
+    )
+    assert "_bcf_guard_on_signal 2" in traps, (
+        f"INT is not handled by the guard's own handler:\n{traps}"
+    )
+    assert "_bcf_guard_finish" in traps, f"EXIT trap is not the guard's:\n{traps}"
 
 
 # ------------------------------------------------------- signal forwarding to a child

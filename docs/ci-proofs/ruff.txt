@@ -1,3 +1,2 @@
-# ruff 0.16.6 -- the exact CI lint command, final tree
-$ ruff check src tests experiments scripts
+=== ruff check src tests experiments scripts ===
 All checks passed!

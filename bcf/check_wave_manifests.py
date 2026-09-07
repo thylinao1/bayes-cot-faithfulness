@@ -65,7 +65,10 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
     plan = json.loads((waves_dir / "plan.json").read_text())
     roster = {hf: (rev, pool, tp) for hf, rev, _fam, pool, tp, *_ in pw.ROSTER}
     problems: list[str] = []
-    counts = {"tsv_files": 0, "rows": 0, "enrich_rows": 0, "models": set(), "pools": set()}
+    counts = {"tsv_files": 0, "rows": 0, "enrich_rows": 0, "resub_rows": 0,
+              "models": set(), "pools": set()}
+    cell_triples: set[tuple[str, str, str]] = set()
+    resub_triples: dict[tuple[str, str, str], str] = {}
 
     want_flag = str(plan["serving_mode_of_record"]["batch_invariant_used"])
     want_conc = str(plan["serving_mode_of_record"]["concurrency_used"])
@@ -78,11 +81,26 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
         # take every other structural check below, which is the point of naming it here
         # rather than skipping the file.
         is_enrich = tsv.name.startswith("enrich-")
+        # A resubmission of voided cells is not a new cell: the grid already counted
+        # them, and the rows are copied verbatim from the manifests that produced them
+        # (a100-40-resub-01.tsv, the four voided by the fixed-port collision on xgph12,
+        # DECISION-LOG.md 2026-09-07 17:41). Counting them as cells is how the 216-cell
+        # grid reads 220. Named here rather than skipped so every check below still runs
+        # on their rows, and cross-checked against the cell rows after the loop.
+        is_resub = tsv.name.startswith("resub-") or "-resub-" in tsv.name
         stem = tsv.stem[len("enrich-"):] if is_enrich else tsv.stem
+        stem = stem.replace("resub-", "", 1) if is_resub else stem
         pool = stem.rsplit("-", 1)[0].replace("-single", "").replace("-tp2", "")
         cards = 0
         for n, model, substrate, cue, kv, bad in rows_of(tsv):
-            counts["enrich_rows" if is_enrich else "rows"] += 1
+            if is_enrich:
+                counts["enrich_rows"] += 1
+            elif is_resub:
+                counts["resub_rows"] += 1
+                resub_triples.setdefault((model, substrate, cue), f"{tsv.name}:{n}")
+            else:
+                counts["rows"] += 1
+                cell_triples.add((model, substrate, cue))
             where = f"{tsv.name}:{n}"
             if bad:
                 problems.append(f"{where}: {bad}")
@@ -132,6 +150,14 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
             problems.append(
                 f"{tsv.name}: the wave wants {cards} card(s) and the CONTRACT sweep split "
                 f"for {pool} is {slots}")
+    # Excluding the resubmission rows from the cell count is only safe while every one
+    # of them re-runs a cell that exists: a triple with no cell behind it is a NEW cell
+    # wearing a resubmission's filename, counted by nothing.
+    for triple, where in sorted(resub_triples.items()):
+        if triple not in cell_triples:
+            problems.append(
+                f"{where}: resubmission row {triple} matches no cell manifest row; a "
+                "resubmission re-runs a voided cell, it does not add one")
     if counts["rows"] != plan["n_cells"]:
         problems.append(
             f"the manifests hold {counts['rows']} rows and plan.json says "
@@ -164,6 +190,7 @@ def main(argv=None) -> int:
         "bcf/check_wave_manifests.py: the structural half of wave.sh --check-only",
         f"  {counts['tsv_files']} manifest file(s), {counts['rows']} cell row(s), "
         f"{counts['enrich_rows']} enrichment-pass row(s), "
+        f"{counts['resub_rows']} resubmission row(s), "
         f"{counts['models']} model(s), pools {', '.join(counts['pools'])}",
         "  NOT checked here (needs the cluster): the live per-user card caps read from",
         "  squeue, the 32-jobs-in-system limit, and sbatch --test-only on each command",

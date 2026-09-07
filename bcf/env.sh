@@ -10,8 +10,30 @@
 # job. Each caller decides its own error mode.
 set -uo pipefail
 
-source ~/miniconda3/bin/activate
-conda activate bcf
+# A shell cancelled BEFORE the caller reaches bcf_install_exit_guard must still exit
+# truthfully. Everything between this line and that call is slow on a real node (the
+# conda activation just below measured 4.1 s on the login node, 2026-09-07), and a
+# SIGTERM landing inside that window used to kill bash with the signal's DEFAULT
+# disposition: wait status -15, no trap, no exit_code.txt. These two bootstrap traps
+# hold the window until the caller installs the real guard, which replaces them. They
+# deliberately inline the exit rather than call a function, because the functions
+# below do not exist yet while this file is still being sourced.
+trap 'BCF_GUARD_SIGNAL=15; exit 143' TERM
+trap 'BCF_GUARD_SIGNAL=2; exit 130' INT
+
+# Activate the campaign env, but only on a machine that actually has it. The
+# unguarded pair this replaces still spent seconds inside a `conda activate` that
+# could never succeed when $HOME has no miniconda (measured 2026-09-07 on the login
+# node with a faked $HOME: 1.1 s for the doomed activate alone, longer on a cold CI
+# runner), and every one of those seconds is time the calling script runs with no
+# exit guard installed.
+BCF_CONDA_PREFIX="${BCF_CONDA_PREFIX:-$HOME/miniconda3}"
+if [ -f "${BCF_CONDA_PREFIX}/bin/activate" ]; then
+  source "${BCF_CONDA_PREFIX}/bin/activate"
+  conda activate "${BCF_CONDA_ENV:-bcf}"
+else
+  echo "[env] no conda at ${BCF_CONDA_PREFIX}; continuing with the ambient python" >&2
+fi
 
 # Home is persistent but has a shared budget; model weights live on node-local scratch
 # and die with the job (NUS-COMPUTE.md 1.5, and the "home quota" risk row in the plan).
@@ -217,7 +239,10 @@ bcf_wait_server_ready() {
 #
 # Call bcf_install_exit_guard ONCE, as early as OUT_DIR is known, and do not also
 # `trap ... EXIT` afterwards in the caller: the two traps would race and only the last
-# one installed survives, silently dropping this guard.
+# one installed survives, silently dropping this guard. Sourcing this file already
+# installed bootstrap TERM/INT traps (top of the file) so the window between the
+# source and this call is not a raw-signal death; installing the real guard replaces
+# them, and OUT_DIR is what the bootstrap pair could not know.
 #
 # Exercised without Slurm or a GPU by tests/test_exit_guard.py (a tiny bash script
 # sources this file, installs the guard, and is sent real signals from Python).
@@ -228,6 +253,16 @@ BCF_GUARD_CHILDREN=""
 
 bcf_guard_register_child() {
   BCF_GUARD_CHILDREN="${BCF_GUARD_CHILDREN} $1"
+}
+
+# True when at least one child was registered, so the exit path can tell "shut the
+# server down gracefully" from "there is nothing to be graceful to".
+_bcf_guard_has_children() {
+  local pid
+  for pid in $BCF_GUARD_CHILDREN; do
+    [ -n "$pid" ] && return 0
+  done
+  return 1
 }
 
 # Best-effort signal to every registered child. Never fails the guard: a child that
@@ -267,10 +302,15 @@ _bcf_guard_finish() {
       fi
     fi
     # A normal (non-signal) exit: give a server we own a real chance to shut down
-    # before the hard kill, same as the finish() this replaces.
-    _bcf_guard_kill_children TERM
-    sleep 5
-    _bcf_guard_kill_children KILL
+    # before the hard kill, same as the finish() this replaces. Only when there IS a
+    # registered child: the unconditional 5 s this replaces sat on the exit path of
+    # every run that never registered one, which on a CI runner was most of the
+    # distance to a test timeout for no shutdown that anything was waiting on.
+    if _bcf_guard_has_children; then
+      _bcf_guard_kill_children TERM
+      sleep 5
+      _bcf_guard_kill_children KILL
+    fi
   fi
   mkdir -p "$BCF_GUARD_OUT_DIR" 2>/dev/null
   printf '%s\n' "$code" > "${BCF_GUARD_OUT_DIR}/exit_code.txt"
