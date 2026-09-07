@@ -196,6 +196,13 @@ fi
 
 # The one path that is never the target, however it was arrived at.
 REPO_TREE_ABS="${REPO_TREE%/}"
+# A tooling copy outside any git checkout (the feeder's deployed copy) has no HEAD to
+# name a planning commit. When it is handed an already synced tree, the tree's marker IS
+# the pin: the tree is never rewritten, so its recorded commit is the code a job reads.
+if [ -z "$PLAN_SHA" ] && [ -n "$REPO_TREE" ] && [ -f "${REPO_TREE_ABS}/.bcf_sync.json" ]; then
+  PLAN_SHA="$(sed -n 's/.*"commit": "\([0-9a-f]*\)".*/\1/p' "${REPO_TREE_ABS}/.bcf_sync.json" | head -1)"
+  [ -n "$PLAN_SHA" ] && echo "[wave] no checkout here; planning commit ${PLAN_SHA} taken from the synced tree's marker"
+fi
 if [ "$REPO_TREE_ABS" = "${FORBIDDEN_TREE%/}" ]; then
   echo "[wave] REFUSING: the target tree is ${REPO_TREE_ABS}, which is the shared"
   echo "[wave]   ~/bcf/repo that LIVE JOBS READ. Syncing over it swaps the code under a"
