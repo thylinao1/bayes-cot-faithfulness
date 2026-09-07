@@ -40,7 +40,7 @@ def _render(tmp_path: Path, name: str, *env_pairs: str) -> str:
     env = dict(os.environ, BCF_RENDER_PYTHON=sys.executable)
     proc = subprocess.run(
         ["bash", str(HARNESS), str(out), *env_pairs],
-        capture_output=True, text=True, env=env, cwd=REPO, timeout=120)
+        capture_output=True, text=True, env=env, cwd=REPO, timeout=120, check=False)
     assert proc.returncode == 0, proc.stderr
     return out.read_text()
 
@@ -57,7 +57,7 @@ def _meta(rendered: str) -> dict | None:
 
 @needs_bash
 def test_script_parses():
-    assert subprocess.run(["bash", "-n", str(SCRIPT)]).returncode == 0
+    assert subprocess.run(["bash", "-n", str(SCRIPT)], check=False).returncode == 0
 
 
 # --- the additive proof ----------------------------------------------------------------
@@ -101,7 +101,7 @@ def _checkpoint(tmp_path: Path, cell_id: str = "organism_0.60_20260911") -> tupl
 
 @needs_bash
 def test_local_checkpoint_serves_the_directory_and_drops_revision(tmp_path):
-    merged, revision = _checkpoint(tmp_path)
+    merged, _revision = _checkpoint(tmp_path)
     rendered = _render(tmp_path, "local",
                        f"BCF_LOCAL_CHECKPOINT={merged}",
                        "BCF_MODEL=bcf-ladder/qwen3-8b/organism_0.60_20260911",

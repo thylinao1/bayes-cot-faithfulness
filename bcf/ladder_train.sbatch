@@ -29,9 +29,16 @@
 #            BCF_LADDER_BASE_SLUG(qwen3-8b) BCF_LADDER_STEPS(400) BCF_LADDER_RANK(16)
 #            BCF_LADDER_LR(1e-4) BCF_LADDER_BATCH(8) BCF_LADDER_N_EXAMPLES(whole pool)
 #            BCF_LADDER_BACKEND(peft) BCF_LADDER_MERGE(1) BCF_LADDER_DRY_RUN(0)
+#            BCF_LADDER_ENV_CHECK($BCF_REPO/bcf/ladder_env_check.sh)
 #
 # Exit codes: 2 output path assertion, 3 device assertion, 4 a required input file is
 #   missing (pool, guard or traces), 5 the trainer refused or failed, 6 the checkpoint
+#   7 THE TRAINING ENV IS NOT READY: bcf/ladder_env_check.sh refused, which for a peft
+#   backend means peft or one of the dependencies --no-deps left behind is not in this
+#   conda env. Checked FIRST, before the inputs and long before the card, because a
+#   LoRA job that discovers a missing import after Slurm granted a card has burned the
+#   allocation for nothing. Not enforced on --dry-run or --backend tiny-numpy, neither
+#   of which reaches the peft import; the versions are still printed for the record.
 #   manifest did not verify against the files on disk, 12 FINISHED WITHOUT A COMPLETION
 #   MARKER (bcf_install_exit_guard, bcf/env.sh: the shell reached its own exit with
 #   status 0 but checkpoint/manifest.json was never written -- the 827052/827096 shape).
@@ -94,6 +101,30 @@ bcf_install_exit_guard "$OUT_DIR" "checkpoint/manifest.json"
   echo "out_dir=${OUT_DIR} backend=${BACKEND} steps=${STEPS} rank=${RANK} lr=${LR} batch=${BATCH}"
   echo "pool=${POOL} guard=${GUARD} traces=${TRACES:-<none, the build will not be of record>}"
 } | ts | tee -a "$LOG"
+
+# --- 0. the training environment, before anything else ---------------------------
+# docs/LADDER-IMPL.md item 2: peft is NOT part of the env bcf/env-setup.sbatch built
+# (job 825198: vllm 0.28.0, torch 2.13.0+cu130), and the peft training path in
+# lora_train.py has never executed anywhere. The check prints exact versions and its
+# header carries the one-line install.
+ENV_CHECK="${BCF_LADDER_ENV_CHECK:-${BCF_REPO}/bcf/ladder_env_check.sh}"
+if [ ! -f "$ENV_CHECK" ]; then
+  echo "[env] REFUSING: ${ENV_CHECK} is not there, so this job cannot say whether peft" | ts | tee -a "$LOG" >&2
+  echo "[env]   is installed. Nothing was built and no card work was done." | ts | tee -a "$LOG" >&2
+  exit 7
+fi
+bash "$ENV_CHECK" 2>&1 | ts | tee -a "$LOG"
+env_rc=${PIPESTATUS[0]}
+if [ "$env_rc" -ne 0 ]; then
+  if [ "$DRY_RUN" = "1" ] || [ "$BACKEND" = "tiny-numpy" ]; then
+    echo "[env] ladder_env_check.sh exited ${env_rc}; continuing because this run is" | ts | tee -a "$LOG"
+    echo "[env]   dry_run=${DRY_RUN} backend=${BACKEND}, neither of which imports peft." | ts | tee -a "$LOG"
+  else
+    echo "[env] REFUSING: bcf/ladder_env_check.sh exited ${env_rc}. The one-line install" | ts | tee -a "$LOG" >&2
+    echo "[env]   is in that script's header. No card work was done." | ts | tee -a "$LOG" >&2
+    exit 7
+  fi
+fi
 
 # --- 1. inputs, before the card is touched --------------------------------------
 for f in "$POOL" "$GUARD"; do
