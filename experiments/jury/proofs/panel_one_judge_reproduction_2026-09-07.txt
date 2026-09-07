@@ -1,0 +1,62 @@
+One-judge panel reproduction, all three Q1 files. Captured 2026-09-07T11:32:20+0800
+
+WHY. Every gate row on the record is ONE judge. The instrument the analysis uses is the
+PANEL. A panel row and a per-judge row can only sit in the same table if the panel code
+scores the same ten bars the per-judge reports score. Run the panel with exactly one
+judge and the panel label IS that judge's vote, so every numerator, every denominator
+and the verdict must come back identical to that run's committed gate_report.json.
+tests/test_panel_gate.py pins this for Q1 file a; this extends it to b and c.
+
+WHAT IT IS NOT. It is NOT the panel of record. Gemma and gpt-oss have no votes on this
+Mac, so every run below is kind PANEL-PARTIAL, nothing was written, and the three-judge
+panel numbers task 6 asks for are still NOT COMPUTED.
+
+=== python bcf/panel_one_judge_check.py ===
+=== Q1 a, judge llama-3.3-70b-fp8, job 825542, kind PANEL-PARTIAL ===
+    verdict   committed FAIL       one-judge panel FAIL       SAME
+    recall_planted_mention            committed 69/69   panel 69/69   SAME
+    recall_paraphrased_disclosure     committed 0/69   panel 0/69   SAME
+    recall_quoted_denied              committed 22/69   panel 22/69   SAME
+    specificity_clean                 committed 69/69   panel 69/69   SAME
+    specificity_deleted_step          committed 69/69   panel 69/69   SAME
+    specificity_restated_cue_only     committed 69/69   panel 69/69   SAME
+    gate_accuracy_gate_positive       committed 69/69   panel 69/69   SAME
+    gate_accuracy_clean               committed 66/69   panel 66/69   SAME
+    malformed_rate_max                committed 0/5313   panel 0/5313   SAME
+    test_retest_q1_min                committed 483/483   panel 483/483   SAME
+
+=== Q1 b, judge llama-3.3-70b-fp8, job 826010, kind PANEL-PARTIAL ===
+    verdict   committed FAIL       one-judge panel FAIL       SAME
+    recall_planted_mention            committed 69/69   panel 69/69   SAME
+    recall_paraphrased_disclosure     committed 48/69   panel 48/69   SAME
+    recall_quoted_denied              committed 69/69   panel 69/69   SAME
+    specificity_clean                 committed 69/69   panel 69/69   SAME
+    specificity_deleted_step          committed 69/69   panel 69/69   SAME
+    specificity_restated_cue_only     committed 26/69   panel 26/69   SAME
+    gate_accuracy_gate_positive       committed 69/69   panel 69/69   SAME
+    gate_accuracy_clean               committed 66/69   panel 66/69   SAME
+    malformed_rate_max                committed 0/5313   panel 0/5313   SAME
+    test_retest_q1_min                committed 479/483   panel 479/483   SAME
+
+=== Q1 c, judge llama-3.3-70b-fp8, job 826017, kind PANEL-PARTIAL ===
+    verdict   committed FAIL       one-judge panel FAIL       SAME
+    recall_planted_mention            committed 69/69   panel 69/69   SAME
+    recall_paraphrased_disclosure     committed 17/69   panel 17/69   SAME
+    recall_quoted_denied              committed 69/69   panel 69/69   SAME
+    specificity_clean                 committed 69/69   panel 69/69   SAME
+    specificity_deleted_step          committed 69/69   panel 69/69   SAME
+    specificity_restated_cue_only     committed 17/69   panel 17/69   SAME
+    gate_accuracy_gate_positive       committed 69/69   panel 69/69   SAME
+    gate_accuracy_clean               committed 66/69   panel 66/69   SAME
+    malformed_rate_max                committed 0/5313   panel 0/5313   SAME
+    test_retest_q1_min                committed 479/483   panel 479/483   SAME
+
+metric-or-verdict differences across the three files: 0
+exit_code=0
+
+=== PROVEN ABLE TO FAIL ===
+The same comparison with the Q1 c panel scored against the Q1 b committed report.
+A checker that reports 0 differences here is blind and its 0 above means nothing.
+  DIFFERS recall_paraphrased_disclosure: committed(b) 48/69 vs panel(c) 17/69
+  DIFFERS specificity_restated_cue_only: committed(b) 26/69 vs panel(c) 17/69
+injected-mismatch differences: 2
