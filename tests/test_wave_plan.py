@@ -6,11 +6,13 @@ submission script's defaults are that week, and ruling R1 is precisely about a p
 measurement not resting on that. So every row of every committed manifest is read back
 and checked here, against the roster the plan was built from.
 
-Two families of manifest live in bcf/waves. The sweep-cell rows are the 216-cell grid
+Three families of manifest live in bcf/waves. The sweep-cell rows are the 216-cell grid
 plan.json prices. The enrichment-pass rows that bcf/plan_enrich_waves.py writes under
-ruling R3(ii) are one sampling-arm job per model per substrate and are NOT cells. Both
-families take the same serving checks, and each is counted against its own denominator,
-which is the split bcf/check_wave_manifests.py already makes on the same file prefix.
+ruling R3(ii) are one sampling-arm job per model per substrate and are NOT cells. The
+`-resub-` rows re-run cells that were voided, and are NOT cells either: the grid counted
+them the first time. All three take the same serving checks, and each is counted against
+its own denominator, which is the split bcf/check_wave_manifests.py makes on the same
+filenames.
 
 The element 16 trigger is checked as arithmetic against the budget of record, and the
 checker is shown able to report TRIGGERED, so a "not triggered" reading is a computed
@@ -73,10 +75,27 @@ def _is_enrichment(name: str) -> bool:
     return name.startswith("enrich-")
 
 
-def _count_by_family(names) -> tuple[int, int]:
-    cells = sum(1 for n in names if not _is_enrichment(n))
+def _is_resubmission(name: str) -> bool:
+    """A resubmission of voided cells is not a new cell: the grid already counted them.
+
+    `resub-<pool>-NN.tsv` / `<pool>-resub-NN.tsv` re-runs cells that were VOIDED and
+    moved to ~/bcf/results-void (a100-40-resub-01.tsv carries the four killed by the
+    fixed-port collision on xgph12, DECISION-LOG.md 2026-09-07 17:41). Its rows are
+    copied verbatim from the cell manifests that produced them, so counting them as
+    cells is how the 216-cell grid reads 220 without anyone deciding to run four more.
+    Every serving check below still applies to them, which is why they are named here
+    rather than skipped.
+    """
+    return name.startswith("resub-") or "-resub-" in name
+
+
+def _count_by_family(names) -> tuple[int, int, int]:
     enrich = sum(1 for n in names if _is_enrichment(n))
-    return cells, enrich
+    resub = sum(1 for n in names if _is_resubmission(n))
+    cells = sum(
+        1 for n in names if not _is_enrichment(n) and not _is_resubmission(n)
+    )
+    return cells, enrich, resub
 
 
 # The enrichment pass's own denominator, derived rather than retyped: the a100-40 models
@@ -94,25 +113,55 @@ def test_every_manifest_row_carries_the_pinned_serving_constants():
         assert kv.get("BCF_BATCH_INVARIANT") == "1", (name, model, kv)
         assert kv.get("BCF_CONCURRENCY") == "32", (name, model, kv)
         assert kv.get("BCF_REVISION") == ROSTER_REVISION[model], (name, model)
-    cells, enrich = _count_by_family(names)
+    cells, enrich, _resub = _count_by_family(names)
     assert cells == PLAN["n_cells"] == 216, cells
     # and the enrichment pass answers to its own count, so a lost or duplicated
     # enrichment wave is caught here instead of moving the grid total.
     assert enrich == N_ENRICHMENT_ROWS == 24, enrich
 
 
+def test_every_resubmission_row_re_runs_a_cell_that_already_exists():
+    """What makes the resubmission exclusion safe rather than a way in.
+
+    Excluding `-resub-` manifests from the cell count means a NEW cell could ride into
+    the grid under that name and be counted by nothing. So each resubmission row's
+    (model, substrate, cue) must already appear among the cell rows: a resubmission
+    re-runs a voided cell, and a triple with no cell behind it is a new cell wearing a
+    resubmission's filename.
+    """
+    cells, resubs = set(), {}
+    for name, (model, sub, cue, _kv) in _all_rows():
+        if _is_enrichment(name):
+            continue
+        if _is_resubmission(name):
+            resubs.setdefault((model, sub, cue), name)
+        else:
+            cells.add((model, sub, cue))
+    assert resubs, "no resubmission rows found; this test would prove nothing"
+    orphans = {t: n for t, n in resubs.items() if t not in cells}
+    assert not orphans, f"resubmission rows with no cell behind them: {orphans}"
+
+
 def test_the_cell_count_refuses_an_enrichment_manifest_filed_as_a_sweep_wave():
     """The falsification for the split above, run through the same function.
 
     Strip the `enrich-` prefix off the three enrichment manifests and the cell total
-    reads 240, which is the reading this test file gave before the split existed. The
-    count has to report that against plan.json rather than absorb it.
+    reads 240, which is the reading this test file gave before the split existed.
+    Rename the resubmission wave to an ordinary sweep wave and it reads 220, which is
+    the reading that failed CI on 2026-09-07. The count has to report both against
+    plan.json rather than absorb them.
     """
     names = [name for name, _row in _all_rows()]
-    assert _count_by_family(names) == (216, 24)
+    assert _count_by_family(names) == (216, 24, 4)
+
     misfiled = [n[len("enrich-"):] if _is_enrichment(n) else n for n in names]
-    cells, enrich = _count_by_family(misfiled)
+    cells, enrich, _resub = _count_by_family(misfiled)
     assert (cells, enrich) == (240, 0)
+    assert cells != PLAN["n_cells"]
+
+    misfiled = [n.replace("resub-", "", 1) if _is_resubmission(n) else n for n in names]
+    cells, _enrich, resub = _count_by_family(misfiled)
+    assert (cells, resub) == (220, 0)
     assert cells != PLAN["n_cells"]
 
 

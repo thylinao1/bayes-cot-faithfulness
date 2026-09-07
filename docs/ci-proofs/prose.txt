@@ -1,1 +1,2 @@
+=== python scripts/check_prose_style.py ===
 Prose style check passed: 4 files clean.
