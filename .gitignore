@@ -177,3 +177,15 @@ experiments/results/wave1-fits/*
 experiments/results/wave1-fits/*/*
 !experiments/results/wave1-fits/*/fit.json
 !experiments/results/wave1-fits/*/pymc.json
+
+# Q1 construct-revision pre-screen (jury/q1-revision, 2026-09-07): an EXPLORATORY screen of
+# Q1 prompt files a and d on a NON-PINNED SoCLaaS model, three gate classes, one vote per
+# item. Not the gate of record. The vote files are small (207 rows each) and the memo cites
+# them line by line, so they are tracked; nothing else under the directory is.
+!experiments/results/jury-prescreen/
+experiments/results/jury-prescreen/*
+!experiments/results/jury-prescreen/*/
+experiments/results/jury-prescreen/*/*
+!experiments/results/jury-prescreen/*/votes_a.jsonl
+!experiments/results/jury-prescreen/*/votes_d.jsonl
+!experiments/results/jury-prescreen/*/report.json
