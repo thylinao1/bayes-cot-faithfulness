@@ -340,11 +340,14 @@ battery's own points, -0.945 to +0.945 in steps of 0.005, rho = 0 an exact grid 
 | Llama-3.1-8B-Instruct | 0.7684 [0.7451, 0.7991] | -0.100 | negative | [+0.1017, +0.2354] |
 
 That correction turns two readings that would have looked safe up to 0.947 into `rho*_decision`
-values three to eight times smaller than `rho*_point`. Two of the three verdicts also flip
-inside a mediator-noise sensitivity band that is not a chain-level measurement (no chain-level
-lambda exists for any cell yet): at lambda = 0.80 the point-estimate NIE falls under 0.15 for
-Gemma-2-9B-it (0.1093) and Llama-3.1-8B-Instruct (0.1133); Qwen3-8B never reaches the threshold
-at any lambda and cannot flip.
+values three to eight times smaller than `rho*_point`. `rho*_point` is not a robustness score:
+it sits between 0.7684 and 0.8223 across these three cells, while the verdict the
+pre-registration actually rules on fails at abs(rho) of 0.100 and 0.240 on the two load-bearing
+cells, Gemma-2-9B-it and Llama-3.1-8B-Instruct (`docs/WAVE1-FITS.md` section 7). Two of the
+three verdicts also flip inside a mediator-noise sensitivity band that is not a chain-level
+measurement (no chain-level lambda exists for any cell yet): at lambda = 0.80 the point-estimate
+NIE falls under 0.15 for Gemma-2-9B-it (0.1093) and Llama-3.1-8B-Instruct (0.1133); Qwen3-8B
+never reaches the threshold at any lambda and cannot flip.
 
 **The four-cell replay anchor (element 21).** `mu_ab` is the fresh-answer rate on the same
 designated target option, recipient cue `a` crossed with donor source `b`. Donors were drawn
@@ -392,12 +395,43 @@ the probit link extrapolating into a region the clean arm never visits. Source:
 `experiments/results/wave1-fits/{qwen3-8b,gemma-2-9b-it,llama-3.1-8b-instruct}/fit.json` in the
 `fits/wave1` branch (worktree `~/Developer/bcf-fits`, not yet merged, not yet pushed).
 
-The jury synthetic gate ran on the FP8 Llama judge against a frozen 483-item corpus with ten
-thresholds committed before the first run. No candidate Q1 prompt clears them: each of three
-prompts fails two of the ten (recall on paraphrased disclosure and quoted-and-denied cues for
-one prompt, recall on paraphrased disclosure and specificity on bare restatement for the
-other two). No prompt is named the candidate.
-[`experiments/jury/GATE-Q1-COMPARISON.md`](experiments/jury/GATE-Q1-COMPARISON.md).
+The jury synthetic gate has now run all four judges against all three candidate Q1 prompts on
+the frozen 483-item corpus, against the same ten thresholds committed before the first run:
+FP8 Llama (RedHatAI/Llama-3.3-70B-Instruct-FP8-dynamic) on its pinned line; Gemma-3-27B-it and
+Qwen3-32B, the latter at `num_predict` 1,024, on exploratory lines; and gpt-oss-20b, also
+exploratory. No single judge clears the gate. The best row is Qwen3-32B on files a and c, 9 of
+10, failing paraphrased-disclosure recall both times (0/69 on a, 43/69 on c, against a bar of
+0.85):
+
+| Judge | Q1 a | Q1 b | Q1 c | Serving line |
+|---|---|---|---|---|
+| llama-3.3-70b-fp8 | 8/10 | 8/10 | 8/10 | pinned |
+| gemma-3-27b-it | 8/10 | 8/10 | 7/10 | exploratory-h200-141 |
+| qwen3-32b | 9/10 | 8/10 | 9/10 | exploratory-h200-141, `num_predict` 1,024 |
+| gpt-oss-20b | 7/10 | 7/10 | 8/10 | exploratory-h100-47, `num_predict` 256 |
+
+The three-judge panel of record (section 6.2's majority of the votes from judges outside the
+subject model's family) fails on all three files too, 8, 8 and 7 of 10, and so does every
+leave-one-judge-out configuration built from it: the panel and its three one-judge-out
+variants, on three files, twelve configurations, twelve FAILs. Paraphrased-disclosure recall
+or restated-cue specificity fails in every one of them, and the only metric a judge's removal
+ever drops is the malformed-rate failure, when gpt-oss-20b is the judge removed:
+
+| Panel | Q1 a | Q1 b | Q1 c |
+|---|---|---|---|
+| all three | FAIL 8/10 | FAIL 8/10 | FAIL 7/10 |
+| minus gemma-3-27b-it | FAIL 7/10 | FAIL 7/10 | FAIL 7/10 |
+| minus gpt-oss-20b | FAIL 8/10 | FAIL 9/10 | FAIL 8/10 |
+| minus llama-3.3-70b-fp8 | FAIL 7/10 | FAIL 8/10 | FAIL 6/10 |
+
+Removing gpt-oss-20b explains why: at its `num_predict` of 256, its own malformed-vote rate
+ran 0.51 to 0.59 across the three files (2,902, 2,732 and 3,141 of its own 5,313 votes).
+Qwen3-32B, moved to `num_predict` 1,024 for the same reason, malformed on 11 of its 5,313
+votes. Ruling R9 (2026-09-07 18:17): no Q1 configuration is named the primary configuration,
+the freeze does not happen, and the jury's Q1 (mention) column stays exploratory; column A of
+record remains the frozen, uncorrected regex share.
+[`experiments/jury/GATE-Q1-COMPARISON.md`](experiments/jury/GATE-Q1-COMPARISON.md) and
+[`experiments/jury/PRIMARY_CONFIGURATION_CANDIDATE.md`](experiments/jury/PRIMARY_CONFIGURATION_CANDIDATE.md).
 
 External validity: the frozen acknowledgment regex, byte-identical to main, was scored
 against FaithCoT-Bench's 1,364 expert-annotated items under written permission ("You are
@@ -463,8 +497,10 @@ Running:
   cell) under the pinned, determinism-checked serving mode. Three of eight cells are usable
   as measured; the rest of the 216-cell grid is queued behind two named rulings. See
   "Phase 2, measured" above.
-- Jury synthetic gate on the FP8 Llama judge: no candidate Q1 prompt clears the ten
-  pre-committed thresholds yet.
+- Jury synthetic gate: all four judges (FP8 Llama, Gemma-3-27B-it, Qwen3-32B, gpt-oss-20b)
+  scored all three Q1 prompts against the ten pre-committed thresholds; no judge and no
+  three-judge panel clears them (Ruling R9, 2026-09-07 18:17). Column A of record stays the
+  uncorrected regex share.
 - External validity: the frozen acknowledgment regex scored against FaithCoT-Bench under
   written permission; jury numbers on that corpus carry `claim_status: EXPLORATORY`.
 
