@@ -536,7 +536,8 @@
       independent of both, that specification reports NIE 0.213 and TE 0.270 against a truth
       of zero (seed 731, n 10,000). The values above are retained for provenance and are not
       current estimates. Column B is being recomputed under a specification with fitted
-      intercepts and a declared estimand contract.
+      intercepts and a declared estimand contract; the repair, the null it fixes, and the one
+      run recomputed so far are in the phase 2 section below.
     </p>
   </div>
 
@@ -833,10 +834,429 @@
   </div>
 </section>
 
+<!-- Phase 2: what changed since the public version -->
+<section id="phase2-measured" class="section">
+  <div class="section-head">
+    <span class="eyebrow">08 &middot; phase 2, measured</span>
+    <h2>What changed since the public version, and what the sweep found so far.</h2>
+    <p class="head-sub">
+      Everything below happened on 2026-09-07. An outside review found real defects in the
+      estimator; they are now repaired and gated by tests. A synthetic battery of eleven
+      known-truth mechanisms was run against the repair, the serving layer turned out to need
+      its own determinism check, and the first powered real-model sweep is running. Every number
+      below names its source file, and where a number is not yet measured, this page says so by
+      name instead of leaving a blank.
+    </p>
+  </div>
+
+  <div class="math-grid">
+    <div class="math-card reveal">
+      <h3>Three estimator defects, found and repaired</h3>
+      <p>
+        <strong>No baseline intercepts.</strong> The pre-repair fit forced the mediator's
+        clean-arm mean to zero and the outcome's clean-arm log-odds to Phi(0) = 0.5. On a
+        synthetic null with a zero true effect (a Poisson-count mediator independent of
+        treatment, an outcome coin independent of both, seed 731, n = 10,000), the old fit
+        invented an NIE of +0.2131 and a TE of +0.2697 where the truth is zero. A
+        Gaussian-offset version of the same null shows the same shape: old NIE +0.2213. The
+        repaired fit adds mediator and outcome intercepts and reports NIE -0.0002 and TE
+        -0.0082 on the Poisson null, which tracks the randomized arm difference
+        (-0.0082) instead of inventing one.
+      </p>
+      <p>
+        <strong>A link mismatch between the two estimator paths.</strong> The PyMC posterior fit
+        a logistic outcome; the maximum-likelihood fit, the closed-form integrator, and the
+        pre-registered estimand are all probit. On the mechanism battery's own parameters, the
+        same fitted coefficients converted under the two links gave NIE +0.2827 under probit
+        against about +0.24 under logit, a gap of roughly 0.04 on an effect whose pre-registered
+        verdict threshold is 0.15. Both paths are now probit, with one written definition of the
+        estimand that every call site shares.
+      </p>
+      <p>
+        <strong>Fixed-scale outcome priors.</strong> The outcome intercept and the mediator
+        coefficient carried priors stated in absolute units, which put the implied intercept
+        several prior standard deviations from its mean whenever the mediator's baseline was
+        large, like a reasoning-step count averaging six. The posterior shrank the intercept and
+        the coefficient together and the mediated effect came out low. Rescaling every mediator
+        prior by the mediator's own standard deviation fixed it: in the mechanism battery's PyMC
+        subset (20 datasets per family, n = 350), NIE interval coverage went from 7/20 to 20/20
+        in the family with a large mediator baseline, and from 12/20 to 19/20 in a second
+        affected family.
+      </p>
+      <p class="evidence-note">
+        Sources:
+        <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/ESTIMATOR-REPAIR-2026-09-07.md" target="_blank" rel="noopener">ESTIMATOR-REPAIR-2026-09-07.md</a>
+        and
+        <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/ESTIMATOR-PRIORS-2026-09-07.md" target="_blank" rel="noopener">ESTIMATOR-PRIORS-2026-09-07.md</a>.
+        None of the three repairs touches a frozen file; <code>tests/test_frozen_guard.py</code>
+        passes at every step.
+      </p>
+    </div>
+
+    <div class="math-card reveal">
+      <h3>What that means for the &rho;* values already on this page</h3>
+      <p>
+        The real-model &rho;* values in the ledger below (0.708 to 0.800) were computed under
+        the intercept-free specification, on raw CoT step counts. One of the four runs has
+        stored transcripts and could be refit both ways: &rho;* moves from 0.750, which exactly
+        reproduces the published number, to 0.327, and the mediated path does not merely shrink,
+        it changes sign (NIE at &rho; = 0: +0.415 old, -0.137 repaired).
+      </p>
+      <p>
+        That recomputation rests on 44 rows (22 items &times; 2 arms) whose control arm has no
+        outcome variation by construction (every clean-correct item scores Y = 1), so
+        -0.137 is reported as evidence that the published &rho;* values are
+        specification-dependent, not as a corrected estimate of anything. The other three runs
+        have no stored transcripts and cannot be recomputed without rerunning the model calls, so
+        those cells read "not available under the repaired estimator" rather than keep the old
+        number quietly. Recomputation and figure regeneration are tracked as the next step in the
+        same source document.
+      </p>
+    </div>
+  </div>
+
+  <div class="ledger reveal">
+    <span class="kicker">mechanism battery &middot; eleven known-truth families</span>
+    <h3 class="ledger-title">The repaired estimator, run against known mechanisms</h3>
+    <p class="ledger-sub">
+      Eleven generator families, evaluated as 15 conditions at n = 350 and n = 3,600, at least
+      100 seeded datasets per condition (3,800 datasets total), each fitted once at &rho; = 0
+      plus 200 bootstrap refits, plus a 20-dataset PyMC subset per family
+      (<code>experiments/mechanism_battery.py</code>). Three outcomes were pre-registered
+      (Amendment A2, element 11(a)) and all three PASS: direct bypass leaves &rho;*_point
+      unmoved (0.6242 to 0.6252, a spread of 0.0011) while the mediated share falls from 101.2&thinsp;%
+      to 1.6&thinsp;% across five bypass strengths; shared cause recovers a mean NIE of 0.2613 on a true
+      NIE of 0.0000, with &rho;*_point 0.7069 against the analytic 1/sqrt(2) = 0.7071; no-cue-effect
+      intervals cover zero in 92 to 100 of 100 datasets across both sample sizes.
+    </p>
+    <div class="table-scroll">
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th>condition</th><th>true NIE</th><th>mean NIE</th>
+            <th>&rho;*_point [mean 95&thinsp;% interval]</th><th>verdict fires</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="lt-model">f3, shared hidden cause</td>
+            <td class="lt-num">0.000</td>
+            <td class="lt-num">0.2613</td>
+            <td class="lt-num">0.7069 [0.683, 0.731]</td>
+            <td class="lt-num">100/100</td>
+          </tr>
+          <tr>
+            <td class="lt-model">f4, cue-induced rationalization</td>
+            <td class="lt-num">0.283</td>
+            <td class="lt-num">0.2833</td>
+            <td class="lt-num">0.7063 [0.681, 0.732]</td>
+            <td class="lt-num">100/100</td>
+          </tr>
+          <tr>
+            <td class="lt-model">f5, redundant explanation</td>
+            <td class="lt-num">0.000</td>
+            <td class="lt-num">0.2503</td>
+            <td class="lt-num">0.8428 [0.826, 0.859]</td>
+            <td class="lt-num">100/100</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="ledger-foot">
+      Family 3 has zero true mediation; family 4 is fully mediated. Averaged over 100 datasets
+      each at n = 3,600, the two reports are the same report: both put nearly the whole total
+      effect on the mediated path, both fire the pre-registered verdict in essentially every
+      dataset, and their &rho;*_point values differ by 0.0006 against a mean interval half-width
+      of 0.0253, so the sensitivity summary separates a world with no mediation from a fully
+      mediated one by nothing at all. Family 5 is worse than a tie: its &rho;*_point of 0.8428 is
+      the largest anywhere in the battery, and its true mediated effect is zero. A large &rho;* is
+      not a trust score, and ranking cells by &rho;* alone would put a world with no mediation
+      above one that is entirely mediated. What separates them is not a quantity this instrument
+      produces from observational text: it needs an intervention, which is what the four-cell
+      replay anchor (element 21) supplies.
+    </p>
+    <p class="ledger-foot">
+      Full tables and every family's reading:
+      <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/experiments/results/mechanism_battery/report.md" target="_blank" rel="noopener">experiments/results/mechanism_battery/report.md</a>.
+    </p>
+  </div>
+
+  <div class="ledger reveal">
+    <span class="kicker">serving determinism &middot; measured on one A100 MIG slice</span>
+    <h3 class="ledger-title">Batching breaks greedy decoding</h3>
+    <p class="ledger-sub">
+      Temperature 0 and a fixed seed do not make a vLLM server reproducible once more than one
+      request shares a batch. Qwen3-8B, 30 ARC items, 320-token budget: at concurrency 1 a rerun
+      matches the sequential run exactly; at 8 requests in flight and above, only 11 to 13 of 30
+      completions still match, and forced letter logprobs move by up to 0.875 nats. Throughput
+      rises about 17&times; at 32 in flight, so the batching that makes a powered sweep
+      affordable is exactly what breaks its determinism.
+    </p>
+    <div class="table-scroll">
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th>concurrency</th><th>identical completions, flag off</th>
+            <th>identical completions, flag on</th>
+            <th>max letter-logprob diff, off</th><th>max diff, on</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="lt-model">1</td><td class="lt-num">30/30</td><td class="lt-num">30/30</td><td class="lt-num">0.0</td><td class="lt-num">0.0</td></tr>
+          <tr><td class="lt-model">8</td><td class="lt-num">11/30</td><td class="lt-num">30/30</td><td class="lt-num">0.625</td><td class="lt-num">0.0</td></tr>
+          <tr><td class="lt-model">32</td><td class="lt-num">13/30</td><td class="lt-num">30/30</td><td class="lt-num">0.875</td><td class="lt-num">0.0</td></tr>
+          <tr><td class="lt-model">64</td><td class="lt-num">13/30</td><td class="lt-num">30/30</td><td class="lt-num">0.875</td><td class="lt-num">0.0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="ledger-foot">
+      <code>VLLM_BATCH_INVARIANT=1</code> restores exact reproducibility at every concurrency
+      level measured, at about half the batched throughput (a ratio of 0.40 to 0.49 against the
+      flag off across concurrency 1 to 64). One caveat the throughput number does not show: the
+      flag changes which greedy token wins; it does more than stabilize it. Against the flag-off
+      sequential baseline, the flag-on mode matches on only 10 of 30 completions (median
+      difference 0.125 nats), so the serving mode is now part of a model's identity and is pinned
+      like a revision. Every powered cell now runs a determinism preflight on its own server
+      before its arms start (30 items at 1 and 32 in flight, both must give 30/30 identical
+      completions and a max logprob difference of exactly 0.0, or the cell refuses at exit 10);
+      the first powered cell, Qwen3-8B on ARC stated-hint at n = 1,500, passed at 30/30 and 0.0.
+    </p>
+    <p class="ledger-foot">
+      Source:
+      <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/W3B-BATCH-INVARIANT.md" target="_blank" rel="noopener">W3B-BATCH-INVARIANT.md</a>
+      (jobs 825548 flag off, 826020 flag on).
+    </p>
+  </div>
+
+  <div class="ledger reveal">
+    <span class="kicker">wave 1 &middot; ARC stated-hint, n = 1,500 per cell</span>
+    <h3 class="ledger-title">Three of eight cells are usable as measured</h3>
+    <p class="ledger-sub">
+      The first powered wave submitted eight models, one per a100-40 slice, all under the pinned
+      serving mode with the determinism preflight in front of every cell. Three cleared the
+      350-clean-correct floor by a wide margin:
+    </p>
+    <div class="table-scroll">
+      <table class="ledger-table">
+        <thead>
+          <tr><th>model</th><th>clean-correct</th><th>single-shot follow rate</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="lt-model">Qwen3-8B</td><td class="lt-num">1,396 <span class="lt-sub">/ 1,500 (93.1&thinsp;%)</span></td><td class="lt-num">0.178</td></tr>
+          <tr><td class="lt-model">Gemma-2-9B-it</td><td class="lt-num">1,380 <span class="lt-sub">/ 1,500 (92.0&thinsp;%)</span></td><td class="lt-num">0.308</td></tr>
+          <tr><td class="lt-model">Llama-3.1-8B-Instruct</td><td class="lt-num">1,321 <span class="lt-sub">/ 1,500 (88.1&thinsp;%)</span></td><td class="lt-num">0.339</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="ledger-sub" style="margin-top:20px;">
+      The other five are not usable as measured, each for a named reason:
+    </p>
+    <div class="table-scroll">
+      <table class="ledger-table">
+        <thead>
+          <tr><th>model</th><th>what happened</th><th>denominator</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="lt-model">OLMo-3-7B-Think</td>
+            <td>truncated inside the reasoning block before an answer letter appears</td>
+            <td class="lt-num">1,381/1,500 unparseable (92.1&thinsp;%), 1,376 of those at exactly the 320-token cap (99.6&thinsp;%)</td>
+          </tr>
+          <tr>
+            <td class="lt-model">DeepSeek-R1-Distill-Llama-8B</td>
+            <td>the same truncation mechanism</td>
+            <td class="lt-num">1,329/1,500 unparseable (88.6&thinsp;%), 1,326 at the cap (99.8&thinsp;%)</td>
+          </tr>
+          <tr>
+            <td class="lt-model">DeepSeek-R1-0528-Qwen3-8B</td>
+            <td>a separate, worse defect: every completion returns as undecoded GPT-2 byte-level tokens with an opened, never-closed think tag; the one "clean-correct" record is a parser coincidence inside corrupted text, not a real answer</td>
+            <td class="lt-num">1,500/1,500 affected</td>
+          </tr>
+          <tr>
+            <td class="lt-model">Phi-4-reasoning</td>
+            <td>still running as of the last status check; not yet reported</td>
+            <td class="lt-num">pending</td>
+          </tr>
+          <tr>
+            <td class="lt-model">gpt-oss-20b</td>
+            <td>server failed at startup: vLLM 0.28.0 has no mxfp4 mixture-of-experts kernel that claims batch invariance, on any card, so the model cannot serve under the required mode at all; suspended as a subject (Ruling R11), kept as a jury judge served flag off</td>
+            <td class="lt-num">exit 5, no weights loaded</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="ledger-foot">
+      The three thinking-model failures are held out of the sweep by a feeder hold list rather
+      than silently retried. The frozen 320-token decoding budget was measured on a model with
+      thinking disabled and needs a ruling before it changes for models that reason before
+      answering; that ruling has not been made. gpt-oss's suspension is separate and does not
+      wait on that ruling: no serving-mode change fixes a kernel that does not exist in this
+      vLLM build.
+    </p>
+  </div>
+
+  <div class="honesty-card reveal">
+    <h3>Column B fits for the three usable cells: <em>placeholder</em></h3>
+    <p>
+      <strong>[STAGE 2 PLACEHOLDER.</strong> This block is filled from lane A's
+      <code>docs/WAVE1-FITS.md</code> once it lands: the NDE / NIE / TE posteriors and &rho;* for
+      Qwen3-8B, Gemma-2-9B, and Llama-3.1-8B under the repaired, probit, scale-aware estimator,
+      with a <code>claim_status</code> for each cell. Do not fill this block from any other
+      source, and do not fabricate a number here if that file is not yet available; leave the
+      placeholder marker in place instead.]
+    </p>
+  </div>
+
+  <div class="math-grid">
+    <div class="math-card reveal">
+      <h3>The jury: no Q1 prompt clears the gate</h3>
+      <p>
+        Ten thresholds were committed to the decision record before the first run and have not
+        moved since. On the FP8 Llama judge (RedHatAI/Llama-3.3-70B-Instruct-FP8-dynamic), three
+        candidate Q1 prompts were scored on the same frozen 483-item corpus. All three FAIL, each
+        on two of the ten thresholds:
+      </p>
+      <div class="table-scroll">
+        <table class="case-table">
+          <thead>
+            <tr><th>Q1 file</th><th>failed threshold</th><th>numerator</th></tr>
+          </thead>
+          <tbody>
+            <tr><td rowspan="2">a</td><td>recall, paraphrased disclosure (bar 0.85)</td><td>0/69</td></tr>
+            <tr><td>recall, quoted-and-denied (bar 0.80)</td><td>22/69</td></tr>
+            <tr><td rowspan="2">b</td><td>recall, paraphrased disclosure (bar 0.85)</td><td>48/69</td></tr>
+            <tr><td>specificity, restated-cue-only (bar 0.70)</td><td>26/69</td></tr>
+            <tr><td rowspan="2">c</td><td>recall, paraphrased disclosure (bar 0.85)</td><td>17/69</td></tr>
+            <tr><td>specificity, restated-cue-only (bar 0.70)</td><td>17/69</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="evidence-note">
+        The two failing metrics move against each other and no wording bought both. A second
+        judge (Gemma) read the identical original prompt in the opposite direction on the two
+        contested classes; those Gemma numbers were read off the cluster before a network fault
+        and have not yet been fetched into this repository, so they stay unconfirmed-locally
+        rather than quoted as verified. Nothing on the corpus was tuned: the thresholds file, the
+        corpus manifest, and every prompt file are hashed on each run and unchanged. No Q1 file
+        is named the candidate; selecting one on the numbers that validated it would be selection
+        on the calibration corpus, which the pre-registration's freeze-before-unsealing rule
+        exists to prevent. Full tables:
+        <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/experiments/jury/GATE-Q1-COMPARISON.md" target="_blank" rel="noopener">GATE-Q1-COMPARISON.md</a>.
+      </p>
+    </div>
+
+    <div class="math-card reveal">
+      <h3>External validity: our instrument, on human labels we did not produce</h3>
+      <blockquote style="margin:0 0 12px;padding:12px 16px;border-left:2px solid var(--cyan);color:var(--text-2);font-style:italic;">
+        "You are welcome to use the released data for the evaluation purposes described in your
+        email. Please cite our paper when reporting the results."
+      </blockquote>
+      <p class="evidence-note" style="margin-top:0;">
+        Written permission from the corresponding author of FaithCoT-Bench (arXiv:2510.04040),
+        granted 2026-09-07. Scope: evaluation only, with citation; the data is never
+        redistributed.
+      </p>
+      <p>
+        The frozen acknowledgment regex, byte-identical to main and nothing tuned, was scored
+        against 1,364 expert-annotated FaithCoT items. No item in this corpus carries a planted
+        cue, so recall is undefined here; specificity is the measurement of record, at 0.9729
+        (1,327/1,364). Its 37 false positives concentrate in two ordinary phrases ("key points",
+        "the pattern") rather than a disclosed hint. One real signal survives: the regex fires
+        4.9 times more often on post-hoc rationalization than on a faithful correct answer with
+        correctness held fixed (10/107 against 14/682, Fisher exact p = 0.00053), which is the
+        direction that would embarrass this project least. Jury numbers on this corpus carry
+        <code>claim_status: EXPLORATORY</code> throughout: the gate has not passed on any judge
+        &times; prompt configuration, so nothing here is selected as a candidate, and the
+        FaithCoT jury run itself is still pending.
+      </p>
+      <p class="evidence-note">
+        Full report:
+        <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/external_validity.md" target="_blank" rel="noopener">external_validity.md</a>.
+      </p>
+    </div>
+  </div>
+
+  <div class="prereg-panel reveal">
+    <div class="prereg-head">
+      <span class="kicker">claim status, element 19</span>
+      <h3>Every number on this page carries one of three declared states</h3>
+      <p>
+        The state is a recorded field, never assigned by hand, and a cell never upgrades
+        silently.
+      </p>
+    </div>
+    <div class="prereg-rows">
+      <div class="prereg-item">
+        <span class="prereg-chip notyet">RAW</span>
+        <div>
+          <strong>Generated under the frozen arm list against the frozen estimand contract</strong>
+          <span>Uninterpreted, and never described as a mediation result on its own.</span>
+        </div>
+      </div>
+      <div class="prereg-item">
+        <span class="prereg-chip pending">ANCHORED</span>
+        <div>
+          <strong>RAW, plus agreement with the replay anchor</strong>
+          <span>The model's Column B estimate agrees with the four-cell replay anchor
+          (element 21) within a margin pre-registered before any data was seen.</span>
+        </div>
+      </div>
+      <div class="prereg-item">
+        <span class="prereg-chip met">VALIDATED</span>
+        <div>
+          <strong>ANCHORED, plus the mechanism-challenge coverage check</strong>
+          <span>The model's cells pass the coverage check of element 11, the same battery
+          summarized above.</span>
+        </div>
+      </div>
+    </div>
+    <p class="prereg-amend">
+      Where this page's numbers sit: the mechanism-battery numbers above are checked directly
+      against known synthetic ground truth and are not on this ladder, which is defined for
+      real-model cells. The wave-1 clean-correct counts and single-shot follow rates are RAW.
+      No cell on this page is ANCHORED or VALIDATED yet, because the replay-anchor run and the
+      coverage check have not been applied to any wave-1 cell. The Phase 1 pilot numbers in the
+      evidence section above (n&nbsp;=&nbsp;103 and the smaller runs) predate this ladder and
+      carry their own older caveat instead: heuristic auditor labels, human labeling in
+      progress.
+    </p>
+  </div>
+
+  <div class="honesty-card reveal">
+    <h3>Amendments and rulings written 2026-09-07</h3>
+    <p>
+      Amendment A2 (<code>experiments/PREREGISTRATION_phase2_arms.md</code>, sha256
+      <code>cf4cef11&hellip;</code>) added the Column B contract and the jury. Its companion,
+      <code>experiments/PREREGISTRATION_jury_and_scale.md</code> (sha256
+      <code>0676fb2d&hellip;</code>), carries the jury, the scale study, and, since
+      2026-09-07, Amendment A3's post-skeleton values. Both are additive: nothing in the frozen text is
+      edited, only appended, and <code>tests/test_frozen_guard.py</code> checks the fingerprint
+      on every commit that touches either file.
+    </p>
+    <p>
+      Eleven internal rulings (R1 to R11) turned that day's measurements into decisions, each
+      overturnable before anything is pushed. In one paragraph: R1 pins the serving mode (the
+      batch-invariant flag, vLLM 0.28.0, at most 32 requests in flight, a determinism preflight
+      before every cell) after the finding above. R2 reprices the compute budget at the measured
+      flag-on rates. R3 fixes the uncertain-item stratum's rules given how rare a
+      right-but-uncertain item turned out to be on the skeleton run (1 of 28). R4 ships the
+      closed-form attenuation band and defers the latent-mediator layer until a chain-level
+      repeat arm exists. R5 keeps ARC's answer set at four choices. R6 fixes which two dose
+      levels count as the ladder's first rung. R7 splits a co-hosted judge pair into two
+      serialized lines after it failed to start on one card. R8 raises the token budget for
+      thinking judges to 1,024. R9 defers the jury's Q1 construct to the panel-level gate above.
+      R10 sets the push order: an independent verifier and a secret scan first, then the push,
+      then the powered sweep. R11 suspends gpt-oss-20b as a sweep subject, for the kernel reason
+      above, while keeping it as a jury judge. None of the eleven touches a frozen sentence.
+    </p>
+  </div>
+</section>
+
+
 <!-- Roadmap & Funding -->
 <section id="roadmap" class="section section-tinted">
   <div class="section-head">
-    <span class="eyebrow">08 &middot; roadmap &middot; phase 1 funded &rarr; phase 2</span>
+    <span class="eyebrow">09 &middot; roadmap &middot; phase 1 funded &rarr; phase 2</span>
     <h2>Phase 1 is grant-funded and largely delivered. Phase 2 is scoped and seeking support.</h2>
     <p class="head-sub">
       Phase 1 (Apr to Aug 2026) is funded by a BlueDot Impact Rapid Grant. Everything marked
@@ -973,7 +1393,7 @@
 <!-- FAQ -->
 <section id="faq" class="section">
   <div class="section-head">
-    <span class="eyebrow">09 &middot; the obvious objections</span>
+    <span class="eyebrow">10 &middot; the obvious objections</span>
     <h2>Questions a careful reviewer should ask.</h2>
   </div>
 
@@ -1038,7 +1458,7 @@
 <!-- Audit trail: claim -> artifact -> command -->
 <section id="reproduce" class="section section-tinted">
   <div class="section-head">
-    <span class="eyebrow">10 &middot; audit trail</span>
+    <span class="eyebrow">11 &middot; audit trail</span>
     <h2>Every claim maps to a command.</h2>
     <p class="head-sub">
       The repo expects to be audited. Each public result traces to a script you can run, most of
@@ -1089,7 +1509,7 @@
 <!-- About / contact -->
 <section id="about" class="section">
   <div class="section-head">
-    <span class="eyebrow">11 &middot; researcher</span>
+    <span class="eyebrow">12 &middot; researcher</span>
     <h2>About me.</h2>
   </div>
   <div class="about-grid">
