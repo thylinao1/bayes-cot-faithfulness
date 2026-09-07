@@ -426,3 +426,28 @@ passes alone: `specificity_restated_cue_only` fails at 0/43 for the pair, 0/69 f
 alone and 26/69 for Llama alone, while `recall_paraphrased_disclosure` reads 47/47 for the
 pair against 48/69 for Llama alone, which is the tie-removal effect and not an improvement
 in either judge.
+
+### The four judge gates are QUEUED, not running, and Slurm's own estimates put them past this lane
+
+Read at 14:16 on 2026-09-07 with `squeue -u $USER --start`. Every one of the four was
+submitted at 13:37 and every one is still `PENDING (Priority)`; none has started, so none
+has a preflight, a vote file or an exit code yet.
+
+| Job | What it is | Partition | Slug it will write | Slurm's estimated start |
+|---|---|---|---|---|
+| 826597 | qwen3-32b, exploratory-h200-141, `num_predict` 1024, Q1 a+b+c | `gpu` (3 h) | `qwen3-32b-h200-np1024-q1{a,b,c}` | 2026-09-07 20:17 |
+| 826598 | qwen3-32b, PINNED a100-80, `num_predict` 1024, Q1 a+b+c | `gpu-long` (8 h) | `qwen3-32b-a100-q1{a,b,c}` | 2026-09-10 04:42 |
+| 826599 | gemma-3-27b-it, PINNED a100-80, Q1 a+b+c | `gpu-long` (8 h) | `gemma-3-27b-it-a100-q1{a,b,c}` | 2026-09-10 04:42 |
+| 826600 | gpt-oss-20b, PINNED a100-80, Q1 a+b+c | `gpu-long` (8 h) | `gpt-oss-20b-a100-q1{a,b,c}` | 2026-09-10 04:42 |
+
+`xgpk0` is the only h200 node and it reads `mix` with all four h200-141 cards spoken for,
+which is why 826597 sits behind six hours of other work; the a100-80 estimate is the same
+backfill timestamp Slurm gives the two alta jobs queued beside ours. These are estimates and
+backfill can start a job earlier, so the numbers are what the scheduler said at 14:16 and
+not a promise in either direction.
+
+Two consequences for reading this document. The three-judge panel of record still cannot be
+computed, because gpt-oss's votes are in 826600 and in the one exploratory row that is not
+yet submitted. And the exploratory gpt-oss row stays unsubmitted by design: the h200-141 cap
+is ONE card, 826597 holds the claim on it, and submitting the second row before the first
+leaves the queue would put two of our jobs on a one-card allowance.

@@ -320,3 +320,22 @@ numbers as MEASURED and recomputed on this Mac. It does not make them a pinned-l
 measurement: every one of the three is `exploratory-h200-141` at the h200 serving line, the
 pinned a100-80 Gemma table is a different row, and any panel built from these votes carries
 each judge's serving line separately rather than one collapsed label.
+
+
+## Closing state, 2026-09-07 14:16 (W2f)
+
+Still no candidate. No Q1 file is named, no judge is named, no bar moved, no prompt file
+changed, and `gate_thresholds.py` still hashes `b39f1d4b...`.
+
+| Question the freeze needs answered | State |
+|---|---|
+| Do the Gemma numbers exist on this Mac and check out | YES, as of 13:53. Three MEASURED rows, recomputed from their own votes with zero differences against the cluster's reports |
+| Is the Gemma `exit_code` 1 explained | YES. A gate FAIL verdict, on four pieces of evidence that are not the exit code |
+| Is the three-judge panel of record computed | NO. gpt-oss has no votes anywhere yet; every panel run today is `PANEL-PARTIAL` with two judges and none was written |
+| Which judge's inclusion changes a verdict | UNANSWERABLE today. Every cell of the two-judge leave-one-out is FAIL, so no inclusion changes a verdict; what changes is which metrics fail |
+| Is there a pinned-line measurement for Gemma, gpt-oss or Qwen | NO. Jobs 826598, 826599 and 826600 were submitted at 13:37 and are all still `PENDING (Priority)`, estimated by Slurm to start 2026-09-10 |
+| Does a chain-level lambda exist | YES, as of 13:48, from job 826596. `docs/A4-CHAIN-LAMBDA-NOTE.md` carries it with every denominator |
+
+The one thing on this page that a reader should NOT carry forward as settled is the panel.
+Three MEASURED Gemma rows make the per-judge table larger; they do not make a two-judge
+panel a three-judge panel, and section 6.2's label is the panel's, not any judge's.
