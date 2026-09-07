@@ -1,0 +1,39 @@
+# HOLD LIST for bcf/wave_feeder.sh (bcf/hold_filter.py reads this file).
+#
+# One HF model id per line, exactly 'org/name'. '#' starts a comment, whether the whole
+# line or a trailing note after the id. A row in bcf/waves/*.tsv or bcf/waves/enrich-*.tsv
+# whose column-1 model id is named here is held: the feeder writes the rest of that wave
+# as a partial file and never submits this row until the line below is deleted. Editing
+# this file is the only way to lift a hold; wave.sh and the wave manifests are untouched.
+#
+# A malformed line (not blank, not a comment, not one 'org/name' id) refuses the whole
+# feeder poll rather than silently holding the wrong thing or holding nothing.
+
+# --- thinking-model truncation (DECISION-LOG 2026-09-07 15:37, confirmed 15:39) ---
+# num_predict 320 with chat_template_kwargs enable_thinking False, the frozen decoding
+# constants measured on Qwen3-8B with thinking off, truncates these models' chains before
+# an answer letter appears: OLMo-3-7B-Think n_unparseable_clean 1,381/1,500, R1-Distill-
+# Llama-8B 1,329/1,500, R1-0528-Qwen3-8B 1/1,500 clean-correct (no arms_summary), all below
+# the 350 clean-correct floor of 01-SIZING I.3. Phi-4-reasoning was flagged "likely" the
+# same at 15:37 and its wave-1 cell (826739) never reached a verdict either way. Lifted by
+# the element 9.4 ruling (the reasoning-mode toggle), NOT YET MADE as of 16:22: it is
+# waiting on the Track V audit lane's report (worktree ~/Developer/bcf-audit1).
+allenai/Olmo-3-7B-Think
+deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
+deepseek-ai/DeepSeek-R1-Distill-Llama-8B
+microsoft/Phi-4-reasoning
+
+# --- gpt-oss serving line (DECISION-LOG 2026-09-07 15:40 HOLD, 16:22 RULING R11) ---
+# Wave-1 cell 826740 FAILED exit 5 at engine init: no MXFP4 MoE backend supports gpt-oss-
+# 20b under VLLM_BATCH_INVARIANT=1 on any card class this account can reach in vLLM
+# 0.28.0 (every candidate either fails the device gate or the batch-invariance gate; none
+# of the three kernels that DO declare batch invariance is an mxfp4 gpt-oss kernel).
+# RULING R11 (RULINGS-2026-09-07.md) suspends gpt-oss-20b (and 120b) from the powered
+# sweep as SUBJECTS: reproducible only at concurrency 1, and forced continuations return
+# empty under the harmony format so replay, transplant, anchor and the logprob arms
+# cannot score it anyway. It stays a JUDGE, served flag-off at util 0.90. This is not a
+# pending-investigation hold like the four rows above: R11 is a ruling already made, so
+# this row does not lift on its own. It lifts only if R11 is revisited (for instance a
+# vLLM version pinned that ships a batch-invariant mxfp4 kernel) or the additive
+# amendment that carries R11 and the element 9.4 ruling together says otherwise.
+openai/gpt-oss-20b

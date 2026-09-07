@@ -1,0 +1,305 @@
+=== bcf/wave_feeder.sh + bcf/hold_filter.py: the hold list, on the cluster ===
+Run from ~/bcf/src-feeder-hold, a copy of the feeder/hold branch deployed for these live
+dry runs only (sha256 of bcf/wave_feeder.sh a9da5297..., bcf/hold_filter.py 2843b806...,
+bcf/wave.sh b070bcaa... unchanged from what trackg/feeder merged into main). Every run
+below is --dry-run or --check-only; nothing was submitted, ~/bcf/feeder-state.json (the
+live state file, holding only wave 1, adopted 15:00:33) was never opened by any of it, and
+--repo-tree always names ~/bcf/repo-feeder-hold-proof, a path that was never created since
+--check-only writes nothing. Proofs 1, 2, 2b, 4 and 5 use a fresh scratch state file at
+~/bcf/feeder-hold-proof-state.json, removed before each run and deleted at the end. Proof
+3's setup hand-authors ONE entry in that same scratch file from hold_filter.py's own
+`filter` output (the exact command proof 1 ran) with SYNTHETIC job ids 900001-900003,
+labelled as such, standing in for "a100-40-02.tsv already went out as a partial wave" so
+--held-only has something recorded to collect from without this lane submitting anything.
+
+host xlogin1   2026-09-07T16:30:51+08:00
+queue at the time of these proofs:
+    826784 bcf-jury-qwen3-32b PENDING 0:00
+    826796 alta-m2-foldrep PENDING 0:00
+    826921 bcf-w6-gemma-3-27b-it PENDING 0:00
+    826792 alta-oofckpt RUNNING 13:21
+    826965 bcf-audit-st-olmo-3-7b-think RUNNING 14:22
+    826966 bcf-audit-st-deepseek-r1-0528-qwen3-8b RUNNING 14:22
+    826783 bcf-jury-qwen3-32b RUNNING 1:35:34
+    826880 bcf-jury-gpt-oss-20b RUNNING 43:26
+    826739 bcf-sweep-phi-4-reasoning-arc_challenge-stated-hint RUNNING 57:58
+
+--- 1. dry run WITH the real hold list: a100-40-02.tsv, 8 rows -> 3 kept, 5 named held
+[feeder] next unsubmitted wave for sweep/a100-40: a100-40-02.tsv
+[feeder] jobs in system 9/32; headroom 23, floor 8
+[feeder] hold list /home/e/e1506804/bcf/src-feeder-hold/bcf/waves/HOLD_MODELS.txt: a100-40-02.tsv has 8 row(s), 3 submittable, 5 held
+[feeder]   held: allenai/Olmo-3-7B-Think,deepseek-ai/DeepSeek-R1-0528-Qwen3-8B,deepseek-ai/DeepSeek-R1-Distill-Llama-8B,microsoft/Phi-4-reasoning,openai/gpt-oss-20b
+[feeder] partial wave written: bcf/waves/partial/a100-40-02-3rows.tsv (3 of 8 rows)
+[feeder] asking wave.sh --check-only about bcf/waves/partial/a100-40-02-3rows.tsv
+[feeder]   | [wave] planning commit <none> at <no checkout>
+[feeder]   | [wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof
+[feeder]   | [wave] file bcf/waves/partial/a100-40-02-3rows.tsv: 3 cell(s), 3 card(s), max tp 1
+[feeder]   | [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[feeder]   | [wave] jobs in system: 9/32; this wave adds 3 -> 12/32
+[feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 3/8 (0 more pending, not counted)
+[feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 6/12
+[feeder]   | [wave] a100-40 cards in use, bcf-sweep: 1/8 (CONTRACT.md split)
+[feeder]   | [wave] this wave wants 3 card(s) across 3 job(s)
+[feeder]   | [wave] CHECK-ONLY would sync  @  -> /home/e/e1506804/bcf/repo-feeder-hold-proof
+[feeder]   | [wave]   (git archive of the commit, plus the gitignored pools verified
+[feeder]   | [wave]    against the manifest committed at ); nothing was written
+[feeder]   | [wave] all checks pass; would submit 3 job(s)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-qwen3-8b-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=Qwen/Qwen3-8B\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=b968826d9c46dd6066d109eabc6255188de91218\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-gemma-2-9b-it-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=google/gemma-2-9b-it\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=11c9b309abf73637e4b6f9a3fa1e92e615547819\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-llama-3-1-8b-instruct-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=meta-llama/Llama-3.1-8B-Instruct\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=0e9e39f249a16976918f6564b8830bc894c89659\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] 3 of 3 row(s) could not be placed right now (advisory)
+[feeder]   | [wave] done (check-only, nothing submitted)
+[feeder] DRY RUN: wave.sh accepts bcf/waves/partial/a100-40-02-3rows.tsv and this is where it would be submitted.
+[feeder]   No sbatch was called and the state file was not written.
+EXIT_1=0
+
+--- 2. dry run WITH AN EMPTY hold list: the same wave, unfiltered, 8 rows
+[feeder] next unsubmitted wave for sweep/a100-40: a100-40-02.tsv
+[feeder] jobs in system 9/32; headroom 23, floor 8
+[feeder] hold list /tmp/tmp.vQ3TQTFRni: a100-40-02.tsv has 8 row(s), 8 submittable, 0 held
+[feeder] asking wave.sh --check-only about bcf/waves/a100-40-02.tsv
+[feeder]   | [wave] planning commit <none> at <no checkout>
+[feeder]   | [wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof
+[feeder]   | [wave] file bcf/waves/a100-40-02.tsv: 8 cell(s), 8 card(s), max tp 1
+[feeder]   | [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[feeder]   | [wave] jobs in system: 9/32; this wave adds 8 -> 17/32
+[feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 3/8 (0 more pending, not counted)
+[feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 6/12
+[feeder]   | [wave] a100-40 cards in use, bcf-sweep: 1/8 (CONTRACT.md split)
+[feeder]   | [wave] this wave wants 8 card(s) across 8 job(s)
+[feeder]   | [wave] REFUSING to submit:
+[feeder]   |   a100-40 cards would reach 11 > 8 (per-user cap, all campaigns)
+[feeder]   |   total gpu cards would reach 14 > 12 (per-user cap across ALL types, all campaigns)
+[feeder]   |   bcf-sweep cards on a100-40 would reach 9 > 8 (CONTRACT.md sweep budget)
+[feeder]   | [wave] nothing was submitted and nothing was cancelled. Wait for jobs to drain, or split the wave.
+[feeder] REFUSED by wave.sh (exit 1): the split or a cap has no room.
+[feeder]   Nothing was submitted; a100-40-02.tsv stays next.
+EXIT_2=3
+
+--- 4. refuse case: the split has no room even for the reduced 3-row partial wave
+    (injected: this campaign already holds 6 of 8 a100-40 sweep cards; 3 more -> 9 > 8)
+[feeder] next unsubmitted wave for sweep/a100-40: a100-40-02.tsv
+[feeder] jobs in system 5/32; headroom 27, floor 8
+[feeder] hold list /home/e/e1506804/bcf/src-feeder-hold/bcf/waves/HOLD_MODELS.txt: a100-40-02.tsv has 8 row(s), 3 submittable, 5 held
+[feeder]   held: allenai/Olmo-3-7B-Think,deepseek-ai/DeepSeek-R1-0528-Qwen3-8B,deepseek-ai/DeepSeek-R1-Distill-Llama-8B,microsoft/Phi-4-reasoning,openai/gpt-oss-20b
+[feeder] partial wave written: bcf/waves/partial/a100-40-02-3rows.tsv (3 of 8 rows)
+[feeder] asking wave.sh --check-only about bcf/waves/partial/a100-40-02-3rows.tsv
+[feeder]   | [wave] planning commit <none> at <no checkout>
+[feeder]   | [wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof
+[feeder]   | [wave] file bcf/waves/partial/a100-40-02-3rows.tsv: 3 cell(s), 3 card(s), max tp 1
+[feeder]   | [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[feeder]   | [wave] jobs in system: 5/32; this wave adds 3 -> 8/32
+[feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 6/8 (0 more pending, not counted)
+[feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 6/12
+[feeder]   | [wave] a100-40 cards in use, bcf-sweep: 6/8 (CONTRACT.md split)
+[feeder]   | [wave] this wave wants 3 card(s) across 3 job(s)
+[feeder]   | [wave] REFUSING to submit:
+[feeder]   |   a100-40 cards would reach 9 > 8 (per-user cap, all campaigns)
+[feeder]   |   bcf-sweep cards on a100-40 would reach 9 > 8 (CONTRACT.md sweep budget)
+[feeder]   | [wave] nothing was submitted and nothing was cancelled. Wait for jobs to drain, or split the wave.
+[feeder] REFUSED by wave.sh (exit 1): the split or a cap has no room.
+[feeder]   Nothing was submitted; a100-40-02.tsv stays next.
+EXIT_4=3
+
+--- 5. a malformed hold-list line refuses the whole poll (exit 2), nothing written
+[feeder] next unsubmitted wave for sweep/a100-40: a100-40-02.tsv
+[feeder] jobs in system 9/32; headroom 23, floor 8
+[feeder] REFUSED: the hold list /tmp/tmp.qqzQnBTPZ0 could not be read.
+[feeder]   | [hold-filter] REFUSING: line 2: 'gpt-oss-20b' is not one 'org/name' model id
+EXIT_5=2
+PROOF_STATE_EXISTS=no (correct)
+
+=== cleanup: nothing left behind ===
+a100-40-02-3rows.tsv
+REPO_TREE_CREATED=no (correct)
+--- 2b. empty hold list AND an injected empty queue: wave.sh ACCEPTS all 8, unfiltered
+[feeder] jobs in system 0/32; headroom 32, floor 8
+[feeder] hold list /tmp/tmp.PKpnW7HAz0: a100-40-02.tsv has 8 row(s), 8 submittable, 0 held
+[feeder]   | [wave] jobs in system: 0/32; this wave adds 8 -> 8/32
+[feeder]   | [wave] all checks pass; would submit 8 job(s)
+[feeder] DRY RUN: wave.sh accepts bcf/waves/a100-40-02.tsv and this is where it would be submitted.
+EXIT_2B=0
+=== bcf/wave_feeder.sh held-only: proof setup and dry run ===
+host xlogin1   2026-09-07T16:31:49+08:00
+
+--- SETUP: derive the real held rows for a100-40-02.tsv from hold_filter.py's own
+    filter output (the same command proof 1 ran), then hand-author a PROOF-ONLY
+    state entry from that output. Job ids 900001-900003 are SYNTHETIC placeholders
+    (no such Slurm job exists); this never touches the live ~/bcf/feeder-state.json.
+N_TOTAL=8
+N_KEPT=3
+N_HELD=5
+STATUS=submitted
+PARTIAL_FILE=a100-40-02-3rows.tsv
+HELD_MODELS=allenai/Olmo-3-7B-Think,deepseek-ai/DeepSeek-R1-0528-Qwen3-8B,deepseek-ai/DeepSeek-R1-Distill-Llama-8B,microsoft/Phi-4-reasoning,openai/gpt-oss-20b
+SUBMITTED_MODELS=Qwen/Qwen3-8B,google/gemma-2-9b-it,meta-llama/Llama-3.1-8B-Instruct
+filter extra.json:
+{
+  "status": "submitted",
+  "submitted_models": [
+    "Qwen/Qwen3-8B",
+    "google/gemma-2-9b-it",
+    "meta-llama/Llama-3.1-8B-Instruct"
+  ],
+  "held_models": [
+    "allenai/Olmo-3-7B-Think",
+    "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    "microsoft/Phi-4-reasoning",
+    "openai/gpt-oss-20b"
+  ],
+  "held_rows": [
+    "allenai/Olmo-3-7B-Think\tarc_challenge\tprofessor\tBCF_REVISION=d97e442d7cc678210054dbcc9b440894d62c89a4\tBCF_N_ITEMS=1500\tBCF_CURVE_CAP=1500\tBCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity\tBCF_TP=1\tBCF_CONCURRENCY=32\tBCF_BATCH_INVARIANT=1\tMEM=64G\tCPUS=8\tBCF_EXPECTED_HOURS=1.477",
+    "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B\tarc_challenge\tprofessor\tBCF_REVISION=6e8885a6ff5c1dc5201574c8fd700323f23c25fa\tBCF_N_ITEMS=1500\tBCF_CURVE_CAP=1500\tBCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity\tBCF_TP=1\tBCF_CONCURRENCY=32\tBCF_BATCH_INVARIANT=1\tMEM=64G\tCPUS=8\tBCF_EXPECTED_HOURS=1.477",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B\tarc_challenge\tprofessor\tBCF_REVISION=6a6f4aa4197940add57724a7707d069478df56b1\tBCF_N_ITEMS=1500\tBCF_CURVE_CAP=1500\tBCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity\tBCF_TP=1\tBCF_CONCURRENCY=32\tBCF_BATCH_INVARIANT=1\tMEM=64G\tCPUS=8\tBCF_EXPECTED_HOURS=1.477",
+    "microsoft/Phi-4-reasoning\tarc_challenge\tprofessor\tBCF_REVISION=1de18ec97600877ce63dbf60c73b998da99f0195\tBCF_N_ITEMS=1500\tBCF_CURVE_CAP=1500\tBCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity\tBCF_TP=1\tBCF_CONCURRENCY=32\tBCF_BATCH_INVARIANT=1\tMEM=64G\tCPUS=8\tBCF_EXPECTED_HOURS=1.477\tBCF_EXTRA_VLLM=--max-num-seqs 64",
+    "openai/gpt-oss-20b\tarc_challenge\tprofessor\tBCF_REVISION=6cee5e81ee83917806bbde320786a8fb61efebee\tBCF_N_ITEMS=1500\tBCF_CURVE_CAP=1500\tBCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity\tBCF_TP=1\tBCF_CONCURRENCY=32\tBCF_BATCH_INVARIANT=1\tMEM=64G\tCPUS=8\tBCF_EXPECTED_HOURS=1.477\tBCF_QUANT=mxfp4"
+  ],
+  "partial_file": "bcf/waves/partial/a100-40-02-3rows.tsv"
+}
+
+wrote /home/e/e1506804/bcf/feeder-hold-proof-state.json: a100-40-02.tsv held_models=['allenai/Olmo-3-7B-Think', 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B', 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B', 'microsoft/Phi-4-reasoning', 'openai/gpt-oss-20b']
+
+--- 3a. held-only dry run, hold list now EMPTY (simulating a full lift): builds
+    and would submit the 5-row wave
+[feeder] collected 5 held row(s) from 1 recorded sweep/a100-40 wave(s)
+[feeder] held-a100-40-sweep-01: 5 row(s) collected, 5 now clear, 0 still held
+[feeder] asking wave.sh --check-only about bcf/waves/partial/held-a100-40-sweep-01-5rows.tsv
+[feeder]   | [wave] planning commit <none> at <no checkout>
+[feeder]   | [wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof
+[feeder]   | [wave] file bcf/waves/partial/held-a100-40-sweep-01-5rows.tsv: 5 cell(s), 5 card(s), max tp 1
+[feeder]   | [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[feeder]   | [wave] jobs in system: 9/32; this wave adds 5 -> 14/32
+[feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 3/8 (0 more pending, not counted)
+[feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 6/12
+[feeder]   | [wave] a100-40 cards in use, bcf-sweep: 1/8 (CONTRACT.md split)
+[feeder]   | [wave] this wave wants 5 card(s) across 5 job(s)
+[feeder]   | [wave] CHECK-ONLY would sync  @  -> /home/e/e1506804/bcf/repo-feeder-hold-proof
+[feeder]   | [wave]   (git archive of the commit, plus the gitignored pools verified
+[feeder]   | [wave]    against the manifest committed at ); nothing was written
+[feeder]   | [wave] all checks pass; would submit 5 job(s)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-olmo-3-7b-think-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=allenai/Olmo-3-7B-Think\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=d97e442d7cc678210054dbcc9b440894d62c89a4\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-deepseek-r1-0528-qwen3-8b-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=deepseek-ai/DeepSeek-R1-0528-Qwen3-8B\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=6e8885a6ff5c1dc5201574c8fd700323f23c25fa\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-deepseek-r1-distill-llama-8b-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=deepseek-ai/DeepSeek-R1-Distill-Llama-8B\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=6a6f4aa4197940add57724a7707d069478df56b1\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-phi-4-reasoning-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=microsoft/Phi-4-reasoning\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=1de18ec97600877ce63dbf60c73b998da99f0195\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1\,BCF_EXPECTED_HOURS=1.477 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-gpt-oss-20b-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=openai/gpt-oss-20b\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=6cee5e81ee83917806bbde320786a8fb61efebee\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1\,BCF_EXPECTED_HOURS=1.477 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] 5 of 5 row(s) could not be placed right now (advisory)
+[feeder]   | [wave] done (check-only, nothing submitted)
+[feeder] DRY RUN: wave.sh accepts bcf/waves/partial/held-a100-40-sweep-01-5rows.tsv (held-a100-40-sweep-01) and this is where it would be submitted.
+[feeder]   No sbatch was called and the state file was not written.
+EXIT_3A=0
+
+--- 3b. held-only dry run, hold list still names gpt-oss-20b (simulating a PARTIAL
+    lift: element 9.4 made, gpt-oss serving line not): builds and would submit a
+    4-row wave, gpt-oss-20b reported still held
+[feeder] collected 5 held row(s) from 1 recorded sweep/a100-40 wave(s)
+[feeder] held-a100-40-sweep-01: 5 row(s) collected, 4 now clear, 1 still held
+[feeder]   still held: openai/gpt-oss-20b
+[feeder] asking wave.sh --check-only about bcf/waves/partial/held-a100-40-sweep-01-4rows.tsv
+[feeder]   | [wave] planning commit <none> at <no checkout>
+[feeder]   | [wave] jobs will read BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof
+[feeder]   | [wave] file bcf/waves/partial/held-a100-40-sweep-01-4rows.tsv: 4 cell(s), 4 card(s), max tp 1
+[feeder]   | [wave] type sweep on a100-40, partition gpu-long (wall ceiling 72 h)
+[feeder]   | [wave] jobs in system: 9/32; this wave adds 4 -> 13/32
+[feeder]   | [wave] a100-40 cards RUNNING, ALL campaigns: 3/8 (0 more pending, not counted)
+[feeder]   | [wave] gpu cards RUNNING, ALL types, ALL campaigns: 6/12
+[feeder]   | [wave] a100-40 cards in use, bcf-sweep: 1/8 (CONTRACT.md split)
+[feeder]   | [wave] this wave wants 4 card(s) across 4 job(s)
+[feeder]   | [wave] CHECK-ONLY would sync  @  -> /home/e/e1506804/bcf/repo-feeder-hold-proof
+[feeder]   | [wave]   (git archive of the commit, plus the gitignored pools verified
+[feeder]   | [wave]    against the manifest committed at ); nothing was written
+[feeder]   | [wave] all checks pass; would submit 4 job(s)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-olmo-3-7b-think-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=allenai/Olmo-3-7B-Think\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=d97e442d7cc678210054dbcc9b440894d62c89a4\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-deepseek-r1-0528-qwen3-8b-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=deepseek-ai/DeepSeek-R1-0528-Qwen3-8B\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=6e8885a6ff5c1dc5201574c8fd700323f23c25fa\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-deepseek-r1-distill-llama-8b-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=deepseek-ai/DeepSeek-R1-Distill-Llama-8B\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=6a6f4aa4197940add57724a7707d069478df56b1\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] CHECK-ONLY would run: sbatch --job-name=bcf-sweep-phi-4-reasoning-arc_challenge-professor --partition=gpu-long --exclude=xgpj0 --gpus=a100-40 --time=48:00:00 --mem=64G --cpus-per-task=8 --export=ALL\,BCF_REPO=/home/e/e1506804/bcf/repo-feeder-hold-proof\,BCF_ENV_SH=/home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/env.sh\,BCF_PLAN_COMMIT=\,BCF_MODEL=microsoft/Phi-4-reasoning\,BCF_SUBSTRATE=arc_challenge\,BCF_CUE=professor\,BCF_REVISION=1de18ec97600877ce63dbf60c73b998da99f0195\,BCF_N_ITEMS=1500\,BCF_CURVE_CAP=1500\,BCF_ARMS=replay\ placebo\ direct\ twostep\ filler\ curves\ transplant\ anchor\ specificity\,BCF_TP=1\,BCF_CONCURRENCY=32\,BCF_BATCH_INVARIANT=1\,BCF_EXPECTED_HOURS=1.477 /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   sbatch --test-only CANNOT PLACE IT NOW: sbatch: error: Unable to open file /home/e/e1506804/bcf/repo-feeder-hold-proof/bcf/serve_and_run.sbatch
+[feeder]   | [wave]   (that message covers both an invalid line and a full pool; check
+[feeder]   | [wave]    the pool with sinfo before reading it as a configuration error)
+[feeder]   | [wave] 4 of 4 row(s) could not be placed right now (advisory)
+[feeder]   | [wave] done (check-only, nothing submitted)
+[feeder] DRY RUN: wave.sh accepts bcf/waves/partial/held-a100-40-sweep-01-4rows.tsv (held-a100-40-sweep-01) and this is where it would be submitted.
+[feeder]   No sbatch was called and the state file was not written.
+EXIT_3B=0
+
+--- 3c. held-only dry run against the REAL (unchanged) hold list: nothing has
+    lifted, so every collected row is still held and there is nothing to submit
+[feeder] collected 5 held row(s) from 1 recorded sweep/a100-40 wave(s)
+[feeder] held-a100-40-sweep-01: 5 row(s) collected, 0 now clear, 5 still held
+[feeder]   still held: allenai/Olmo-3-7B-Think,deepseek-ai/DeepSeek-R1-0528-Qwen3-8B,deepseek-ai/DeepSeek-R1-Distill-Llama-8B,microsoft/Phi-4-reasoning,openai/gpt-oss-20b
+[feeder] EVERY collected row is still on the hold list; nothing to submit.
+EXIT_3C=4
+
+--- 3d. held-only when the state file has NOTHING held for this pool/type
+[feeder] collected 0 held row(s) from 0 recorded sweep/a100-40 wave(s)
+[feeder] NOTHING TO DO: no recorded sweep/a100-40 wave is currently holding any row.
+EXIT_3D=4
+
+=== cleanup ===
+done
+
+=======================================================================================
+PROOF SUMMARY (the five required cases plus three confirmations)
+=======================================================================================
+(1) EXIT_1=0   the hold list, dry run: a100-40-02.tsv 8 rows -> 3 kept (Qwen3-8B,
+                Gemma-2-9B-it, Llama-3.1-8B-Instruct), 5 named held, exactly the five
+                lines in bcf/waves/HOLD_MODELS.txt.
+(2) EXIT_2=3   empty hold list, dry run: "8 row(s), 8 submittable, 0 held", the ORIGINAL
+                wave file used unfiltered (no partial/ file written); the 3 refuses only
+                on the live pool being busy, the same reasons wave.sh always gave.
+(2b) EXIT_2B=0 the same empty-hold-list run with an injected empty queue: wave.sh ACCEPTS
+                all 8, unfiltered, "and this is where it would be submitted" -- confirms
+                proof (2) is a filtering question, not a caps question.
+(3) EXIT_3A=0  --held-only after a recorded partial wave, hold list now empty (a full
+                lift): collects the 5 held rows a100-40-02.tsv recorded, all 5 clear,
+                builds and wave.sh ACCEPTS a 5-row wave (held-a100-40-sweep-01-5rows.tsv).
+    EXIT_3B=0  the same recorded wave, a PARTIAL lift (gpt-oss-20b still named): 4 clear,
+                1 still held and named, wave.sh ACCEPTS the 4-row wave.
+    EXIT_3C=4  the same recorded wave against the REAL, unchanged hold list: 0 clear, all
+                5 still held, "nothing to submit" -- a held-only run before any ruling
+                lifts anything correctly does nothing.
+    EXIT_3D=4  --held-only against a state file with nothing recorded: "nothing to do".
+(4) EXIT_4=3   the refuse case: injected caps put this campaign's a100-40 sweep cards at
+                6 of 8 RUNNING; the reduced 3-card partial wave still cannot fit (would
+                reach 9), REFUSED by wave.sh's own split arithmetic -- proves the partial
+                wave's card count, not the original 8, is what the caps see.
+(5) EXIT_5=2   a hold-list line with no slash ('gpt-oss-20b') refuses the whole poll
+                before anything is read or written; the scratch state file was never
+                created (PROOF_STATE_EXISTS=no).
+
+Nothing was submitted by any case above. ~/bcf/feeder-state.json (the live state, holding
+only wave 1) is unchanged; verified by re-reading it after every run in this file. No
+other lane's ~/bcf/repo-* tree was read, synced, or written.
