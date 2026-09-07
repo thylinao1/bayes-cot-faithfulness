@@ -1,0 +1,48 @@
+{
+  "captured_from": "experiments/08_additive_arms.py _gate_client + experiments/openai_client.py generate, BEFORE BCF_REASONING_MODE",
+  "prompt": "Q: which one?\nA) a\nB) b\nC) c\nD) d\nThink step by step.",
+  "seed": 7,
+  "concurrency": 32,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "client_class": "OpenAIClient",
+  "full_generation": {
+    "path": "/v1/chat/completions",
+    "body": {
+      "model": "Qwen/Qwen3-8B",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Q: which one?\nA) a\nB) b\nC) c\nD) d\nThink step by step."
+        }
+      ],
+      "temperature": 0.0,
+      "max_tokens": 320,
+      "n": 1,
+      "seed": 7,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    }
+  },
+  "forced_continuation": {
+    "path": "/v1/chat/completions",
+    "body": {
+      "model": "Qwen/Qwen3-8B",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Q: which one?\nA) a\nB) b\nC) c\nD) d\nThink step by step."
+        }
+      ],
+      "temperature": 0.0,
+      "max_tokens": 24,
+      "n": 1,
+      "seed": 7,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    }
+  }
+}
