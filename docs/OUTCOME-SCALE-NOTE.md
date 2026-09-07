@@ -283,3 +283,192 @@ equation removes the link extrapolation. It does nothing about assumption A3.
 probability scale, the rho = 0 fit is biased by exactly as much, and a
 shared-cause world reads as mediation on both scales. Part 3 measures that.
 
+---
+
+## Part 4. What the records carry, and the exact extraction spec
+
+### 4.1 What a logprob-scale column B needs, per item
+
+`experiments/wave1_fits.py::build_table` (the function `wave1_fits_report.py`
+renders section 2 from) reads three things per item. Two are unchanged on the
+logprob scale and one is not:
+
+| quantity | today (`binary_follow`) | on `logprob_margin` |
+|---|---|---|
+| X | the arm indicator; every item contributes two rows | unchanged |
+| M | `clean_curve.curve_area` on the X = 0 row, `hinted_curve.curve_area` on the X = 1 row | unchanged |
+| Y | `1[clean_answer == hint_label]` and `1[hinted_answer == hint_label]` | the renormalized letter-logprob margin of `hint_label`, read on the CLEAN prompt for the X = 0 row and on the HINTED prompt for the X = 1 row |
+
+So exactly two new per-item fields are needed, one per arm: a
+`letter_logprob_fields` block computed on that arm's own generation prompt, with
+`target_letter = hint_label`. Everything else the fit needs already exists.
+
+### 4.2 Do the wave-1 records carry them? No, and here is the evidence
+
+**The record-level fields exist but are never written.** `outcome_scale.py` and
+the CONTRACT require `answer_logprobs` and `logprob_source_token` on every
+record, and `experiments/08_additive_arms.py` copies them into the transcript
+record (lines 996 and 997 for the arms record, 1067 and 1068 for the specificity
+record) with `r.get("answer_logprobs")` and `r.get("logprob_source_token")`.
+Nothing in that file ever assigns them: `grep -n 'answer_logprobs.*='` over
+`experiments/08_additive_arms.py` returns no assignment, only the `_letter_logprob_block`
+reads at 1877 to 1887 which write into the ANCHOR block. Measured on the only
+transcript artifact in the repository that carries the CONTRACT fields, the W3b
+skeleton cell
+`experiments/results/w3b-skeleton/qwen3-8b/arc_challenge/stated-hint/arms_transcripts_Qwen_Qwen3-8B.json`
+(Qwen3-8B, ARC-Challenge, stated-hint, 28 records): `answer_logprobs` is null on
+28 of 28 records and `logprob_source_token` is null on 28 of 28.
+
+**The run meta says the same thing for every wave-1 cell.** All 8 mirrored
+`docs/wave1-artifacts/<cell>/run_meta.json` carry
+`"outcome_scale": "binary_follow"` and `"intervention_level": "text"`, 8 of 8. No
+wave-1 cell ran a logit-level outcome, so `run_meta.outcome_scale` is not a
+switch that can be flipped in analysis: it is a record of what was generated.
+
+**The mirrored fit.json carries nothing on this scale.** All three
+`experiments/results/wave1-fits/<cell>/fit.json` have `outcome_scale`
+`binary_follow`, `intervention_level` `text`, and the string `logprob` appears 0
+times in each file. The mirrored `anchor` block holds `cells` (binary k/n rates
+with Wilson intervals), `contrasts`, `falsifier_controls`,
+`agreement_margin_test`, `all_three_agree` and `scope_caveat`, and no
+letter-logprob quantity. Nothing in the mirror can be re-analysed on the logprob
+scale; the raw transcripts on the cluster are required, and this lane did not
+reach them (the cluster link is down and no attempt was made).
+
+### 4.3 What the records DO carry: the anchor's four letter-logprob cells
+
+`arm_anchor` calls `_letter_logprob_block` for each of the four cells, which calls
+`client.forced_answer_logprobs(prompt, item.labels)` and stores the full
+`letter_logprob_fields` block. Measured on the same 28-record skeleton cell:
+
+* 112 of 112 anchor cells carry letter logprobs (`arms_summary` key
+  `arms.anchor.n_cells_with_letter_logprobs` = 112, `n_cells_total` = 112,
+  `n_items` = 28), 0 of 112 with an `unavailable_reason`.
+* 112 of 112 used `method` `prompt_logprobs`, which is exactly the section 9.1
+  path: `OpenAIClient._prompt_logprobs` sends the prefix as a user turn and the
+  bare letter as an unfinished assistant turn under `continue_final_message`
+  with `add_generation_prompt=False`, so the letter is the final prompt token.
+* 28 of 28 items have `target_letter == hint_label` in all four cells, 28 of 28
+  scored exactly the four ARC labels, and 28 of 28 have every logprob read off a
+  token that decodes to its own letter in all four cells.
+
+And the finding that matters for this note, on that cell (28 items, one model,
+one substrate, one cue family, so a smoke-sized denominator):
+
+| anchor cell | margin mean | margin sd | margin min, max | binary y mean | binary y variance |
+|---|---:|---:|---:|---:|---:|
+| mu00 clean recipient, clean donor | -4.388 | 3.227 | -9.12, +2.38 | 0.0000 | 0.0000 |
+| mu01 clean recipient, cued donor | -3.170 | 3.716 | -8.25, +4.88 | 0.2143 | 0.1684 |
+| mu10 cued recipient, clean donor | -3.277 | 3.172 | -7.00, +3.50 | 0.0357 | 0.0344 |
+| mu11 cued recipient, cued donor | -2.022 | 3.864 | -7.25, +5.38 | 0.2500 | 0.1875 |
+
+In the mu00 cell the binary outcome is 0 on 28 of 28 items with variance exactly
+0.0000, while the logprob margin toward the same designated option varies with a
+standard deviation of 3.227 nats across a 11.5 nat range. That is the A4.6(b)
+degeneracy and its absence, measured on the same 28 items and the same target
+letter. It is the empirical reason a logprob-scale reading is worth having, and
+it is 28 items on one cell, which is not a result about the design.
+
+### 4.4 The caveat this lane found, which a later lane must not skip past
+
+The raw letter mass on the anchor prompts is essentially zero. Across all 112
+cells, `letter_probability_mass` runs from 3.29e-18 to 3.96e-14 with a median of
+5.36e-17, and 112 of 112 sit below 0.01. So the renormalized distribution those
+margins come from is a ratio of very small numbers: the model's next token after
+that prompt is almost never a bare answer letter, and the renormalization does
+all the work.
+
+This is the Phase-1 asymmetry of section 1.2, on a third frame. The mirrored
+unit-check artifact
+`experiments/results/phase1-anchor-mig/qwen3-8b/arc_challenge/stated-hint/logprob_check.json`
+shows it directly: 2 of 2 probes completed, 4 of 4 letters scored and 4 of 4
+tokens matching on each, 0 hard failures, `passed` true, with
+`probability_mass` 0.000335 on the first probe and 0.999290 on the second. The
+pre-registration quotes the same phenomenon at 0.00026 and 0.99929 from job
+825246.
+
+What follows: element 0 already requires the raw mass to be "recorded alongside",
+and a logprob-scale column B must print it as a per-cell diagnostic, not bury it.
+A margin computed where the letters hold 1e-17 of the mass is a well defined
+conditional quantity, and it is also a quantity about a region the model
+essentially never enters. Whether it is a good outcome is an empirical question
+this note does not settle; whether it is reportable without the mass beside it is
+settled, and the answer is no.
+
+### 4.5 The extraction spec, with no design decisions left open
+
+Two jobs, in this order. Neither was run here and neither needs the operator to
+choose anything.
+
+**Job A. The logprob-scale element 21 anchor contrast, from records that already
+exist. No new generation.**
+
+1. Input: each cell's `arms_transcripts_<model>.json` (or the `transcripts.jsonl`
+   rows whose `source_file` starts with `arms_transcripts`, which is exactly the
+   filter `wave1_fits.load_records` applies).
+2. For each record `r` and each cell `c` in `("mu00", "mu01", "mu10", "mu11")`,
+   read `b = r["anchor"]["cells"][c]["logprob"]` and REQUIRE all of:
+   `b["intervention_level"] == "logit"`; `b["outcome_scale"] == "logprob_margin"`;
+   `b.get("unavailable_reason") is None`; `b["target_letter"] == r["hint_label"]`;
+   `set(b["answer_logprobs"]) == set(<the item's allowed labels>)`; and for every
+   letter `L`, `b["logprob_source_token"][L]` decodes to `L`. Any failure drops
+   the ITEM (not the cell), counted by reason, the way `build_table` counts drops
+   today.
+3. `Y_c = b["logprob_margin"]`. Do not recompute it: it is
+   `outcome_scale.letter_logprob_fields`'s definition, the renormalized log-odds
+   of the target letter against the BEST OTHER letter. Element 0 says "the
+   log-probability margin of the planted option" without disambiguating
+   best-other from against-the-rest; the stored value is best-other, so that is
+   what the records carry and that is what the extraction reports, stating the
+   definition in the artifact.
+4. Record `b["letter_probability_mass"]` per cell and report its min, median and
+   max per cell alongside every margin table (section 4.4).
+5. `mu_ab` on this scale is `mean(Y_c)` over items, with a 200-replicate ITEM
+   bootstrap at the analysis seed the cell's `fit.json` already records
+   (`column_b.bootstrap.seed`), and the five section 22 contrasts computed from
+   the four means: `mu11 - mu10`, `mu01 - mu00`, `mu10 - mu00`,
+   `mu11 - mu10 - mu01 + mu00`, `mu11 - mu00`. Print them beside the binary ones,
+   never instead of them (element 7 section 8.1's reporting order).
+6. Do NOT compare these against a Column B estimate under the element 21
+   promotion rule until part 5's amendment fixes the margin on this scale
+   (section 22.1's 0.10 is derived from the probability-scale 0.15; part 1.3).
+
+**Job B. A native logprob-scale column B. This needs a new generation pass.**
+
+1. For each existing record `r`, rebuild the two prompts with the frozen
+   instruments, exactly as `experiments/08_additive_arms.py::_frame_prompt`
+   already does: the clean prompt is `interventions.clean_prompt(item)`, and the
+   hinted prompt is `taxonomy_hinted_prompt(item, r["hint_label"], ctx.taxonomy)`
+   when the cell has a taxonomy cue family and
+   `hinted_prompt(item, r["hint_label"], strength="strong")` otherwise. Rebuilding
+   from the record's own banked `hint_label` is what stops a re-read drifting onto
+   a different cue than the item was scored under.
+2. Call `client.forced_answer_logprobs(prompt, list(item.labels))` once per arm
+   per item on the pinned self-hosted vLLM endpoint (section 6.7 forbids SoCLaaS
+   here), and pass the result through
+   `outcome_scale.letter_logprob_fields(got.logprobs, got.tokens, target_letter=r["hint_label"])`.
+3. Store the two blocks on the record as `clean_answer_logprob` and
+   `hinted_answer_logprob`, each with the six keys `letter_logprob_fields`
+   returns plus `method`. Set the record's `intervention_level` to `logit` and its
+   `outcome_scale` to `logprob_margin`, and let
+   `outcome_scale.assert_records_scaled` refuse the batch before the checkpoint
+   write, which is the assertion section 9.6 already requires.
+4. Precondition, per model family, before any of its logit-level cells are
+   reported: the section 9.1 unit check must pass, that is every answer letter
+   scored and every logprob read off a token that decodes to its own letter, with
+   the artifact written the way
+   `phase1-anchor-mig/.../logprob_check.json` writes it. A family that fails is
+   reported at the text level only.
+5. The analysis is then `build_table` with one substitution and nothing else:
+   `y0 = r["clean_answer_logprob"]["logprob_margin"]`,
+   `y1 = r["hinted_answer_logprob"]["logprob_margin"]`, both dropped-with-reason
+   when null. M and X are untouched. Fit with
+   `gaussian_mediation.fit_gaussian_mediation_closed_form(X, M, Y, rho=0.0)`,
+   effects from `gaussian_natural_effects`, the sweep from
+   `gaussian_effects_curve` on the symmetric A4.6(a) grid, and `rho*_point` from
+   `gaussian_rho_star_point`.
+6. Report, per cell: the clean-arm and hinted-arm outcome variance (the number
+   this whole note is about), the letter-probability-mass summary of section 4.4,
+   NDE, NIE and TE with intervals, then the mediated share, then `rho*_point`,
+   then "no verdict rule on this scale" until part 5's amendment exists.
+
