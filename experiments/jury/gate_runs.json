@@ -38,5 +38,10 @@
     "job": "826783",
     "kind": "MEASURED",
     "note": "exploratory h200, num_predict 1024; resubmission of 826597 after the 14:54 cancel"
+  },
+  "gpt-oss-20b-h100-47-q1a": {
+    "job": "826880",
+    "kind": "MEASURED",
+    "note": "exploratory h100-47, gpu-memory-utilization overridden to 0.90, num_predict at the 256 default"
   }
 }
