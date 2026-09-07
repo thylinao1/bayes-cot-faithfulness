@@ -257,3 +257,56 @@ wait for each to finish before the next; do not cancel an alta job to make room.
 no-op on this corpus, so that run's value is a second independent measurement of q1b on the
 FP8 judge, not a test of the strip. It is worth having for exactly that reason, and the row
 says so in its own comments.
+
+
+## W2e, 2026-09-07: what moved, what did not, and the one number that got stronger
+
+**Nothing in the tables above moved, because no gate run happened in this lane either.**
+The matrix still holds six rows and only six, all `llama-3.3-70b-fp8` on its pinned line,
+three MEASURED and three PROJECTED. Every row in "The rows that are missing" is still
+missing and still unsubmitted, and its command is still the command in that table.
+
+**The link was down for the whole lane and the fault is a THIRD one**, different from both
+already on the record. At 08:27 the Cisco tunnel was up and a home `192.168.0/16` route
+shadowed xlogin. At 09:57 no utun carried an IPv4 address. Now, at 11:21 onward, the client
+itself answers `state: Disconnected / Ready to connect`: only `lo0` and `en0` have an IPv4
+address, there are zero `10.195/16` routes, and TCP 22 is closed on BOTH xlogin addresses
+AND on the `stujump` fallback the ssh config falls back to. So this is not a route to add;
+it is a client to connect, and connecting it needs credentials this session does not have.
+Evidence, with the client's own state line, the interface list, the routing table, both TCP
+probes and every bounded ssh attempt:
+`experiments/jury/proofs/cluster_unreachable_w2e_2026-09-07.txt`.
+
+**What did get stronger: the panel code's reproduction check now covers all three Q1 files.**
+The claim that a panel row and a per-judge row can sit in the same table rests on running
+the panel with exactly one judge, where the panel label IS that judge's vote, and getting
+back the committed report. `tests/test_panel_gate.py` pinned that for Q1 file a only.
+`bcf/panel_one_judge_check.py` runs a, b and c and machine-compares all ten scored metrics
+and the verdict against each run's committed `gate_report.json`:
+
+| Q1 file | Job | Metrics compared | Differences | Verdict, committed vs one-judge panel |
+|---|---|---|---|---|
+| `q1_mention_2026-09-07.md` | 825542 | 10 | 0 | FAIL vs FAIL |
+| `q1_mention_2026-09-07b.md` | 826010 | 10 | 0 | FAIL vs FAIL |
+| `q1_mention_2026-09-07c.md` | 826017 | 10 | 0 | FAIL vs FAIL |
+
+Proven able to fail in the same proof file: the Q1 c panel scored against the Q1 b
+committed report reports two differences, `recall_paraphrased_disclosure` 48/69 against
+17/69 and `specificity_restated_cue_only` 26/69 against 17/69. A checker that returned zero
+there would make the three zeros above worthless.
+`experiments/jury/proofs/panel_one_judge_reproduction_2026-09-07.txt`.
+
+**Every one of those runs is kind `PANEL-PARTIAL` and none was written.** Gemma and gpt-oss
+still have no votes on this Mac, so the three-judge panel of record is NOT COMPUTED, the ten
+panel thresholds per Q1 file do not exist, and no leave-one-judge-out row exists either. A
+one-judge "panel" has no leave-one-out row at all, so the question of which judge's inclusion
+changes the verdict cannot be answered from anything in this repository today.
+
+**The smoke run that would have produced the first chain-level lambda is also unsubmitted.**
+`bcf/a3f_smoke.sh` is written, dry-runs clean and would submit exactly one job,
+`bcf-a3f-skel`, on one a100-40 GRES, which is a different card type from every gate above
+and competes with none of them. The continuation-level values that stand in its place, with
+their denominators and their identical-repeat fractions, are in `docs/A4-CHAIN-LAMBDA-NOTE.md`.
+
+**The ordered resume, one verb per remaining step, is `bcf/w2e_resume.sh`.** It refuses
+rather than guesses when `ssh soc` does not answer, so nothing in it can half-submit.

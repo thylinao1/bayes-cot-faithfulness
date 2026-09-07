@@ -234,3 +234,48 @@ rule that matters for the operator's Q1 decision is in `GATE-Q1-COMPARISON.md`: 
 leave-one-out row can score HIGHER than the three-judge panel it came from, because a 1-1 tie
 resolves to a gate token that is neither a Q1 yes nor a Q1 no and the row leaves the
 denominator. Ordered resume: `bcf/w2d_resume.sh`.
+
+
+## Still no candidate, and the Gemma mark still stands (added 2026-09-07 by W2e)
+
+Nothing in this file changes. No Q1 file is named. No judge is named. The Gemma numbers
+stay UNCONFIRMED-LOCALLY with their `exit_code` 1 unexplained, for the same reason as
+before and for a new instance of it: the cluster was unreachable for the whole of this
+lane, so the fetch that would settle both did not happen.
+
+The unreachability is a THIRD distinct fault and it matters that it is, because the fix
+differs. The Cisco Secure Client's own `vpn state` answers `Disconnected / Ready to
+connect`; only `lo0` and `en0` carry an IPv4 address, there are zero `10.195/16` routes,
+and TCP 22 is closed on xlogin's `192.168.51.148` and `.149` AND on the
+`stujump.comp.nus.edu.sg` fallback the ssh config uses when the direct route fails. The
+08:27 fault was a route to add and the 09:57 fault was a tunnel with no address; this one
+is a client that is not connected, and connecting it needs credentials this session does
+not have. Evidence, including the client's state line:
+`experiments/jury/proofs/cluster_unreachable_w2e_2026-09-07.txt`.
+
+Two things did get built or verified while it was down, and neither names a candidate.
+
+**The panel code's reproduction check now covers all three Q1 files, not just file a.**
+`bcf/panel_one_judge_check.py` runs `panel_gate.py` with exactly one judge, where the
+panel label is that judge's own vote, and machine-compares all ten scored metrics and the
+verdict against that run's committed `gate_report.json`. Zero differences across the three
+files: 30 metric comparisons and 3 verdicts. It is proven able to fail, in the same proof
+file, by scoring the Q1 c panel against the Q1 b committed report, which reports two
+differences. `experiments/jury/proofs/panel_one_judge_reproduction_2026-09-07.txt`.
+
+That check is about COMMENSURABILITY and nothing else. It says a panel number can stand in
+the same table as a per-judge number. It says nothing about whether any Q1 file passes,
+because every run in it is kind `PANEL-PARTIAL` with one judge: Gemma and gpt-oss have no
+votes here, so the three-judge panel of record is still NOT COMPUTED and no
+leave-one-judge-out row exists anywhere in this repository.
+
+**The chain-level attenuation factor ruling R4 requires is written up as absent rather than
+estimated.** `docs/A4-CHAIN-LAMBDA-NOTE.md` carries the eight continuation-level cells from
+job 826025 with every denominator and every byte-identical-repeat fraction, taken from that
+run's own `arms_summary.json` and machine-checked against it, plus the reason the
+continuation-level number is a floor for the chain-level one and the two conditions
+(`run_label` `powered_pinned`, preflight PASS) any future chain-level value has to meet
+before it is used. No chain-level number is guessed and no job id is invented for one.
+
+Ordered resume for everything still open: `bcf/w2e_resume.sh`, one verb per step, each
+refusing rather than guessing when `ssh soc` does not answer.
