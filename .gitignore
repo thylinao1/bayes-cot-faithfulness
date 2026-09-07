@@ -167,3 +167,13 @@ experiments/.Rhistory
 
 # W6 external validity: FaithCoT-Bench third-party data, evaluation only, never redistributed
 experiments/data/external/
+
+# Wave-1 column A / column B fits (lane A, 2026-09-07): the offset-null gate record and
+# one fit.json + pymc.json per usable cell. Small aggregates only; no transcripts.
+!experiments/results/wave1-fits/
+experiments/results/wave1-fits/*
+!experiments/results/wave1-fits/offset_null_gate.json
+!experiments/results/wave1-fits/*/
+experiments/results/wave1-fits/*/*
+!experiments/results/wave1-fits/*/fit.json
+!experiments/results/wave1-fits/*/pymc.json

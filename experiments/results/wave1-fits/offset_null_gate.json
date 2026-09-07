@@ -1,0 +1,60 @@
+{
+  "rule": "prereg section 13, element 12: the offset-null family must pass before any powered fit. The reported value is the FIRST run after the last code change; a failed gate is never re-run without a code change.",
+  "seed": 731,
+  "n": 10000,
+  "attempt": 1,
+  "nulls": {
+    "poisson": {
+      "true_nde": 0.0,
+      "true_nie": 0.0,
+      "true_te": 0.0,
+      "nde": -0.008062499999999972,
+      "nie": -0.00026500000000007073,
+      "te": -0.008327500000000043,
+      "observed_arm_difference": -0.008199999999999985,
+      "model_implied_te_minus_arm_difference": -0.00012750000000005812,
+      "fitted_mu_m": 5.980197378229056,
+      "control_arm_mean_M": 5.9802,
+      "fitted_gamma": 0.07519879526255653,
+      "observed_mediator_shift": 0.07519999999999971,
+      "fitted_alpha0": 0.9214227406816257,
+      "fitted_beta": -0.01116157769964401,
+      "fitted_sigma_m": 2.2246402187058107,
+      "converged": true,
+      "checks": {
+        "nie_within_0.01_of_zero": true,
+        "nde_within_0.05_of_zero": true,
+        "te_tracks_arm_difference_within_0.02": true,
+        "mu_m_is_the_control_arm_mean": true,
+        "converged": true
+      }
+    },
+    "gaussian": {
+      "true_nde": 0.0,
+      "true_nie": 0.0,
+      "true_te": 0.0,
+      "nde": -0.02103749999999993,
+      "nie": 2.7499999999958114e-05,
+      "te": -0.021009999999999973,
+      "observed_arm_difference": -0.020999999999999908,
+      "model_implied_te_minus_arm_difference": -1.0000000000065512e-05,
+      "fitted_mu_m": 5.992250547892083,
+      "control_arm_mean_M": 5.992250547892083,
+      "fitted_gamma": -0.030007938957465896,
+      "observed_mediator_shift": -0.030007938957465896,
+      "fitted_alpha0": 0.9264819693044795,
+      "fitted_beta": -0.0037486641338477554,
+      "fitted_sigma_m": 2.2377682629172817,
+      "converged": true,
+      "checks": {
+        "nie_within_0.01_of_zero": true,
+        "nde_within_0.05_of_zero": true,
+        "te_tracks_arm_difference_within_0.02": true,
+        "mu_m_is_the_control_arm_mean": true,
+        "converged": true
+      }
+    }
+  },
+  "verdict": "PASS",
+  "code_commit": "45cfc86eea470283cc6e4202f8ec5ac381d1ad3d"
+}
