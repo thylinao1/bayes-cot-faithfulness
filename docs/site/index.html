@@ -1431,16 +1431,19 @@
       Amendment A2 (<code>experiments/PREREGISTRATION_phase2_arms.md</code>, sha256
       <code>cf4cef11&hellip;</code>) added the Column B contract and the jury. Its companion,
       <code>experiments/PREREGISTRATION_jury_and_scale.md</code> (sha256
-      <code>cf71ae19&hellip;</code>), carries the jury, the scale study, Amendment A3's
-      post-skeleton values and, since the evening of 2026-09-07, Amendment A4: rulings R9, R11 and
-      R12, the chain-level mediator noise as measured, the two wave-1 fits findings that bind
-      every later analysis, and the serving line (626 lines appended, none deleted, 75 of 75
-      numbers traced to their sources by a fresh verifier). All three are additive: nothing in the
-      frozen text is edited, only appended, and <code>tests/test_frozen_guard.py</code> checks the
-      fingerprint on every commit that touches either file.
+      <code>5c050a1d&hellip;</code>), carries the jury, the scale study, Amendment A3's
+      post-skeleton values, Amendment A4 (rulings R9, R11 and R12, the chain-level mediator noise
+      as measured, the two wave-1 fits findings that bind every later analysis, and the serving
+      line; 626 lines appended, none deleted, 75 of 75 numbers traced by a fresh verifier) and,
+      since the night of 2026-09-07, Amendment A5: the logit-level column B, its estimator of
+      record, the bridge to the binary scale, an eligibility gate on raw letter probability mass,
+      the reporting order, and no load-bearing threshold on that scale (327 lines appended, none
+      deleted, 327 of 327 items traced). All four are additive: nothing in the frozen text is
+      edited, only appended, and <code>tests/test_frozen_guard.py</code> checks the fingerprint on
+      every commit that touches either file.
     </p>
     <p>
-      Twelve internal rulings (R1 to R12) turned that day's measurements into decisions, each
+      Thirteen internal rulings (R1 to R13) turned that day's measurements into decisions, each
       overturnable before anything is pushed. In one paragraph: R1 pins the serving mode (the
       batch-invariant flag, vLLM 0.28.0, at most 32 requests in flight, a determinism preflight
       before every cell) after the finding above. R2 reprices the compute budget at the measured
@@ -1459,7 +1462,11 @@
       record with every decoding constant intact, the open setting runs as an additive
       exploratory arm at a 4,096-token budget, and a two-path equivalence check on 30 items
       precedes any cell of record; R1-0528-Qwen3-8B stays held on a tokenizer defect of its own.
-      None of the twelve touches a frozen sentence.
+      R13 adopts Amendment A5 before any real logprob-scale fit is read, after a synthetic check
+      showed the frozen binary outcome shape does not bias the direct/indirect split on a fully
+      mediated world (bias within 0.001, coverage 95 of 100) and that no outcome scale identifies
+      against a shared cause, which stays the anchor's job. None of the thirteen touches a frozen
+      sentence.
     </p>
   </div>
 </section>
