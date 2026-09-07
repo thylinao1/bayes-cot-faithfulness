@@ -8,4 +8,4 @@
 # cache memory: -39.48 GiB" before dying (job 826026, exit 5, no votes). Serving them one
 # at a time is the OPERATOR'S AMENDMENT to section 6.1 and is recorded as such; this file
 # does not decide it.
-gemma-3-27b-it	a100-80	08:00:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gemma-3-27b-it-a100
+gemma-3-27b-it	a100-80	08:00:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gemma-3-27b-it-a100	BCF_CACHE_BUDGET_GB=200

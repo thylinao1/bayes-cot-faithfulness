@@ -4,4 +4,4 @@
 # position swap on run 0 of the gate and Q2, judge_filter on the one served judge.
 # BCF_OUT_SLUG keeps the two Q1 prompts in separate vote files; the thresholds, the corpus,
 # the gate prompt and the Q2 prompt are the same bytes as the run of record.
-llama-3.3-70b-fp8	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=c	BCF_OUT_SLUG=llama-3.3-70b-fp8-q1c
+llama-3.3-70b-fp8	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=c	BCF_OUT_SLUG=llama-3.3-70b-fp8-q1c	BCF_CACHE_BUDGET_GB=200

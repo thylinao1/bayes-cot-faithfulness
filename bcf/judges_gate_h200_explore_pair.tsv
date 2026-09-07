@@ -4,4 +4,4 @@
 # about 56 GB and 13 GB of weights, so the memory fits with room for the KV cache. Both Q1 prompts, all three (a, the file of record, plus revisions b and c).
 # prompts. Every vote and every report carries serving_line=exploratory-h200-141;
 # bcf/judges_gate_a100_pair.tsv is unchanged and is the run of record when the pool frees.
-gemma-3-27b-it,gpt-oss-20b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gemma-gptoss-h200	BCF_SERVING_LINE=exploratory-h200-141
+gemma-3-27b-it,gpt-oss-20b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gemma-gptoss-h200	BCF_SERVING_LINE=exploratory-h200-141	BCF_CACHE_BUDGET_GB=200
