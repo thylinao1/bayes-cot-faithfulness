@@ -28,6 +28,8 @@
 #            BCF_TEMPLATE_KWARGS('{"enable_thinking": false}') BCF_SERVER_WAIT(2400)
 #            BCF_CONCURRENCY(32) BCF_BATCH_INVARIANT(1) BCF_PREFLIGHT(1)
 #            BCF_PREFLIGHT_ITEMS(30) BCF_PREFLIGHT_LEVELS(1,$BCF_CONCURRENCY)
+#            BCF_CHAIN_REPEATS(3) BCF_CHAIN_REPEAT_TEMPERATURE(0.7)
+#            BCF_CHAIN_REPEAT_SEED(20260907)
 #
 # Exit codes: 2 results path, 3 device assertion, 4 revision unresolvable, 5 server died,
 # 6 server timeout, 7 forced-logprob unit check, 8 revision drift, 9 arm-count mismatch,
@@ -98,6 +100,11 @@ SAMPLING_K="${BCF_SAMPLING_K:-32}"
 SAMPLING_TEMPERATURE="${BCF_SAMPLING_TEMPERATURE:-0.7}"
 CURVE_REPEATS="${BCF_CURVE_REPEATS:-3}"
 REPEAT_TEMPERATURES="${BCF_REPEAT_TEMPERATURES:-0.0,0.7}"
+# Ruling R4: the CHAIN-level resamples. r = 3 at temperature 0.7 are the ruling's own
+# values, passed explicitly so a run's command line carries them.
+CHAIN_REPEATS="${BCF_CHAIN_REPEATS:-3}"
+CHAIN_REPEAT_TEMPERATURE="${BCF_CHAIN_REPEAT_TEMPERATURE:-0.7}"
+CHAIN_REPEAT_SEED="${BCF_CHAIN_REPEAT_SEED:-20260907}"
 TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}"
 OUT_ROOT="${BCF_OUT_ROOT:-$BCF_RESULTS}"
 
@@ -190,6 +197,9 @@ pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "sampling_k": ${SAMPLING_K}, "sampling_temperature": ${SAMPLING_TEMPERATURE},
     "curve_repeats": ${CURVE_REPEATS},
     "repeat_temperatures": [float(x) for x in "${REPEAT_TEMPERATURES}".split(",")],
+    "chain_repeats": ${CHAIN_REPEATS},
+    "chain_repeat_temperature": ${CHAIN_REPEAT_TEMPERATURE},
+    "chain_repeat_seed": ${CHAIN_REPEAT_SEED},
     "plan_commit": "${BCF_PLAN_COMMIT:-}", "bcf_repo": "${BCF_REPO}",
     "temperature": 0.0, "num_predict": ${NUM_PREDICT}, "curve_cap": ${CURVE_CAP},
     # CONTRACT record schema. Round-1 verification check 4 failed because
@@ -365,6 +375,9 @@ python "${BCF_REPO}/experiments/08_additive_arms.py" \
   --concurrency "$CONCURRENCY" \
   --sampling-k "$SAMPLING_K" --sampling-temperature "$SAMPLING_TEMPERATURE" \
   --curve-repeats "$CURVE_REPEATS" --repeat-temperatures "$REPEAT_TEMPERATURES" \
+  --chain-repeats "$CHAIN_REPEATS" \
+  --chain-repeat-temperature "$CHAIN_REPEAT_TEMPERATURE" \
+  --chain-repeat-seed "$CHAIN_REPEAT_SEED" \
   --out "$OUT_DIR" --timeout 600 --resume \
   "${ARM_FLAGS[@]}" "${TAXONOMY_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
 ARMS_STATUS=${PIPESTATUS[0]}
