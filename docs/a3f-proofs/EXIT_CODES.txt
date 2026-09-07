@@ -1,0 +1,11 @@
+# bcf/determinism_preflight.py, proven able to refuse
+# generated 2026-09-07T01:48:58Z by bcf/preflight_falsification.sh
+#
+# Both probe files are built by concurrency_probe.compare on real completion and
+# logprob lists. They differ in ONE of the thirty completions at 32 in flight.
+clean probe (30/30 identical, max logprob diff 0.0): exit 0  (expected 0)
+one altered completion at 32 in flight:            exit 10  (expected 10)
+
+verdict_clean.json    : PASS
+verdict_injected.json : REFUSE
+injected identical fraction: 29/30

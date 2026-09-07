@@ -1,0 +1,39 @@
+{
+  "rule": "A3.6 / ruling R1: a powered cell runs only when its own server gives 30/30 identical completions and a maximum absolute letter-logprob difference of exactly 0.0 at 1 and 32 requests in flight, with VLLM_BATCH_INVARIANT=1.",
+  "verdict": "REFUSE",
+  "exit_code": 10,
+  "require_flag": true,
+  "batch_invariant_env": "1",
+  "n_items": 30,
+  "n_items_required": 30,
+  "levels_required": [
+    1,
+    32
+  ],
+  "levels_checked": [
+    {
+      "concurrency": 1,
+      "identical_completions": "30/30",
+      "max_abs_letter_logprob_diff": 0.0,
+      "n_letter_logprobs_compared": 120,
+      "n_letter_logprobs_missing": 0,
+      "generations_per_second": 0.1433,
+      "logprob_calls_per_second": null
+    },
+    {
+      "concurrency": 32,
+      "identical_completions": "29/30",
+      "max_abs_letter_logprob_diff": 0.0,
+      "n_letter_logprobs_compared": 120,
+      "n_letter_logprobs_missing": 0,
+      "generations_per_second": 2.9196,
+      "logprob_calls_per_second": null
+    }
+  ],
+  "reasons": [
+    "concurrency 32: identical completions 29/30, and the rule needs 30/30"
+  ],
+  "model": "Qwen/Qwen3-8B",
+  "probe_label": "determinism_preflight",
+  "probe_source": "/var/folders/m7/3b38xcb97vq1rhp8j68wynn80000gn/T/tmp.G8yO0SjFdF/probe_injected.json"
+}
