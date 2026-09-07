@@ -23,13 +23,13 @@ Cite arXiv:2510.04040 when reporting these numbers.
 from __future__ import annotations
 
 import argparse
-import concurrent.futures as futures
 import hashlib
 import json
 import pathlib
 import sys
 import threading
 import time
+from concurrent import futures
 
 from experiments.jury.backends import vllm_endpoint
 from experiments.jury.family_map import JUDGE_BY_KEY
@@ -157,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
         for attempt in range(2):
             try:
                 raw = endpoint.generate(text, num_predict=args.num_predict)
-            except Exception as exc:  # a backend failure is recorded, never swallowed
+            except Exception as exc:  # noqa: BLE001  a backend failure is recorded, never swallowed
                 status, error = "error", f"{type(exc).__name__}: {exc}"[:300]
                 continue
             result = validate_output(prompt, raw)
@@ -179,8 +179,10 @@ def main(argv: list[str] | None = None) -> int:
             "meta": item["meta"],
         }
 
-    with votes_path.open("a", encoding="utf-8") as fh:
-        with futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+    with (
+        votes_path.open("a", encoding="utf-8") as fh,
+        futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool,
+    ):
             for n, record in enumerate(pool.map(score, tasks), start=1):
                 with lock:
                     fh.write(json.dumps(record, ensure_ascii=False) + "\n")

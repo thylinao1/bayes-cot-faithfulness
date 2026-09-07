@@ -92,8 +92,8 @@ def build() -> dict:
 
     total_types: collections.Counter = collections.Counter()
     total_unfaith: collections.Counter = collections.Counter()
-    for split in types:
-        total_types.update(types[split])
+    for split, split_types in types.items():
+        total_types.update(split_types)
         total_unfaith.update(unfaith[split])
 
     return {

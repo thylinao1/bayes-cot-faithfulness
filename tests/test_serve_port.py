@@ -50,7 +50,7 @@ EXIT_FOREIGN = 11
 
 def _handler_for(model_name: str):
     class ModelsHandler(BaseHTTPRequestHandler):
-        def do_GET(self):  # noqa: N802 (http.server's own naming)
+        def do_GET(self):
             if not self.path.endswith("/models"):
                 self.send_error(404)
                 return
@@ -77,7 +77,7 @@ class LocalServer:
         self.port = self.httpd.server_address[1]
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
 
-    def __enter__(self) -> "LocalServer":
+    def __enter__(self):
         self.thread.start()
         return self
 
@@ -106,7 +106,7 @@ def run_helper(base_url: str, served_name: str, server_pid: int | None, report=N
         cmd += ["--server-pid", str(server_pid)]
     if report is not None:
         cmd += ["--report", str(report)]
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=120, check=False)
 
 
 def free_port() -> int:
@@ -168,9 +168,11 @@ def test_foreign_when_the_port_answers_with_another_model(tmp_path):
 
 def test_revert_proof_old_probe_would_have_passed():
     """The old `curl -sf $BASE_URL/models` cannot fail case (ii). Shown, not claimed."""
-    with LocalServer(NEIGHBOUR_MODEL) as server:
-        with urllib.request.urlopen(server.base_url + "/models", timeout=5) as response:
-            old_probe_passes = response.getcode() == 200
+    with (
+        LocalServer(NEIGHBOUR_MODEL) as server,
+        urllib.request.urlopen(server.base_url + "/models", timeout=5) as response,
+    ):
+        old_probe_passes = response.getcode() == 200
     assert old_probe_passes, (
         "the old probe asked only whether something answered on the port; if this "
         "assertion ever fails the revert proof needs rewriting, not the fix"
@@ -278,7 +280,7 @@ def run_wait_loop(base_url: str, served_name: str, pid: int, deadline_offset: in
         f'$(( $(date +%s) + {deadline_offset} )) /dev/null "{report}"\n'
         'echo "WAIT_RC=$?"\n'
     )
-    proc = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=120)
+    proc = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=120, check=False)
     rc_line = [ln for ln in proc.stdout.splitlines() if ln.startswith("WAIT_RC=")]
     assert rc_line, proc.stdout + proc.stderr
     return int(rc_line[-1].split("=")[1]), proc.stdout
@@ -313,9 +315,9 @@ def test_pick_port_returns_a_free_port_and_honours_a_pin():
         'echo "PICKED=$(bcf_pick_port)"\n'
         'echo "PINNED=$(bcf_pick_port 8123)"\n'
     )
-    proc = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=60)
+    proc = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=60, check=False)
     out = proc.stdout
-    picked = int([ln for ln in out.splitlines() if ln.startswith("PICKED=")][0].split("=")[1])
-    pinned = [ln for ln in out.splitlines() if ln.startswith("PINNED=")][0].split("=")[1]
+    picked = int(next(ln for ln in out.splitlines() if ln.startswith("PICKED=")).split("=")[1])
+    pinned = next(ln for ln in out.splitlines() if ln.startswith("PINNED=")).split("=")[1]
     assert 1024 < picked < 65536
     assert pinned == "8123", "an operator pin must still be honoured"

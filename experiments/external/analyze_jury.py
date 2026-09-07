@@ -221,7 +221,6 @@ def main(argv: list[str] | None = None) -> int:
         for v in votes:
             if v["judge_key"] == judge and v["status"] == "ok":
                 by_key[(v["item_id"], v["question"])].add(v["vote"])
-        repeated = {k: s for k, s in by_key.items() if len(s) >= 1}
         multi = [k for k in by_key if sum(
             1 for v in votes if v["judge_key"] == judge and v["item_id"] == k[0] and v["question"] == k[1]
         ) > 1]
