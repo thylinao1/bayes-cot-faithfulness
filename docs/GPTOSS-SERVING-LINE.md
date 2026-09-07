@@ -206,9 +206,10 @@ backend: BATCHED_MARLIN, reason: kernel does not support ('standard',) activatio
 
 The candidate list is identical on both cards. The only line that moves is Triton's, from
 the device clause to the batch-invariance clause, which is the source reading measured.
-Both jobs selected the attention backend without trouble (`FLASH_ATTN` out of
-`['FLASH_ATTN', 'TRITON_ATTN']`); the refusal is in the MoE quantization path and has
-nothing to do with attention. 826884 ran 1 minute 52 seconds, State FAILED, ExitCode 5:0,
+Both jobs selected an attention backend without trouble, and they did not select the same
+one: 826884 on sm90 reports `FLASH_ATTN` out of `['FLASH_ATTN', 'TRITON_ATTN']`, 826740 on
+sm80 reports `TRITON_ATTN` out of `['TRITON_ATTN']`, a potential list of one. Either way the
+refusal is in the MoE quantization path and has nothing to do with attention. 826884 ran 1 minute 52 seconds, State FAILED, ExitCode 5:0,
 `exit_code.txt` 5, no weights loaded, no `Model loading took` line.
 
 ## The three candidate rulings
@@ -238,8 +239,10 @@ name gpt-oss would have to say so.
 Two measured facts price this ruling. First, the batch noise it accepts is larger than the
 noise the campaign has already decided is unacceptable: 9 of 30 identical completions and
 1.125 nats at 32 in flight, against the 13 of 30 and 0.875 nats that R1 cites as its
-reason for pinning the flag on. Serving at concurrency 1 would avoid it and costs 8.1x the
-throughput (0.5589 against 4.5404 generations per second on this slice). Second, R1 pins
+reason for pinning the flag on. Serving at 1 request in flight removes the batch-order
+dependence by construction, and costs a factor of 8.1 in throughput (0.5589 against 4.5404
+generations per second on this slice); note that the preflight's 30/30 at 1 in flight is a
+self-comparison and is not independent evidence of run-to-run determinism. Second, R1 pins
 the FLASH_ATTN attention backend as part of the serving mode, and on sm80 this model cannot
 supply it: both a100 runs report `Using TRITON_ATTN attention backend out of potential
 backends: ['TRITON_ATTN']`, a list of one, while both sm90 gpt-oss servers report
@@ -290,7 +293,11 @@ What that means for each ruling:
 - h100-96's cap of 2 is the only route to a 70B dense subject at tensor-parallel 2 (element
   10 rows 5 and 15). Spending it on a 20B mxfp4 row that fits on a 40 GB slice would trade
   a subject that has no other home for one that has three.
-- Ruling (2) costs a100-40 slices, the roomy pool, and nothing scarce.
+- Ruling (2) costs a100-40 slices, the roomy pool, and nothing scarce. The rate to price
+  it at is 3.75 FULL generations per second on the clean pass at 32 in flight, measured
+  on one MIG 3g.40gb slice at `num_predict` 320 (job 826894); the `num_predict` row
+  below changes that price if it is adopted, and the throughput figures here are not
+  comparable with `docs/TRACKG-THROUGHPUT.md`'s, which are priced flag-off sequential.
 - Configuration (c) of this lane's brief, a whole a100-80 with the flag on, was NOT
   submitted. The cap admits it (0 of 4 held at 15:50). What refuses it is that the answer
   is already on the record twice: `sbatch --test-only` for that exact job answers "Job
@@ -312,3 +319,10 @@ What that means for each ruling:
   model, that the two kernel paths disagree on 20 of 30 greedy completions; no ground truth
   here says which path is right.
 - Nothing about vLLM versions other than 0.28.0 as installed in the `bcf` conda env.
+- One reasoning-effort setting. `{"reasoning_effort": "low"}` was chosen and recorded so the
+  `num_predict` question would have a fair chance; "medium" and "high" are untested, and
+  since "low" already loses 6 of 30 clean answers inside 320 tokens, they would lose more.
+- The `direct` arm finding rests on 24 items in one cell. It is a mechanism, not a rate.
+- Nothing about the OTHER two substrates or the other cue families in element 10, and
+  nothing about whether a gpt-oss row would pass the campaign's other gates if the serving
+  question were settled.
