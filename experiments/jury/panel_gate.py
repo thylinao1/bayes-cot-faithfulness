@@ -94,7 +94,10 @@ def load_judge_votes(judge_key: str, out_dir: Path, q1_variant: str) -> dict:
             f"copy hashes {local.sha256}."
         )
     serving_line = _one({r.get("serving_line", "") for r in rows}, "the serving line")
-    pinned = _one({bool(r.get("serving_line_is_pinned")) for r in rows}, "serving_line_is_pinned")
+    # The same rule build_report uses: an empty (or absent) serving_line IS the pinned line
+    # of section 6.1. Job 825542's votes predate the field entirely and its run record says
+    # pinned, so reading a missing field as exploratory would relabel a run of record.
+    pinned = not serving_line
     return {
         "judge_key": judge_key,
         "family": judge.family,

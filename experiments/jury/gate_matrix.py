@@ -45,12 +45,53 @@ def _cell(verdicts: dict, name: str) -> str:
     return f"{v['numerator']}/{v['denominator']} {v['verdict']}"
 
 
+def _panel_rows(data: dict) -> list[dict]:
+    """A panel report becomes one PANEL row plus one PANEL-LOO row per dropped judge.
+
+    The panel is not a judge and its row says so: the Judge column names the composition,
+    and the Serving line column names where each judge's votes came from, because a panel
+    label built from one pinned and two exploratory judges is not a pinned-line measurement
+    and must never be read as one.
+    """
+    out: list[dict] = []
+
+    def line_of(block: dict) -> str:
+        parts = []
+        for key in block["judges"]:
+            src = block["sources"][key]
+            parts.append(f"{key}:{'pinned' if src['source'] == 'pinned' else 'exploratory-h200'}")
+        return " + ".join(parts)
+
+    def row(block: dict, kind: str, label: str) -> dict:
+        return {
+            "kind": kind,
+            "slug": f"panel-q1{data['q1_prompt_variant']}",
+            "job": "-",
+            "judge": label,
+            "q1_file": data["q1_prompt_file"],
+            "serving_line": line_of(block),
+            "votes": sum(s["votes"] for s in block["sources"].values()),
+            "verdict": block["verdict"],
+            "failed": block["failed_metrics"],
+            "verdicts": block["gate_verdicts"],
+            "per_class": block["per_class_counts"],
+            "note": "panel label, section 6.2 majority of available votes",
+        }
+
+    out.append(row(data["panel"], "PANEL", "PANEL " + "+".join(data["panel"]["judges"])))
+    for dropped, block in data.get("leave_one_judge_out", {}).items():
+        out.append(row(block, "PANEL-LOO", f"PANEL minus {dropped}"))
+    return out
+
+
 def rows_from_report(path: Path, jobs: dict) -> list[dict]:
-    """A gate report (per_judge) or a projection (observed/projected) becomes 1..n rows."""
+    """A gate report (per_judge), a projection, or a panel report becomes 1..n rows."""
     data = json.loads(path.read_text())
     slug = path.name[len("gate_report_"):-len(".json")] if path.name.startswith("gate_report_") else path.stem
     meta = jobs.get(slug, {})
     out: list[dict] = []
+    if data.get("kind") == "PANEL":
+        return _panel_rows(data)
     if "per_judge" in data:
         transform = data.get("input_transform") or {}
         line = data.get("serving_line", "")

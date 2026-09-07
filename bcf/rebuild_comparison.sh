@@ -14,7 +14,7 @@ DOC="${REPO}/experiments/jury/GATE-Q1-COMPARISON.md"
 GEN="${REPO}/experiments/jury/gate_matrix_2026-09-07.md"
 
 args=()
-for f in "${REPO}"/experiments/jury/gate_report_*.json; do
+for f in "${REPO}"/experiments/jury/gate_report_*.json "${REPO}"/experiments/jury/panel_report_*.json; do
   [ -f "$f" ] || continue
   args+=(--report "$f")
 done
