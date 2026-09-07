@@ -426,10 +426,10 @@ ever drops is the malformed-rate failure, when gpt-oss-20b is the judge removed:
 
 Removing gpt-oss-20b explains why: at its `num_predict` of 256, its own malformed-vote rate
 ran 0.51 to 0.59 across the three files (2,902, 2,732 and 3,141 of its own 5,313 votes).
-Qwen3-32B, moved to `num_predict` 1,024 for the same reason, malformed on 11 of its 5,313
-votes. Ruling R9 (2026-09-07 18:17): no Q1 configuration is named the primary configuration,
-the freeze does not happen, and the jury's Q1 (mention) column stays exploratory; column A of
-record remains the frozen, uncorrected regex share.
+Qwen3-32B, moved to `num_predict` 1,024 for the same reason, malformed on 11, 11 and 12 of
+its own 5,313 votes across the three files. Ruling R9 (2026-09-07 18:17): no Q1 configuration
+is named the primary configuration, the freeze does not happen, and the jury's Q1 (mention)
+column stays exploratory; column A of record remains the frozen, uncorrected regex share.
 [`experiments/jury/GATE-Q1-COMPARISON.md`](experiments/jury/GATE-Q1-COMPARISON.md) and
 [`experiments/jury/PRIMARY_CONFIGURATION_CANDIDATE.md`](experiments/jury/PRIMARY_CONFIGURATION_CANDIDATE.md).
 
