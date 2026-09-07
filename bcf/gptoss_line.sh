@@ -32,11 +32,11 @@ TPL='{"reasoning_effort":"low"}'
 NP=320
 
 case "$CFG" in
-  a100-40-flagoff)        GPUTYPE=a100-40 ; BI=0 ; PF=1 ; PORT=8010 ;;
-  a100-40-flagoff-np4096) GPUTYPE=a100-40 ; BI=0 ; PF=0 ; PORT=8013 ; NP=4096 ;;
-  a100-40-flagoff-acc)    GPUTYPE=a100-40 ; BI=0 ; PF=0 ; PORT=8014 ;;
-  h100-47-flagon)         GPUTYPE=h100-47 ; BI=1 ; PF=1 ; PORT=8011 ;;
-  a100-80-flagon)         GPUTYPE=a100-80 ; BI=1 ; PF=1 ; PORT=8012 ;;
+  a100-40-flagoff)        GPUTYPE=a100-40 ; BI=0 ; PF=1 ;;
+  a100-40-flagoff-np4096) GPUTYPE=a100-40 ; BI=0 ; PF=0 ; NP=4096 ;;
+  a100-40-flagoff-acc)    GPUTYPE=a100-40 ; BI=0 ; PF=0 ;;
+  h100-47-flagon)         GPUTYPE=h100-47 ; BI=1 ; PF=1 ;;
+  a100-80-flagon)         GPUTYPE=a100-80 ; BI=1 ; PF=1 ;;
   *) echo "unknown configuration '$CFG'" >&2; exit 2 ;;
 esac
 
@@ -79,7 +79,12 @@ EXPORT="${EXPORT},BCF_BATCH_INVARIANT=${BI},BCF_PREFLIGHT=${PF},BCF_PREFLIGHT_IT
 # One arm. The clean pass at [1/3] runs whatever the arm list says, and `direct` is the
 # cheapest arm, so this is the clean pass plus the R1 preflight and nothing else.
 EXPORT="${EXPORT},BCF_ARMS=direct,BCF_N_ARMS=1"
-EXPORT="${EXPORT},BCF_PORT=${PORT},BCF_OUT_ROOT=${OUT_ROOT}"
+# No BCF_PORT: serve_and_run.sbatch picks a FREE loopback port per job and then
+# proves the server answering it is its own. The per-configuration ports this
+# script used to pin (8010 to 8014) separated the five variants from each other,
+# but not two jobs of the SAME variant on one node, which is how 827052 and
+# 827096 came to share a server on xgph12 on 2026-09-07.
+EXPORT="${EXPORT},BCF_OUT_ROOT=${OUT_ROOT}"
 EXPORT="${EXPORT},VLLM_USE_FLASHINFER_SAMPLER=0"
 EXPORT="${EXPORT},BCF_TEMPLATE_KWARGS=${TPL}"
 

@@ -23,6 +23,11 @@
 #
 #   Required : BCF_JUDGES (ONE judge key), BCF_GATE_ITEMS (the items jsonl)
 #   Optional : BCF_OUT_ROOT BCF_PORT_BASE BCF_CONCURRENCY BCF_SEED BCF_NUM_PREDICT
+#
+# Exit codes: 2 items file, 3 device assertion, 4 HF API, 5 server died, 6 server
+# timeout, 8 judge key, 9 repo cd, 10 wrong repo tree, 13 SERVE PORT NOT OURS (the
+# port answers with a foreign model list or from a process this job did not start).
+# BCF_PORT_BASE unset means a free loopback port is picked for this job.
 #              BCF_SERVER_WAIT BCF_TP BCF_JUDGE_CACHE BCF_CACHE_BUDGET_GB BCF_RUNS
 #              BCF_LIMIT BCF_SERVING_LINE BCF_OUT_SLUG
 
@@ -51,7 +56,7 @@ esac
 ITEMS="${BCF_GATE_ITEMS:?BCF_GATE_ITEMS is required}"
 [ -f "$ITEMS" ] || { echo "[items] REFUSING: no such items file ${ITEMS}" >&2; exit 2; }
 OUT_ROOT="${BCF_OUT_ROOT:-$HOME/bcf/results/w6-external}"
-PORT_BASE="${BCF_PORT_BASE:-8300}"
+PORT_BASE="${BCF_PORT_BASE:-}"   # unset: pick a free port (see bcf_pick_port)
 CONCURRENCY="${BCF_CONCURRENCY:-8}"
 SEED="${BCF_SEED:-7}"
 NUM_PREDICT="${BCF_NUM_PREDICT:-320}"
@@ -141,7 +146,7 @@ fi
 if ! eval "$(python "${BCF_REPO}/bcf/judge_spec.py" "$JUDGES")"; then
   echo "[judge] REFUSING: unknown judge key ${JUDGES}" | ts | tee -a "$LOG" >&2; exit 8
 fi
-PORT="$PORT_BASE"
+PORT="$(bcf_pick_port "$PORT_BASE")"
 LIVE_SHA="$(bcf_revision "$JUDGE_HF_ID" 2>>"$LOG")"
 [ -z "$LIVE_SHA" ] && { echo "[judge] REFUSING: HF API unreachable for ${JUDGE_HF_ID}" | ts | tee -a "$LOG" >&2; exit 4; }
 [ "$LIVE_SHA" != "$JUDGE_REVISION" ] && echo "[judge] NOTE: main is ${LIVE_SHA}; serving PINNED ${JUDGE_REVISION}" | ts | tee -a "$LOG"
@@ -161,18 +166,36 @@ vllm serve "$JUDGE_HF_ID" "${VLLM_ARGS[@]}" >> "${OUT_DIR}/server-${JUDGES}.log"
 SERVER_PIDS+=($!)
 
 DEADLINE=$(( $(date +%s) + SERVER_WAIT ))
-until curl -sf "http://127.0.0.1:${PORT}/v1/models" > /dev/null; do
-  if ! kill -0 "${SERVER_PIDS[0]}" 2>/dev/null; then
-    echo "[serve] died during startup; last 40 lines:" | ts | tee -a "$LOG"
-    tail -40 "${OUT_DIR}/server-${JUDGES}.log" | ts | tee -a "$LOG"; exit 5
-  fi
-  if [ "$(date +%s)" -gt "$DEADLINE" ]; then
-    echo "[serve] no answer within ${SERVER_WAIT}s" | ts | tee -a "$LOG"
-    tail -40 "${OUT_DIR}/server-${JUDGES}.log" | ts | tee -a "$LOG"; exit 6
-  fi
-  sleep 10
-done
-echo "[serve] up on port ${PORT}" | ts | tee -a "$LOG"
+# Ready means OUR server answers: the model list names this judge, the pid we started is
+# alive, and the process holding the port is that pid or a descendant of it. A port that
+# answers for anyone else is refused (13) rather than scored against.
+bcf_wait_server_ready "http://127.0.0.1:${PORT}/v1" "$JUDGE_HF_ID" "${SERVER_PIDS[0]}" \
+  "$DEADLINE" "${OUT_DIR}/server-${JUDGES}.log" "${OUT_DIR}/serve_ready.json" \
+  | ts | tee -a "$LOG"
+READY_RC=${PIPESTATUS[0]}
+[ "$READY_RC" -ne 0 ] && exit "$READY_RC"
+echo "[serve] up on port ${PORT} (pid ${SERVER_PIDS[0]}), ownership checked" | ts | tee -a "$LOG"
+
+# The serving facts of this job, beside the scores: which port, which pid, and whether
+# the listener was proved ours or the check was skipped and why.
+BCF_SERVE_META_DIR="$OUT_DIR" python - <<'SERVEMETA' 2>&1 | ts | tee -a "$LOG"
+import json, os, pathlib
+out_dir = pathlib.Path(os.environ["BCF_SERVE_META_DIR"])
+ready_path = out_dir / "serve_ready.json"
+ready = json.loads(ready_path.read_text()) if ready_path.exists() else {}
+meta = {
+    "job_id": os.environ.get("SLURM_JOB_ID"),
+    "port": ready.get("port"),
+    "server_pid": ready.get("server_pid"),
+    "port_owner_check": ready.get("owner_check", "missing: no serve_ready file"),
+    "port_owner_method": ready.get("owner_method"),
+    "port_listener_pids": ready.get("listener_pids"),
+    "served_model_list": ready.get("models"),
+}
+(out_dir / "serve_meta.json").write_text(json.dumps(meta, indent=2))
+print(f"[serve] port={meta['port']} server_pid={meta['server_pid']} "
+      f"port_owner_check={meta['port_owner_check']}")
+SERVEMETA
 
 # --- score ---------------------------------------------------------------------
 LINE_FLAG=()

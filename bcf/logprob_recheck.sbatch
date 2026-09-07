@@ -24,7 +24,9 @@ source "${BCF_ENV_SH:-$HOME/bcf/repo/bcf/env.sh}"
 set +e
 
 MODEL="${BCF_MODEL:-Qwen/Qwen3-8B}"
-PORT="${BCF_PORT:-8200}"
+# Unset BCF_PORT: pick a free loopback port for this job. A fixed port is what let
+# two of our jobs share one server on xgph12 on 2026-09-07.
+PORT="$(bcf_pick_port "${BCF_PORT:-}")"
 SEED="${BCF_SEED:-7}"
 OUT_DIR="${BCF_OUT_DIR:-$BCF_RESULTS/phase1-skeleton/logprob-check}"
 TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}"
@@ -57,12 +59,14 @@ vllm serve "$MODEL" --revision "$REVISION" --served-model-name "$MODEL" \
 SERVER_PID=$!
 
 DEADLINE=$(( $(date +%s) + 2400 ))
-until curl -sf "${BASE_URL}/models" > /dev/null; do
-  kill -0 "$SERVER_PID" 2>/dev/null || { tail -40 "${OUT_DIR}/server.log" | tee -a "$LOG"; exit 5; }
-  [ "$(date +%s)" -gt "$DEADLINE" ] && { echo "[serve] timed out" | tee -a "$LOG"; exit 6; }
-  sleep 10
-done
-echo "[serve] up at ${BASE_URL}" | tee -a "$LOG"
+# Ready means OUR server answers, not just that something does: the model list names
+# ${MODEL}, our pid is alive, and the listener on the port is that pid or a descendant.
+# Exit 5 server died, 6 timeout, 13 the port belongs to someone else.
+bcf_wait_server_ready "$BASE_URL" "$MODEL" "$SERVER_PID" "$DEADLINE" \
+  "${OUT_DIR}/server.log" "${OUT_DIR}/serve_ready.json" | tee -a "$LOG"
+READY_RC=${PIPESTATUS[0]}
+[ "$READY_RC" -ne 0 ] && exit "$READY_RC"
+echo "[serve] up at ${BASE_URL} on port ${PORT} (pid ${SERVER_PID}), ownership checked" | tee -a "$LOG"
 
 # Both templates, so the difference is on the record rather than asserted from memory.
 python "${BCF_REPO}/bcf/logprob_check.py" --base-url "$BASE_URL" --model "$MODEL" \

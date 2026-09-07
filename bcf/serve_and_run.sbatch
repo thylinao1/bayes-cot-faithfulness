@@ -23,7 +23,7 @@
 #
 # Required : BCF_MODEL BCF_SUBSTRATE BCF_CUE
 # Optional : BCF_TP(1) BCF_N_ITEMS(500) BCF_NUM_PREDICT(320) BCF_CURVE_CAP(500)
-#            BCF_ARMS(all) BCF_SEED(7) BCF_OUT_ROOT($BCF_RESULTS) BCF_PORT(8000)
+#            BCF_ARMS(all) BCF_SEED(7) BCF_OUT_ROOT($BCF_RESULTS) BCF_PORT(a free port)
 #            BCF_MAX_LEN(8192) BCF_GPU_UTIL(0.90) BCF_QUANT() BCF_EXTRA_VLLM()
 #            BCF_TEMPLATE_KWARGS('{"enable_thinking": false}') BCF_SERVER_WAIT(2400)
 #            BCF_CONCURRENCY(32) BCF_BATCH_INVARIANT(1) BCF_PREFLIGHT(1)
@@ -43,7 +43,10 @@
 #
 # Exit codes: 2 results path, 3 device assertion, 4 revision unresolvable, 5 server died,
 # 6 server timeout, 7 forced-logprob unit check, 8 revision drift, 9 arm-count mismatch,
-# 10 DETERMINISM PREFLIGHT REFUSED (ruling R1), 11 item list named but not readable.
+# 10 DETERMINISM PREFLIGHT REFUSED (ruling R1), 11 item list named but not readable,
+# 13 SERVE PORT NOT OURS: the port answers, but with a foreign model list or from a
+#    process this job did not start (bcf/serve_ready.py, which returns 11 for that
+#    case; the job maps it to 13 because 11 already means the item list here).
 
 set -uo pipefail
 source "${BCF_ENV_SH:-$HOME/bcf/repo/bcf/env.sh}"
@@ -63,7 +66,11 @@ N_ITEMS="${BCF_N_ITEMS:-500}"
 NUM_PREDICT="${BCF_NUM_PREDICT:-320}"
 CURVE_CAP="${BCF_CURVE_CAP:-500}"
 SEED="${BCF_SEED:-7}"
-PORT="${BCF_PORT:-8000}"
+# A FIXED default port put two of our jobs on one server (xgph12, 2026-09-07: the
+# second job's probe was answered by the first job's server). Unset BCF_PORT now
+# means "pick a free loopback port for this job"; a set BCF_PORT is still honored,
+# because the operator pinning a port is a deliberate act.
+PORT="$(bcf_pick_port "${BCF_PORT:-}")"
 MAX_LEN="${BCF_MAX_LEN:-8192}"
 GPU_UTIL="${BCF_GPU_UTIL:-0.90}"
 SERVER_WAIT="${BCF_SERVER_WAIT:-2400}"
@@ -176,6 +183,7 @@ trap finish EXIT
   echo "=== bcf serve_and_run: job ${SLURM_JOB_ID} on $(hostname) at $(date -Is) ==="
   echo "model=${MODEL} substrate=${SUBSTRATE} cue=${CUE} tp=${TP} n_items=${N_ITEMS}"
   echo "out_dir=${OUT_DIR}"
+  echo "serving port=${PORT} (BCF_PORT=${BCF_PORT:-<unset>, picked free for this job})"
 } | ts | tee -a "$LOG"
 
 # --- 1. device assertion, BEFORE the download ----------------------------------
@@ -233,6 +241,13 @@ pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "chain_repeat_temperature": ${CHAIN_REPEAT_TEMPERATURE},
     "chain_repeat_seed": ${CHAIN_REPEAT_SEED},
     "plan_commit": "${BCF_PLAN_COMMIT:-}", "bcf_repo": "${BCF_REPO}",
+    # Which loopback port this job served on, and (filled in once the server answers)
+    # the pid we launched plus the verdict of the port-ownership check. Two jobs on one
+    # node used to be indistinguishable in the record; these three fields are what makes
+    # "this cell had its own server" checkable after the fact.
+    "port": ${PORT},
+    "server_pid": None,
+    "port_owner_check": None,
     # RULING R3(ii). Which of the two enrichment shapes this job is, on the record that
     # the analysis reads, so an enrichment cell can never be pooled with a regular one by
     # accident. Both are absent/false on a regular cell.
@@ -273,21 +288,19 @@ echo "[serve] vllm serve ${MODEL} ${VLLM_ARGS[*]}" | ts | tee -a "$LOG"
 vllm serve "$MODEL" "${VLLM_ARGS[@]}" >> "${OUT_DIR}/server.log" 2>&1 &
 SERVER_PID=$!
 
-echo "[serve] waiting up to ${SERVER_WAIT}s for the server (pid ${SERVER_PID})" | ts | tee -a "$LOG"
+echo "[serve] waiting up to ${SERVER_WAIT}s for the server (pid ${SERVER_PID}) on port ${PORT}" | ts | tee -a "$LOG"
 DEADLINE=$(( $(date +%s) + SERVER_WAIT ))
-until curl -sf "${BASE_URL}/models" > /dev/null; do
-  if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-    echo "[serve] server died during startup; last 40 lines:" | ts | tee -a "$LOG"
-    tail -40 "${OUT_DIR}/server.log" | ts | tee -a "$LOG"
-    exit 5
-  fi
-  if [ "$(date +%s)" -gt "$DEADLINE" ]; then
-    echo "[serve] server did not answer within ${SERVER_WAIT}s" | ts | tee -a "$LOG"
-    tail -40 "${OUT_DIR}/server.log" | ts | tee -a "$LOG"
-    exit 6
-  fi
-  sleep 10
-done
+# "Something answers on the port" is NOT readiness. bcf_wait_server_ready requires the
+# /v1/models list to name OUR served model, our server pid to be alive, and the process
+# listening on the port to be that pid or a descendant of it. Anything else is refused
+# on the first poll that answers, with exit 13, rather than run against.
+READY_REPORT="${OUT_DIR}/serve_ready.json"
+bcf_wait_server_ready "$BASE_URL" "$MODEL" "$SERVER_PID" "$DEADLINE" \
+  "${OUT_DIR}/server.log" "$READY_REPORT" | ts | tee -a "$LOG"
+READY_RC=${PIPESTATUS[0]}
+if [ "$READY_RC" -ne 0 ]; then
+  exit "$READY_RC"
+fi
 grep -iE "attention backend|Using .* backend|batch.?invariant" "${OUT_DIR}/server.log" \
   | tail -20 | sed 's/^/[serve] /' | ts | tee -a "$LOG" || true
 echo "[serve] up at ${BASE_URL} after $(( SERVER_WAIT - (DEADLINE - $(date +%s)) ))s" | ts | tee -a "$LOG"
@@ -315,8 +328,27 @@ for ln in lines:
 meta = json.loads(meta_path.read_text())
 meta["attention_backend"] = backend
 meta["attention_backend_lines"] = lines[-20:]
+
+# The port-ownership verdict, from the file bcf/serve_ready.py just wrote. The record
+# has to say WHICH port this cell served on, WHICH pid served it, and whether the
+# listener was proved to be that pid ("passed") or could not be named on this node
+# ("skipped: ..."). A cell whose port_owner_check is skipped is not wrong, but it is
+# not proof either, and the analysis can now tell the two apart.
+ready_path = out_dir / "serve_ready.json"
+if ready_path.exists():
+    ready = json.loads(ready_path.read_text())
+    meta["port"] = ready.get("port", meta.get("port"))
+    meta["server_pid"] = ready.get("server_pid")
+    meta["port_owner_check"] = ready.get("owner_check")
+    meta["port_owner_method"] = ready.get("owner_method")
+    meta["port_listener_pids"] = ready.get("listener_pids")
+    meta["served_model_list"] = ready.get("models")
+else:
+    meta["port_owner_check"] = "missing: serve_ready.json was not written"
 meta_path.write_text(json.dumps(meta, indent=2))
 print(f"[serve] attention_backend={backend} from {len(lines)} matching server.log line(s)")
+print(f"[serve] port={meta.get('port')} server_pid={meta.get('server_pid')} "
+      f"port_owner_check={meta.get('port_owner_check')}")
 PY
 
 

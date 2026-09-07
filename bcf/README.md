@@ -2,7 +2,9 @@
 
 Everything here runs on the NUS SoC Compute Cluster (`ssh soc`), on free GPU hours.
 Nothing here is paid, and nothing here calls an external API: the models are served by
-vLLM on an allocated card and reached over `http://127.0.0.1:<port>/v1`.
+vLLM on an allocated card and reached over `http://127.0.0.1:<port>/v1`, on a port
+picked free per job (MIG slices of one node share the host loopback, so a fixed port
+is a shared port).
 
 Read `~/Developer/NUS-COMPUTE.md` sections 1.3 to 1.5 and 1.9 first. The two facts that
 shape every script in this directory:
@@ -17,7 +19,8 @@ shape every script in this directory:
 
 | File | What it is |
 |---|---|
-| `env.sh` | Sourced by every sbatch script. Activates conda env `bcf`, puts `HF_HOME` on node-local scratch, and defines `bcf_assert_devices` and `bcf_revision`. |
+| `env.sh` | Sourced by every sbatch script. Activates conda env `bcf`, puts `HF_HOME` on node-local scratch, and defines `bcf_assert_devices`, `bcf_revision`, `bcf_pick_port` and `bcf_wait_server_ready`. |
+| `serve_ready.py` | Readiness WITH ownership: the port must answer with our model list, from our live server pid, on a socket held by that pid or a descendant. Two jobs on one node shared a server on 2026-09-07 because the old probe asked only whether something answered. |
 | `serve_and_run.sbatch` | One model x substrate x cue family. Serves the model, runs the forced-logprob check, runs the arms with `--resume`, measures throughput, writes `exit_code.txt`. |
 | `tp2_serving_test.sbatch` | The tensor-parallel-2 serving test on two `a100-80`, for the 70B dense serving line. |
 | `wave.sh` | The submit gate. Refuses a wave that would breach either cap. The only thing that should call `sbatch`. |
@@ -65,6 +68,7 @@ Each of these exits before spending anything, with a distinct code in `exit_code
 | 4 | the HF revision sha could not be resolved (a floating `main` is not reproducible) |
 | 5 / 6 | the vLLM server died during startup / never answered |
 | 7 | the forced-answer-logprob check failed |
+| 13 | the port answers, but not from this job's server: a foreign model list, or a listener that is not the vLLM process this job started (`serve_ready.py`) |
 
 Exit 3 is the one that matters most in practice. A 70B started on one card downloads
 140 GB to scratch and then OOMs; the assertion turns that into a five-second exit.

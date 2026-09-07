@@ -98,3 +98,76 @@ from huggingface_hub import HfApi
 print(HfApi().model_info(sys.argv[1]).sha)
 PY
 }
+
+# --- serving ports and readiness ------------------------------------------------
+
+# A FREE loopback port for this job, unless the operator pins one in BCF_PORT.
+#
+# Every serving sbatch used to default to a FIXED port (8000, 8100, 8200, 8300). MIG
+# slices of one A100 node share the host loopback, so two of our jobs on one node meant
+# two servers fighting for one port: on xgph12 on 2026-09-07 the second job's readiness
+# probe was answered by the FIRST job's server and the run went on against it. A free
+# port is picked here, and the readiness check below proves the answer comes from OUR
+# server, because the pick itself races (another process can take the port between the
+# probe socket closing and vllm binding). Belt and braces, on purpose.
+bcf_pick_port() {
+  if [ -n "${1:-}" ]; then echo "$1"; return 0; fi
+  local py
+  py="$(command -v python3 || command -v python)"
+  "$py" - <<'PY'
+import socket
+s = socket.socket()
+s.bind(("127.0.0.1", 0))
+print(s.getsockname()[1])
+s.close()
+PY
+}
+
+# Wait for a server this job started, and prove it is ours before returning ready.
+#
+#   bcf_wait_server_ready <base-url> <served-name> <server-pid> <deadline-epoch> \
+#                         <server-log> <report-json> | ts | tee -a "$LOG"
+#   rc=${PIPESTATUS[0]}
+#
+# Prints to stdout only (the caller owns the timestamping and the log file) and
+# returns the caller's own exit code:
+#   0   ready, and the responder is ours
+#   5   our server died during startup
+#   6   the server did not become ready before the deadline
+#   13  REFUSED: something else answers on this port (see bcf/serve_ready.py)
+# The per-poll ownership verdict is written to <report-json> for run_meta.json.
+bcf_wait_server_ready() {
+  local base_url="$1" served="$2" pid="$3" deadline="$4" slog="$5" report="$6"
+  local py rc
+  py="$(command -v python3 || command -v python)"
+  while true; do
+    "$py" "${BCF_REPO}/bcf/serve_ready.py" --base-url "$base_url" \
+      --served-name "$served" --server-pid "$pid" --report "$report" 2>&1
+    rc=$?
+    case "$rc" in
+      0) return 0 ;;
+      3) : ;;  # nothing listening yet, keep polling
+      11)
+        echo "[serve] REFUSING: ${base_url} answers, but not from this job's server (see the line above and ${report}). Not running against a server this job does not own."
+        return 13
+        ;;
+      *)
+        # The checker itself broke (a traceback, a bad argument, no python). That is not
+        # a verdict, and "we could not check" must never read as "it is ours".
+        echo "[serve] REFUSING: bcf/serve_ready.py exited ${rc}, which is not a verdict. Refusing rather than assuming the server on ${base_url} is ours."
+        return 13
+        ;;
+    esac
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo "[serve] server died during startup; last 40 lines of ${slog}:"
+      tail -40 "$slog" 2>/dev/null
+      return 5
+    fi
+    if [ "$(date +%s)" -gt "$deadline" ]; then
+      echo "[serve] server did not become ready before the deadline; last 40 lines of ${slog}:"
+      tail -40 "$slog" 2>/dev/null
+      return 6
+    fi
+    sleep 10
+  done
+}

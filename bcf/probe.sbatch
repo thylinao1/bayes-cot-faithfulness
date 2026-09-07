@@ -29,7 +29,10 @@ source "${BCF_ENV_SH:-$BCF_REPO/bcf/env.sh}"
 set +e
 
 MODEL="${BCF_MODEL:-Qwen/Qwen3-8B}"
-PORT="${BCF_PORT:-8000}"
+# Unset BCF_PORT means "pick a free loopback port for this job". The fixed 8000 is
+# what let two of our jobs share one server on xgph12 on 2026-09-07. Both phases of
+# this probe reuse the one picked port; the server is stopped between them.
+PORT="$(bcf_pick_port "${BCF_PORT:-}")"
 SEED="${BCF_SEED:-7}"
 MAX_LEN="${BCF_MAX_LEN:-8192}"
 GPU_UTIL="${BCF_GPU_UTIL:-0.90}"
@@ -111,6 +114,10 @@ pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "tensor_parallel_size": 1, "seed": ${SEED},
     "temperature": 0.0, "num_predict": ${NUM_PREDICT}, "n_items": ${N_ITEMS},
     "levels": "${LEVELS}", "data": "${DATA}",
+    # Which port this probe served on, and per phase, the pid and the port-ownership
+    # verdict; filled in by the readiness check as each phase comes up.
+    "port": ${PORT},
+    "servers": {},
     "chat_template_kwargs": json.loads(os.environ["BCF_META_TEMPLATE_KWARGS"]),
     "gpu": os.popen("nvidia-smi --query-gpu=name --format=csv,noheader").read().strip(),
     "flashinfer_sampler": os.environ.get("VLLM_USE_FLASHINFER_SAMPLER"),
@@ -144,22 +151,38 @@ start_server() {
   vllm serve "$MODEL" "${VLLM_ARGS[@]}" >> "$slog" 2>&1 &
   SERVER_PID=$!
   local deadline=$(( $(date +%s) + SERVER_WAIT ))
-  until curl -sf "${BASE_URL}/models" > /dev/null; do
-    if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-      echo "[serve:${tag}] server died during startup; last 60 lines:" | ts | tee -a "$LOG"
-      tail -60 "$slog" | ts | tee -a "$LOG"
-      # A server that REFUSES the flag is the result, not a fault: the lines saying so
-      # are already in $slog and the exit code names which phase died.
-      return 5
-    fi
-    if [ "$(date +%s)" -gt "$deadline" ]; then
-      echo "[serve:${tag}] no answer within ${SERVER_WAIT}s" | ts | tee -a "$LOG"
-      tail -60 "$slog" | ts | tee -a "$LOG"
-      return 6
-    fi
-    sleep 10
-  done
-  echo "[serve:${tag}] up at ${BASE_URL}" | ts | tee -a "$LOG"
+  # Ready means OUR server answers: the model list names ${MODEL}, the pid we started is
+  # alive, and the process holding the port is that pid or a descendant. A server that
+  # REFUSES the flag is still the result, not a fault (return 5, the lines are in $slog);
+  # a server belonging to someone else is a refusal (13).
+  bcf_wait_server_ready "$BASE_URL" "$MODEL" "$SERVER_PID" "$deadline" "$slog" \
+    "${OUT_DIR}/serve_ready-${tag}.json" | ts | tee -a "$LOG"
+  local ready_rc=${PIPESTATUS[0]}
+  if [ "$ready_rc" -ne 0 ]; then
+    return "$ready_rc"
+  fi
+  echo "[serve:${tag}] up at ${BASE_URL} (pid ${SERVER_PID}), ownership checked" | ts | tee -a "$LOG"
+  BCF_SERVE_META_DIR="$OUT_DIR" BCF_SERVE_META_TAG="$tag" python - <<'SERVEMETA' 2>&1 | ts | tee -a "$LOG"
+import json, os, pathlib
+out_dir = pathlib.Path(os.environ["BCF_SERVE_META_DIR"])
+tag = os.environ["BCF_SERVE_META_TAG"]
+meta_path = out_dir / "run_meta.json"
+ready_path = out_dir / f"serve_ready-{tag}.json"
+ready = json.loads(ready_path.read_text()) if ready_path.exists() else {}
+meta = json.loads(meta_path.read_text())
+meta.setdefault("servers", {})[tag] = {
+    "port": ready.get("port"),
+    "server_pid": ready.get("server_pid"),
+    "port_owner_check": ready.get("owner_check", "missing: no serve_ready file"),
+    "port_owner_method": ready.get("owner_method"),
+    "port_listener_pids": ready.get("listener_pids"),
+    "served_model_list": ready.get("models"),
+}
+meta_path.write_text(json.dumps(meta, indent=2))
+print(f"[serve:{tag}] port={meta['servers'][tag]['port']} "
+      f"server_pid={meta['servers'][tag]['server_pid']} "
+      f"port_owner_check={meta['servers'][tag]['port_owner_check']}")
+SERVEMETA
   # Which attention backend the server actually selected. The batch-invariant path is
   # honored by FLASH_ATTN (num_splits forced to 1); a fallback to another backend would
   # make the flag a no-op, so the line is grepped out rather than assumed.
