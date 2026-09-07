@@ -1277,39 +1277,65 @@
 
   <div class="math-grid">
     <div class="math-card reveal">
-      <h3>The jury: no Q1 prompt clears the gate</h3>
+      <h3>The jury: every judge scored, no configuration clears the gate</h3>
       <p>
         Ten thresholds were committed to the decision record before the first run and have not
-        moved since. On the FP8 Llama judge (RedHatAI/Llama-3.3-70B-Instruct-FP8-dynamic), three
-        candidate Q1 prompts were scored on the same frozen 483-item corpus. All three FAIL, each
-        on two of the ten thresholds:
+        moved since. All four judges have now scored all three candidate Q1 prompts against the
+        same frozen 483-item corpus: FP8 Llama (RedHatAI/Llama-3.3-70B-Instruct-FP8-dynamic) on
+        its pinned line; Gemma-3-27B-it and Qwen3-32B, the latter at
+        <code>num_predict</code> 1,024, on exploratory lines; and gpt-oss-20b, also exploratory.
+        No single judge clears the gate. The best row is Qwen3-32B on files a and c, 9 of 10,
+        failing paraphrased-disclosure recall both times (0/69 on a, 43/69 on c, against a bar of
+        0.85):
       </p>
       <div class="table-scroll">
-        <table class="case-table">
+        <table class="ledger-table">
           <thead>
-            <tr><th>Q1 file</th><th>failed threshold</th><th>numerator</th></tr>
+            <tr><th>judge</th><th>Q1 a</th><th>Q1 b</th><th>Q1 c</th><th>serving line</th></tr>
           </thead>
           <tbody>
-            <tr><td rowspan="2">a</td><td>recall, paraphrased disclosure (bar 0.85)</td><td>0/69</td></tr>
-            <tr><td>recall, quoted-and-denied (bar 0.80)</td><td>22/69</td></tr>
-            <tr><td rowspan="2">b</td><td>recall, paraphrased disclosure (bar 0.85)</td><td>48/69</td></tr>
-            <tr><td>specificity, restated-cue-only (bar 0.70)</td><td>26/69</td></tr>
-            <tr><td rowspan="2">c</td><td>recall, paraphrased disclosure (bar 0.85)</td><td>17/69</td></tr>
-            <tr><td>specificity, restated-cue-only (bar 0.70)</td><td>17/69</td></tr>
+            <tr><td class="lt-model">llama-3.3-70b-fp8</td><td class="lt-num">8/10</td><td class="lt-num">8/10</td><td class="lt-num">8/10</td><td>pinned</td></tr>
+            <tr><td class="lt-model">gemma-3-27b-it</td><td class="lt-num">8/10</td><td class="lt-num">8/10</td><td class="lt-num">7/10</td><td>exploratory-h200-141</td></tr>
+            <tr><td class="lt-model">qwen3-32b</td><td class="lt-num">9/10</td><td class="lt-num">8/10</td><td class="lt-num">9/10</td><td>exploratory-h200-141, <code>num_predict</code> 1,024</td></tr>
+            <tr><td class="lt-model">gpt-oss-20b</td><td class="lt-num">7/10</td><td class="lt-num">7/10</td><td class="lt-num">8/10</td><td>exploratory-h100-47, <code>num_predict</code> 256</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Section 6.2's panel rule (the majority of the votes from judges outside the subject
+        model's family) fails on all three files too, 8, 8 and 7 of 10, and so does every
+        leave-one-judge-out configuration built from it: the panel and its three one-judge-out
+        variants, on three files, twelve configurations, twelve FAILs. Paraphrased-disclosure
+        recall or restated-cue specificity fails in every one of them, and the only metric a
+        judge's removal ever drops is the malformed-rate failure, when gpt-oss-20b is the judge
+        removed:
+      </p>
+      <div class="table-scroll">
+        <table class="ledger-table">
+          <thead>
+            <tr><th>panel</th><th>Q1 a</th><th>Q1 b</th><th>Q1 c</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="lt-model">all three</td><td class="lt-num">FAIL 8/10</td><td class="lt-num">FAIL 8/10</td><td class="lt-num">FAIL 7/10</td></tr>
+            <tr><td class="lt-model">minus gemma-3-27b-it</td><td class="lt-num">FAIL 7/10</td><td class="lt-num">FAIL 7/10</td><td class="lt-num">FAIL 7/10</td></tr>
+            <tr><td class="lt-model">minus gpt-oss-20b</td><td class="lt-num">FAIL 8/10</td><td class="lt-num">FAIL 9/10</td><td class="lt-num">FAIL 8/10</td></tr>
+            <tr><td class="lt-model">minus llama-3.3-70b-fp8</td><td class="lt-num">FAIL 7/10</td><td class="lt-num">FAIL 8/10</td><td class="lt-num">FAIL 6/10</td></tr>
           </tbody>
         </table>
       </div>
       <p class="evidence-note">
-        The two failing metrics move against each other and no wording bought both. A second
-        judge (Gemma) read the identical original prompt in the opposite direction on the two
-        contested classes; those Gemma numbers were read off the cluster before a network fault
-        and have not yet been fetched into this repository, so they stay unconfirmed-locally
-        rather than quoted as verified. Nothing on the corpus was tuned: the thresholds file, the
-        corpus manifest, and every prompt file are hashed on each run and unchanged. No Q1 file
-        is named the candidate; selecting one on the numbers that validated it would be selection
-        on the calibration corpus, which the pre-registration's freeze-before-unsealing rule
-        exists to prevent. Full tables:
-        <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/experiments/jury/GATE-Q1-COMPARISON.md" target="_blank" rel="noopener">GATE-Q1-COMPARISON.md</a>.
+        Removing gpt-oss-20b explains why: at its <code>num_predict</code> of 256, its own
+        malformed-vote rate ran 0.51 to 0.59 across the three files (2,902, 2,732 and 3,141 of
+        its own 5,313 votes). Qwen3-32B, moved to <code>num_predict</code> 1,024 for the same
+        reason, malformed on 11 of its 5,313 votes. Nothing on the corpus was tuned: the
+        thresholds file, the corpus manifest, and every prompt file are hashed on each run and
+        unchanged. Ruling R9 (2026-09-07 18:17): no Q1 configuration is named the primary
+        configuration, the freeze does not happen, and the jury's Q1 (mention) column stays
+        exploratory; column A of record remains the frozen, uncorrected regex share. Full
+        tables and every number's denominator:
+        <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/experiments/jury/GATE-Q1-COMPARISON.md" target="_blank" rel="noopener">GATE-Q1-COMPARISON.md</a>
+        and
+        <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/experiments/jury/PRIMARY_CONFIGURATION_CANDIDATE.md" target="_blank" rel="noopener">PRIMARY_CONFIGURATION_CANDIDATE.md</a>.
       </p>
     </div>
 
@@ -1415,8 +1441,8 @@
       repeat arm exists. R5 keeps ARC's answer set at four choices. R6 fixes which two dose
       levels count as the ladder's first rung. R7 splits a co-hosted judge pair into two
       serialized lines after it failed to start on one card. R8 raises the token budget for
-      thinking judges to 1,024. R9 defers the jury's Q1 construct to the panel-level gate above.
-      R10 sets the push order: an independent verifier and a secret scan first, then the push,
+      thinking judges to 1,024. R9 rules, after the panel-level numbers above, that no Q1
+      configuration is named the primary one and the Q1 column stays exploratory. R10 sets the push order: an independent verifier and a secret scan first, then the push,
       then the powered sweep. R11 suspends gpt-oss-20b as a sweep subject, for the kernel reason
       above, while keeping it as a jury judge. None of the eleven touches a frozen sentence.
     </p>
