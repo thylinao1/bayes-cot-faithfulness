@@ -124,6 +124,13 @@ PARAM_FIELDS = (
     # is None on every regular cell, and None == None keeps every pre-existing checkpoint
     # loadable.
     "item_list",
+    # RULING R12 added the reasoning-mode configuration. "off" moves the request path
+    # (rendered prompt with the block closed, generated through /completions) and "on"
+    # moves the FULL-generation budget to 4,096 and the answer extractor, so a leg
+    # resumed under a different mode would merge records generated two different ways
+    # into one cell. It is None on a default cell, and None == None keeps every
+    # pre-existing checkpoint loadable.
+    "reasoning_mode",
 )
 
 # Fields always present on a substrate record (set in substrate_pass before any arm runs).
@@ -205,7 +212,8 @@ def build_params(model: str, backend: str, n_items: int, data: Path, taxonomy: s
                  sampling: dict | None = None,
                  repeat_curves: dict | None = None,
                  chain_repeats: dict | None = None,
-                 item_list: dict | None = None) -> dict:
+                 item_list: dict | None = None,
+                 reasoning_mode: str | None = None) -> dict:
     """The parameter fingerprint stored in (and checked against) a checkpoint.
 
     ``arms`` is kept in CLI order exactly as ``resolve_arms`` returns it: the enabled-arms
@@ -231,6 +239,7 @@ def build_params(model: str, backend: str, n_items: int, data: Path, taxonomy: s
         "repeat_curves": repeat_curves,
         "chain_repeats": chain_repeats,
         "item_list": item_list,
+        "reasoning_mode": reasoning_mode,
     }
 
 

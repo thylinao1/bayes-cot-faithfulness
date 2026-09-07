@@ -31,6 +31,23 @@
 #            BCF_CHAIN_REPEATS(3) BCF_CHAIN_REPEAT_TEMPERATURE(0.7)
 #            BCF_CHAIN_REPEAT_SEED(20260907)
 #            BCF_ITEM_LIST() BCF_ENRICH_REPORT(0) BCF_OUT_SUBROOT()
+#            BCF_REASONING_MODE(default)
+#
+# RULING R12 (2026-09-07), BCF_REASONING_MODE, for a roster row whose chat template opens
+# a reasoning block and documents no switch (OLMo-3-7B-Think, R1-Distill-Llama-8B,
+# Phi-4-reasoning, R1-0528-Qwen3-8B):
+#   default  today's behaviour, byte for byte. Every other row uses this and nothing
+#            about those cells changes.
+#   off      the CELL OF RECORD. The prompt is rendered through the model's own template
+#            (/tokenize plus /detokenize) with the reasoning block CLOSED, generation
+#            moves to /completions, and every element 15 constant stays where it is
+#            (num_predict 320 full, 24 forced). R12(2): the two-path equivalence gate
+#            (bcf/gate_twopath.sbatch) must have PASSED before an off cell is a cell of
+#            record, because the request path is part of the serving mode.
+#   on       the EXPLORATORY additive arm. Ordinary chat path, num_predict 4096 for FULL
+#            generations on this row only (the forced budget stays 24), the answer read
+#            after the closing think tag. Reported beside the off cell per model and
+#            NEVER pooled with it. Raise BCF_MAX_LEN (16384) with it.
 #
 # RULING R3(ii), the two enrichment shapes this one script serves:
 #   the enrichment PASS   BCF_ARMS=sampling, BCF_N_ITEMS=<the whole pool>,
@@ -50,8 +67,9 @@
 #    read exit_code.txt=0 here), 13 SERVE PORT NOT OURS: the port answers, but with a
 #    foreign model list or from a process this job did not start (bcf/serve_ready.py,
 #    which returns 11 for that case; the job maps it to 13 because 11 already means the
-#    item list here). 128+signal on a Slurm cancel or interrupt (143 SIGTERM, 130
-#    SIGINT), from the same guard.
+#    item list here), 14 BCF_REASONING_MODE is not one of default/off/on (ruling R12;
+#    refused here rather than in the runner so it costs no queue wait). 128+signal on a
+#    Slurm cancel or interrupt (143 SIGTERM, 130 SIGINT), from the same guard.
 
 set -uo pipefail
 source "${BCF_ENV_SH:-$HOME/bcf/repo/bcf/env.sh}"
@@ -141,6 +159,21 @@ if [ -n "${BCF_OUT_SUBROOT:-}" ]; then OUT_ROOT="${OUT_ROOT}/${BCF_OUT_SUBROOT}"
 # empty on a regular cell, which is why a regular cell's command line is unchanged.
 ITEM_LIST="${BCF_ITEM_LIST:-}"
 ENRICH_REPORT="${BCF_ENRICH_REPORT:-0}"
+# RULING R12. Refused HERE, before the path assertion and long before the weight
+# download, because a typo'd mode that fell through to a default would produce a cell
+# whose run_meta names a configuration it did not run.
+REASONING_MODE="${BCF_REASONING_MODE:-default}"
+case "$REASONING_MODE" in
+  default|off|on) : ;;
+  *) echo "[reasoning] REFUSING: BCF_REASONING_MODE=${REASONING_MODE} is not default, off or on" >&2
+     exit 14 ;;
+esac
+# R12(1): 4,096 for FULL generations on an "on" row only. The forced-continuation budget
+# is not touched anywhere; it is the element 15 constant 24 inside the runner. The
+# PREFLIGHT keeps NUM_PREDICT (see step 4b): it is a determinism measurement of the
+# server, and running it at 4,096 is what made the audit's concurrency-1 leg prohibitive.
+NUM_PREDICT_FULL="$NUM_PREDICT"
+if [ "$REASONING_MODE" = "on" ]; then NUM_PREDICT_FULL=4096; fi
 
 MODEL_SLUG="$(echo "${MODEL##*/}" | tr '[:upper:]' '[:lower:]')"
 OUT_DIR="${OUT_ROOT}/${MODEL_SLUG}/${SUBSTRATE}/${CUE}"
@@ -251,6 +284,18 @@ pathlib.Path("${OUT_DIR}/run_meta.json").write_text(json.dumps({
     "enrichment_cell": bool("${ITEM_LIST}"),
     "enrichment_pass": "${ENRICH_REPORT}" == "1",
     "temperature": 0.0, "num_predict": ${NUM_PREDICT}, "curve_cap": ${CURVE_CAP},
+    # RULING R12. Written HERE from the submitted value, so a job that dies before the
+    # arms finish still records which configuration it was asked for; the runner merges
+    # the measured half (the close branch, the rendered prompt tail, the continuation
+    # reopen counts) into the same file when it finalizes.
+    "reasoning_mode": "${REASONING_MODE}",
+    "reasoning_path": ("completions" if "${REASONING_MODE}" == "off" else "chat"),
+    "reasoning_block_closed": (True if "${REASONING_MODE}" == "off" else None),
+    "num_predict_full": ${NUM_PREDICT_FULL},
+    # The determinism preflight and the forced-logprob check both run on the CHAT path,
+    # whatever the mode: they measure the server, and R12(2) is what certifies that the
+    # rendered /completions path renders the same prompt. Recorded rather than implied.
+    "reasoning_preflight_path": "chat",
     # CONTRACT record schema. Round-1 verification check 4 failed because
     # intervention_level was absent from every summary; it is written here AND by the
     # runner into arms_summary, from the same constant, so the two cannot disagree.
@@ -436,6 +481,21 @@ if [ -n "$ITEM_LIST" ]; then
   echo "[item-list] this cell runs on the items named in ${ITEM_LIST}" | ts | tee -a "$LOG"
 fi
 
+echo "[reasoning] mode=${REASONING_MODE} num_predict_full=${NUM_PREDICT_FULL} (forced stays 24)" \
+  | ts | tee -a "$LOG"
+if [ "$REASONING_MODE" = "off" ]; then
+  echo "[reasoning] the arms generate through /completions on a rendered, block-closed" \
+    | ts | tee -a "$LOG"
+  echo "[reasoning]   prompt; the preflight above measured the CHAT path. R12(2): the" \
+    | ts | tee -a "$LOG"
+  echo "[reasoning]   two-path equivalence gate certifies the two render the same prompt." \
+    | ts | tee -a "$LOG"
+fi
+if [ "$REASONING_MODE" = "on" ] && [ "$MAX_LEN" -lt 16384 ]; then
+  echo "[reasoning] WARNING: BCF_MAX_LEN=${MAX_LEN} with a 4096-token full generation;" \
+    | ts | tee -a "$LOG"
+  echo "[reasoning]   16384 is what the element 9.4 serving test used." | ts | tee -a "$LOG"
+fi
 echo "[arms] starting at $(date -Is)" | ts | tee -a "$LOG"
 python "${BCF_REPO}/experiments/08_additive_arms.py" \
   --backend openai --base-url "$BASE_URL" \
@@ -443,7 +503,8 @@ python "${BCF_REPO}/experiments/08_additive_arms.py" \
   --chat-template-kwargs "$TEMPLATE_KWARGS" \
   --data "${BCF_REPO}/experiments/data/${SUBSTRATE}.json" \
   --specificity-holdout "${BCF_REPO}/experiments/data/specificity_holdout.json" \
-  --n-items "$N_ITEMS" --num-predict "$NUM_PREDICT" --curve-cap "$CURVE_CAP" \
+  --n-items "$N_ITEMS" --num-predict "$NUM_PREDICT_FULL" --curve-cap "$CURVE_CAP" \
+  --reasoning-mode "$REASONING_MODE" \
   --concurrency "$CONCURRENCY" \
   --sampling-k "$SAMPLING_K" --sampling-temperature "$SAMPLING_TEMPERATURE" \
   --curve-repeats "$CURVE_REPEATS" --repeat-temperatures "$REPEAT_TEMPERATURES" \
