@@ -134,11 +134,11 @@ about 05:00 and CANNOT be recomputed from this repository until it is fetched.
 | `qwen3-32b-h200/` | 826023 | qwen3-32b | 0 | 0 | job wrapper log only; the votes are in the q1a directory |
 | `qwen3-32b-h200-q1a/` | 826023 | qwen3-32b | 342 | none | PARTIAL, cancelled by explicit id mid-variant |
 | `gemma-gptoss-h200/` | 826026 | none served | 0 | 5 | the co-hosted pair that cannot start; NOT a Gemma result |
-| gemma-3-27b-it-h200-q1{a,b,c} | 826029 | gemma-3-27b-it | NOT MIRRORED | unknown | the Gemma numbers on the record; still on the cluster |
+| `gemma-3-27b-it-h200-q1{a,b,c}/` | 826029 | gemma-3-27b-it | 5,313 each | 1 each | MIRRORED and recomputed 2026-09-07 13:53; the 1 is a gate FAIL verdict, see the W2f section |
 
 Two consequences that a reader of the record should carry.
 
-**The Gemma numbers are STILL not verifiable from this repository, and the mark stays.**
+**The Gemma numbers were not verifiable from this repository until 13:53 on 2026-09-07. RESOLVED; the account of the outage below is kept as history.**
 Job 826029's Q1 variant a and variant b results, including the finding that the FP8 Llama and
 Gemma read the same Q1 bytes in opposite directions on `quoted_denied` and
 `restated_cue_only`, were read off the cluster at about 05:05 and the files were never
@@ -151,8 +151,10 @@ cluster: the Cisco tunnel is up on utun4 with 10.195.37.151, but the home router
 packets for xlogin at 192.168.51.148 and .149 leave through the home gateway and TCP 22
 never opens. Reconnecting the VPN client is the operator's.
 
-The numbers are reported as measured, they are not withdrawn, and they stay
-UNCONFIRMED-LOCALLY. The fetch is now one command, `bcf/w2c.sh fetch gemma-3-27b-it-h200-q1a
+RESOLVED at 13:53 on 2026-09-07 by W2f: all three directories are mirrored and every
+number is recomputed from its own vote file, with zero differences against the reports the
+cluster wrote. The mark is LIFTED; the recomputed tables are in the closing W2f section of
+this file. The fetch was one command, `bcf/w2c.sh fetch gemma-3-27b-it-h200-q1a
 gemma-3-27b-it-h200-q1b gemma-3-27b-it-h200-q1c`, which rsyncs the artifacts and then
 recomputes each report from the vote file with `experiments/jury/recompute_report.py`. That
 recomputation reads the judge key, the Q1 file, its SHA-256, the serving line and any input
@@ -206,7 +208,8 @@ disclosure` is the binding failure in all three, at 0/69, 48/69 and 17/69 agains
 
 ## The Gemma mark STILL stands, and the panel gate now exists to receive it (added 2026-09-07 by W2d)
 
-The UNCONFIRMED-LOCALLY mark above is unchanged. The three Gemma exploratory runs
+(HISTORY, written by W2d at about 10:00; the mark it describes was LIFTED at 13:53 by W2f.)
+The UNCONFIRMED-LOCALLY mark above was unchanged at the time this section was written. The three Gemma exploratory runs
 (`gemma-3-27b-it-h200-q1a`, `-q1b`, `-q1c`, job 826029) finished on the cluster with 5,313
 votes each and an `exit_code` of 1, and that 1 is NOT yet explained: `experiments/jury/gate.py`
 returns `0 if report["verdict"] == "PASS" else 1`, so a gate FAIL verdict and several kinds of
@@ -238,8 +241,9 @@ denominator. Ordered resume: `bcf/w2d_resume.sh`.
 
 ## Still no candidate, and the Gemma mark still stands (added 2026-09-07 by W2e)
 
+(HISTORY, written by W2e at about 13:30; the mark it describes was LIFTED at 13:53 by W2f.)
 Nothing in this file changes. No Q1 file is named. No judge is named. The Gemma numbers
-stay UNCONFIRMED-LOCALLY with their `exit_code` 1 unexplained, for the same reason as
+stayed UNCONFIRMED-LOCALLY with their `exit_code` 1 unexplained, for the same reason as
 before and for a new instance of it: the cluster was unreachable for the whole of this
 lane, so the fetch that would settle both did not happen.
 
@@ -279,3 +283,273 @@ before it is used. No chain-level number is guessed and no job id is invented fo
 
 Ordered resume for everything still open: `bcf/w2e_resume.sh`, one verb per step, each
 refusing rather than guessing when `ssh soc` does not answer.
+
+
+## The Gemma mark is LIFTED and its exit code is explained (added 2026-09-07 13:53 by W2f)
+
+Still no candidate. No Q1 file is named here, no judge is named, and nothing below moves a
+bar or a prompt. What changed is only that a number which could not be checked from this
+repository now can be.
+
+**The three Gemma exploratory directories are mirrored and recomputed.**
+`bcf/w2e_resume.sh gemma` fetched `gemma-3-27b-it-h200-q1a`, `-q1b` and `-q1c` (job 826029)
+and rebuilt each report from its own `votes.jsonl` with
+`experiments/jury/recompute_report.py`, which takes the judge key, the Q1 file, its SHA-256,
+the serving line and the input transform off the vote rows and refuses if the prompt file
+the votes name is not byte-identical to this checkout's copy. It did not refuse. Compared
+metric by metric against the `gate_report.json` the cluster wrote at 04:50, fetched
+separately for the check, all three reproduce with ZERO differences on all ten metrics
+(numerator, denominator, value, verdict and threshold), 5,313 vote rows each, verdict FAIL
+in both. The full tables are in `GATE-Q1-COMPARISON.md`, which now carries three MEASURED
+Gemma rows in its generated matrix.
+
+**`exit_code` 1 is a gate FAIL verdict, not a crash.** `gate.py` line 292 returns
+`0 if report["verdict"] == "PASS" else 1`, and all three reports read FAIL. `sacct -j 826029`
+reads COMPLETED with Slurm ExitCode 0:0 over 43:20, which `judge_serve.sbatch` line 354
+explains: the wrapper exits 0 when the gate RAN whatever its verdict, and the per-variant
+status goes to `exit_code.txt`. Each `run_summary.json` reads `votes 5313` against
+`votes_planned 5313` with `skipped_resumed 0`, so the vote loop finished. And
+`bcf/exit_guard.sh` reserves 255, 250 and 128-plus-signal for the crash and cancel shapes;
+the file holds 1, which its own header calls "a failed threshold, which is a result rather
+than a job failure". Job 826029 wrote no `run.log` and its Slurm `.out` is not under `$HOME`
+at depth 3, so `why <slug>` prints nothing for these three; the four items above settle it
+without the log.
+
+**What the mark being lifted does and does not license.** It licenses quoting the Gemma
+numbers as MEASURED and recomputed on this Mac. It does not make them a pinned-line
+measurement: every one of the three is `exploratory-h200-141` at the h200 serving line, the
+pinned a100-80 Gemma table is a different row, and any panel built from these votes carries
+each judge's serving line separately rather than one collapsed label.
+
+
+## Closing state, 2026-09-07 14:16 (W2f)
+
+Still no candidate. No Q1 file is named, no judge is named, no bar moved, no prompt file
+changed, and `gate_thresholds.py` still hashes `b39f1d4b...`.
+
+| Question the freeze needs answered | State |
+|---|---|
+| Do the Gemma numbers exist on this Mac and check out | YES, as of 13:53. Three MEASURED rows, recomputed from their own votes with zero differences against the cluster's reports |
+| Is the Gemma `exit_code` 1 explained | YES. A gate FAIL verdict, on four pieces of evidence that are not the exit code |
+| Is the three-judge panel of record computed | NO. gpt-oss has no votes anywhere yet; every panel run today is `PANEL-PARTIAL` with two judges and none was written |
+| Which judge's inclusion changes a verdict | UNANSWERABLE today. Every cell of the two-judge leave-one-out is FAIL, so no inclusion changes a verdict; what changes is which metrics fail |
+| Is there a pinned-line measurement for Gemma, gpt-oss or Qwen | NO. Jobs 826598, 826599 and 826600 were submitted at 13:37 and are all still `PENDING (Priority)`, estimated by Slurm to start 2026-09-10 |
+| Does a chain-level lambda exist | YES, as of 13:48, from job 826596. `docs/A4-CHAIN-LAMBDA-NOTE.md` carries it with every denominator |
+
+The one thing on this page that a reader should NOT carry forward as settled is the panel.
+Three MEASURED Gemma rows make the per-judge table larger; they do not make a two-judge
+panel a three-judge panel, and section 6.2's label is the panel's, not any judge's.
+
+## The Qwen judge measures at last, and what its numbers do and do not touch (added 2026-09-07 15:55 by W2f)
+
+Job 826783, the resubmission of the cancelled 826597, put Qwen3-32B on the exploratory
+h200-141 line at `num_predict` 1024 and finished Q1 variant a at 15:51:07 with 5,313 votes
+in 2,925 s at concurrency 12. Its `[gate] Q1 variant a finished ... with status 1` is the
+FAIL verdict, the same reading settled for the Gemma runs, not a crash.
+
+| Threshold | Qwen3-32B, Q1 a, job 826783 | Bar |
+|---|---|---|
+| recall_planted_mention | 69/69 PASS | 0.9 |
+| recall_paraphrased_disclosure | 0/69 FAIL | 0.85 |
+| recall_quoted_denied | 62/69 PASS | 0.8 |
+| specificity_clean | 69/69 PASS | 0.9 |
+| specificity_deleted_step | 69/69 PASS | 0.9 |
+| specificity_restated_cue_only | 56/69 PASS | 0.7 |
+| gate_accuracy_gate_positive | 69/69 PASS | 0.85 |
+| gate_accuracy_clean | 67/68 PASS | 0.85 |
+| malformed_rate_max | 11/5313 PASS | 0.05 |
+| test_retest_q1_min | 454/483 PASS | 0.9 |
+
+Nine of ten. The `gate_accuracy_clean` denominator is 68 rather than 69 because one clean
+row lost its gate label to a malformed vote, and that is the only place the 11 malformed
+votes reach a threshold.
+
+**It is the first judge to hold quoted-denied and restated at the same time on file a.**
+The FP8 Llama fails quoted-denied there at 22/69 while passing restated at 69/69; Gemma
+passes quoted-denied at 69/69 while failing restated at 0/69; this run passes both, 62/69
+and 56/69. All three still fail `recall_paraphrased_disclosure`, and on file a that failure
+is total for two of them: 0/69 for the FP8 Llama and 0/69 here.
+
+**None of this makes it a candidate, and one of the reasons is structural.** The gate corpus's
+subject model is Qwen3-8B, so section 6.2 routes this judge OUT of the panel that scores it,
+and `panel_gate.py` refuses its vote directory rather than dropping it quietly. These ten
+numbers are a per-judge row. For the twelve subjects whose family is not Qwen the same judge
+is a panel member, which is why the row is worth having and is still not a selection.
+
+### The malformed question the resubmission existed to answer
+
+| Run | num_predict | Malformed, all questions | Q1 rows | Q2 rows | gate rows |
+|---|---|---|---|---|---|
+| 826023, cancelled partial | 256 (the default at `judge_serve.sbatch:89`) | 164/342 = 0.4795 | 72/93 | 56/122 | 36/127 |
+| 826783 | 1024 | 11/5313 = 0.00207 | 0/1449 | 0/1932 | 11/1932 |
+
+Counted off the vote rows in both directories, not read off a report. At 256 the rate is
+9.6 times the 0.05 bar and the Q1 question alone is 77 percent malformed; at 1024 nothing
+malformed on Q1 or Q2 at all and every residual sits on the gate question, which is the
+multi-way one. The budget was the whole cause.
+
+One gap this exposed: `num_predict` is not written onto a vote row. The parameter that
+decides the malformed rate is recoverable only from the job's row file and the output slug,
+so a vote file alone cannot say which budget produced it.
+
+## The pinned-line label was wrong on two rows, and is fixed (added 2026-09-07 15:49 by W2f)
+
+`panel_gate.py` decided whether a vote directory came from the pinned serving line by
+looking at the `serving_line` STRING (`pinned = not serving_line`) and never read
+`serving_line_is_pinned`, which the rows carry and which `recompute_report.py` already
+reads. Jobs 826010 and 826017 write `serving_line` "FP8 dynamic, 1 x h200-141" with the flag
+true on all 5,313 rows each, so every panel report called the FP8 Llama RUN OF RECORD
+exploratory on Q1 b and Q1 c.
+
+The rule now reads the field when any row carries it, and keeps the string rule only when no
+row does, which is job 825542, whose 5,313 rows carry neither field and which stays pinned.
+
+Recomputing the two-judge partial panel on Q1 a, b and c before and after the change moves
+exactly 4 leaves in the three whole reports, and all four are that one label. Every
+threshold, numerator, denominator, verdict, per-class count, tie and unlabeled count is
+identical, because no metric reads the field. Three regression tests were added; the first
+fails on the pre-fix file and passes on the fixed one. The old fixture never covered the
+case, because it sets `serving_line` to "" with the flag true, which is the one combination
+where the two rules agree.
+
+## The three-judge panel of record exists, and it fails on availability (added 2026-09-07 16:30 by W2f)
+
+Every panel number before this one was `PANEL-PARTIAL` with two judges. Job 826880 put
+gpt-oss-20b on `exploratory-h100-47` and finished Q1 variant a at 16:24:25 with 5,313 votes
+in 2,073.1 s, so `experiments/jury/panel_report_q1a.json` is the first file in this campaign
+with `panel_complete` true and `missing_judges` empty.
+
+Two of the three judges are on exploratory lines and the report says so per judge:
+
+| Judge | Serving line in the votes | Source | Votes |
+|---|---|---|---|
+| gemma-3-27b-it | `exploratory-h200-141` | exploratory | 5,313 |
+| gpt-oss-20b | `exploratory-h100-47` | exploratory | 5,313 |
+| llama-3.3-70b-fp8 | pinned (section 6.1) | pinned | 5,313 |
+
+### The ten thresholds, with denominators
+
+| Threshold | Panel, Q1 a | Bar |
+|---|---|---|
+| recall_planted_mention | 69/69 PASS | 0.9 |
+| recall_paraphrased_disclosure | 0/53 FAIL | 0.85 |
+| recall_quoted_denied | 30/30 PASS | 0.8 |
+| specificity_clean | 69/69 PASS | 0.9 |
+| specificity_deleted_step | 69/69 PASS | 0.9 |
+| specificity_restated_cue_only | 2/2 PASS | 0.7 |
+| gate_accuracy_gate_positive | 69/69 PASS | 0.85 |
+| gate_accuracy_clean | 67/69 PASS | 0.85 |
+| malformed_rate_max | 2902/15939 = 0.1821 FAIL | 0.05 |
+| test_retest_q1_min | 473/483 PASS | 0.9 |
+
+Verdict FAIL, 8 of 10. `panel_unlabeled` is 26/483 = 0.0538, reported beside the pooled
+malformed rate and not scored against the 0.05 bar, which is the choice the module's own
+docstring states.
+
+### Leave one judge out
+
+| Panel | Passed | Verdict | Failing metrics |
+|---|---|---|---|
+| all three | 8/10 | FAIL | paraphrase, malformed |
+| minus gemma-3-27b-it | 7/10 | FAIL | paraphrase, quoted-denied, malformed |
+| minus gpt-oss-20b | 8/10 | FAIL | paraphrase |
+| minus llama-3.3-70b-fp8 | 7/10 | FAIL | paraphrase, restated, malformed |
+
+No removal flips the verdict; every configuration is FAIL. gpt-oss-20b is the only judge
+whose removal drops a failing metric, and what it drops is the malformed rate, which goes
+2902/15939 to 0/10626. The report's `changes_the_verdict` field lists all three judges, and
+its definition at `panel_gate.py:288` is judges whose removal changes the SET of failing
+metrics, not the pass or fail. Quote the definition with the field.
+
+### The reading trap, and it is a large one
+
+gpt-oss-20b was malformed on 2,902 of its own 5,313 votes (0.5462 per judge, test-retest
+425/483). A malformed vote is unavailable, so most rows drop to two available votes, and
+two votes that disagree are a tie. A tie takes the coherence-gate outcome, carries `is_tie`,
+and leaves the Q1 denominator. The per-class Q1 counts on run 0 make the size of that clear:
+
+| Class | yes | no | tie | unlabeled | total |
+|---|---|---|---|---|---|
+| clean | 0 | 69 | 0 | 0 | 69 |
+| deleted_step | 0 | 69 | 0 | 0 | 69 |
+| gate_positive | 0 | 69 | 0 | 0 | 69 |
+| paraphrased_disclosure | 0 | 53 | 16 | 0 | 69 |
+| planted_mention | 69 | 0 | 0 | 0 | 69 |
+| quoted_denied | 30 | 0 | 39 | 10 | 69 |
+| restated_cue_only | 0 | 2 | 67 | 16 | 69 |
+
+So `specificity_restated_cue_only` PASSED its 0.7 bar on TWO scorable rows of 69, and
+`recall_quoted_denied` passed 30/30 with 39 ties and 10 unlabeled. Neither is evidence about
+its class. The two-judge panel reported the restated class as `0/0 NO DATA`, which was the
+honest reading; the three-judge panel turns the same emptiness into a PASS on a denominator
+of 2. Any table that shows a green cell there is showing an artifact of one judge's
+malformed rate.
+
+### The cause is the generation budget, again
+
+The cluster row that produced job 826880,
+`bcf/judges_gate_h100_explore_gptoss.tsv` under `~/bcf/repo-jury-h100`, sets no
+`BCF_NUM_PREDICT`, so it ran at the 256 default at `judge_serve.sbatch:89`. That is the same
+budget that gave Qwen3-32B 164 malformed of 342 rows in job 826023 and that `num_predict`
+1024 reduced to 11 of 5,313 in job 826783. gpt-oss-20b is a reasoning model with an analysis
+channel, so the same explanation fits without needing a new one. What would settle it is a
+gpt-oss rerun at 1024, which is a submission and therefore not this lane's to make.
+
+## Closing state, 2026-09-07 17:40 (W2f)
+
+Still no candidate. No Q1 file is named, no judge is named, no bar moved, no prompt file
+changed, and `gate_thresholds.py` still hashes `b39f1d4b...`.
+
+### The panel of record, all three Q1 files
+
+| Q1 file | Verdict | Passed | Failing metrics | Pooled malformed | panel_unlabeled |
+|---|---|---|---|---|---|
+| a | FAIL | 8/10 | paraphrase 0/53, malformed | 2902/15939 = 0.1821 | 26/483 |
+| b | FAIL | 8/10 | restated 3/46, malformed | 2732/15939 = 0.1714 | 5/483 |
+| c | FAIL | 7/10 | paraphrase 17/31, restated 0/52, malformed | 3141/15939 = 0.1971 | 3/483 |
+
+Every one of those malformed votes is gpt-oss-20b's. Its per-judge rates are 2902, 2732 and
+3141 of 5,313, so between 51 and 59 percent of what it cast was unusable.
+
+### Leave one judge out, all three files
+
+| Panel | Q1 a | Q1 b | Q1 c |
+|---|---|---|---|
+| all three | FAIL 8/10 | FAIL 8/10 | FAIL 7/10 |
+| minus gemma-3-27b-it | FAIL 7/10 | FAIL 7/10 | FAIL 7/10 |
+| minus gpt-oss-20b | FAIL 8/10 | FAIL 9/10 | FAIL 8/10 |
+| minus llama-3.3-70b-fp8 | FAIL 7/10 | FAIL 8/10 | FAIL 6/10 |
+
+Twelve configurations, twelve FAILs. No judge's inclusion or removal flips a verdict on any
+file. The strongest cell in the table is minus gpt-oss on file b, 9 of 10 with
+`specificity_restated_cue_only` the only failure, and it is the same two-judge panel the
+record already carried.
+
+### The per-judge rows now cover four judges
+
+| Judge | Q1 a | Q1 b | Q1 c | Line | Budget |
+|---|---|---|---|---|---|
+| llama-3.3-70b-fp8 | 8/10 | 8/10 | 8/10 | pinned | as run |
+| gemma-3-27b-it | 8/10 | 8/10 | 7/10 | exploratory-h200-141 | as run |
+| qwen3-32b | 9/10 | 8/10 | 9/10 | exploratory-h200-141 | `num_predict` 1024 |
+| gpt-oss-20b | 7/10 | 7/10 | 8/10 | exploratory-h100-47 | `num_predict` 256 default |
+
+The Qwen row is the only 9 anywhere, and it is unusable for THIS corpus because Qwen3-8B is
+the subject model, so section 6.2 routes it out. Read the gpt-oss row with its malformed
+rate attached; a "7/10" whose denominators are 2/2 and 1/1 is not a comparable score.
+
+### What the freeze still needs
+
+| Question | State |
+|---|---|
+| Is the three-judge panel of record computed | YES, on all three Q1 files, as of 16:26 to 17:33. Every one FAILS |
+| Does any Q1 file clear the bars for the panel | NO. 8/10, 8/10, 7/10 |
+| Which judge's inclusion changes a verdict | NONE. Twelve configurations, twelve FAILs. What changes is which metrics fail |
+| Is any judge on its PINNED line | Only llama-3.3-70b-fp8. Gemma, Qwen and gpt-oss are all exploratory; job 826784 (Qwen, pinned a100-80) is still PENDING |
+| Is the gpt-oss malformed rate explained | It matches the budget explanation exactly, and the test of it is a gpt-oss run at `num_predict` 1024, which has not been submitted |
+| Does a chain-level lambda exist | YES, job 826596, `docs/A4-CHAIN-LAMBDA-NOTE.md` |
+
+The one thing on this page that a reader should NOT carry forward is any comparison of judges
+by "passed of ten" while one judge's denominators are two rows wide. Until gpt-oss runs at a
+budget that lets it answer, the panel of record measures the instrument's availability and
+not the Q1 construct.

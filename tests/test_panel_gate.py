@@ -94,6 +94,40 @@ def test_a_row_with_no_available_vote_has_no_label_and_is_counted(tmp_path):
     assert report["gate_verdicts"]["specificity_clean"]["verdict"] == "NO DATA"
 
 
+def test_a_run_that_names_its_pinned_line_is_labelled_pinned(tmp_path):
+    """Jobs 826010 and 826017 record serving_line "FP8 dynamic, 1 x h200-141" AND
+    serving_line_is_pinned true. Inferring pinnedness from the string alone called them
+    exploratory, which is the pinned line of section 6.1 relabelled as a bet."""
+    rows = [_row("llama-3.3-70b-fp8", "i1", "Q1", "yes")]
+    for r in rows:
+        r["serving_line"] = "FP8 dynamic, 1 x h200-141"
+        r["serving_line_is_pinned"] = True
+    src = pg.load_judge_votes("llama-3.3-70b-fp8", _write(tmp_path, "j1", rows), "a")
+    assert src["serving_line"] == "FP8 dynamic, 1 x h200-141"
+    assert src["serving_line_is_pinned"] is True
+    assert src["source"] == "pinned"
+
+
+def test_a_run_that_names_an_exploratory_line_is_labelled_exploratory(tmp_path):
+    rows = [_row("gemma-3-27b-it", "i1", "Q1", "yes")]
+    for r in rows:
+        r["serving_line"] = "exploratory-h200-141"
+        r["serving_line_is_pinned"] = False
+    src = pg.load_judge_votes("gemma-3-27b-it", _write(tmp_path, "j2", rows), "a")
+    assert src["source"] == "exploratory"
+
+
+def test_votes_predating_the_serving_line_field_are_read_as_pinned(tmp_path):
+    """Job 825542's votes carry neither field; the older rule keeps it a run of record."""
+    rows = [_row("llama-3.3-70b-fp8", "i1", "Q1", "yes")]
+    for r in rows:
+        r.pop("serving_line", None)
+        r.pop("serving_line_is_pinned", None)
+    src = pg.load_judge_votes("llama-3.3-70b-fp8", _write(tmp_path, "j3", rows), "a")
+    assert src["serving_line"] == "pinned (section 6.1)"
+    assert src["source"] == "pinned"
+
+
 def test_the_qwen_judge_is_refused_because_it_is_the_subjects_own_family(tmp_path):
     d = _write(tmp_path, "qwen3-32b", [_row("qwen3-32b", "i1", "Q1", "yes")])
     with pytest.raises(pg.PanelGateError, match="REFUSING qwen3-32b"):

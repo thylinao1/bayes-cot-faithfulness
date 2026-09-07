@@ -62,7 +62,11 @@ def _panel_rows(data: dict) -> list[dict]:
         parts = []
         for key in block["judges"]:
             src = block["sources"][key]
-            parts.append(f"{key}:{'pinned' if src['source'] == 'pinned' else 'exploratory-h200'}")
+            # The line comes off the votes, never off a guess: the string was hardcoded
+            # "exploratory-h200" back when the h200 was the only exploratory pool, and it
+            # printed h200 for the gpt-oss run that was actually on exploratory-h100-47.
+            line = "pinned" if src["source"] == "pinned" else (src.get("serving_line") or "exploratory")
+            parts.append(f"{key}:{line}")
         return " + ".join(parts)
 
     def row(block: dict, kind: str, label: str) -> dict:

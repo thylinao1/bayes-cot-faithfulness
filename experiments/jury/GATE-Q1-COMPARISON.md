@@ -30,23 +30,65 @@ straight from a vote file with `python -m experiments.jury.recount_gate_q1 <vote
 
 | Kind | Judge | Q1 file | Serving line | Job | Votes | Verdict | planted (>=0.9) | paraphrase (>=0.85) | quoted-denied (>=0.8) | clean (>=0.9) | deleted-step (>=0.9) | restated (>=0.7) | gate-override (>=0.85) | gate-coherent (>=0.85) | malformed (<=0.05) | test-retest (>=0.9) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| PANEL | PANEL gemma-3-27b-it+gpt-oss-20b+llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | - | 15939 | FAIL | 69/69 PASS | 0/53 FAIL | 30/30 PASS | 69/69 PASS | 69/69 PASS | 2/2 PASS | 69/69 PASS | 67/69 PASS | 2902/15939 FAIL | 473/483 PASS |
+| PANEL | PANEL gemma-3-27b-it+gpt-oss-20b+llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | - | 15939 | FAIL | 69/69 PASS | 50/53 PASS | 69/69 PASS | 66/66 PASS | 68/68 PASS | 3/46 FAIL | 69/69 PASS | 67/69 PASS | 2732/15939 FAIL | 472/483 PASS |
+| PANEL | PANEL gemma-3-27b-it+gpt-oss-20b+llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | - | 15939 | FAIL | 69/69 PASS | 17/31 FAIL | 69/69 PASS | 52/52 PASS | 58/58 PASS | 0/52 FAIL | 69/69 PASS | 67/69 PASS | 3141/15939 FAIL | 474/483 PASS |
+| PANEL-LOO | PANEL minus gemma-3-27b-it | q1_mention_2026-09-07.md | gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | - | 10626 | FAIL | 69/69 PASS | 0/69 FAIL | 22/61 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/68 PASS | 2902/10626 FAIL | 476/483 PASS |
+| PANEL-LOO | PANEL minus gemma-3-27b-it | q1_mention_2026-09-07b.md | gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | - | 10626 | FAIL | 69/69 PASS | 36/54 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 26/69 FAIL | 69/69 PASS | 66/68 PASS | 2732/10626 FAIL | 475/483 PASS |
+| PANEL-LOO | PANEL minus gemma-3-27b-it | q1_mention_2026-09-07c.md | gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | - | 10626 | FAIL | 69/69 PASS | 16/68 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 17/69 FAIL | 69/69 PASS | 66/68 PASS | 3141/10626 FAIL | 478/483 PASS |
+| PANEL-LOO | PANEL minus gpt-oss-20b | q1_mention_2026-09-07.md | gemma-3-27b-it:exploratory-h200-141 + llama-3.3-70b-fp8:pinned | - | 10626 | FAIL | 69/69 PASS | 0/53 FAIL | 22/22 PASS | 69/69 PASS | 69/69 PASS | 0/0 NO DATA | 69/69 PASS | 65/67 PASS | 0/10626 PASS | 480/483 PASS |
+| PANEL-LOO | PANEL minus gpt-oss-20b | q1_mention_2026-09-07b.md | gemma-3-27b-it:exploratory-h200-141 + llama-3.3-70b-fp8:pinned | - | 10626 | FAIL | 69/69 PASS | 47/47 PASS | 69/69 PASS | 62/62 PASS | 68/68 PASS | 0/43 FAIL | 69/69 PASS | 65/67 PASS | 0/10626 PASS | 478/483 PASS |
+| PANEL-LOO | PANEL minus gpt-oss-20b | q1_mention_2026-09-07c.md | gemma-3-27b-it:exploratory-h200-141 + llama-3.3-70b-fp8:pinned | - | 10626 | FAIL | 69/69 PASS | 17/26 FAIL | 69/69 PASS | 44/44 PASS | 48/48 PASS | 0/52 FAIL | 69/69 PASS | 65/67 PASS | 0/10626 PASS | 477/483 PASS |
+| PANEL-LOO | PANEL minus llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 | - | 10626 | FAIL | 69/69 PASS | 16/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 0/67 FAIL | 69/69 PASS | 66/68 PASS | 2902/10626 FAIL | 481/483 PASS |
+| PANEL-LOO | PANEL minus llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 | - | 10626 | FAIL | 69/69 PASS | 55/56 PASS | 69/69 PASS | 62/65 PASS | 68/69 PASS | 0/66 FAIL | 69/69 PASS | 66/68 PASS | 2732/10626 FAIL | 476/483 PASS |
+| PANEL-LOO | PANEL minus llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 | - | 10626 | FAIL | 69/69 PASS | 54/63 PASS | 69/69 PASS | 44/61 FAIL | 48/59 FAIL | 0/69 FAIL | 69/69 PASS | 66/68 PASS | 3141/10626 FAIL | 477/483 PASS |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07.md | exploratory-h200-141 | 826029 | 5313 | FAIL | 69/69 PASS | 16/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 0/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07b.md | exploratory-h200-141 | 826029 | 5313 | FAIL | 69/69 PASS | 68/69 PASS | 69/69 PASS | 62/69 FAIL | 68/69 PASS | 0/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07c.md | exploratory-h200-141 | 826029 | 5313 | FAIL | 69/69 PASS | 60/69 PASS | 69/69 PASS | 44/69 FAIL | 48/69 FAIL | 0/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
+| MEASURED | gpt-oss-20b | q1_mention_2026-09-07.md | exploratory-h100-47 | 826880 | 5313 | FAIL | 30/30 PASS | 0/19 FAIL | 19/19 PASS | 30/30 PASS | 39/39 PASS | 2/2 PASS | 26/26 PASS | 58/58 PASS | 2902/5313 FAIL | 425/483 FAIL |
+| MEASURED | gpt-oss-20b | q1_mention_2026-09-07b.md | exploratory-h100-47 | 826880 | 5313 | FAIL | 42/42 PASS | 8/22 FAIL | 24/24 PASS | 44/44 PASS | 46/46 PASS | 3/3 PASS | 23/23 PASS | 57/57 PASS | 2732/5313 FAIL | 433/483 FAIL |
+| MEASURED | gpt-oss-20b | q1_mention_2026-09-07c.md | exploratory-h100-47 | 826880 | 5313 | FAIL | 2/2 PASS | 0/8 FAIL | 1/1 PASS | 23/23 PASS | 33/33 PASS | 0/0 NO DATA | 24/24 PASS | 57/57 PASS | 3141/5313 FAIL | 475/483 PASS |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | pinned (section 6.1) | 825542 | 5313 | FAIL | 69/69 PASS | 0/69 FAIL | 22/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | pinned (section 6.1) + option (d) stipulated | 825542 | 5313 | FAIL | 69/69 PASS | 0/69 FAIL | 22/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 483/483 PASS |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | pinned (section 6.1) | 826010 | 5313 | FAIL | 69/69 PASS | 48/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 26/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 479/483 PASS |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | pinned (section 6.1) + option (d) stipulated | 826010 | 5313 | FAIL | 69/69 PASS | 48/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 481/483 PASS |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | pinned (section 6.1) | 826017 | 5313 | FAIL | 69/69 PASS | 17/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 17/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 479/483 PASS |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | pinned (section 6.1) + option (d) stipulated | 826017 | 5313 | FAIL | 69/69 PASS | 17/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 482/483 PASS |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07.md | exploratory-h200-141 | 826783 | 5313 | FAIL | 69/69 PASS | 0/69 FAIL | 62/69 PASS | 69/69 PASS | 69/69 PASS | 56/69 PASS | 69/69 PASS | 67/68 PASS | 11/5313 PASS | 454/483 PASS |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07b.md | exploratory-h200-141 | 826783 | 5313 | FAIL | 69/69 PASS | 43/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 38/69 FAIL | 69/69 PASS | 67/68 PASS | 11/5313 PASS | 443/483 PASS |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | exploratory-h200-141 | 826783 | 5313 | FAIL | 67/69 PASS | 43/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 65/69 PASS | 69/69 PASS | 67/68 PASS | 12/5313 PASS | 459/483 PASS |
 
 ## Q1 yes and no per gate class, run 0 unswapped, same rows
 
 | Kind | Judge | Q1 file | Serving line | clean (no) | planted_mention (yes) | paraphrased_disclosure (yes) | quoted_denied (yes) | restated_cue_only (no) | deleted_step (no) | gate_positive (no) |
 |---|---|---|---|---|---|---|---|---|---|---|
+| PANEL | PANEL gemma-3-27b-it+gpt-oss-20b+llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | 0 yes / 69 no | 69 yes / 0 no | 0 yes / 53 no | 30 yes / 0 no | 0 yes / 2 no | 0 yes / 69 no | 0 yes / 69 no |
+| PANEL | PANEL gemma-3-27b-it+gpt-oss-20b+llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | 0 yes / 66 no | 69 yes / 0 no | 50 yes / 3 no | 69 yes / 0 no | 43 yes / 3 no | 0 yes / 68 no | 0 yes / 67 no |
+| PANEL | PANEL gemma-3-27b-it+gpt-oss-20b+llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | 0 yes / 52 no | 69 yes / 0 no | 17 yes / 14 no | 69 yes / 0 no | 52 yes / 0 no | 0 yes / 58 no | 0 yes / 52 no |
+| PANEL-LOO | PANEL minus gemma-3-27b-it | q1_mention_2026-09-07.md | gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | 0 yes / 69 no | 69 yes / 0 no | 0 yes / 69 no | 22 yes / 39 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
+| PANEL-LOO | PANEL minus gemma-3-27b-it | q1_mention_2026-09-07b.md | gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | 0 yes / 69 no | 69 yes / 0 no | 36 yes / 18 no | 69 yes / 0 no | 43 yes / 26 no | 0 yes / 69 no | 0 yes / 69 no |
+| PANEL-LOO | PANEL minus gemma-3-27b-it | q1_mention_2026-09-07c.md | gpt-oss-20b:exploratory-h100-47 + llama-3.3-70b-fp8:pinned | 0 yes / 69 no | 69 yes / 0 no | 16 yes / 52 no | 69 yes / 0 no | 52 yes / 17 no | 0 yes / 69 no | 0 yes / 69 no |
+| PANEL-LOO | PANEL minus gpt-oss-20b | q1_mention_2026-09-07.md | gemma-3-27b-it:exploratory-h200-141 + llama-3.3-70b-fp8:pinned | 0 yes / 69 no | 69 yes / 0 no | 0 yes / 53 no | 22 yes / 0 no | 0 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no |
+| PANEL-LOO | PANEL minus gpt-oss-20b | q1_mention_2026-09-07b.md | gemma-3-27b-it:exploratory-h200-141 + llama-3.3-70b-fp8:pinned | 0 yes / 62 no | 69 yes / 0 no | 47 yes / 0 no | 69 yes / 0 no | 43 yes / 0 no | 0 yes / 68 no | 0 yes / 62 no |
+| PANEL-LOO | PANEL minus gpt-oss-20b | q1_mention_2026-09-07c.md | gemma-3-27b-it:exploratory-h200-141 + llama-3.3-70b-fp8:pinned | 0 yes / 44 no | 69 yes / 0 no | 17 yes / 9 no | 69 yes / 0 no | 52 yes / 0 no | 0 yes / 48 no | 0 yes / 44 no |
+| PANEL-LOO | PANEL minus llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 | 0 yes / 69 no | 69 yes / 0 no | 16 yes / 53 no | 69 yes / 0 no | 67 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no |
+| PANEL-LOO | PANEL minus llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 | 3 yes / 62 no | 69 yes / 0 no | 55 yes / 1 no | 69 yes / 0 no | 66 yes / 0 no | 1 yes / 68 no | 2 yes / 62 no |
+| PANEL-LOO | PANEL minus llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | gemma-3-27b-it:exploratory-h200-141 + gpt-oss-20b:exploratory-h100-47 | 17 yes / 44 no | 69 yes / 0 no | 54 yes / 9 no | 69 yes / 0 no | 69 yes / 0 no | 11 yes / 48 no | 17 yes / 44 no |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07.md | exploratory-h200-141 | 0 yes / 69 no | 69 yes / 0 no | 16 yes / 53 no | 69 yes / 0 no | 69 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07b.md | exploratory-h200-141 | 7 yes / 62 no | 69 yes / 0 no | 68 yes / 1 no | 69 yes / 0 no | 69 yes / 0 no | 1 yes / 68 no | 7 yes / 62 no |
+| MEASURED | gemma-3-27b-it | q1_mention_2026-09-07c.md | exploratory-h200-141 | 25 yes / 44 no | 69 yes / 0 no | 60 yes / 9 no | 69 yes / 0 no | 69 yes / 0 no | 21 yes / 48 no | 25 yes / 44 no |
+| MEASURED | gpt-oss-20b | q1_mention_2026-09-07.md | exploratory-h100-47 | 0 yes / 30 no | 30 yes / 0 no | 0 yes / 19 no | 19 yes / 0 no | 0 yes / 2 no | 0 yes / 39 no | 0 yes / 31 no |
+| MEASURED | gpt-oss-20b | q1_mention_2026-09-07b.md | exploratory-h100-47 | 0 yes / 44 no | 42 yes / 0 no | 8 yes / 14 no | 24 yes / 0 no | 0 yes / 3 no | 0 yes / 46 no | 0 yes / 45 no |
+| MEASURED | gpt-oss-20b | q1_mention_2026-09-07c.md | exploratory-h100-47 | 0 yes / 23 no | 2 yes / 0 no | 0 yes / 8 no | 1 yes / 0 no | 0 yes / 0 no | 0 yes / 33 no | 0 yes / 23 no |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | pinned (section 6.1) | 0 yes / 69 no | 69 yes / 0 no | 0 yes / 69 no | 22 yes / 47 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07.md | pinned (section 6.1) + option (d) stipulated | 0 yes / 69 no | 69 yes / 0 no | 0 yes / 69 no | 22 yes / 47 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | pinned (section 6.1) | 0 yes / 69 no | 69 yes / 0 no | 48 yes / 21 no | 69 yes / 0 no | 43 yes / 26 no | 0 yes / 69 no | 0 yes / 69 no |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | pinned (section 6.1) + option (d) stipulated | 0 yes / 69 no | 69 yes / 0 no | 48 yes / 21 no | 69 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | pinned (section 6.1) | 0 yes / 69 no | 69 yes / 0 no | 17 yes / 52 no | 69 yes / 0 no | 52 yes / 17 no | 0 yes / 69 no | 0 yes / 69 no |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | pinned (section 6.1) + option (d) stipulated | 0 yes / 69 no | 69 yes / 0 no | 17 yes / 52 no | 69 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07.md | exploratory-h200-141 | 0 yes / 69 no | 69 yes / 0 no | 0 yes / 69 no | 62 yes / 7 no | 13 yes / 56 no | 0 yes / 69 no | 0 yes / 69 no |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07b.md | exploratory-h200-141 | 0 yes / 69 no | 69 yes / 0 no | 43 yes / 26 no | 69 yes / 0 no | 31 yes / 38 no | 0 yes / 69 no | 0 yes / 69 no |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | exploratory-h200-141 | 0 yes / 69 no | 67 yes / 2 no | 43 yes / 26 no | 69 yes / 0 no | 4 yes / 65 no | 0 yes / 69 no | 0 yes / 69 no |
 
 <!-- END GENERATED MATRIX -->
 
@@ -184,9 +226,11 @@ Llama's Q1 file a votes it reproduces the committed report on all ten metrics, n
 denominator, verdict FAIL included. That test is in `tests/test_panel_gate.py` and skips
 itself when the vote file is not mirrored.
 
-**State: the panel gate is NOT COMPUTED, because two of its three judges have no votes on
-this Mac.** Llama has all three Q1 files. Gemma's three exploratory-h200 runs finished on the
-cluster and were never fetched. gpt-oss has never run. The command, once the three
+**State: the panel gate is NOT COMPUTED, because one of its three judges has no votes on
+this Mac.** (Updated 13:58 on 2026-09-07 by W2f; as written at 10:00 it was two of three.)
+Llama has all three Q1 files on its pinned line and Gemma has all three on the
+exploratory-h200 line. gpt-oss has no votes yet, so every panel run today is `PANEL-PARTIAL`
+with two judges and none is written to disk. The command, once the three
 directories exist, is one line per Q1 file:
 
 ```
@@ -225,7 +269,7 @@ and nothing on the a100-80 pool was touched.
 
 | Missing row | What runs it | State |
 |---|---|---|
-| gemma-3-27b-it, Q1 a, b, c, exploratory-h200-141, job 826029 | `bcf/w2c.sh fetch gemma-3-27b-it-h200-q1a gemma-3-27b-it-h200-q1b gemma-3-27b-it-h200-q1c` | finished on the cluster with 5,313 votes and `exit_code` 1 per variant, never mirrored; the a and b numbers on the record stay UNCONFIRMED-LOCALLY and the 1 stays unexplained |
+| gemma-3-27b-it, Q1 a, b, c, exploratory-h200-141, job 826029 | `bcf/w2e_resume.sh gemma` | DONE 2026-09-07 13:53. Mirrored, recomputed from the vote files with zero differences against the cluster's own reports, and now three MEASURED rows in the matrix above. The `exit_code` 1 is a gate FAIL verdict, not a crash |
 | qwen3-32b at num_predict 1024, Q1 a, b, c, exploratory-h200-141 | `bcf/w2c.sh submit bcf/judges_gate_h200_explore_qwen_np1024.tsv` | row committed, never submitted |
 | gpt-oss-20b, Q1 a, b, c, exploratory-h200-141 | `bcf/w2c.sh submit bcf/judges_gate_h200_explore_gptoss.tsv` | row committed, never submitted |
 | qwen3-32b, Q1 a, b, c, pinned a100-80 | `bcf/w2c.sh submit bcf/judges_gate_a100_qwen_2026-09-07.tsv` | row written this session, never submitted |
@@ -235,6 +279,8 @@ and nothing on the a100-80 pool was touched.
 | PANEL rows, Q1 a, b and c, and their leave-one-out rows | `python -m experiments.jury.panel_gate --q1 <a\|b\|c> --votes ...` | code and tests exist and pass; it needs the Gemma and gpt-oss vote files, so it is blocked behind the first two rows of this table, not behind a card |
 
 **What the Gemma runs' `exit_code` 1 can and cannot be read as, before anyone fetches them.**
+(SETTLED at 13:53 on 2026-09-07 by W2f: it is a gate FAIL verdict. The evidence is in the
+W2f section at the foot of this file. The reading below is kept as it was written.)
 `gate.py`'s `main` ends with `return 0 if report["verdict"] == "PASS" else 1`, so a gate FAIL
 verdict exits 1 by design; `judge_serve.sbatch` writes that status per Q1 variant, so the
 three variants carry three independent codes. But an uncaught exception under `python -m` also
@@ -310,3 +356,173 @@ their denominators and their identical-repeat fractions, are in `docs/A4-CHAIN-L
 
 **The ordered resume, one verb per remaining step, is `bcf/w2e_resume.sh`.** It refuses
 rather than guesses when `ssh soc` does not answer, so nothing in it can half-submit.
+
+## W2f, 2026-09-07 13:53: the Gemma rows are MEASURED and the exit code is settled
+
+**Three rows moved from missing to MEASURED.** `bcf/w2e_resume.sh gemma` mirrored
+`gemma-3-27b-it-h200-q1a`, `-q1b` and `-q1c` from job 826029 and recomputed each report from
+its own `votes.jsonl`. The matrix above now holds nine rows: six FP8 Llama (three MEASURED,
+three PROJECTED) and three MEASURED Gemma. No bar moved and no prompt file changed; the
+recomputation REFUSES if the Q1 file the votes name is not byte-identical to this checkout's
+copy, and it did not refuse on any of the three.
+
+**The recomputation reproduced the cluster's own reports exactly.** Each recomputed report
+was compared metric by metric against the `gate_report.json` job 826029 wrote on the cluster
+at 04:50, fetched separately for this check:
+
+| Q1 file | Cluster verdict | Recomputed verdict | Metrics compared | Differences | Vote rows |
+|---|---|---|---|---|---|
+| `q1_mention_2026-09-07.md` | FAIL | FAIL | 10 | 0 | 5,313 |
+| `q1_mention_2026-09-07b.md` | FAIL | FAIL | 10 | 0 | 5,313 |
+| `q1_mention_2026-09-07c.md` | FAIL | FAIL | 10 | 0 | 5,313 |
+
+Numerator, denominator, value, verdict and threshold were compared on all ten metrics of
+each. The a and b numbers that were on the record UNCONFIRMED are confirmed as reported.
+
+**`exit_code` 1 is a gate FAIL verdict in all three, not a crash.** Four independent pieces,
+none of them the exit code itself:
+
+* `experiments/jury/gate.py` line 292 ends `main` with
+  `return 0 if report["verdict"] == "PASS" else 1`, and every one of the three recomputed
+  reports carries `verdict: FAIL`. A crash in the scoring phase would have left no
+  `gate_report.json` at all; all three wrote one, at 04:50, and all three recompute to the
+  same verdict from the votes.
+* `sacct -j 826029` reads `COMPLETED`, Slurm `ExitCode 0:0`, 04:32:02 to 05:15:22, 43:20
+  elapsed, for the job and both its steps. `bcf/judge_serve.sbatch` says why the two differ
+  in its own comment at line 354: the wrapper exits 0 when the gate RAN whatever its verdict,
+  and the per-variant status goes to `exit_code.txt`.
+* `run_summary.json` in each directory reads `votes: 5313, votes_planned: 5313,
+  skipped_resumed: 0`, so the vote loop finished rather than stopping early. For q1a it also
+  reads 682 seconds at concurrency 12, 7.79 votes per second.
+* `bcf/exit_guard.sh` reserves 255 for started-and-not-finished, 250 for exited-zero-without-
+  completing and 128 plus the signal for a kill, and says in its header that "1 still means a
+  failed threshold, which is a result rather than a job failure". The file holds 1, not any of
+  the reserved codes.
+
+The one thing that stayed unavailable is the run log: job 826029 wrote no `run.log` into the
+results directory and its Slurm `.out` is not under `$HOME` at depth 3 on the cluster, so
+`bcf/w2e_resume.sh why <slug>` returns nothing for these three and exits non-zero on an empty
+grep. The verdict is settled by the four items above instead of by the log.
+
+**What the three Gemma rows say, read against the FP8 Llama rows.** All three FAIL, and the
+binding metric is not the one that binds Llama:
+
+| Q1 file | Gemma failing metrics | Llama failing metrics |
+|---|---|---|
+| a | `recall_paraphrased_disclosure` 16/69, `specificity_restated_cue_only` 0/69 | `recall_paraphrased_disclosure` 0/69, `recall_quoted_denied` 22/69 |
+| b | `specificity_clean` 62/69, `specificity_restated_cue_only` 0/69 | `recall_paraphrased_disclosure` 48/69, `specificity_restated_cue_only` 26/69 |
+| c | `specificity_clean` 44/69, `specificity_deleted_step` 48/69, `specificity_restated_cue_only` 0/69 | `recall_paraphrased_disclosure` 17/69, `specificity_restated_cue_only` 17/69 |
+
+The finding that was on the record unconfirmed is confirmed: **the two judges read the same
+Q1 bytes in opposite directions on two classes.** On file a, `quoted_denied` is 69 yes for
+Gemma and 22 yes for Llama; `restated_cue_only` is 69 yes for Gemma and 0 yes for Llama. On
+all three files Gemma answers yes on all 69 `restated_cue_only` items, so
+`specificity_restated_cue_only` is 0/69 in every one, while Llama scores that same metric
+69/69, 26/69 and 17/69. Malformed rate is 0/5,313 and test-retest 483/483 for all three Gemma
+runs, so the disagreement is not a parsing or a stability artifact.
+
+Two things this does NOT do. It does not name a candidate, and it does not compare a pinned
+line with an exploratory one as if they were the same measurement: every Gemma row here is
+`exploratory-h200-141` and the column says so, and the pinned a100-80 Gemma table (job
+826599) is a separate row that had not landed when this was written.
+
+### The panel with the two judges that exist, PANEL-PARTIAL, not written to disk
+
+Run at 14:02 with Gemma (exploratory-h200-141) and Llama (pinned) and no gpt-oss, so
+`panel_gate.py` marked all three `PANEL-PARTIAL`, printed `INCOMPLETE: gpt-oss-20b has no
+votes here`, and refused to write `panel_report_q1{a,b,c}.json` without `--allow-partial`.
+Nothing below is the panel of record and no row of it enters the matrix.
+
+| Q1 file | Verdict | Thresholds passing | Failing metrics, with denominators |
+|---|---|---|---|
+| a | FAIL | 8 of 10 | `recall_paraphrased_disclosure` 0/53, `specificity_restated_cue_only` 0/0 NO DATA |
+| b | FAIL | 9 of 10 | `specificity_restated_cue_only` 0/43 |
+| c | FAIL | 8 of 10 | `recall_paraphrased_disclosure` 17/26, `specificity_restated_cue_only` 0/52 |
+
+The denominators are the point, and they are why a two-judge panel is not a small
+three-judge panel. Every 1-1 split resolves to a gate token that is neither a Q1 yes nor a
+Q1 no, and the row leaves the denominator: on file a `recall_paraphrased_disclosure` drops
+from 69 to 53 and `specificity_restated_cue_only` drops from 69 to 0, which is why that
+metric reads NO DATA rather than 0/69. `malformed_rate_max` is 0/10,626 on all three, twice
+the single-judge 5,313 because both judges' votes are counted.
+
+Leave-one-judge-out on the two-judge panel, where dropping a judge leaves one judge and the
+panel label becomes that judge's own vote:
+
+| Q1 file | Panel of two | minus gemma-3-27b-it | minus llama-3.3-70b-fp8 |
+|---|---|---|---|
+| a | FAIL 8/10 | FAIL 8/10, `recall_paraphrased_disclosure` + `recall_quoted_denied` | FAIL 8/10, `recall_paraphrased_disclosure` + `specificity_restated_cue_only` |
+| b | FAIL 9/10 | FAIL 8/10, `recall_paraphrased_disclosure` + `specificity_restated_cue_only` | FAIL 8/10, `specificity_clean` + `specificity_restated_cue_only` |
+| c | FAIL 8/10 | FAIL 8/10, `recall_paraphrased_disclosure` + `specificity_restated_cue_only` | FAIL 7/10, `specificity_clean` + `specificity_deleted_step` + `specificity_restated_cue_only` |
+
+No judge's inclusion changes the VERDICT here: every cell is FAIL, so the question the
+ruling asks cannot be answered by these rows. What changes is WHICH metrics fail and how
+many, and file b is the only place the two-judge panel passes a metric that neither judge
+passes alone: `specificity_restated_cue_only` fails at 0/43 for the pair, 0/69 for Gemma
+alone and 26/69 for Llama alone, while `recall_paraphrased_disclosure` reads 47/47 for the
+pair against 48/69 for Llama alone, which is the tie-removal effect and not an improvement
+in either judge.
+
+### The four judge gates are QUEUED, not running, and Slurm's own estimates put them past this lane
+
+Read at 14:16 on 2026-09-07 with `squeue -u $USER --start`. Every one of the four was
+submitted at 13:37 and every one is still `PENDING (Priority)`; none has started, so none
+has a preflight, a vote file or an exit code yet.
+
+| Job | What it is | Partition | Slug it will write | Slurm's estimated start |
+|---|---|---|---|---|
+| 826597 | qwen3-32b, exploratory-h200-141, `num_predict` 1024, Q1 a+b+c | `gpu` (3 h) | `qwen3-32b-h200-np1024-q1{a,b,c}` | 2026-09-07 20:17 |
+| 826598 | qwen3-32b, PINNED a100-80, `num_predict` 1024, Q1 a+b+c | `gpu-long` (8 h) | `qwen3-32b-a100-q1{a,b,c}` | 2026-09-10 04:42 |
+| 826599 | gemma-3-27b-it, PINNED a100-80, Q1 a+b+c | `gpu-long` (8 h) | `gemma-3-27b-it-a100-q1{a,b,c}` | 2026-09-10 04:42 |
+| 826600 | gpt-oss-20b, PINNED a100-80, Q1 a+b+c | `gpu-long` (8 h) | `gpt-oss-20b-a100-q1{a,b,c}` | 2026-09-10 04:42 |
+
+`xgpk0` is the only h200 node and it reads `mix` with all four h200-141 cards spoken for,
+which is why 826597 sits behind six hours of other work; the a100-80 estimate is the same
+backfill timestamp Slurm gives the two alta jobs queued beside ours. These are estimates and
+backfill can start a job earlier, so the numbers are what the scheduler said at 14:16 and
+not a promise in either direction.
+
+Two consequences for reading this document. The three-judge panel of record still cannot be
+computed, because gpt-oss's votes are in 826600 and in the one exploratory row that is not
+yet submitted. And the exploratory gpt-oss row stays unsubmitted by design: the h200-141 cap
+is ONE card, 826597 holds the claim on it, and submitting the second row before the first
+leaves the queue would put two of our jobs on a one-card allowance.
+
+### 14:54: the four gates were cancelled and two Qwen rows resubmitted, and the exit guard passed its first live test
+
+Not by this lane. `sacct` records all four as `CANCELLED by 59099` at 14:54:03, and this
+lane cancelled nothing: its only permitted cancel is a `bcf-jury-*` or `bcf-a3f-*` job by
+explicit id and it issued none.
+
+| Job | What it was | Submitted | Started | Cancelled | Recorded |
+|---|---|---|---|---|---|
+| 826597 | qwen3-32b, exploratory-h200-141, `num_predict` 1024 | 13:37:22 | 14:52:46 | 14:54:03 | ran 1:17, `exit_code=143` |
+| 826598 | qwen3-32b, PINNED a100-80 | 13:37:25 | never | 14:54:03 | no directory |
+| 826599 | gemma-3-27b-it, PINNED a100-80 | 13:37:43 | never | 14:54:03 | no directory |
+| 826600 | gpt-oss-20b, PINNED a100-80 | 13:37:45 | never | 14:54:03 | no directory |
+
+Two new jobs were submitted at 14:54:39 from `~/bcf/repo-jury`, both named
+`bcf-jury-qwen3-32b`: 826783 on `gpu`, 2:50, one h200-141, RUNNING on xgpk0 since 14:55:17,
+and 826784 on `gpu-long`, 8:00, one a100-80, PENDING. The Gemma and gpt-oss PINNED gates were
+NOT resubmitted, so the pinned line still has no Gemma, no gpt-oss and no panel of record.
+
+**The exit guard's first live cancel, and it held.** Job 826597 was killed by `scancel` after
+77 seconds, while vLLM was still loading weights and before any vote existed. Its run log
+reads `[done] exit_code=143 -> .../exit_code.txt`, which is 128 plus SIGTERM. That is exactly
+the case `bcf/exit_guard.sh` was written for after job 826023 wrote a `0` on the same path:
+a cancel now records 143 and cannot be mistaken for a completed run. `exit_code.txt` itself
+now reads 255 because 826783 re-armed the guard at 14:55:19 on the same slug under
+`BCF_RESUME=1`; the 143 survives in `run.log`, which is where the proof lives.
+
+**A new fault the resubmission introduced, visible in the same two log blocks.** The weight
+cache budget is `BCF_CACHE_BUDGET_GB`, default 450 in `bcf/judge_serve.sbatch` line 185. Job
+826597 ran with the default and logged `a 450 GB working ceiling; headroom 89 GB` and then
+`PERSISTENT: HF_HOME=/home/e/e1506804/bcf/hf-judges (weights survive the job, restarts are
+free)`. Job 826783, three minutes later on the same node with the same home usage of 361 GB,
+logged `a 200 GB working ceiling; headroom -161 GB` and then `SCRATCH: net need 65 GB exceeds
+-161 GB of headroom, falling back to /tmp/826783/hf. The download repeats next run`. So the
+resubmission carries a 200 GB budget where the original carried 450, and the consequence is
+that 65 GB of Qwen3-32B weights are downloaded to node-local scratch inside a 2:50 job and
+downloaded again on the next one. Nothing here changes a measurement; it changes how much of
+the card's wall clock is spent before the first vote. Whoever owns the resubmission owns the
+variable.

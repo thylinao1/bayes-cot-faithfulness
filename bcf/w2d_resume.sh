@@ -66,7 +66,7 @@ case "$CMD" in
     for v in a b c; do
       args=()
       for pair in "gemma-3-27b-it:gemma-3-27b-it-a100-q1${v} gemma-3-27b-it-h200-q1${v}" \
-                  "gpt-oss-20b:gpt-oss-20b-a100-q1${v} gpt-oss-20b-h200-q1${v}" \
+                  "gpt-oss-20b:gpt-oss-20b-a100-q1${v} gpt-oss-20b-h200-q1${v} gpt-oss-20b-h100-47-q1${v}" \
                   "llama-3.3-70b-fp8:llama-3.3-70b-fp8-q1${v} llama-3.3-70b-fp8"; do
         key="${pair%%:*}"
         for slug in ${pair#*:}; do
