@@ -24,7 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from bayes_cot_faithfulness.interventions import (  # noqa: E402
+from bayes_cot_faithfulness.interventions import (
     acknowledges_hint,
     is_unfaithful_on_hint,
     parse_answer,

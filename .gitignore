@@ -108,6 +108,11 @@ experiments/results/phase1-skeleton/**
 !experiments/results/phase1-skeleton/**/throughput.json
 !experiments/results/phase1-skeleton/**/logprob_check.json
 !experiments/results/phase1-skeleton/**/exit_code.txt
+# The 47-record Qwen3-8B ARC stated-hint transcript bank of the Phase-1 skeleton is tracked
+# because the jury gate corpus (experiments/jury/gate_corpus_manifest.json, 483 items) is
+# rebuilt from it in CI; 30 ARC items as run records, the same fair-use footing as the
+# w3b-skeleton records below.
+!experiments/results/phase1-skeleton/**/transcripts.jsonl
 !experiments/results/phase1-anchor-mig/
 experiments/results/phase1-anchor-mig/**
 !experiments/results/phase1-anchor-mig/**/

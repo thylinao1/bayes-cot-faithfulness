@@ -231,7 +231,7 @@ def draw_all_judge_subsample(
     unique = sorted(set(item_ids))
     if len(unique) != len(item_ids):
         raise ValueError("item_ids contains duplicates; the subsample frame must be a set")
-    n_draw = int(round(fraction * len(unique)))
+    n_draw = round(fraction * len(unique))
     ranked = sorted(unique, key=lambda i: _rank_key(seed, stratum, i))
     return tuple(sorted(ranked[:n_draw]))
 

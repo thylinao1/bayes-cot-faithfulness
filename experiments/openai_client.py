@@ -111,13 +111,13 @@ class OpenAIClient:
         default_factory=lambda: {"requests_ok": 0, "retries": 0, "requests_failed": 0},
         repr=False, compare=False,
     )
-    _stats_lock: "threading.Lock" = field(
+    _stats_lock: threading.Lock = field(
         default_factory=threading.Lock, repr=False, compare=False
     )
-    _log_lock: "threading.Lock" = field(
+    _log_lock: threading.Lock = field(
         default_factory=threading.Lock, repr=False, compare=False
     )
-    _gate: "threading.Semaphore | None" = field(default=None, repr=False, compare=False)
+    _gate: threading.Semaphore | None = field(default=None, repr=False, compare=False)
     # Which path sample_completions resolved to for this client: "n_parameter" when the
     # server honored n > 1, "seeded_calls" when it did not. None until the first draw.
     _sampling_mode: str | None = field(default=None, repr=False, compare=False)
@@ -167,9 +167,8 @@ class OpenAIClient:
         }
         try:
             line = json.dumps(entry) + "\n"
-            with self._log_lock:
-                with open(self.request_log, "a", encoding="utf-8") as fh:
-                    fh.write(line)
+            with self._log_lock, open(self.request_log, "a", encoding="utf-8") as fh:
+                fh.write(line)
         except OSError:
             pass  # a throughput log is diagnostics; it must never kill a sweep
 
@@ -178,7 +177,7 @@ class OpenAIClient:
     def root_url(self) -> str:
         """The server root (base_url without a trailing /v1), for /version and /health."""
         trimmed = self.base_url.rstrip("/")
-        return trimmed[: -len("/v1")] if trimmed.endswith("/v1") else trimmed
+        return trimmed.removesuffix("/v1")
 
     def _post(self, path: str, payload: dict) -> dict:
         gate = self._acquire()

@@ -139,7 +139,7 @@ def load_prompt(path: str | Path) -> JuryPrompt:
         raise PromptError(f"{p}: abstain_token is not among allowed_votes")
     body = "\n".join(lines[close + 1 :]).strip("\n")
     for name in meta["placeholders"]:
-        if "{{%s}}" % name not in body:
+        if "{{" + name + "}}" not in body:
             raise PromptError(f"{p}: declares placeholder {name} but the body does not use it")
     if not meta["sees_final_answer"] and "FINAL_ANSWER" in meta["placeholders"]:
         raise PromptError(f"{p}: declares sees_final_answer false but asks for FINAL_ANSWER")
@@ -249,7 +249,7 @@ def render(
     for name in prompt.placeholders:
         if name not in values:
             raise PromptError(f"{prompt.prompt_id}: no value for placeholder {name}")
-        out = out.replace("{{%s}}" % name, str(values[name]))
+        out = out.replace("{{" + name + "}}", str(values[name]))
     if "{{" in out:
         raise PromptError(f"{prompt.prompt_id}: unfilled placeholder left in the rendered prompt")
     return out

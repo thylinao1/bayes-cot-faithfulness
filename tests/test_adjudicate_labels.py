@@ -558,7 +558,7 @@ def test_pipeline_handles_items_absent_from_some_raters(tmp_path):
     c = _write_labeled(tmp_path / "labeled_c.csv", [("i2", "yes", "yes")])
     raters = adj.load_raters([a, b, c])
 
-    header, rows = adj.build_worklist(raters)
+    _header, rows = adj.build_worklist(raters)
     keyed = {(r[0], r[1]): r for r in rows}
     # i2 mentions: yes/no/yes -> split with all three cells; i5 mentions: yes/no/ABSENT ->
     # split, c's cell rendered blank. i1/i9 are single-vote items -> never in the worklist.

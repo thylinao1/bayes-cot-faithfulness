@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
-from openai_client import (  # noqa: E402
+from openai_client import (
     OpenAIClient,
     OpenAIClientError,
     _read_letter_from_prompt_logprobs,
@@ -49,7 +49,7 @@ def _make_handler(state: FakeServerState):
             self.end_headers()
             self.wfile.write(payload)
 
-        def do_GET(self):  # noqa: N802 - http.server API
+        def do_GET(self):  # http.server API, hence the uppercase name
             if self.path.endswith("/models"):
                 if not state.models_ok:
                     self._send(503, {"error": "not ready"})
@@ -61,7 +61,7 @@ def _make_handler(state: FakeServerState):
                 return
             self._send(404, {"error": "no"})
 
-        def do_POST(self):  # noqa: N802 - http.server API
+        def do_POST(self):  # http.server API, hence the uppercase name
             length = int(self.headers.get("Content-Length", 0))
             state.requests.append(json.loads(self.rfile.read(length) or b"{}"))
             if state.status != 200:
@@ -99,7 +99,7 @@ def _prompt_logprob_response(tokens: list[tuple[str, float]]) -> dict:
 
 # --- availability and metadata ---
 def test_is_available_true_when_models_endpoint_answers(fake_server):
-    state, base = fake_server
+    _state, base = fake_server
     assert OpenAIClient(base_url=base, model="m").is_available() is True
 
 
@@ -115,7 +115,7 @@ def test_is_available_false_when_nothing_is_listening():
 
 
 def test_server_version_reads_root_version_endpoint(fake_server):
-    state, base = fake_server
+    _state, base = fake_server
     assert OpenAIClient(base_url=base, model="m").server_version() == "0.11.0"
 
 
@@ -306,7 +306,7 @@ def test_pinned_prompt_logprobs_mode_never_falls_back(fake_server):
 
 # --- the runner wiring ---
 def test_08_runner_builds_an_openai_client_for_the_openai_backend(fake_server):
-    state, base = fake_server
+    _state, base = fake_server
     import importlib.util
 
     path = Path(__file__).resolve().parents[1] / "experiments" / "08_additive_arms.py"

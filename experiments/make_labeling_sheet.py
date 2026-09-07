@@ -31,7 +31,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from labeling_columns import (  # noqa: E402
+from labeling_columns import (
     ANNOTATOR_COLS,
     BAIT,
     CORRECT,

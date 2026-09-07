@@ -199,7 +199,7 @@ def build_hierarchical_model(
     covariate_names: list[str] | None = None,
     hint_type: np.ndarray | None = None,
     intercepts: bool = True,
-) -> "pm.Model":
+) -> pm.Model:
     """Construct the (optionally extended) mediation model without sampling.
     Factored out of ``fit_hierarchical_mediation`` so the graph can be inspected in
     fast tests. ``covariates`` must be standardized by the CALLER (shape
@@ -304,7 +304,7 @@ def fit_hierarchical_mediation(
     covariate_names: list[str] | None = None,
     hint_type: np.ndarray | None = None,
     intercepts: bool = True,
-) -> "az.InferenceData":
+) -> az.InferenceData:
     """Fit the partially-pooled mediation model with a non-centred parameterisation.
 
     Pass ``cores=1`` for fully deterministic, in-process sampling (chains run
@@ -329,15 +329,15 @@ def fit_hierarchical_mediation(
     )
 
     with model:
-        sample_kwargs = dict(
-            draws=n_samples,
-            tune=n_tune,
-            chains=n_chains,
-            target_accept=target_accept,
-            random_seed=random_seed,
-            progressbar=progressbar,
-            return_inferencedata=True,
-        )
+        sample_kwargs = {
+            "draws": n_samples,
+            "tune": n_tune,
+            "chains": n_chains,
+            "target_accept": target_accept,
+            "random_seed": random_seed,
+            "progressbar": progressbar,
+            "return_inferencedata": True,
+        }
         if cores is not None:
             sample_kwargs["cores"] = cores
         trace = pm.sample(**sample_kwargs)

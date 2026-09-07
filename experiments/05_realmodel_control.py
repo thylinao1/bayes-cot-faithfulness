@@ -31,11 +31,11 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # local sibling clients
-from groq_client import GroqClient  # noqa: E402
-from ollama_client import OllamaClient  # noqa: E402
-from openai_client import OpenAIClient, openai_setup_message  # noqa: E402
+from groq_client import GroqClient
+from ollama_client import OllamaClient
+from openai_client import OpenAIClient, openai_setup_message
 
-from bayes_cot_faithfulness.interventions import (  # noqa: E402
+from bayes_cot_faithfulness.interventions import (
     QAItem,
     acknowledges_hint,
     biased_fewshot_prompt,
@@ -48,7 +48,7 @@ from bayes_cot_faithfulness.interventions import (  # noqa: E402
     split_steps,
     truncate_cot,
 )
-from bayes_cot_faithfulness.sensitivity import breakdown_frontier  # noqa: E402
+from bayes_cot_faithfulness.sensitivity import breakdown_frontier
 
 HERE = Path(__file__).resolve().parent
 
@@ -147,7 +147,7 @@ def fail_message(backend: str, model: str, err: Exception) -> str:
     return slow_message(model)
 
 
-def safe_generate(client: "OllamaClient | GroqClient", prompt: str,
+def safe_generate(client: OllamaClient | GroqClient, prompt: str,
                   num_predict: int) -> tuple[str, Exception | None]:
     """Generate, returning ('', exc) on any failure (timeout, server/API error).
 
@@ -160,7 +160,7 @@ def safe_generate(client: "OllamaClient | GroqClient", prompt: str,
         return "", exc
 
 
-def parse_or_force(client: "OllamaClient | GroqClient", item: QAItem, text: str,
+def parse_or_force(client: OllamaClient | GroqClient, item: QAItem, text: str,
                    n_choices: int) -> str | None:
     """Parse the final answer; if the generation gave none (often truncation), force one.
 
@@ -355,7 +355,7 @@ def run(model: str, host: str, n_items: int, data_path: Path, out_dir: Path,
             print(f"      mediator = {mlabel}; NIE at rho=0: {bf.effect_at_zero:+.3f}   "
                   f"breakdown rho* = {bf.robustness:.3f}"
                   + ("" if not bf.survives_full_range else " (survives full range)"))
-        except Exception as exc:  # pragma: no cover - small-sample guard
+        except Exception as exc:  # pragma: no cover - small-sample guard  # noqa: BLE001
             print(f"      (mediation skipped: {exc})")
     else:
         print("      (mediation skipped: outcome/arm/mediator not varied enough here)")

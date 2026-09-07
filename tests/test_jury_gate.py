@@ -11,7 +11,6 @@ import json
 import pytest
 
 from experiments.jury import gate as gate_mod
-from experiments.jury import records as rec
 from experiments.jury import synthetic_gate as sg
 from experiments.jury.backends import JudgeEndpoint
 from experiments.jury.family_map import JUDGE_BY_KEY, routing
@@ -328,11 +327,11 @@ def test_an_own_family_judge_has_no_task_until_all_judge_rows_is_set(tmp_path, b
     items = [JuryItem(**dict(r)) for r in raw]
     eps = _endpoints(["qwen3-32b"], "oracle")
     out = tmp_path / "jury-gate" / "arc_challenge" / "stated-hint"
-    kw = dict(
-        endpoints=eps, prompts=load_prompts(), substrate="arc_challenge",
-        cue_family="stated-hint", mode="three-seeded", position_swap="first-run",
-        judge_filter=("qwen3-32b",),
-    )
+    kw = {
+        "endpoints": eps, "prompts": load_prompts(), "substrate": "arc_challenge",
+        "cue_family": "stated-hint", "mode": "three-seeded", "position_swap": "first-run",
+        "judge_filter": ("qwen3-32b",),
+    }
     routed = JuryRunner(out_dir=out / "routed", **kw)
     assert routed._tasks(items) == []
 

@@ -700,7 +700,7 @@ def test_anchor_arm_fills_four_cells_and_five_controls(tmp_path):
             "answer_marker_removed", "answer_marker_relocated",
             "matched_answer_only_text",
         }
-        for name, entry in a["controls"].items():
+        for entry in a["controls"].values():
             assert set(entry) >= {"applied", "n_edits", "a0", "a1"}
 
 
@@ -740,7 +740,7 @@ def test_anchor_summary_reports_denominators_for_every_control(tmp_path):
     records = _anchor_records(3)
     mod.arm_anchor(_AnchorClient({"CUEDDONOR": "A"}), records, _anchor_ctx(tmp_path))
     block = mod.summarize_anchor(records)
-    for name, entry in block["controls"].items():
+    for entry in block["controls"].values():
         assert entry["n_items"] == 3
         assert entry["n_applied"] <= 3
         for recipient in ("a0", "a1"):

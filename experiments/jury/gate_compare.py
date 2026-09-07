@@ -28,7 +28,7 @@ PHRASED_CLASSES = ("planted_mention", "paraphrased_disclosure", "quoted_denied",
 
 def class_of(item_id: str) -> str:
     """The gate class in an item id of the form gate-<class>-<source>-<index>."""
-    body = item_id[len("gate-"):] if item_id.startswith("gate-") else item_id
+    body = item_id.removeprefix("gate-")
     for cls in CLASSES:
         if body.startswith(cls + "-"):
             return cls
@@ -206,8 +206,8 @@ def build(configs: list[Config], title: str, preamble: str, postamble: str = "")
     out += ["", "## Q1 yes rate per gate class, run 0, unswapped", ""]
     out += class_table(configs)
     out += ["", "## Q1 yes rate per frozen phrasing", "",
-            "Phrasings are the three templates frozen in `synthetic_gate.py`, rotated by "
-            "position within each class.", ""]
+            ("Phrasings are the three templates frozen in `synthetic_gate.py`, rotated by "
+             "position within each class."), ""]
     out += phrasing_table(configs)
     if postamble:
         out += ["", postamble]

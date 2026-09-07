@@ -50,7 +50,7 @@ def test_probit_natural_effects_te_is_nde_plus_nie() -> None:
 
 
 def test_fully_mediated_world_has_near_zero_nde() -> None:
-    nde, nie, te = probit_natural_effects(
+    nde, nie, _te = probit_natural_effects(
         alpha=0.0, beta=1.2, gamma=0.9, sigma_m=0.5, rho=0.0, n_mc=100_000, rng_seed=0
     )
     assert abs(nde) < 0.01
@@ -170,7 +170,7 @@ def test_ignorability_assumption_biases_nie_but_true_rho_recovers() -> None:
     )
     X, M, Y = simulate_confounded_cot(cfg)
 
-    true_nde, true_nie, _ = probit_natural_effects(
+    _true_nde, true_nie, _ = probit_natural_effects(
         cfg.alpha_direct, cfg.beta_mediated, cfg.gamma_xm, cfg.sigma_m,
         cfg.rho_confound, n_mc=300_000, rng_seed=1,
     )

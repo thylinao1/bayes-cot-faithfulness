@@ -18,7 +18,6 @@ Both are counted per judge and per stratum.
 from __future__ import annotations
 
 import argparse
-import copy
 import hashlib
 import json
 import threading
@@ -39,7 +38,6 @@ from .family_map import (
 )
 from .prompt_files import (
     JuryPrompt,
-    load_default_prompts,
     load_prompts,
     q1_variant_of,
     render,
@@ -85,7 +83,7 @@ def load_items(path: str | Path) -> list[JuryItem]:
 def audit_rows(item_ids: list[str], *, seed: int, fraction: float = AUDIT_FRACTION) -> set[str]:
     """The seeded 10 percent that gets three runs in audit mode."""
     unique = sorted(set(item_ids))
-    n = int(round(fraction * len(unique)))
+    n = round(fraction * len(unique))
     ranked = sorted(unique, key=lambda i: hashlib.sha256(f"audit|{seed}|{i}".encode()).hexdigest())
     return set(ranked[:n])
 

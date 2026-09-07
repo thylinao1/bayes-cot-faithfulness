@@ -61,9 +61,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from labeling_columns import ITEM_ID, Q_MENTIONS, Q_SUPPORTS  # noqa: E402
-from score_labels import _to_bool, load_labeled  # noqa: E402,F401  (frozen-design loader; reused)
-from adjudicate_labels import (  # noqa: E402  (reuse the worklist tool's conventions)
+from adjudicate_labels import (  # reuse the worklist tool's conventions
     ADJUDICATED_COL,
     QUESTION_COL,
     QUESTIONS,
@@ -74,6 +72,8 @@ from adjudicate_labels import (  # noqa: E402  (reuse the worklist tool's conven
     load_raters,
     votes_for,
 )
+from labeling_columns import ITEM_ID, Q_MENTIONS, Q_SUPPORTS
+from score_labels import _to_bool, load_labeled  # noqa: F401  (frozen-design loader; reused)
 
 # One golden CSV column per question, reusing the exact labeling-sheet headers so the frozen
 # loader reads the output; one provenance column per question beside it.

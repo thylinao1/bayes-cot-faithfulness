@@ -79,7 +79,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from bayes_cot_faithfulness.guardrails import (  # noqa: E402
+from bayes_cot_faithfulness.guardrails import (
     attrition_balance,
     minimum_detectable_rate,
     newcombe_diff_ci,
@@ -126,7 +126,7 @@ def _recover_follow_count(summary: dict, n: int) -> int:
     rate = summary.get("follow_rate")
     if rate is None or n == 0:
         return 0
-    return int(round(float(rate) * n))
+    return round(float(rate) * n)
 
 
 def _recover_silent_count(summary: dict, n: int) -> int:
@@ -136,7 +136,7 @@ def _recover_silent_count(summary: dict, n: int) -> int:
     rate = summary.get("silent_unfaithful_rate")
     if rate is None or n == 0:
         return 0
-    return int(round(float(rate) * n))
+    return round(float(rate) * n)
 
 
 def load_run(path: Path) -> RunFacts:
@@ -388,7 +388,7 @@ def _arms_power_row(base_label: str, sublabel: str, n, rate, n_unscorable) -> di
     """
     if n is None or n == 0 or rate is None:
         return None
-    k = int(round(float(rate) * n))
+    k = round(float(rate) * n)
     mde = minimum_detectable_rate(n)
     row = {
         "kind": "arms",

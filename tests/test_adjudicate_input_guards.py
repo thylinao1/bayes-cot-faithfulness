@@ -39,7 +39,7 @@ adjudicate = _load("adjudicate_labels_guards_under_test", "adjudicate_labels.py"
 assemble = _load("assemble_golden_labels_for_guards", "assemble_golden_labels.py")
 
 sys.path.insert(0, str(REPO / "experiments"))
-from labeling_columns import ITEM_ID, Q_MENTIONS, Q_SUPPORTS  # noqa: E402
+from labeling_columns import ITEM_ID, Q_MENTIONS, Q_SUPPORTS
 
 
 def _write_labeled(path: Path, rows: list[tuple[str, str, str]]) -> Path:
@@ -148,7 +148,7 @@ def test_padding_row_never_mints_a_phantom_item(tmp_path, monkeypatch, capsys):
 
 def test_golden_output_passed_as_rater_input_refused(tmp_path):
     p = tmp_path / "labeled_ann.csv"
-    source_col = list(assemble.SOURCE_COL.values())[0]
+    source_col = next(iter(assemble.SOURCE_COL.values()))
     p.write_text(
         f"{ITEM_ID},{Q_MENTIONS},{Q_SUPPORTS},{source_col}\ni1,yes,no,unanimous\n",
         encoding="utf-8",

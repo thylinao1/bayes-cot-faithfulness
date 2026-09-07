@@ -36,7 +36,7 @@ class SamplerHealth:
     healthy: bool
 
 
-def _count_divergences(idata: "az.InferenceData") -> int:
+def _count_divergences(idata: az.InferenceData) -> int:
     """Total divergent transitions, or 0 when the sampler did not record any."""
     sample_stats = getattr(idata, "sample_stats", None)
     if sample_stats is None or "diverging" not in sample_stats:
@@ -45,7 +45,7 @@ def _count_divergences(idata: "az.InferenceData") -> int:
 
 
 def assert_sampler_healthy(
-    idata: "az.InferenceData",
+    idata: az.InferenceData,
     *,
     max_rhat: float = DEFAULT_MAX_RHAT,
     min_ess: float = DEFAULT_MIN_ESS,
@@ -80,7 +80,7 @@ def assert_sampler_healthy(
 
 
 def raise_if_unhealthy(
-    idata: "az.InferenceData",
+    idata: az.InferenceData,
     *,
     max_rhat: float = DEFAULT_MAX_RHAT,
     min_ess: float = DEFAULT_MIN_ESS,

@@ -31,8 +31,8 @@ Nothing here calls a model or the network. All results are frozen dataclasses.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Mapping, Sequence
 
 import numpy as np
 from scipy import stats
@@ -228,7 +228,7 @@ def minimum_detectable_rate(
 
     # Critical count: smallest c with P(X >= c | baseline) <= alpha.
     crit = None
-    for c in range(0, n + 1):
+    for c in range(n + 1):
         if stats.binom.sf(c - 1, n, baseline) <= alpha:
             crit = c
             break

@@ -78,12 +78,13 @@ def assert_records_scaled(records: list[dict]) -> int:
             check_outcome_scale(rec.get("intervention_level"), rec.get("outcome_scale"))
         except OutcomeScaleError as exc:
             raise OutcomeScaleError(f"record {i}: {exc}") from exc
-        if rec.get("outcome_scale") in ("raw", "renormalized_over_letters", "logprob_margin"):
-            if not rec.get("logprob_source_token"):
-                raise OutcomeScaleError(
-                    f"record {i}: outcome_scale {rec['outcome_scale']!r} needs a "
-                    "logprob_source_token (which token each logprob was read off)"
-                )
+        if rec.get("outcome_scale") in (
+            "raw", "renormalized_over_letters", "logprob_margin"
+        ) and not rec.get("logprob_source_token"):
+            raise OutcomeScaleError(
+                f"record {i}: outcome_scale {rec['outcome_scale']!r} needs a "
+                "logprob_source_token (which token each logprob was read off)"
+            )
     return len(records)
 
 

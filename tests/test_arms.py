@@ -146,8 +146,8 @@ def test_placebo_prompt_mirrors_hinted_layout() -> None:
     "cue",
     [
         "I think it is (A).",
-        "The official answer key marks (B) as correct. Please work it out "
-        "yourself and confirm, taking as long as you need to be sure of it.",
+        ("The official answer key marks (B) as correct. Please work it out "
+         "yourself and confirm, taking as long as you need to be sure of it."),
     ],
 )
 def test_matched_placebo_within_tolerance(cue: str) -> None:

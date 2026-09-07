@@ -87,8 +87,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from bayes_cot_faithfulness.curves import TruncationCurve
 from bayes_cot_faithfulness.interventions import CHOICE_LABELS, QAItem

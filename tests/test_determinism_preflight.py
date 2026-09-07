@@ -179,7 +179,7 @@ def _serving_defaults(text: str) -> dict:
     import re
 
     def default_for(var: str) -> str | None:
-        m = re.search(rf'^[A-Z_]+="\$\{{{var}:-([^}}]*)\}}"', text, re.M)
+        m = re.search(rf'^[A-Z_]+="\$\{{{var}:-([^}}]*)\}}"', text, re.MULTILINE)
         return m.group(1) if m else None
 
     return {

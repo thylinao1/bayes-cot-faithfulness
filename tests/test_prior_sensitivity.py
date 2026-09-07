@@ -28,7 +28,7 @@ from bayes_cot_faithfulness.prior_sensitivity import (
 )
 
 # Tiny, deterministic fit so the unit tests stay in the fast suite.
-_FAST_FIT = dict(n_samples=150, n_tune=150, n_chains=2, random_seed=0)
+_FAST_FIT = {"n_samples": 150, "n_tune": 150, "n_chains": 2, "random_seed": 0}
 
 
 def _tiny_data(n_groups: int = 3, seed: int = 11):
@@ -185,7 +185,7 @@ def test_full_sweep_recovers_truth_and_is_family_robust() -> None:
         n_groups=10, mu_beta=1.2, tau_beta=0.4,
         min_per_group=60, max_per_group=120, rng_seed=21,
     )
-    group, X, M, Y, truth = simulate_hierarchical_cot(cfg)
+    group, X, M, Y, _truth = simulate_hierarchical_cot(cfg)
 
     # Act: a heavier, still-deterministic fit over the full default sweep.
     res = prior_sensitivity_sweep(

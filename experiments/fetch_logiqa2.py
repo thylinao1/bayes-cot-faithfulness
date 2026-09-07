@@ -62,7 +62,7 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
     """
     keys = [k for k, _ in pairs]
     if len(keys) != len(set(keys)):
-        raise ValueError(f"duplicate keys in row: {sorted(set(k for k in keys if keys.count(k) > 1))}")
+        raise ValueError(f"duplicate keys in row: {sorted({k for k in keys if keys.count(k) > 1})}")
     return dict(pairs)
 
 

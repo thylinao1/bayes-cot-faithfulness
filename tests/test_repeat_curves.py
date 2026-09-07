@@ -200,9 +200,9 @@ def _records(n=2):
 
 
 def _ctx(tmp_path, **kw):
-    kwargs = dict(n_choices=4, num_predict=64, out_dir=tmp_path, safe_model="fake",
-                  backend="openai", model="fake", curve_cap=6, checkpoint=None,
-                  concurrency=1)
+    kwargs = {"n_choices": 4, "num_predict": 64, "out_dir": tmp_path, "safe_model": "fake",
+              "backend": "openai", "model": "fake", "curve_cap": 6, "checkpoint": None,
+              "concurrency": 1}
     kwargs.update(kw)
     return mod.RunCtx(**kwargs)
 
