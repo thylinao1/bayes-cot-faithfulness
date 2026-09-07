@@ -1,0 +1,56 @@
+date: invalid argument 's' for -I
+=== W2d cluster reachability, captured  ===
+--- ssh soc, one attempt with a 10 s connect timeout ---
+Connection timed out during banner exchange
+Connection to UNKNOWN port 65535 timed out
+--- watcher log, one line per attempt ---
+fail 1 Mon Sep  7 09:48:32 +08 2026
+fail 2 Mon Sep  7 09:49:09 +08 2026
+fail 3 Mon Sep  7 09:49:45 +08 2026
+fail 4 Mon Sep  7 09:50:21 +08 2026
+fail 5 Mon Sep  7 09:50:57 +08 2026
+fail 6 Mon Sep  7 09:51:33 +08 2026
+fail 7 Mon Sep  7 09:52:09 +08 2026
+fail 8 Mon Sep  7 09:52:45 +08 2026
+fail 9 Mon Sep  7 09:53:21 +08 2026
+fail 10 Mon Sep  7 09:53:43 +08 2026
+fail 11 Mon Sep  7 09:54:10 +08 2026
+fail 12 Mon Sep  7 09:54:36 +08 2026
+fail 13 Mon Sep  7 09:55:12 +08 2026
+fail 14 Mon Sep  7 09:55:48 +08 2026
+fail 15 Mon Sep  7 09:56:24 +08 2026
+fail 16 Mon Sep  7 09:57:00 +08 2026
+--- default route and interfaces ---
+Routing tables
+
+Internet:
+Destination        Gateway            Flags               Netif Expire
+default            10.249.0.1         UGScg                 en0       
+10.249/16          link#12            UCSI                  en0      !
+10.249.0.1/32      link#12            UCS                   en0      !
+10.249.0.1         0:0:c:9f:f4:68     UHLWIir               en0   1191
+10.249.9.164       ac:c9:6:1c:36:98   UHLWI                 en0   1045
+10.249.10.93       d2:33:8:99:fb:3e   UHLWI                 en0   1182
+10.249.10.124      8e:2f:a4:8c:65:49  UHLWI                 en0   1099
+10.249.33.82       f8:2a:e2:55:17:ef  UHLWI                 en0   1178
+--- utun addresses ---
+utun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
+utun1: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380
+utun2: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 2000
+utun3: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1000
+utun5: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380
+utun6: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380
+--- route to xlogin ---
+   route to: 192.168.51.148
+destination: 192.168.51.148
+    gateway: 10.249.0.1
+  interface: en0
+      flags: <UP,GATEWAY,HOST,DONE,WASCLONED,IFSCOPE,IFREF,GLOBAL>
+ recvpipe  sendpipe  ssthresh  rtt,msec    rttvar  hopcount      mtu     expire
+       0         0         0         0         0         0      1500         0 
+--- tcp 22 probe ---
+nc exit=1
+--- every utun with an inet address (a Cisco tunnel shows 10.195.x here) ---
+(no line above means no tunnel interface carries an IPv4 address)
+--- 10.195/16 routes ---
+0
