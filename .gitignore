@@ -147,6 +147,15 @@ experiments/results/mechanism_battery/*
 !experiments/results/mechanism_battery/cross_checks.json
 !experiments/results/mechanism_battery/pymc_subset.json
 !experiments/results/mechanism_battery/dataset_rows.csv
+# Outcome scale demonstration (docs/OUTCOME-SCALE-NOTE.md part 3): the report, the
+# aggregated results and the per-dataset rows are all committed, because the whole
+# artifact is CPU-reproducible from one command in about eight minutes and every rate in
+# the note is recomputable from the rows.
+!experiments/results/outcome_scale_demo/
+experiments/results/outcome_scale_demo/*
+!experiments/results/outcome_scale_demo/report.md
+!experiments/results/outcome_scale_demo/results.json
+!experiments/results/outcome_scale_demo/per_dataset.json
 # The 2026-09-07 acceptance gate for the scale-aware priors (W4c): the same seeds and the
 # same datasets as the battery's own subset, run on their own so the gate has an artifact
 # of its own rather than only a line in a log. One command reproduces it:

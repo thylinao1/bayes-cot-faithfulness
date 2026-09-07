@@ -285,6 +285,208 @@ shared-cause world reads as mediation on both scales. Part 3 measures that.
 
 ---
 
+## Part 3. The synthetic demonstration, and what it actually says
+
+`experiments/outcome_scale_demo.py`, artifacts in
+`experiments/results/outcome_scale_demo/` (`results.json`, `per_dataset.json`,
+`report.md`). 100 seeded datasets per condition, 1,800 rows each, 120 bootstrap
+replicates per dataset, 95 percent intervals, 483 s wall on six worker processes
+at commit `993db658eab4`.
+
+### 3.1 The design, and the one property that makes the comparison clean
+
+The two families are the battery's own `f3_shared_cause` and
+`f4_rationalization`, imported from `experiments/mechanism_battery.py` so their
+constants cannot drift. Each family's latent index is exposed and the battery's
+own `y_of` is reconstructed as `1[index + noise > 0]`; the runner asserts that
+reconstruction row by row on 20,000 rows per family before any fit runs, and it
+passed on 20,000 of 20,000 for both.
+
+Three readouts of that one index, so a row of the table changes only how the index
+becomes an outcome:
+
+| readout | Y | clean arm | estimator |
+|---|---|---|---|
+| `binary_clean_varies` | `1[index + noise > 0]` | varies (the battery's own readout) | probit |
+| `binary_zero_clean` | `X * 1[index + noise > 0]` | identically 0 (the frozen population's shape) | probit |
+| `continuous_margin` | `index + noise` | varies, at the hinted arm's variance | Gaussian |
+
+The gate `X *` multiplies both `p10` and `p11` by 1, because both have `x = 1`, so
+**the true NIE of `binary_zero_clean` is exactly the true NIE of
+`binary_clean_varies`**: +0.0000 for f3 and +0.2833 for f4 in both columns. Only
+the true NDE and the clean arm's data content change. That is what makes the
+comparison a test of the clean-arm degeneracy and not of six unrelated worlds.
+Monte Carlo truth against hand-derived analytic truth agrees to a maximum absolute
+difference of 0.00065 across all six cells at 2,000,000 rows each.
+
+Measured clean-arm outcome variance, averaged over the 100 datasets: 0.2497 and
+0.2468 on `binary_clean_varies`, exactly 0.0000 on both `binary_zero_clean`
+conditions, and 2.0103 on `continuous_margin` against a hinted-arm 2.0013, a
+clean-to-hinted ratio of 1.004. So the continuous readout does what the question
+asked for: clean-arm variance comparable to the hinted arm's.
+
+### 3.2 Result one: the binary-zero shape does NOT bias the split
+
+On `f4_rationalization`, the family whose true residual correlation is 0 and which
+the probit SCM can represent, the frozen shape is not measurably worse than the
+control:
+
+| readout | NDE bias (MC se) | NDE coverage | NIE bias (MC se) | NIE coverage |
+|---|---|---:|---|---:|
+| `binary_clean_varies` | +0.0026 (0.0023) | 95/100 [0.887, 0.984] | +0.0004 (0.0015) | 96/100 [0.901, 0.989] |
+| `binary_zero_clean` | +0.0004 (0.0025) | 95/100 [0.887, 0.984] | -0.0007 (0.0019) | 95/100 [0.887, 0.984] |
+| `continuous_margin` | -0.0082 (0.0064) | 90/100 [0.824, 0.951] | +0.0082 (0.0057) | 92/100 [0.848, 0.965] |
+
+All three recover the split. The frozen shape's NDE bias is +0.0004 against a
+truth of +0.5556 and its NIE bias is -0.0007 against a truth of +0.2833, with
+coverage 95/100 and 95/100, whose Clopper-Pearson intervals contain 0.95 and
+overlap the control's completely. 100 of 100 fits converged in every condition.
+
+This is a correction to the intuition A4.6(b)(2) invites, and the mechanism is
+A4.6(b)(1) read one step further. That clause says `alpha0` and `alpha` are
+individually close to unidentified and only their sum reaches the effects. The
+demonstration says the second half is the operative one: the probability-scale
+natural effects depend on the intercepts only through the offset
+`alpha0 + beta*mu_m` and on `alpha` only through `offset + alpha` (this is exactly
+the closed form in `closed_form.py`), and both of those combinations ARE
+identified even when their pieces are not. Convergence is still not evidence that
+the split is identified, which is what A4.6(b)(1) says and remains true. But on
+this simulation the split comes out right anyway.
+
+What the degenerate clean arm actually costs is precision, and it is a trade
+rather than a loss. Mean interval widths on `f4_rationalization`:
+
+| effect | `binary_clean_varies` | `binary_zero_clean` | change |
+|---|---:|---:|---|
+| NDE | 0.0888 | 0.0928 | 4.5 percent wider |
+| NIE | 0.0591 | 0.0722 | 22.2 percent wider |
+| TE | 0.0763 | 0.0454 | 40.5 percent narrower |
+
+The TE gets sharper because a clean arm pinned at 0 contributes no variance to the
+arm difference, and the NIE gets blunter because the split has less to work with.
+
+### 3.3 Result two: no outcome scale fixes the shared cause
+
+`f3_shared_cause` is `M = X + U`, `Y` driven by `X + U` with no M-to-Y arrow, so
+the residual correlation between the mediator error and the outcome error is
+`1/sqrt(2) = 0.70711` by construction and the true NIE is exactly 0. Every readout
+fails, and they fail by the same amount in their own units:
+
+| readout | NIE truth | NIE mean estimate | NIE bias (MC se) | NIE coverage | NDE coverage |
+|---|---:|---:|---|---:|---:|
+| `binary_clean_varies` | +0.0000 | +0.2616 | +0.2616 (0.0014) | 0/100 [0.000, 0.036] | 0/100 |
+| `binary_zero_clean` | +0.0000 | +0.2591 | +0.2591 (0.0016) | 0/100 [0.000, 0.036] | 0/100 |
+| `continuous_margin` | +0.0000 | +1.0075 | +1.0075 (0.0054) | 0/100 [0.000, 0.036] | 0/100 |
+
+0 of 100 intervals cover the truth on NDE or NIE in any of the three, and the NIE
+interval excludes zero on 100 of 100 datasets in all three, which is a false
+positive rate of 1.00 [0.96, 1.00] for a world with no mediation at all. The
+continuous readout's clean arm carries variance 2.0103 and it does not help,
+because the problem was never the clean arm. It is assumption A3, and element 1
+section 2.3 already says rho is the only thing that prices A3.
+
+`rho*_point` says so, on every readout. Its median across the 100 datasets is
+0.7091, 0.7028 and 0.7089 for the three f3 conditions and 0.7076, 0.7052 and
+0.7089 for the three f4 conditions, all six straddling the analytic 0.70711 that
+section 8.2 and the battery both name as f3's compatible crossing. It is the same
+number for the family with no mediation and the family with full mediation, which
+is section 8.2's invariance showing up as designed and is the reason `rho*_point`
+is not a severity scale.
+
+### 3.4 The question as asked: do the two families produce the same report?
+
+Paired by dataset index, 100 pairs per readout:
+
+| readout | mean NIE, f3 (true 0) | mean NIE, f4 (mediated) | mean mediated share, f3 | mean mediated share, f4 | true shares | NIE intervals disjoint | pairs ordered correctly |
+|---|---:|---:|---:|---:|---|---:|---:|
+| `binary_clean_varies` | +0.2616 | +0.2837 | 0.9969 | 0.9911 | 0.0000 vs 1.0000 | 0/100 | 100/100 |
+| `binary_zero_clean` | +0.2591 | +0.2827 | 0.3408 | 0.3371 | 0.0000 vs 0.3377 | 0/100 | 98/100 |
+| `continuous_margin` | +1.0075 | +1.2082 | 1.0076 | 1.0068 | 0.0000 vs 1.0000 | 43/100 | 100/100 |
+
+The mediated shares of a zero-mediation world and a fully-mediated world agree to
+within 0.006 on every readout, while the truths are 0.0000 against 1.0000 on two
+of them. Both families fire the "NIE interval excludes zero" verdict on 100 of 100
+datasets on every readout. The ordering is right almost always (100/100, 98/100,
+100/100), so a ranking of these two cells would come out in the right order, but a
+report of either cell alone would say "mediated" in both cases.
+
+**So the answer to the question as posed is no, on both halves.** The binary-zero
+shape does not fail where the intuition expected it to (section 3.2), and the
+clean-arm variation does not rescue the case that does fail (section 3.3). What
+separates these two families is rho, and no choice of outcome scale prices rho.
+
+### 3.5 What the continuous readout does buy, stated smaller and more precisely
+
+Three things, all measured above and none of them "identification":
+
+1. **The TE stops being a model-implied quantity that happens to match the
+   randomized arm difference and becomes an algebraic identity with it.** Across
+   100 datasets the model TE minus the arm difference is 0.00000 mean and 0.00000
+   maximum absolute on both continuous conditions, against +0.00021 to +0.00060
+   mean and up to 0.00958 maximum absolute on the four binary ones. Wave-1's TE
+   check (differences of -0.0154, -0.0093 and +0.0006 with intervals covering
+   zero) becomes a code assertion rather than a finding.
+2. **The two families' NIE intervals are disjoint 43 of 100 times instead of 0 of
+   100.** That is a real gain in separation and it is not nearly enough to rank
+   mechanisms.
+3. **Neither effect is evaluated where the clean arm has no data.** That was the
+   worry in A4.6(b)(2), and the honest report is that on this simulation the worry
+   does not cash out as bias or as under-coverage.
+
+And one thing it costs: the intervals are wider in their own units relative to the
+effect. On f4 the NIE interval is 0.2093 wide against an effect of 1.2000 (17.4
+percent of the effect) versus 0.0591 against 0.2833 on the binary control (20.9
+percent), so on that comparison the continuous readout is slightly tighter; on f3
+the continuous NIE interval is 0.2001 wide where the binary one is 0.0541, but the
+effects are not on the same scale so that pair is not comparable and is reported
+only so nobody reads the widths across scales.
+
+### 3.6 Two things this table says about reading the wave-1 numbers
+
+**The frozen population's NDE carries a mechanical component.** The true NDE of
+the same family is +0.0000 with a clean arm that can score and +0.5556 with the
+clean arm gated to zero; for f3 it is +0.2605 and +0.7600. The gate makes X a
+precondition for `Y = 1`, and on the real design the population restriction does
+the same thing: no clean row on the frozen clean-correct population can score a
+follow, so `P(Y = 1 | do(X = 0), M(0))` is 0 by selection and the NDE is just
+`P(Y = 1 | do(X = 1), M(0))`. Wave-1's NDEs of +0.0842, +0.1110 and +0.1616
+should be read as that quantity on that population, not as a bypass rate net of a
+base rate.
+
+**A4.6(b)(3) reproduces exactly.** The battery's usability guard
+`x.min() != x.max() and y.min() != y.max()` is computed on the whole sample, so it
+passes on every resample whose control arm is degenerate. This run redrew 0
+resamples in all six conditions, including 0 of 12,000 in each of the two
+frozen-shape conditions (100 datasets x 120 replicates). The guard does not see
+this, as A4.6(b)(3) says, and the fix is to report the clean-arm outcome variance,
+which the wave-1 fits already do.
+
+### 3.7 What this demonstration does not establish
+
+* **Two families, not seven.** The battery runs seven plus the element 12 part
+  (iv) additions. This lane ran f3 and f4 only, as asked. f5, f6 and f7 are the
+  three that would say most about whether the pattern in 3.2 holds generally, and
+  they were not run.
+* **The rows are independent, not paired.** The battery's convention is
+  `X ~ Bernoulli(0.5)` per row with a row bootstrap; wave-1 has two rows per item
+  and an item bootstrap. The difference is not what this table is about and it was
+  not simulated.
+* **The continuous readout's outcome equation is correct by construction here.**
+  `Y = index + noise` is linear in M with Gaussian noise, which is exactly the
+  Gaussian path's model. A real logprob margin is bounded by nothing but is not
+  guaranteed linear in curve area, and its noise is not guaranteed Gaussian or
+  homoscedastic. The clean-arm variance ratio of 1.004 is a design choice here and
+  a measurement on real data. Part 4.4 shows a third thing the real data would
+  have to survive: on the anchor prompts the letters hold about 1e-17 of the mass.
+* **The binary-zero generator is a shape match, not a mechanism claim.**
+  `Y = X * 1[...]` reproduces the frozen population's DATA shape. It is not a
+  claim that the real outcome arises by a gate; the real reason is the
+  clean-correct restriction plus the planted-wrong-option taxonomy.
+* **n = 1,800 rows, one sample size.** No smaller cell was run, and the wave-1
+  cells hold 2,642 to 2,792 rows.
+
+---
+
 ## Part 4. What the records carry, and the exact extraction spec
 
 ### 4.1 What a logprob-scale column B needs, per item
