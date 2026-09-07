@@ -517,6 +517,23 @@ In progress or planned:
 - Frontier-model sanity check via API, pre-registered on right-but-uncertain items.
 - Public benchmark with uncertainty-quantified faithfulness scores, and a technical writeup.
 
+### Documents of record (Phase 2, 2026-09-07 to 08)
+
+Every claim above traces to one of these files; each names its sources and denominators.
+
+- `experiments/PREREGISTRATION_jury_and_scale.md`: the frozen pre-registration with Amendments A3, A4 and A5 appended (additive only; current sha256 `5c050a1d...`, checked by `tests/test_frozen_guard.py`).
+- `docs/ESTIMATOR-REPAIR-2026-09-07.md`, `docs/ESTIMATOR-PRIORS-2026-09-07.md`: the three estimator defects and their repairs.
+- `experiments/results/mechanism_battery/report.md`: the eleven-family known-truth battery.
+- `docs/W3B-BATCH-INVARIANT.md`: batching and greedy determinism; the pinned serving mode.
+- `docs/WAVE1-AUDIT.md`: every wave-1 cell recomputed from its records; the thinking-model diagnosis.
+- `docs/WAVE1-FITS.md`: column A and column B on the three usable cells, the anchor, claim status.
+- `docs/REASONING-MODE-TEST.md`, `docs/REASONING-MODE-IMPL.md`, `docs/ROSTER-TEMPLATES.md`: element 9.4 (ruling R12), its implementation, and all eighteen roster chat templates classified.
+- `docs/JURY-Q1-FAILURE-ANALYSIS.md`, `docs/JURY-Q1-PRESCREEN.md`, `experiments/jury/GATE-Q1-COMPARISON.md`: the jury gate, ruling R9, and the exploratory prompt d.
+- `docs/external_validity.md`: FaithCoT-Bench, used with the authors' written permission.
+- `docs/OUTCOME-SCALE-NOTE.md`: the clean arm's zero outcome variance, the Gaussian path, and the basis of Amendment A5 (ruling R13).
+- `docs/LADDER-IMPL.md`, `docs/LADDER-PILOT-PLAN.md`: the element 11 ladder pipeline (nothing trained yet) and the pilot plan.
+- `docs/A4-CHAIN-LAMBDA-NOTE.md`: the chain-level mediator noise as measured.
+
 ## Methodology
 
 [`docs/methodology.md`](docs/methodology.md) has the formal write-up: the natural-effects
