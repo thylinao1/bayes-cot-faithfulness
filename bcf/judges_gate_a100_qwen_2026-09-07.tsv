@@ -16,4 +16,4 @@
 # 24B to 35B judge. Host RAM is a submission parameter and changes no measurement.
 # SUBMIT ONE AT A TIME through bcf/jury_wave.sh, which refuses when the live a100-80
 # headroom counting every campaign's jobs is zero.
-qwen3-32b	a100-80	08:00:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=qwen3-32b-a100	BCF_ALL_JUDGE_ROWS=1	BCF_NUM_PREDICT=1024
+qwen3-32b	a100-80	08:00:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=qwen3-32b-a100	BCF_ALL_JUDGE_ROWS=1	BCF_NUM_PREDICT=1024	BCF_CACHE_BUDGET_GB=200

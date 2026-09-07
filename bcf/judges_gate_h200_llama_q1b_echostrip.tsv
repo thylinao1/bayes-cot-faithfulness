@@ -9,4 +9,4 @@
 # second, independent measurement of q1b on this judge, not a test of the strip. The strip
 # is tested offline, in tests/test_echo_strip.py and experiments/jury/project_echo_strip.py.
 # The h200-141 sits in partition gpu, whose wall ceiling is 3 hours.
-llama-3.3-70b-fp8	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=b	BCF_OUT_SLUG=llama-3.3-70b-fp8-q1b-echostrip200	BCF_ECHO_STRIP=200
+llama-3.3-70b-fp8	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=b	BCF_OUT_SLUG=llama-3.3-70b-fp8-q1b-echostrip200	BCF_ECHO_STRIP=200	BCF_CACHE_BUDGET_GB=200

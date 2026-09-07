@@ -8,4 +8,4 @@
 # for a reasoning block plus a four-key JSON object.
 # BCF_ALL_JUDGE_ROWS=1 for the same reason as the first attempt: the panel rule routes the
 # Qwen judge away from a corpus whose subject_model is Qwen3-8B.
-qwen3-32b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=qwen3-32b-h200-np1024	BCF_SERVING_LINE=exploratory-h200-141	BCF_ALL_JUDGE_ROWS=1	BCF_NUM_PREDICT=1024
+qwen3-32b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=qwen3-32b-h200-np1024	BCF_SERVING_LINE=exploratory-h200-141	BCF_ALL_JUDGE_ROWS=1	BCF_NUM_PREDICT=1024	BCF_CACHE_BUDGET_GB=200

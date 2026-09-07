@@ -9,4 +9,4 @@
 # wrote three empty reports in 1 second. The own-family votes are recorded as such and
 # stay out of any panel label, which is what section 6.2's all-four subsample is for.
 # xgpk0 is in partition gpu, 3 hour ceiling, so the wall is 02:50:00 with --resume.
-qwen3-32b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=qwen3-32b-h200	BCF_SERVING_LINE=exploratory-h200-141	BCF_ALL_JUDGE_ROWS=1
+qwen3-32b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=qwen3-32b-h200	BCF_SERVING_LINE=exploratory-h200-141	BCF_ALL_JUDGE_ROWS=1	BCF_CACHE_BUDGET_GB=200

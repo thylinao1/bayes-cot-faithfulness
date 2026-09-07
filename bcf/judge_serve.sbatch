@@ -182,7 +182,7 @@ fi
 # working ceiling, and fall back to node-local scratch rather than filling the quota and
 # killing every other campaign's writes.
 JUDGE_CACHE="${BCF_JUDGE_CACHE:-$HOME/bcf/hf-judges}"
-CACHE_BUDGET_GB="${BCF_CACHE_BUDGET_GB:-450}"
+CACHE_BUDGET_GB="${BCF_CACHE_BUDGET_GB:-200}"  # DECISION-LOG 2026-09-07 03:00 and 14:5x: home is shared with another campaign against a ~500 GB quota; 200 forces node scratch until the operator frees space
 mkdir -p "$JUDGE_CACHE"
 # A full `du -sBG $HOME` over this NFS home costs 90 to 120 s and every judge job paid it.
 # Split the number instead: the REST of home changes only when another campaign writes,
@@ -190,7 +190,7 @@ mkdir -p "$JUDGE_CACHE"
 # this lane grows and is measured fresh every run in about a second. HOME_USED_GB is still
 # the same quantity, and the ceiling it is compared against does not move.
 HOME_USAGE_CACHE="${JUDGE_CACHE%/}/.home-usage-rest-gb"
-HOME_USAGE_TTL_H="${BCF_HOME_USAGE_TTL_H:-24}"
+HOME_USAGE_TTL_H="${BCF_HOME_USAGE_TTL_H:-1}"  # another campaign writes tens of GB per hour; a day-old estimate chose a 66 GB home download on 2026-09-07
 CACHE_USED_GB="$(du -sBG "$JUDGE_CACHE" 2>/dev/null | awk '{gsub("G","",$1); print $1+0}')"
 REST_GB=""
 if [ -f "$HOME_USAGE_CACHE" ]; then
