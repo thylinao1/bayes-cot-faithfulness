@@ -16,3 +16,8 @@
 0   # 15:49 dry run of the row with the util override
 0   # 15:49 real submit -> job 826888, cancelled two minutes later by the lane that owns 826880
 5   # job 826859 on the cluster: mxfp4 accepted, KV cache memory refused (exit_code.txt)
+1   # tests/test_wave_plan.py before the repair: 240 rows counted as 216 cells
+0   # tests/test_wave_plan.py after the split: 10 passed
+1   # falsification P1, an enrichment wave filed as a sweep wave: cells reads 224
+1   # falsification P2, one enrichment wave deleted: enrich reads 16
+0   # the four named test files after the repair: 77 passed

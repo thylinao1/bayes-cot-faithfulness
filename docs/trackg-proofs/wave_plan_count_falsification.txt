@@ -1,0 +1,89 @@
+tests/test_wave_plan.py: the cell count and the enrichment count, and that each can fail
+=======================================================================================
+
+WHAT WAS WRONG
+--------------
+Commit 02d1a40 added the three enrichment-pass manifests (bcf/waves/enrich-a100-40-0*.tsv,
+8 rows each, ruling R3(ii)). test_every_manifest_row_carries_the_pinned_serving_constants
+globs bcf/waves/*.tsv and counted every row it read as a cell, so it read 240 rows and
+compared them with plan.json's n_cells, which is 216:
+
+    tests/test_wave_plan.py:65: in test_every_manifest_row_carries_the_pinned_serving_constants
+        assert seen == PLAN["n_cells"] == 216, seen
+    E   AssertionError: 240
+    E   assert 240 == 216
+    1 failed
+    exit 1
+
+n_cells is right at 216 and plan.json is not touched here. The 216 is the sweep grid,
+18 models x 3 substrates x 4 cue families, and it is the denominator the whole cost table
+and the ladder trigger are priced against; the enrichment pass is priced separately in
+plan.json's enrichment_pass block (48.0 card-hours) and is not part of that grid.
+bcf/check_wave_manifests.py already made the split, on the file prefix, and reports
+"216 cell row(s), 24 enrichment-pass row(s)" with exit 0. The test had not been given it.
+
+THE REPAIR
+----------
+_is_enrichment(name) splits on the same `enrich-` prefix the structural checker uses.
+Every row of both families still takes all three serving checks (BCF_BATCH_INVARIANT=1,
+BCF_CONCURRENCY=32, the pinned BCF_REVISION). Each family is then counted against its
+own denominator:
+
+  * cells   == PLAN["n_cells"] == 216
+  * enrich  == N_ENRICHMENT_ROWS == 24, and that 24 is derived, not retyped: the a100-40
+    models on plan_waves.ROSTER (8) times plan_waves.SUBSTRATES (3), the same expression
+    bcf/check_wave_manifests.py holds the enrichment manifests to.
+
+PROVING BOTH COUNTS CAN FAIL
+----------------------------
+The manifests in bcf/waves were not touched. tests/test_wave_plan.py, bcf/plan_waves.py
+and a copy of bcf/waves were placed in a scratch tree, where the test resolves REPO to
+the scratch root, and the copy was perturbed.
+
+CONTROL: the committed manifests, copied whole
+    10 passed
+    exit 0
+
+P1: cp enrich-a100-40-01.tsv a100-40-13.tsv   (an enrichment wave filed as a sweep wave)
+    >       assert cells == PLAN["n_cells"] == 216, cells
+    E       AssertionError: 224
+    E       assert 224 == 216
+    >       assert _count_by_family(names) == (216, 24)
+    E       assert (224, 24) == (216, 24)
+    2 failed, 8 passed
+    exit 1
+
+P2: rm enrich-a100-40-03.tsv   (the logiqa2 enrichment wave deleted)
+    >       assert enrich == N_ENRICHMENT_ROWS == 24, enrich
+    E       AssertionError: 16
+    E       assert 16 == 24
+    >       assert _count_by_family(names) == (216, 24)
+    E       assert (216, 16) == (216, 24)
+    2 failed, 8 passed
+    exit 1
+
+RESTORED: both perturbations undone
+    10 passed
+    exit 0
+
+P1 is the failure this repair is about, reproduced deliberately: a row that is not a cell
+counted as one. P2 is the other direction, an enrichment wave that goes missing, which the
+old single count could not have seen at all because 216 + 16 would still not have been 216.
+
+test_the_cell_count_refuses_an_enrichment_manifest_filed_as_a_sweep_wave carries P1 in the
+suite: it strips the prefix off the three enrichment names and asserts the count then reads
+240 and is not equal to plan.json's n_cells.
+
+IN THE REPO, after the repair
+-----------------------------
+    python -m pytest tests/test_frozen_guard.py tests/test_wave_plan.py \
+        tests/test_enrichment.py tests/test_arms_resume.py -q
+    77 passed
+    exit 0
+    (76 before: the same 75 that passed, the one that failed now passing, plus the new
+     falsification test)
+
+    python bcf/check_wave_manifests.py
+    99 manifest file(s), 216 cell row(s), 24 enrichment-pass row(s), 18 model(s)
+    no structural problem found
+    exit 0
