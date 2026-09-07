@@ -39,6 +39,7 @@ straight from a vote file with `python -m experiments.jury.recount_gate_q1 <vote
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | pinned (section 6.1) + option (d) stipulated | 826010 | 5313 | FAIL | 69/69 PASS | 48/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 481/483 PASS |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | pinned (section 6.1) | 826017 | 5313 | FAIL | 69/69 PASS | 17/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 17/69 FAIL | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 479/483 PASS |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | pinned (section 6.1) + option (d) stipulated | 826017 | 5313 | FAIL | 69/69 PASS | 17/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 0/5313 PASS | 482/483 PASS |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07.md | exploratory-h200-141 | 826783 | 5313 | FAIL | 69/69 PASS | 0/69 FAIL | 62/69 PASS | 69/69 PASS | 69/69 PASS | 56/69 PASS | 69/69 PASS | 67/68 PASS | 11/5313 PASS | 454/483 PASS |
 
 ## Q1 yes and no per gate class, run 0 unswapped, same rows
 
@@ -53,6 +54,7 @@ straight from a vote file with `python -m experiments.jury.recount_gate_q1 <vote
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07b.md | pinned (section 6.1) + option (d) stipulated | 0 yes / 69 no | 69 yes / 0 no | 48 yes / 21 no | 69 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
 | MEASURED | llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | pinned (section 6.1) | 0 yes / 69 no | 69 yes / 0 no | 17 yes / 52 no | 69 yes / 0 no | 52 yes / 17 no | 0 yes / 69 no | 0 yes / 69 no |
 | PROJECTED | llama-3.3-70b-fp8 | q1_mention_2026-09-07c.md | pinned (section 6.1) + option (d) stipulated | 0 yes / 69 no | 69 yes / 0 no | 17 yes / 52 no | 69 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07.md | exploratory-h200-141 | 0 yes / 69 no | 69 yes / 0 no | 0 yes / 69 no | 62 yes / 7 no | 13 yes / 56 no | 0 yes / 69 no | 0 yes / 69 no |
 
 <!-- END GENERATED MATRIX -->
 
