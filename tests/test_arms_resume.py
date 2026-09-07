@@ -760,9 +760,22 @@ def test_summary_discloses_resume_provenance_and_curve_cap(tmp_path, monkeypatch
         "backend", "model", "n_items", "n_clean_correct", "cue_kind", "enabled_arms",
         "attrition", "arms", "status", "curve_cap", "num_predict",
         "intervention_level", "outcome_scale",
+        # Ruling R3(iii), 2026-09-07: a cell says how many of its records are the
+        # regular n and how many the enrichment pass added. Present on EVERY summary,
+        # with a zero enrichment count on a regular cell, so the population split can
+        # never be missing by omission.
+        "enrichment",
     }
     assert fresh["intervention_level"] == "text"
     assert fresh["outcome_scale"] == "binary_follow"
+    # A regular cell: no item list, nothing enriched, and the regular count is the
+    # clean-correct count the summary already reports.
+    assert fresh["enrichment"]["item_list"] is None
+    assert fresh["enrichment"]["n_records_enrichment"] == 0
+    assert fresh["enrichment"]["n_clean_correct_enrichment"] == 0
+    # Invariant for any regular cell, whatever the fixture's clean accuracy: every
+    # clean-correct record belongs to the regular population.
+    assert fresh["enrichment"]["n_clean_correct_regular"] == fresh["n_clean_correct"]
 
 
 # --------------------------------------------------------------------------- #

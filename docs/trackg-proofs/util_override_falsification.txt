@@ -1,0 +1,35 @@
+=== the exploratory gpu-memory-utilization override, proven both ways (2026-09-07T15:48:51+08:00) ===
+The block is EXTRACTED from bcf/judge_serve.sbatch by the harness, not retyped, so the
+text under test is the text the cluster runs.
+--- the block under test, as extracted from bcf/judge_serve.sbatch
+  if [ -n "${BCF_JUDGE_GPU_UTIL:-}" ]; then
+    case "${BCF_SERVING_LINE:-}" in
+      exploratory*)
+        echo "[serve] ${key}: gpu-memory-utilization OVERRIDDEN ${JUDGE_GPU_UTIL} -> ${BCF_JUDGE_GPU_UTIL} (row serving line '${BCF_SERVING_LINE}'; the table fraction belongs to '${JUDGE_SERVING_LINE}', a card this line is not on)" | ts | tee -a "$LOG"
+        JUDGE_GPU_UTIL="${BCF_JUDGE_GPU_UTIL}"
+        ;;
+      *)
+        echo "[judge] REFUSING: BCF_JUDGE_GPU_UTIL=${BCF_JUDGE_GPU_UTIL} with BCF_SERVING_LINE='${BCF_SERVING_LINE:-<unset>}', which is not exploratory. A run of record serves at the section 6.1 fraction ${JUDGE_GPU_UTIL}." | ts | tee -a "$LOG" >&2
+        exit 12
+        ;;
+    esac
+  fi
+
+--- A. exploratory row, override 0.90: taken
+[serve] gpt-oss-20b: gpu-memory-utilization OVERRIDDEN 0.25 -> 0.90 (row serving line 'exploratory-h100-47'; the table fraction belongs to 'mxfp4, shares the same a100-80 at gpu-memory-utilization 0.25', a card this line is not on)
+RESULT util=0.90
+exit=0
+
+--- B. the pinned a100-80 run of record, same override: refused
+[judge] REFUSING: BCF_JUDGE_GPU_UTIL=0.90 with BCF_SERVING_LINE='pinned-a100-80', which is not exploratory. A run of record serves at the section 6.1 fraction 0.25.
+exit=12
+
+--- C. no BCF_SERVING_LINE at all, override set: refused
+[judge] REFUSING: BCF_JUDGE_GPU_UTIL=0.90 with BCF_SERVING_LINE='<unset>', which is not exploratory. A run of record serves at the section 6.1 fraction 0.25.
+exit=12
+
+--- D. exploratory row, no override: the table fraction stands
+RESULT util=0.25
+exit=0
+
+PROOF_EXIT=0

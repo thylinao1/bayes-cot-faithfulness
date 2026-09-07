@@ -82,8 +82,24 @@ declare -A TYPE_BUDGET=( [sweep_a100-40]=8 [sweep_a100-80]=2 [sweep_h100-96]=2 \
                          [judge_a100-80]=2 [judge_h200-141]=1 \
                          [probe_a100-40]=1 [probe_a100-80]=1 \
                          [ladder_a100-40]=1 [ladder_a100-80]=1 \
-                         [skel_a100-40]=3 [skel_a100-80]=3 [skel_h100-96]=2 )
-KNOWN_TYPES="sweep judge probe ladder skel"
+                         [skel_a100-40]=3 [skel_a100-80]=3 [skel_h100-96]=2 \
+                         [enrich_a100-40]=8 )
+KNOWN_TYPES="sweep judge probe ladder skel enrich"
+
+# The POOL GUARD (added 2026-09-07 with the enrich type). The three checks above count,
+# in order, every campaign's RUNNING cards of this type, every campaign's RUNNING cards
+# of every type, and THIS job type's own cards counting pending. None of them counts this
+# campaign's OTHER job types' PENDING cards, and that is the hole the enrichment line
+# opens: a100-40 carries the sweep at 8 of 8 and the enrichment pass wants the same pool,
+# so an enrich wave submitted while 8 sweep cells sit PENDING would put 16 jobs against a
+# cap of 8. They would not be rejected; they would queue behind this campaign's own work,
+# which is the invisible failure this script exists to prevent.
+# It is ON for the enrich type, which has no history to change, and available to every
+# other type through BCF_WAVE_POOL_GUARD=1. It is deliberately not on by default for the
+# existing types: it would refuse waves those types submit today (an a100-80 sweep wave
+# beside three pending bcf-jury cards, for one), and turning it on for them is a
+# CONTRACT.md decision rather than this script's.
+POOL_GUARD_TYPES="enrich"
 
 JOB_TYPE="sweep"
 JOB_NAME=""
@@ -310,8 +326,31 @@ if [ "$MAX_HOURS" -ge "$PART_WALL" ]; then
   echo "[wave]   count, not a blocker. Wall requested: ${WALL_TIME}."
 fi
 
+# --- the injected counters, for proving the refusals ---------------------------
+# Same shape as bcf/jury_wave.sh's, and it exists for the same reason: a refusal that has
+# never been seen refuse is a claim, not a check. BCF_WAVE_FAKE_CARDS is a comma list of
+# key=value over the four counters below, e.g. "a100-40=0,gpu=0,own=0,pool=0".
+#
+# It can NEVER cause a submission: any injected counter forces --check-only, refusing
+# with exit 2 if the caller asked for a real wave. An injected count that made a real
+# sbatch happen would be the worst possible bug in this file.
+FAKE_ANY=0
+[ -n "${BCF_WAVE_FAKE_INSYSTEM:-}" ] && FAKE_ANY=1
+[ -n "${BCF_WAVE_FAKE_CARDS:-}" ] && FAKE_ANY=1
+if [ "$FAKE_ANY" -eq 1 ] && [ "$DRY_RUN" -ne 1 ]; then
+  echo "[wave] REFUSING: BCF_WAVE_FAKE_INSYSTEM / BCF_WAVE_FAKE_CARDS are set, which"
+  echo "[wave]   makes every count below a fiction. They are for --check-only proofs."
+  echo "[wave]   Nothing was submitted."
+  exit 2
+fi
+fake_count() {  # $1 = key; echoes the injected value or nothing
+  printf '%s\n' "${BCF_WAVE_FAKE_CARDS:-}" | tr ',' '\n' \
+    | grep -E "^${1}=" | cut -d= -f2 | head -1
+}
+
 # --- check 3: jobs in system ---------------------------------------------------
 IN_SYSTEM=$(squeue --me -h -t RUNNING,PENDING | wc -l | tr -d ' ')
+[ -n "${BCF_WAVE_FAKE_INSYSTEM:-}" ] && IN_SYSTEM="$BCF_WAVE_FAKE_INSYSTEM"
 AFTER=$(( IN_SYSTEM + N_CELLS ))
 echo "[wave] jobs in system: ${IN_SYSTEM}/${MAX_SUBMIT_JOBS}; this wave adds ${N_CELLS} -> ${AFTER}/${MAX_SUBMIT_JOBS}"
 
@@ -330,6 +369,8 @@ count_cards() {  # $1 = squeue state list, $2 = gres pattern
 CARDS_ALL=$(count_cards RUNNING "gres/gpu:${GPU_TYPE}")
 CARDS_PENDING=$(count_cards PENDING "gres/gpu:${GPU_TYPE}")
 GPU_ALL=$(count_cards RUNNING "gres/gpu")
+inj=$(fake_count "$GPU_TYPE");   [ -n "$inj" ] && CARDS_ALL="$inj"
+inj=$(fake_count gpu);           [ -n "$inj" ] && GPU_ALL="$inj"
 # This campaign's own cards of this type, identified by job name (bcf-<type>-...).
 # Job names carry the prefix precisely so ownership is readable from squeue. This count
 # DOES include PENDING: the CONTRACT split exists to stop this campaign over-committing
@@ -338,6 +379,14 @@ CARDS_THIS_TYPE=$({ squeue --me -h -t RUNNING,PENDING -O "Name:80,tres-alloc:200
   | grep -E "^bcf-${JOB_TYPE}-" \
   | tr ',' '\n' | grep -o "gres/gpu:${GPU_TYPE}=[0-9]*" || true; } \
   | awk -F= '{s+=$2} END {print s+0}')
+inj=$(fake_count own); [ -n "$inj" ] && CARDS_THIS_TYPE="$inj"
+# The pool guard's own count: EVERY bcf-* job of this card type, running and pending,
+# whatever its job type. This is the campaign's real footprint on the pool.
+CARDS_POOL=$({ squeue --me -h -t RUNNING,PENDING -O "Name:80,tres-alloc:200" \
+  | grep -E "^bcf-" \
+  | tr ',' '\n' | grep -o "gres/gpu:${GPU_TYPE}=[0-9]*" || true; } \
+  | awk -F= '{s+=$2} END {print s+0}')
+inj=$(fake_count pool); [ -n "$inj" ] && CARDS_POOL="$inj"
 
 echo "[wave] ${GPU_TYPE} cards RUNNING, ALL campaigns: ${CARDS_ALL}/${GPU_USER_CAP} (${CARDS_PENDING} more pending, not counted)"
 echo "[wave] gpu cards RUNNING, ALL types, ALL campaigns: ${GPU_ALL}/${GPU_TOTAL_CAP}"
@@ -353,6 +402,15 @@ REFUSE=""
   total gpu cards would reach $(( GPU_ALL + CARDS_WANTED )) > ${GPU_TOTAL_CAP} (per-user cap across ALL types, all campaigns)"
 [ $(( CARDS_THIS_TYPE + CARDS_WANTED )) -gt "$BUDGET" ] && REFUSE="${REFUSE}
   bcf-${JOB_TYPE} cards on ${GPU_TYPE} would reach $(( CARDS_THIS_TYPE + CARDS_WANTED )) > ${BUDGET} (CONTRACT.md ${JOB_TYPE} budget)"
+
+POOL_GUARD=0
+case " ${POOL_GUARD_TYPES} " in *" ${JOB_TYPE} "*) POOL_GUARD=1 ;; esac
+[ "${BCF_WAVE_POOL_GUARD:-0}" = "1" ] && POOL_GUARD=1
+if [ "$POOL_GUARD" -eq 1 ]; then
+  echo "[wave] POOL GUARD on: every bcf-* card on ${GPU_TYPE}, running AND pending, all job types: ${CARDS_POOL}/${GPU_USER_CAP}"
+  [ $(( CARDS_POOL + CARDS_WANTED )) -gt "$GPU_USER_CAP" ] && REFUSE="${REFUSE}
+  this campaign's own ${GPU_TYPE} cards would reach $(( CARDS_POOL + CARDS_WANTED )) > ${GPU_USER_CAP} counting its PENDING jobs of every type (pool guard)"
+fi
 
 if [ -n "$REFUSE" ]; then
   echo "[wave] REFUSING to submit:${REFUSE}"

@@ -6,6 +6,12 @@ submission script's defaults are that week, and ruling R1 is precisely about a p
 measurement not resting on that. So every row of every committed manifest is read back
 and checked here, against the roster the plan was built from.
 
+Two families of manifest live in bcf/waves. The sweep-cell rows are the 216-cell grid
+plan.json prices. The enrichment-pass rows that bcf/plan_enrich_waves.py writes under
+ruling R3(ii) are one sampling-arm job per model per substrate and are NOT cells. Both
+families take the same serving checks, and each is counted against its own denominator,
+which is the split bcf/check_wave_manifests.py already makes on the same file prefix.
+
 The element 16 trigger is checked as arithmetic against the budget of record, and the
 checker is shown able to report TRIGGERED, so a "not triggered" reading is a computed
 result rather than a constant.
@@ -55,14 +61,59 @@ def _all_rows():
             yield tsv.name, row
 
 
+def _is_enrichment(name: str) -> bool:
+    """RULING R3(ii). An enrichment-pass manifest is not part of the 216-cell grid.
+
+    bcf/plan_enrich_waves.py writes one sampling-arm job per model per substrate as
+    `enrich-<pool>-NN.tsv`. Those rows carry every serving constant a cell row carries
+    and are checked for all of them below. What they are not is cells: adding them to
+    the cell count is how the grid total grows from 216 to 240 without anyone deciding
+    to run a larger grid. bcf/check_wave_manifests.py splits on the same prefix.
+    """
+    return name.startswith("enrich-")
+
+
+def _count_by_family(names) -> tuple[int, int]:
+    cells = sum(1 for n in names if not _is_enrichment(n))
+    enrich = sum(1 for n in names if _is_enrichment(n))
+    return cells, enrich
+
+
+# The enrichment pass's own denominator, derived rather than retyped: the a100-40 models
+# on the element 10 roster times the three substrates. A missing row here means a model
+# or a substrate would never be enriched.
+N_ENRICHMENT_ROWS = len(
+    [hf for hf, _rev, _fam, pool, *_ in PW.ROSTER if pool == "a100-40"]
+) * len(PW.SUBSTRATES)
+
+
 def test_every_manifest_row_carries_the_pinned_serving_constants():
-    seen = 0
+    names = []
     for name, (model, _sub, _cue, kv) in _all_rows():
-        seen += 1
+        names.append(name)
         assert kv.get("BCF_BATCH_INVARIANT") == "1", (name, model, kv)
         assert kv.get("BCF_CONCURRENCY") == "32", (name, model, kv)
         assert kv.get("BCF_REVISION") == ROSTER_REVISION[model], (name, model)
-    assert seen == PLAN["n_cells"] == 216, seen
+    cells, enrich = _count_by_family(names)
+    assert cells == PLAN["n_cells"] == 216, cells
+    # and the enrichment pass answers to its own count, so a lost or duplicated
+    # enrichment wave is caught here instead of moving the grid total.
+    assert enrich == N_ENRICHMENT_ROWS == 24, enrich
+
+
+def test_the_cell_count_refuses_an_enrichment_manifest_filed_as_a_sweep_wave():
+    """The falsification for the split above, run through the same function.
+
+    Strip the `enrich-` prefix off the three enrichment manifests and the cell total
+    reads 240, which is the reading this test file gave before the split existed. The
+    count has to report that against plan.json rather than absorb it.
+    """
+    names = [name for name, _row in _all_rows()]
+    assert _count_by_family(names) == (216, 24)
+    misfiled = [n[len("enrich-"):] if _is_enrichment(n) else n for n in names]
+    cells, enrich = _count_by_family(misfiled)
+    assert (cells, enrich) == (240, 0)
+    assert cells != PLAN["n_cells"]
 
 
 def test_the_row_check_rejects_a_manifest_that_lost_the_flag():

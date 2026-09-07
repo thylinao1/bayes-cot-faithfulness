@@ -1,0 +1,31 @@
+# EXPLORATORY, NOT THE RUN OF RECORD (ruling R7, extended 2026-09-07). gpt-oss-20b alone
+# on ONE h100-47 card. The pinned a100-80 run of record is job 826600, queued since 13:37
+# with a scheduler start estimate of 2026-09-10; the h200-141 exploratory line is blocked
+# behind 826597 because that pool's per-user cap is one card. h100-47 has its own cap of
+# 4, ten nodes of four cards, and at 14:5x one of them (xgpi20) reads idle, so this line
+# can answer the same question sooner without taking anything the sweep or the pinned
+# judges need. R7's own words: when a pool is saturated a judge may run elsewhere as an
+# exploratory line, and the run of record is always the pinned line.
+#
+# The mxfp4 question this row also settles: job 826026's server log said "Using 'TRITON'
+# Mxfp4 MoE backend" and "Model loading took 13.03 GiB" on an a100-80, so vLLM neither
+# refused the quantization nor dequantized to bf16 there. Whether the same holds on this
+# card class is not known, and the server log line is what says so either way.
+#
+# BCF_REPO and BCF_ENV_SH are pinned to ~/bcf/repo-jury-h100 ON PURPOSE. judge_serve.sbatch
+# defaults both to ~/bcf/repo-jury, which is the tree the W2f lane's own jobs read; a job
+# of this lane must never read or write it.
+# Wall 08:00:00 is inside gpu-long's 72 h ceiling (h100-47 lives in gpu-long, unlike the
+# single h200 node, which sits in the 3 h `gpu` partition).
+#
+# ANSWERED, 15:44, job 826859: vLLM did NOT refuse mxfp4 on this card class. The server log
+# reads `quantization=gpt_oss_mxfp4` and "Using 'TRITON' Mxfp4 MoE backend", the same
+# backend as on the a100-80. That job still died, exit 5, and not over the quantization:
+# "ValueError: No available memory for the cache blocks". The card Slurm hands out for
+# `--gpus=h100-47` is a MIG 3g.47gb slice of an H100 NVL, and the section 6.1 fraction for
+# gpt-oss-20b is 0.25 because that table co-hosted it with Gemma on one a100-80. 0.25 of
+# 47 GB is 11.7 GB, under the 13.03 GiB the weights take, so the model loads and the KV
+# cache gets nothing. BCF_JUDGE_GPU_UTIL below is the fix, and judge_serve.sbatch takes it
+# ONLY from a row whose BCF_SERVING_LINE starts with `exploratory` (exit 12 otherwise), so
+# a run of record cannot pick up a fraction the pre-registered table does not state.
+gpt-oss-20b	h100-47	08:00:00	MEM=64G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gpt-oss-20b-h100-47	BCF_SERVING_LINE=exploratory-h100-47	BCF_JUDGE_GPU_UTIL=0.90	BCF_REPO=/home/e/e1506804/bcf/repo-jury-h100	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-h100/bcf/env.sh

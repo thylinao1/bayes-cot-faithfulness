@@ -1,0 +1,147 @@
+=== R7 extension: gpt-oss-20b exploratory judge gate on h100-47 ===
+host xlogin1  2026-09-07T14:56:43+08:00
+
+the tree this row would run from (NEVER ~/bcf/repo-jury, which the W2f lane reads):
+  /home/e/e1506804/bcf/repo-jury-h100
+  /home/e/e1506804/bcf/repo-jury-h100/experiments/jury
+
+the row:
+  gpt-oss-20b	h100-47	08:00:00	MEM=64G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gpt-oss-20b-h100-47	BCF_SERVING_LINE=exploratory-h100-47	BCF_REPO=/home/e/e1506804/bcf/repo-jury-h100	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-h100/bcf/env.sh
+
+--- jury_wave.sh --dry-run, live denominators
+[wave] denominators, live, ALL campaigns on this account (2026-09-07T14:56:43+08:00):
+[wave]   jobs in system : 12/32   (this wave adds 1 -> 13/32)
+[wave]   jobs running   : 2/16
+[wave]   gpu cards total: 12/12   (this wave adds 1 -> 13/12)
+[wave]   h100-47 cards    : 0/4   (this wave adds 1 -> 1/4)
+[wave] REFUSING to submit:
+  total gpu cards would reach 13 > 12 (QOS gpu cap, all types, all campaigns)
+[wave] nothing was submitted and nothing was cancelled. Wait for cards to free, or split the wave.
+DRY_RUN_EXIT=1
+
+--- the queue that holds the 12 gpu cards
+826796      alta-m2-foldrep                     PENDING   cpu=8,mem=64G,node=1,billing=20,gres/gpu=1,gres/gpu:a100-80=
+826792      alta-oofckpt                        PENDING   cpu=8,mem=64G,node=1,billing=20,gres/gpu=1,gres/gpu:a100-80=
+826783      bcf-jury-qwen3-32b                  RUNNING   cpu=20,mem=160G,node=1,billing=62,gres/gpu=1,gres/gpu:h200-1
+826784      bcf-jury-qwen3-32b                  PENDING   cpu=12,mem=128G,node=1,billing=22,gres/gpu=1,gres/gpu:a100-8
+826740      bcf-sweep-gpt-oss-20b-arc_challenge-PENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826739      bcf-sweep-phi-4-reasoning-arc_challePENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826734      bcf-sweep-olmo-3-7b-think-arc_challePENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826735      bcf-sweep-deepseek-r1-0528-qwen3-8b-PENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826736      bcf-sweep-deepseek-r1-distill-llama-PENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826737      bcf-sweep-gemma-2-9b-it-arc_challengPENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826738      bcf-sweep-llama-3-1-8b-instruct-arc_PENDING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+826733      bcf-sweep-qwen3-8b-arc_challenge-staRUNNING   cpu=8,mem=64G,node=1,billing=17,gres/gpu=1,gres/gpu:a100-40=
+
+--- h100-47 itself is not the constraint
+gpu xgpi11 gpu:h100-47:4 mix
+gpu xgpi12 gpu:h100-47:4 mix
+gpu xgpi13 gpu:h100-47:4 mix
+gpu xgpi14 gpu:h100-47:4 mix
+gpu xgpi15 gpu:h100-47:4 mix
+gpu xgpi16 gpu:h100-47:4 mix
+gpu xgpi17 gpu:h100-47:4 mix
+gpu xgpi18 gpu:h100-47:4 mix
+gpu xgpi19 gpu:h100-47:4 mix
+gpu xgpi20 gpu:h100-47:4 mix
+gpu-long xgpi11 gpu:h100-47:4 mix
+gpu-long xgpi12 gpu:h100-47:4 mix
+
+=== SUBMITTED at 15:39 on the second attempt ===
+The 14:56 refusal was a cap, not a defect: gpu cards were 12/12. Four wave-1 cells
+finished between 14:57 and 15:39, the count fell to 7/12, and the same row went in
+unchanged. Job 826859, Slurm job name bcf-jury-gpt-oss-20b, out slug gpt-oss-20b-h100-47.
+=== R7 extension: gpt-oss-20b exploratory judge on h100-47, submit attempt 2 ===
+host xlogin1  2026-09-07T15:39:54+08:00
+--- the row
+gpt-oss-20b	h100-47	08:00:00	MEM=64G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gpt-oss-20b-h100-47	BCF_SERVING_LINE=exploratory-h100-47	BCF_REPO=/home/e/e1506804/bcf/repo-jury-h100	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-h100/bcf/env.sh
+--- dry run
+[wave] denominators, live, ALL campaigns on this account (2026-09-07T15:39:54+08:00):
+[wave]   jobs in system : 7/32   (this wave adds 1 -> 8/32)
+[wave]   jobs running   : 4/16
+[wave]   gpu cards total: 7/12   (this wave adds 1 -> 8/12)
+[wave]   h100-47 cards    : 0/4   (this wave adds 1 -> 1/4)
+[wave] every cap holds; submitting 1 job(s)
+[wave] DRY-RUN sbatch --job-name=bcf-jury-gpt-oss-20b --partition=gpu-long --gpus=h100-47 --mem=64G --cpus-per-task=16 --time=08:00:00 --export=ALL,BCF_JUDGES=gpt-oss-20b,BCF_GATE_ITEMS=/home/e/e1506804/bcf/gate_items.jsonl,BCF_CONCURRENCY=12,BCF_RESUME=1,BCF_Q1_PROMPT=a+b+c,BCF_OUT_SLUG=gpt-oss-20b-h100-47,BCF_SERVING_LINE=exploratory-h100-47,BCF_REPO=/home/e/e1506804/bcf/repo-jury-h100,BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-h100/bcf/env.sh /home/e/e1506804/bcf/repo-jury-h100/bcf/judge_serve.sbatch
+[wave] done (dry run, 1 would be submitted, nothing was)
+DRY_RUN_EXIT=0
+--- real submit
+[wave] denominators, live, ALL campaigns on this account (2026-09-07T15:39:54+08:00):
+[wave]   jobs in system : 7/32   (this wave adds 1 -> 8/32)
+[wave]   jobs running   : 4/16
+[wave]   gpu cards total: 7/12   (this wave adds 1 -> 8/12)
+[wave]   h100-47 cards    : 0/4   (this wave adds 1 -> 1/4)
+[wave] every cap holds; submitting 1 job(s)
+Submitted batch job 826859
+[wave] done (1 submitted, 0 rejected of 1)
+SUBMIT_EXIT=0
+--- queue after
+    826796                      alta-m2-foldrep   PENDING          N/A       0:00           (Priority)
+    826792                         alta-oofckpt   PENDING          N/A       0:00           (Priority)
+    826783                   bcf-jury-qwen3-32b   RUNNING          N/A      44:37                xgpk0
+    826784                   bcf-jury-qwen3-32b   PENDING          N/A       0:00           (Priority)
+    826859                 bcf-jury-gpt-oss-20b   PENDING          N/A       0:00           (Priority)
+    826739 bcf-sweep-phi-4-reasoning-arc_challe   RUNNING          N/A       7:01                xgpg3
+    826738 bcf-sweep-llama-3-1-8b-instruct-arc_   RUNNING          N/A      11:02                xgpg6
+    826737 bcf-sweep-gemma-2-9b-it-arc_challeng   RUNNING          N/A      13:32                xgpg5
+--- sacct 826859
+       JobID                  JobName      State ExitCode              Submit  Partition 
+------------ ------------------------ ---------- -------- ------------------- ---------- 
+      826859     bcf-jury-gpt-oss-20b    RUNNING      0:0 2026-09-07T15:39:54   gpu-long 
+
+=== 15:44 the answer, 15:49 the resubmit, 15:52 the collision ===
+826859 exit 5: vLLM took the mxfp4 (quantization=gpt_oss_mxfp4, "Using 'TRITON' Mxfp4 MoE
+backend") and then had nothing left for the KV cache at the section 6.1 fraction 0.25,
+which that table set for a co-hosted pair R7 dissolved. --gpus=h100-47 gives a MIG
+3g.47gb slice: 0.25 of 47 GB is 11.7 GB against 13.03 GiB of weights.
+This lane resubmitted with BCF_JUDGE_GPU_UTIL=0.90 in the row (job 826888). ANOTHER LANE
+had already resubmitted the same row at 15:47:02 as job 826880 and cancelled 826888 at
+15:52:01. 826880 is the live exploratory line; this lane cancelled nothing.
+=== resubmit with the exploratory util override, after 826859 exit 5 ===
+host xlogin1  2026-09-07T15:49:59+08:00
+125e66d5b021eb11dab885762d4dc352d0eadbeed17c5684fb7ec4993a6c533e  bcf/judge_serve.sbatch
+73762ad55ed40e79c1fe0d026ef53e3a0886469c5ff3ac83596d9d0db0387d98  bcf/judges_gate_h100_explore_gptoss.tsv
+--- the row now
+gpt-oss-20b	h100-47	08:00:00	MEM=64G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gpt-oss-20b-h100-47	BCF_SERVING_LINE=exploratory-h100-47	BCF_JUDGE_GPU_UTIL=0.90	BCF_REPO=/home/e/e1506804/bcf/repo-jury-h100	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-h100/bcf/env.sh
+--- dry run
+[wave] denominators, live, ALL campaigns on this account (2026-09-07T15:49:59+08:00):
+[wave]   jobs in system : 10/32   (this wave adds 1 -> 11/32)
+[wave]   jobs running   : 6/16
+[wave]   gpu cards total: 10/12   (this wave adds 1 -> 11/12)
+[wave]   h100-47 cards    : 2/4   (this wave adds 1 -> 3/4)
+[wave] every cap holds; submitting 1 job(s)
+[wave] DRY-RUN sbatch --job-name=bcf-jury-gpt-oss-20b --partition=gpu-long --gpus=h100-47 --mem=64G --cpus-per-task=16 --time=08:00:00 --export=ALL,BCF_JUDGES=gpt-oss-20b,BCF_GATE_ITEMS=/home/e/e1506804/bcf/gate_items.jsonl,BCF_CONCURRENCY=12,BCF_RESUME=1,BCF_Q1_PROMPT=a+b+c,BCF_OUT_SLUG=gpt-oss-20b-h100-47,BCF_SERVING_LINE=exploratory-h100-47,BCF_JUDGE_GPU_UTIL=0.90,BCF_REPO=/home/e/e1506804/bcf/repo-jury-h100,BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-h100/bcf/env.sh /home/e/e1506804/bcf/repo-jury-h100/bcf/judge_serve.sbatch
+[wave] done (dry run, 1 would be submitted, nothing was)
+DRY_RUN_EXIT=0
+[wave] denominators, live, ALL campaigns on this account (2026-09-07T15:49:59+08:00):
+[wave]   jobs in system : 10/32   (this wave adds 1 -> 11/32)
+[wave]   jobs running   : 6/16
+[wave]   gpu cards total: 10/12   (this wave adds 1 -> 11/12)
+[wave]   h100-47 cards    : 2/4   (this wave adds 1 -> 3/4)
+[wave] every cap holds; submitting 1 job(s)
+Submitted batch job 826888
+[wave] done (1 submitted, 0 rejected of 1)
+SUBMIT_EXIT=0
+--- queue
+    826796              alta-m2-foldrep   PENDING     0:00
+    826792                 alta-oofckpt   PENDING     0:00
+    826883   bcf-gptoss-a100-40-flagoff   PENDING     0:00
+    826783           bcf-jury-qwen3-32b   RUNNING    54:43
+    826884    bcf-gptoss-h100-47-flagon   RUNNING     1:35
+    826784           bcf-jury-qwen3-32b   PENDING     0:00
+    826888         bcf-jury-gpt-oss-20b   PENDING     0:00
+    826880         bcf-jury-gpt-oss-20b   RUNNING     2:35
+    826739 bcf-sweep-phi-4-reasoning-ar   RUNNING    17:07
+    826738 bcf-sweep-llama-3-1-8b-instr   RUNNING    21:08
+    826737 bcf-sweep-gemma-2-9b-it-arc_   RUNNING    23:38
+--- outcome at 15:56
+     JobID                  State ExitCode               Start    Elapsed 
+---------- ---------------------- -------- ------------------- ---------- 
+    826859                 FAILED      5:0 2026-09-07T15:40:24   00:04:36 
+    826880                RUNNING      0:0 2026-09-07T15:47:25   00:06:39 
+    826888     CANCELLED by 59099      0:0 2026-09-07T15:50:25   00:01:36 
+--- 826880 serves at util 0.9 without the row override, because that tree edits family_map
+105:        gpu_memory_utilization=0.90,
+114:        gpu_memory_utilization=0.90,
+123:        gpu_memory_utilization=0.90,
+132:        gpu_memory_utilization=0.90,
