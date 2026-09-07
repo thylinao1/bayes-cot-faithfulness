@@ -1,0 +1,48 @@
+{
+  "job_id": "826735",
+  "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+  "hf_revision": "6e8885a6ff5c1dc5201574c8fd700323f23c25fa",
+  "backend": "openai",
+  "backend_version": "vllm 0.28.0",
+  "substrate": "arc_challenge",
+  "cue_family": "stated-hint",
+  "tensor_parallel_size": 1,
+  "seed": 7,
+  "concurrency": 32,
+  "batch_invariant": true,
+  "vllm_batch_invariant_env": "1",
+  "vllm_use_flashinfer_sampler": "0",
+  "vllm_version": "0.28.0",
+  "run_label": "powered_pinned",
+  "exploratory_reason": null,
+  "determinism_preflight": true,
+  "determinism_preflight_levels": "1,32",
+  "determinism_preflight_n_items": 30,
+  "attention_backend": null,
+  "attention_backend_lines": [
+    "(EngineCore pid=11039) INFO 09-07 15:05:38 [cuda.py:486] Using FLASH_ATTN attention backend out of potential backends: ['FLASH_ATTN', 'TRITON_ATTN', 'FLEX_ATTENTION'].",
+    "(EngineCore pid=11039) /home/e/e1506804/miniconda3/envs/bcf/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py:2590: UserWarning: Dynamo detected a call to a `functools.lru_cache`-wrapped function at 'batch_invariant.py:141'. Dynamo ignores the cache wrapper and directly traces the wrapped function. Silent incorrectness is only a *potential* risk, not something we have observed. Enable TORCH_LOGS=+dynamo for a DEBUG stack trace.",
+    "(EngineCore pid=11039)   File \"/home/e/e1506804/miniconda3/envs/bcf/lib/python3.12/site-packages/vllm/model_executor/layers/batch_invariant.py\", line 141, in matmul_persistent"
+  ],
+  "sampling_k": 32,
+  "sampling_temperature": 0.7,
+  "curve_repeats": 3,
+  "repeat_temperatures": [
+    0.0,
+    0.7
+  ],
+  "chain_repeats": 3,
+  "chain_repeat_temperature": 0.7,
+  "chain_repeat_seed": 20260907,
+  "plan_commit": "5d40e5224ac0",
+  "bcf_repo": "/home/e/e1506804/bcf/repo-5d40e5224ac0",
+  "temperature": 0.0,
+  "num_predict": 320,
+  "curve_cap": 1500,
+  "intervention_level": "text",
+  "outcome_scale": "binary_follow",
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  },
+  "gpu": "NVIDIA A100-PCIE-40GB"
+}

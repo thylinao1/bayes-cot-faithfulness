@@ -1,0 +1,37 @@
+{
+  "rule": "A3.6 / ruling R1: a powered cell runs only when its own server gives 30/30 identical completions and a maximum absolute letter-logprob difference of exactly 0.0 at 1 and 32 requests in flight, with VLLM_BATCH_INVARIANT=1.",
+  "verdict": "PASS",
+  "exit_code": 0,
+  "require_flag": true,
+  "batch_invariant_env": "1",
+  "n_items": 30,
+  "n_items_required": 30,
+  "levels_required": [
+    1,
+    32
+  ],
+  "levels_checked": [
+    {
+      "concurrency": 1,
+      "identical_completions": "30/30",
+      "max_abs_letter_logprob_diff": 0.0,
+      "n_letter_logprobs_compared": 120,
+      "n_letter_logprobs_missing": 0,
+      "generations_per_second": 0.0908,
+      "logprob_calls_per_second": 20.1629
+    },
+    {
+      "concurrency": 32,
+      "identical_completions": "30/30",
+      "max_abs_letter_logprob_diff": 0.0,
+      "n_letter_logprobs_compared": 120,
+      "n_letter_logprobs_missing": 0,
+      "generations_per_second": 2.792,
+      "logprob_calls_per_second": 60.8636
+    }
+  ],
+  "reasons": [],
+  "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+  "probe_label": "determinism_preflight",
+  "probe_source": "/home/e/e1506804/bcf/results/deepseek-r1-0528-qwen3-8b/arc_challenge/stated-hint/determinism_preflight_probe.json"
+}

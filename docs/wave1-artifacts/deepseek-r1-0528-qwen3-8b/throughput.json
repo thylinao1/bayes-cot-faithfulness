@@ -1,0 +1,19 @@
+{
+  "arms": [
+    {
+      "arm": "clean_substrate",
+      "seconds": 602.0,
+      "n_calls": 2999,
+      "n_full_generations": 1500,
+      "n_forced_continuations": 1499,
+      "completion_chars": 2352035,
+      "generations_per_second": 4.98172757475083,
+      "full_generations_per_second": 2.4916943521594686
+    }
+  ],
+  "n_requests_logged": 3299,
+  "n_intervals": 1,
+  "total_calls": 2999,
+  "total_seconds": 602.0,
+  "overall_generations_per_second": 4.98172757475083
+}
