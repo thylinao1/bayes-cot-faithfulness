@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/maksimsilchenko/Developer/bcf-a3final
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 128 items
+
+tests/test_frozen_guard.py .....                                         [  3%]
+tests/test_pool_manifest.py ..................                           [ 17%]
+tests/test_arm_concurrency.py ....................                       [ 33%]
+tests/test_sampling_arm.py ..............................                [ 57%]
+tests/test_repeat_curves.py .......................                      [ 75%]
+tests/test_chain_repeats.py ............                                 [ 84%]
+tests/test_determinism_preflight.py ...........                          [ 92%]
+tests/test_wave_plan.py .........                                        [100%]
+
+============================= 128 passed in 4.80s ==============================
+exit_code=0
