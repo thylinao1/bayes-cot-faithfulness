@@ -171,3 +171,132 @@ bcf_wait_server_ready() {
     sleep 10
   done
 }
+
+# --- exit-code guard for serving sbatch scripts ----------------------------------
+#
+# THE DEFECT THIS CLOSES. Jobs 827052 and 827096 were CANCELLED by Slurm with SIGTERM
+# on 2026-09-07 (Slurm printed "CANCELLED ... DUE TO SIGNAL Terminated"), and five
+# seconds later each job's run.log printed "[done] exit_code=0" with no
+# arms_summary.json ever written. Their `trap finish EXIT` read $? at trap time and
+# trusted it verbatim; on the cancel path $? read 0 by the time the trap ran, so a
+# killed cell read exactly like a clean one. bcf/judge_serve.sbatch already trapped
+# TERM/INT/HUP/USR1 explicitly (bcf/exit_guard.sh) and wrote 143 on its own first live
+# cancel; this helper brings serve_and_run.sbatch, probe.sbatch, logprob_recheck.sbatch
+# and tp2_serving_test.sbatch to that same bar, from one place instead of four copies.
+#
+#   bcf_install_exit_guard OUT_DIR MARKER
+#     OUT_DIR  the run's output directory. exit_code.txt is written there.
+#     MARKER   filename of the run's own completion marker, resolved under OUT_DIR
+#               unless it is already an absolute path (arms_summary.json for
+#               serve_and_run.sbatch, probe_results.json for probe.sbatch,
+#               logprob_check_thinking_off.json for logprob_recheck.sbatch,
+#               tp2_report.json for tp2_serving_test.sbatch -- read each script's own
+#               success path rather than assuming; contract_layout.py is what actually
+#               produces the canonical arms_summary.json, and it runs after the arms
+#               command, so the marker is only ever present once that step has run).
+#
+# Installs three traps in the CALLING shell (not a subshell, so `exit` from inside a
+# handler ends the caller's own process):
+#   TERM -> writes 128+15=143 and forwards SIGTERM to every pid registered with
+#           bcf_guard_register_child, so the server dies with the job instead of being
+#           orphaned. Never a wildcard kill (NUS-COMPUTE.md 1.9 etiquette: other
+#           campaigns share this account).
+#   INT  -> writes 128+2=130, same forwarding.
+#   EXIT -> the normal path, and the one that closes the 827052/827096 defect: a 0 is
+#           written ONLY when the command that set $? returned 0 AND the marker file
+#           exists. A 0 with no marker becomes 12, "finished without a completion
+#           marker" -- exactly the 827052/827096 shape, a shell that reached its own
+#           exit with nothing to show for it. Any other status passes through
+#           unchanged: 1 still means a failed threshold, a result rather than a job
+#           failure, and 2-11/13 keep meaning whatever the calling script's own header
+#           table says they mean.
+#
+#   bcf_guard_register_child PID   forward TERM/INT/a cleanup kill to this pid. Call it
+#                                   right after `cmd & PID=$!` for every server (or
+#                                   client) process the script itself started and owns.
+#
+# Call bcf_install_exit_guard ONCE, as early as OUT_DIR is known, and do not also
+# `trap ... EXIT` afterwards in the caller: the two traps would race and only the last
+# one installed survives, silently dropping this guard.
+#
+# Exercised without Slurm or a GPU by tests/test_exit_guard.py (a tiny bash script
+# sources this file, installs the guard, and is sent real signals from Python).
+BCF_GUARD_OUT_DIR=""
+BCF_GUARD_MARKER=""
+BCF_GUARD_SIGNAL=0
+BCF_GUARD_CHILDREN=""
+
+bcf_guard_register_child() {
+  BCF_GUARD_CHILDREN="${BCF_GUARD_CHILDREN} $1"
+}
+
+# Best-effort signal to every registered child. Never fails the guard: a child that
+# already exited, or a pid that was never really ours, just gets ESRCH and is ignored.
+_bcf_guard_kill_children() {
+  local sig="${1:-TERM}" pid
+  for pid in $BCF_GUARD_CHILDREN; do
+    [ -n "$pid" ] && kill -"$sig" "$pid" 2>/dev/null
+  done
+  return 0
+}
+
+_bcf_guard_on_signal() {
+  local sig="$1"
+  BCF_GUARD_SIGNAL="$sig"
+  _bcf_guard_kill_children "$sig"
+  exit $(( 128 + sig ))
+}
+
+_bcf_guard_finish() {
+  local code=$? marker
+  if [ "${BCF_GUARD_SIGNAL:-0}" -ne 0 ]; then
+    # The signal handler already forwarded the real signal above; this is a fast
+    # best-effort sweep, not a second grace period, because Slurm is already tearing
+    # the job step down on its own clock.
+    code=$(( 128 + BCF_GUARD_SIGNAL ))
+    _bcf_guard_kill_children KILL
+  else
+    if [ "$code" -eq 0 ]; then
+      marker="$BCF_GUARD_MARKER"
+      case "$marker" in
+        /*) : ;;
+        *) marker="${BCF_GUARD_OUT_DIR}/${marker}" ;;
+      esac
+      if [ ! -e "$marker" ]; then
+        code=12
+      fi
+    fi
+    # A normal (non-signal) exit: give a server we own a real chance to shut down
+    # before the hard kill, same as the finish() this replaces.
+    _bcf_guard_kill_children TERM
+    sleep 5
+    _bcf_guard_kill_children KILL
+  fi
+  mkdir -p "$BCF_GUARD_OUT_DIR" 2>/dev/null
+  printf '%s\n' "$code" > "${BCF_GUARD_OUT_DIR}/exit_code.txt"
+  if [ -f "${BCF_GUARD_OUT_DIR}/run.log" ]; then
+    printf '[%s] [done] exit_code=%s -> %s/exit_code.txt\n' \
+      "$(date -Is 2>/dev/null || echo unknown)" "$code" "$BCF_GUARD_OUT_DIR" \
+      >> "${BCF_GUARD_OUT_DIR}/run.log" 2>/dev/null
+  fi
+  # Optional extension point: a caller that needs one more thing done at exit (e.g.
+  # bcf/probe.sbatch's sacct capture) defines a function named bcf_guard_after_finish
+  # BEFORE this trap fires and it runs here, AFTER exit_code.txt is written. This
+  # exists so a script never needs its own `trap ... EXIT`, which would silently
+  # replace this one (only the last EXIT trap installed survives) and drop the guard.
+  if declare -f bcf_guard_after_finish >/dev/null 2>&1; then
+    bcf_guard_after_finish
+  fi
+  return 0
+}
+
+bcf_install_exit_guard() {
+  BCF_GUARD_OUT_DIR="${1:?bcf_install_exit_guard needs OUT_DIR}"
+  BCF_GUARD_MARKER="${2:?bcf_install_exit_guard needs MARKER}"
+  BCF_GUARD_SIGNAL=0
+  BCF_GUARD_CHILDREN=""
+  mkdir -p "$BCF_GUARD_OUT_DIR"
+  trap '_bcf_guard_on_signal 15' TERM
+  trap '_bcf_guard_on_signal 2' INT
+  trap _bcf_guard_finish EXIT
+}

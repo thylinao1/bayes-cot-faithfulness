@@ -28,6 +28,12 @@
 # 70B fit test runs when the Llama licence lands.
 #
 # Budget: 20 minutes of serving; --time is 40 to leave room for the download.
+#
+# Exit codes: 3 device assertion, 5 server died, 6 server timeout, 8 server died during
+# the hold window, 9 /models stopped answering during the hold window, 12 FINISHED
+# WITHOUT A COMPLETION MARKER (tp2_report.json never written despite an exit 0;
+# bcf_install_exit_guard, bcf/env.sh), 13 SERVE PORT NOT OURS. 128+signal on a Slurm
+# cancel or interrupt (143 SIGTERM, 130 SIGINT).
 
 set -uo pipefail
 source "${BCF_ENV_SH:-$HOME/bcf/repo/bcf/env.sh}"
@@ -45,21 +51,13 @@ TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}"
 
 mkdir -p "$OUT_DIR"
 LOG="${OUT_DIR}/run.log"
-EXIT_FILE="${OUT_DIR}/exit_code.txt"
 BASE_URL="http://127.0.0.1:${PORT}/v1"
 
-finish() {
-  local code=$?
-  if [ -n "${SERVER_PID:-}" ]; then
-    kill "$SERVER_PID" 2>/dev/null || true
-    sleep 5
-    kill -9 "$SERVER_PID" 2>/dev/null || true
-  fi
-  echo "$code" > "$EXIT_FILE"
-  echo "[done] exit_code=${code} -> ${EXIT_FILE}" | tee -a "$LOG"
-  exit "$code"
-}
-trap finish EXIT
+# exit_code.txt is written on EVERY exit path, including a kill, and a 0 is written
+# ONLY once tp2_report.json actually exists. See bcf/env.sh:bcf_install_exit_guard for
+# the docstring (the 827052/827096 2026-09-07 postmortem this closes) and
+# tests/test_exit_guard.py for the revert proof.
+bcf_install_exit_guard "$OUT_DIR" "tp2_report.json"
 
 {
   echo "=== bcf tp2 serving test: job ${SLURM_JOB_ID} on $(hostname) at $(date -Is) ==="
@@ -83,6 +81,7 @@ vllm serve "$MODEL" --revision "$REVISION" --served-model-name "$MODEL" \
   --max-model-len 8192 --gpu-memory-utilization 0.85 --seed "$SEED" \
   --download-dir "${HF_HOME}/download" >> "${OUT_DIR}/server.log" 2>&1 &
 SERVER_PID=$!
+bcf_guard_register_child "$SERVER_PID"
 
 DEADLINE=$(( $(date +%s) + 1800 ))
 # Ready means OUR server answers: model list, our pid, and the listener on the port all

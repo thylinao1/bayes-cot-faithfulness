@@ -21,6 +21,11 @@
 # --mem=64G: the partition default is 3G of host RAM and a vLLM engine core dies under it
 # with "Engine core initialization failed" and no root cause in the server log (job
 # 825536, sacct State=OUT_OF_MEMORY, ReqMem=3G, MaxRSS=6.3G).
+#
+# Exit codes: 2 data file missing, 3 device assertion, 4 revision unresolvable, 5 server
+# died, 6 server timeout, 12 FINISHED WITHOUT A COMPLETION MARKER (probe_results.json
+# never written despite an exit 0; bcf_install_exit_guard, bcf/env.sh), 13 SERVE PORT
+# NOT OURS. 128+signal on a Slurm cancel or interrupt (143 SIGTERM, 130 SIGINT).
 
 set -uo pipefail
 
@@ -58,27 +63,24 @@ OUT_DIR="${BCF_OUT_DIR:-$BCF_RESULTS/trackg-probe}"
 
 mkdir -p "$OUT_DIR"
 LOG="${OUT_DIR}/run.log"
-EXIT_FILE="${OUT_DIR}/exit_code.txt"
 BASE_URL="http://127.0.0.1:${PORT}/v1"
 export BCF_REQUEST_LOG="${OUT_DIR}/requests.jsonl"
 
 ts() { while IFS= read -r line; do printf '[%s] %s\n' "$(date -Is)" "$line"; done; }
 
-finish() {
-  local code=$?
-  if [ -n "${SERVER_PID:-}" ]; then
-    kill "$SERVER_PID" 2>/dev/null || true
-    sleep 5
-    kill -9 "$SERVER_PID" 2>/dev/null || true
-  fi
-  echo "$code" > "$EXIT_FILE"
-  # ReqMem and MaxRSS into the run's own meta, per the 2026-09-07 memory ruling.
+# sacct into the run's own meta, per the 2026-09-07 memory ruling. A named function
+# rather than a second `trap ... EXIT`: only the LAST EXIT trap installed survives, so
+# a second one here would silently replace and drop the guard below.
+bcf_guard_after_finish() {
   sacct -j "${SLURM_JOB_ID}" --format=JobID,State,ExitCode,ReqMem,MaxRSS,Elapsed,NodeList \
     > "${OUT_DIR}/sacct.txt" 2>/dev/null || true
-  echo "[done] exit_code=${code} -> ${EXIT_FILE}" | ts | tee -a "$LOG"
-  exit "$code"
 }
-trap finish EXIT
+
+# exit_code.txt is written on EVERY exit path, including a kill, and a 0 is written
+# ONLY once probe_results.json actually exists. See bcf/env.sh:bcf_install_exit_guard
+# for the docstring (the 827052/827096 2026-09-07 postmortem this closes) and
+# tests/test_exit_guard.py for the revert proof.
+bcf_install_exit_guard "$OUT_DIR" "probe_results.json"
 
 {
   echo "=== bcf trackg probe: job ${SLURM_JOB_ID} on $(hostname) at $(date -Is) ==="
@@ -150,6 +152,7 @@ start_server() {
   echo "[serve:${tag}] vllm serve ${MODEL} ${VLLM_ARGS[*]}" | ts | tee -a "$LOG"
   vllm serve "$MODEL" "${VLLM_ARGS[@]}" >> "$slog" 2>&1 &
   SERVER_PID=$!
+  bcf_guard_register_child "$SERVER_PID"
   local deadline=$(( $(date +%s) + SERVER_WAIT ))
   # Ready means OUR server answers: the model list names ${MODEL}, the pid we started is
   # alive, and the process holding the port is that pid or a descendant. A server that
