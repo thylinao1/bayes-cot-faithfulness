@@ -209,7 +209,7 @@ where the mediator is independent of the treatment and the outcome is independen
 that specification reports NIE 0.213 and TE 0.270 against a truth of zero (seed 731, n
 10,000). The values above are retained for provenance and are not current estimates.
 Column B is being recomputed under a specification with fitted intercepts and a declared
-estimand contract.
+estimand contract; the repair and the one run recomputed so far are in the next section.
 
 One-event detection rate is 1 minus 0.2^(1/n), the smallest true follow rate at which a run
 of that size has an 80% chance of seeing at least one event. It is not power for a
@@ -221,6 +221,81 @@ true follow rate as high as 23.8% is still consistent with the data, so they mea
 nothing. On every run whose one-event detection rate cleared the 10% target, the hint was
 followed. Filtering to clean-correct items selects for confident, hint-resistant items,
 which raises the bar the hint has to clear.
+
+### Phase 2, measured (2026-09-07)
+
+Three estimator defects were found by an outside review and are repaired and gated by
+tests. No baseline intercepts: the mediator's clean-arm mean was forced to zero and the
+outcome's clean-arm log-odds to Phi(0) = 0.5, so on a synthetic null with zero true effect
+(Poisson-count mediator independent of treatment, an outcome coin independent of both, seed
+731, n = 10,000) the old fit invented NIE +0.2131 and TE +0.2697; the repaired fit reports
+-0.0002 and -0.0082, which tracks the randomized arm difference instead of inventing one. A
+link mismatch: the PyMC posterior fit a logistic outcome while the maximum-likelihood fit,
+the closed form, and the pre-registered estimand are all probit, a gap of about 0.04 on the
+mechanism battery's own parameters; both paths are now probit. Fixed-scale outcome priors:
+rescaling every mediator prior by the mediator's own standard deviation took NIE interval
+coverage in the mechanism battery's PyMC subset from 7/20 to 20/20 in one affected family and
+12/20 to 19/20 in a second. Detail and every number's source:
+[`docs/ESTIMATOR-REPAIR-2026-09-07.md`](docs/ESTIMATOR-REPAIR-2026-09-07.md) and
+[`docs/ESTIMATOR-PRIORS-2026-09-07.md`](docs/ESTIMATOR-PRIORS-2026-09-07.md). One of the four
+pilot runs above has stored transcripts and was refit both ways: `rho*` moves from 0.750
+(which reproduces the published number) to 0.327, and the mediated path changes sign (NIE at
+rho = 0: +0.415 old, -0.137 repaired); that recomputation rests on 44 rows with no outcome
+variation in the control arm, so it is reported as evidence the published values are
+specification-dependent, not as a corrected estimate.
+
+The repaired estimator was run against eleven synthetic mechanism families with known ground
+truth (`experiments/mechanism_battery.py`, three pre-registered outcomes, all pass). The
+finding: `rho*` cannot rank cells. A shared-cause world with zero true mediation and a
+rationalization world that is fully mediated produce the same report at n = 3,600 (mean NIE
+0.2613 against 0.2833, `rho*_point` 0.7069 against 0.7063, both firing the pre-registered
+verdict in 100/100 datasets), and the largest `rho*` in the whole battery, 0.8428, sits on a
+third world whose true mediated effect is zero. Full tables:
+[`experiments/results/mechanism_battery/report.md`](experiments/results/mechanism_battery/report.md).
+
+Serving determinism: temperature 0 and a fixed seed do not make a vLLM server reproducible
+once more than one request shares a batch. On Qwen3-8B, 30 ARC items, at concurrency 1 a
+rerun matches the sequential run exactly (30/30); at 8 to 64 requests in flight only 11 to 13
+of 30 match, with letter logprobs moving by up to 0.875 nats. `VLLM_BATCH_INVARIANT=1`
+restores exact reproducibility (30/30, 0.0 max difference) at every level measured, at about
+half the batched throughput, though it also changes which greedy token wins (it matches the
+flag-off sequential run on only 10 of 30 completions). Every powered cell now runs a
+determinism preflight before its arms start. Source:
+[`docs/W3B-BATCH-INVARIANT.md`](docs/W3B-BATCH-INVARIANT.md).
+
+The first powered sweep (wave 1, ARC challenge, stated-hint, n = 1,500 per cell) is running
+under that pinned, determinism-checked serving mode. Three of eight cells are usable as
+measured:
+
+| Model | Clean-correct | Single-shot follow rate |
+|---|---|---|
+| Qwen3-8B | 1,396 / 1,500 (93.1%) | 0.178 |
+| Gemma-2-9B-it | 1,380 / 1,500 (92.0%) | 0.308 |
+| Llama-3.1-8B-Instruct | 1,321 / 1,500 (88.1%) | 0.339 |
+
+The other five are not usable as measured: three thinking-model cells (OLMo-3-7B-Think,
+DeepSeek-R1-Distill-Llama-8B, DeepSeek-R1-0528-Qwen3-8B) truncate inside the reasoning block
+under the frozen 320-token budget (92.1% and 88.6% of clean outputs unparseable
+respectively, and a third with a separate text-corruption defect), Phi-4-reasoning was still
+running as of the last status check, and gpt-oss-20b failed to serve at all because vLLM
+0.28.0 has no mxfp4 mixture-of-experts kernel that claims batch invariance on any card.
+Column B fits (NDE / NIE / TE posteriors and `rho*` under the repaired estimator) for the
+three usable cells are not yet published here; this is a placeholder for that table.
+
+The jury synthetic gate ran on the FP8 Llama judge against a frozen 483-item corpus with ten
+thresholds committed before the first run. No candidate Q1 prompt clears them: each of three
+prompts fails two of the ten (recall on paraphrased disclosure and quoted-and-denied cues for
+one prompt, recall on paraphrased disclosure and specificity on bare restatement for the
+other two). No prompt is named the candidate.
+[`experiments/jury/GATE-Q1-COMPARISON.md`](experiments/jury/GATE-Q1-COMPARISON.md).
+
+External validity: the frozen acknowledgment regex, byte-identical to main, was scored
+against FaithCoT-Bench's 1,364 expert-annotated items under written permission ("You are
+welcome to use the released data for the evaluation purposes described in your email. Please
+cite our paper when reporting the results," granted 2026-09-07, scope evaluation only with
+citation). No item in that corpus carries a planted cue, so specificity is the measurement of
+record: 0.9729 (1,327/1,364). Jury numbers on this corpus carry `claim_status: EXPLORATORY`
+throughout. [`docs/external_validity.md`](docs/external_validity.md).
 
 ## Limitations
 
@@ -262,13 +337,34 @@ Delivered:
   faithful chain-of-thought from a decorative one.
 - Text-level audit pipeline on open models with guardrails (SRM and attrition checks, power
   and minimum-detectable-effect reporting, MCMC health diagnostics), up to n = 103 per run.
+- Estimator repair (2026-09-07): removed the intercept-free specification that invented an
+  NIE of +0.213 on a synthetic null, unified the two estimator paths on one probit link, and
+  rescaled the outcome priors by the mediator's own standard deviation.
+- Mechanism battery: eleven known-truth generator families, three pre-registered outcomes
+  all pass, and the finding that `rho*` cannot rank a zero-mediation cell against a fully
+  mediated one.
+- Serving-determinism fix: a preflight check and vLLM's batch-invariant mode, run before
+  every powered cell, after finding that batching alone breaks greedy-decoding
+  reproducibility.
+
+Running:
+
+- The first powered open-weights sweep (wave 1, ARC challenge, stated-hint, n = 1,500 per
+  cell) under the pinned, determinism-checked serving mode. Three of eight cells are usable
+  as measured; the rest of the 216-cell grid is queued behind two named rulings. See
+  "Phase 2, measured" above.
+- Jury synthetic gate on the FP8 Llama judge: no candidate Q1 prompt clears the ten
+  pre-committed thresholds yet.
+- External validity: the frozen acknowledgment regex scored against FaithCoT-Bench under
+  written permission; jury numbers on that corpus carry `claim_status: EXPLORATORY`.
 
 In progress or planned:
 
 - Human-labeled golden set. A blinded 103-transcript sheet and a labeling guide exist; two
   independent raters label each transcript, and agreement is reported as Cohen's kappa. No
   silent-unfaithfulness rate is published as a measurement until both raters finish.
-- Open-weights sweep (Llama-3-8B, Gemma-2-9B) with logit-level counterfactual forcing.
+- A reasoning-mode ruling for the thinking-model wave-1 cells, and a jury Q1 construct that
+  clears its own thresholds.
 - Frontier-model sanity check via API, pre-registered on right-but-uncertain items.
 - Public benchmark with uncertainty-quantified faithfulness scores, and a technical writeup.
 
