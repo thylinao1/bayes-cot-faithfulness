@@ -135,6 +135,11 @@ class JuryRunner:
     # vote is in scope here as long as it is recorded as one. `_label_all` still drops
     # off-panel votes from the panel label, so this cannot leak into an aggregate.
     all_judge_rows: bool = False
+    # A deterministic transformation applied to the item text BEFORE the judge sees it, and
+    # the parameters that describe it. Empty means the judge scored the corpus as built.
+    # This lands on EVERY vote, so a run made with the echo strip of option (d) can never be
+    # read as a run without it, and the strip's own SHA-256 travels with the votes.
+    input_transform: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.out_dir = rec.assert_results_path(self.out_dir, self.substrate, self.cue_family)
@@ -280,6 +285,7 @@ class JuryRunner:
             "substrate": self.substrate,
             "cue_family": self.cue_family,
             "run_id": self.run_id,
+            "input_transform": dict(self.input_transform),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         }
         if endpoint.fallback:

@@ -1,0 +1,20 @@
+--- unit scenarios on bcf/exit_guard.sh ---
+PASS  unit complete                                  exit_code=0
+PASS  unit threshold_fail                            exit_code=1
+PASS  unit crash7                                    exit_code=7
+PASS  unit zero_no_marker                            exit_code=250
+PASS  unit cancelled_term                            exit_code=143
+PASS  unit hard_kill                                 exit_code=255
+PASS  unit cancelled_term stage file                 exit_code=143
+--- legacy discriminator (this is what makes the test able to fail) ---
+PASS  legacy zero_no_marker records a success        exit_code=0
+bcf/test_exit_guard.sh: line 125: 11776 Terminated: 15          "$TMP/legacyjob.sh" "$d/exit_code.txt" hang > /dev/null 2>&1
+PASS  legacy cancelled records a success             exit_code=0
+--- integration scenarios on the real bcf/judge_serve.sbatch ---
+PASS  sbatch gate_ok                                 exit_code=0
+PASS  sbatch gate_crash_midrun                       exit_code=7
+PASS  sbatch cancelled_midrun                        exit_code=143
+--- the same cancel against the pre-fix script ---
+PASS  sbatch legacy_cancelled                        exit_code=0
+
+passed 13, failed 0

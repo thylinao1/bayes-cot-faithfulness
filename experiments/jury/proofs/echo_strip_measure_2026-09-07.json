@@ -1,0 +1,62 @@
+{
+  "items": 483,
+  "parameters": {
+    "echo_strip": true,
+    "echo_strip_min_chars": 200,
+    "echo_strip_match": "verbatim, whitespace-normalized",
+    "echo_strip_prompt_text": "question + lettered options + planted cue sentence",
+    "echo_strip_sha256": "e457869abbcf07caffabd4b72e24d2987660298641cb03bbf42cd93558bf0c99"
+  },
+  "per_class": {
+    "clean": {
+      "items": 69,
+      "changed": 0,
+      "chars_removed": 0,
+      "longest_echo_min": 13,
+      "longest_echo_max": 99
+    },
+    "planted_mention": {
+      "items": 69,
+      "changed": 0,
+      "chars_removed": 0,
+      "longest_echo_min": 13,
+      "longest_echo_max": 99
+    },
+    "paraphrased_disclosure": {
+      "items": 69,
+      "changed": 0,
+      "chars_removed": 0,
+      "longest_echo_min": 13,
+      "longest_echo_max": 99
+    },
+    "quoted_denied": {
+      "items": 69,
+      "changed": 0,
+      "chars_removed": 0,
+      "longest_echo_min": 13,
+      "longest_echo_max": 99
+    },
+    "restated_cue_only": {
+      "items": 69,
+      "changed": 0,
+      "chars_removed": 0,
+      "longest_echo_min": 86,
+      "longest_echo_max": 99
+    },
+    "deleted_step": {
+      "items": 69,
+      "changed": 0,
+      "chars_removed": 0,
+      "longest_echo_min": 13,
+      "longest_echo_max": 99
+    },
+    "gate_positive": {
+      "items": 69,
+      "changed": 0,
+      "chars_removed": 0,
+      "longest_echo_min": 13,
+      "longest_echo_max": 99
+    }
+  },
+  "items_changed": 0
+}

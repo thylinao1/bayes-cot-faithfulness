@@ -40,7 +40,7 @@
 # Optional : BCF_OUT_ROOT BCF_PORT_BASE BCF_CONCURRENCY BCF_GATE_LIMIT BCF_SEED
 #            BCF_NUM_PREDICT BCF_SERVER_WAIT BCF_TP BCF_JUDGE_CACHE BCF_CACHE_BUDGET_GB
 #            BCF_RESUME BCF_Q1_PROMPT BCF_OUT_SLUG BCF_SERVING_LINE BCF_SERVING_NOTE
-#            BCF_HOME_USAGE_TTL_H BCF_ALL_JUDGE_ROWS
+#            BCF_HOME_USAGE_TTL_H BCF_ALL_JUDGE_ROWS BCF_ECHO_STRIP
 #
 # BCF_Q1_PROMPT names which Q1 prompt file the gate loads ("a" is the file of record,
 # "b" and "c" the revisions). It also takes a list, separated by "+" in a job table and by
@@ -66,6 +66,10 @@ if [ ! -d "${BCF_REPO}/experiments/jury" ]; then
   echo "[repo] REFUSING: ${BCF_REPO} carries no experiments/jury; wrong tree" >&2
   exit 10
 fi
+
+# The exit-code guard. Slurm runs this file from its own spool directory, so $0 is not in
+# the repo and the guard is sourced by absolute path like env.sh is.
+source "${BCF_EXIT_GUARD_SH:-${BCF_REPO}/bcf/exit_guard.sh}"
 
 ts() { while IFS= read -r line; do printf '[%s] %s\n' "$(date -Is)" "$line"; done; }
 
@@ -105,6 +109,12 @@ RESUME_FLAG=""
 # as one.
 ALL_ROWS_FLAG=""
 [ -n "${BCF_ALL_JUDGE_ROWS:-}" ] && ALL_ROWS_FLAG="--all-judge-rows"
+# EXPLORATORY option (d): strip verbatim reproductions of the prompt out of the response
+# before the judge sees it. Unset or 0 is off, which is what every run of record uses. The
+# strip's parameters and the SHA-256 of experiments/jury/echo_strip.py land on every vote
+# and in the report, so a stripped run cannot be read as an unstripped one.
+ECHO_STRIP_FLAG=""
+[ "${BCF_ECHO_STRIP:-0}" -gt 0 ] 2>/dev/null && ECHO_STRIP_FLAG="--echo-strip ${BCF_ECHO_STRIP}"
 
 # vLLM 0.28 JIT-compiles the FlashInfer top-k/top-p sampler on first use and that build is
 # node dependent (job 825480 died on xgph10 after loading the weights). Every judge call is
@@ -121,10 +131,15 @@ esac
 mkdir -p "$OUT_DIR"
 LOG="${OUT_DIR}/run.log"
 EXIT_FILE="${OUT_DIR}/exit_code.txt"
+# Written NON-ZERO here, before anything can go wrong, and overwritten by finish() only
+# with a code that the guard has checked. Job 826023 was cancelled mid-variant and its
+# EXIT trap wrote 0; nothing downstream could tell 2 percent of a run from all of it.
+bcf_exit_guard_init "$EXIT_FILE"
 
 SERVER_PIDS=()
 finish() {
-  local code=$?
+  local raw=$?
+  local code
   for pid in "${SERVER_PIDS[@]:-}"; do
     [ -n "$pid" ] || continue
     kill "$pid" 2>/dev/null || true
@@ -134,7 +149,14 @@ finish() {
     [ -n "$pid" ] || continue
     kill -9 "$pid" 2>/dev/null || true
   done
-  echo "$code" > "$EXIT_FILE"
+  # A cancel, a kill or an unwind that never reached the completion marker cannot record a
+  # zero: 128+signal for a trapped signal, 250 for a zero that skipped the marker, and the
+  # 255 already on disk for anything that never got here at all.
+  code="$(bcf_exit_guard_code "$raw")"
+  bcf_exit_guard_write "$code"
+  if [ "$code" != "$raw" ]; then
+    echo "[done] raw status ${raw} recorded as ${code} (signal=${BCF_EXIT_SIGNAL}, completed=${BCF_EXIT_COMPLETE})" | ts | tee -a "$LOG"
+  fi
   echo "[done] exit_code=${code} -> ${EXIT_FILE}" | ts | tee -a "$LOG"
   exit "$code"
 }
@@ -312,12 +334,15 @@ for variant in "${Q1_VARIANTS[@]}"; do
     RUN_OUT="$OUT_DIR"
   fi
   echo "[gate] Q1 variant ${variant} starting at $(date -Is) -> ${RUN_OUT}" | ts | tee -a "$LOG"
+  # Same rule one level down: the variant's own exit file starts at 255, so a run
+  # cancelled inside variant c leaves c non-zero and does not disturb a and b.
+  bcf_exit_guard_open_stage "${RUN_OUT}/exit_code.txt"
   python -m experiments.jury.gate \
     --items "$GATE_ITEMS" --out "$RUN_OUT" \
     --substrate "$SUBSTRATE" --cue-family "$CUE" \
     --seed "$SEED" --concurrency "$CONCURRENCY" --num-predict "$NUM_PREDICT" \
     --q1-prompt "$variant" \
-    $RESUME_FLAG $ALL_ROWS_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
+    $RESUME_FLAG $ALL_ROWS_FLAG $ECHO_STRIP_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
   st=${PIPESTATUS[0]}
   echo "[gate] Q1 variant ${variant} finished at $(date -Is) with status ${st}" | ts | tee -a "$LOG"
   # 1 is a FAILED THRESHOLD, which is a result. Anything above 1 is the job breaking.
@@ -329,6 +354,7 @@ echo "[gate] all variants finished at $(date -Is), worst status ${GATE_STATUS}" 
 # Exit 0 when the gate RAN, whatever its verdict: a judge failing a threshold is a result,
 # not a job failure, and mailing FAIL on it would train the operator to ignore the mail.
 # The verdict lives in gate_report.json.
+bcf_exit_guard_complete
 if [ "$GATE_STATUS" -gt 1 ]; then
   exit "$GATE_STATUS"
 fi

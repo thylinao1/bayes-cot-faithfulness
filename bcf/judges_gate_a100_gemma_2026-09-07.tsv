@@ -1,0 +1,11 @@
+# RUN OF RECORD, pinned a100-80 line (section 6.1), Gemma-3-27B-it bf16 ALONE on one card
+# at its pinned gpu-memory-utilization 0.65, which bcf/judge_spec.py reads from
+# experiments/jury/family_map.py.
+# ALONE, not co-hosted. Section 6.1 pins Gemma at 0.65 and gpt-oss at 0.25 on ONE a100-80,
+# and that line does not start: vLLM's --gpu-memory-utilization is a fraction of the WHOLE
+# card measured against what other processes already hold, so gemma allocated first and
+# gpt-oss then computed 0.25 x card minus gemma's allocation and reported "Available KV
+# cache memory: -39.48 GiB" before dying (job 826026, exit 5, no votes). Serving them one
+# at a time is the OPERATOR'S AMENDMENT to section 6.1 and is recorded as such; this file
+# does not decide it.
+gemma-3-27b-it	a100-80	08:00:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=a+b+c	BCF_OUT_SLUG=gemma-3-27b-it-a100
