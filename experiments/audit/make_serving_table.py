@@ -20,7 +20,8 @@ def main(root: Path):
         for cfg in ("A", "B"):
             f = cell / f"config_{cfg}.json"
             if not f.exists():
-                print(f"| `{cell.name[3:]}` | {cfg} | - | NOT RUN | | | | | | | |")
+                print(f"| `{cell.name[3:]}` | {cfg} | - | NOT COMPLETED IN THIS LANE "
+                      "| | | | | | | |")
                 continue
             d = load(f)
             p_ = d["pass"]

@@ -1,0 +1,333 @@
+{
+ "model": "allenai/Olmo-3-7B-Think",
+ "config": "B",
+ "num_predict": 4096,
+ "n_items": 30,
+ "concurrency": 32,
+ "seed": 7,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "prefill_mode": "",
+ "extraction": "after the last closing think tag",
+ "pass": {
+  "n": 30,
+  "n_parsed": 24,
+  "parse_rate": 0.8,
+  "n_correct": 23,
+  "clean_accuracy": 0.766667,
+  "seconds_total": 245.048,
+  "seconds_per_item": 8.1683,
+  "mean_completion_tokens": 1897.0,
+  "max_completion_tokens": 4096,
+  "n_finish_length": 6,
+  "n_closing_think_tag": 24,
+  "client_stats": {
+   "requests_ok": 30,
+   "retries": 0,
+   "requests_failed": 0
+  },
+  "prefill_branch": null,
+  "rendered_prompt_tail": null
+ },
+ "rows": [
+  {
+   "completion_tokens": 1959,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "ty changes are not direct consequences of increased rotation speed unless mass redistribution significantly alters \\( I \\), which is less likely than the direct angular momentum effect.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 525,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "odifications.  \n4. Options A, C, and D do not directly address the purpose of assessing structural integrity.  \n5. Option B aligns with the objective of enhancing earthquake resilience.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 874,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "is impossible.  \n7. The initial step must involve the direct capture of light by a pigment.  \n8. Chlorophyll capturing light energy (Option C) is the first event triggering the process.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 1141,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": true,
+   "tail": "sicist is investigating *when* he changes the speed, which refers to the role of the speed in the experiment.  \n8. Since speed is the manipulated factor, it is the independent variable.  \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 3475,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": true,
+   "tail": "half their maximum KE, which matches the calculation.  \n8. Other options are incorrect: A is false (KE increases), B and C incorrectly claim equal energy loss/gain for different masses.  \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 1030,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": false,
+   "tail": "itself is not classified as a \"cell-cycle disease.\"  \n4. Tumors causing progressive and long-term harm make DFTD a chronic disease.  \n5. Combining these, DFTD is infectious and chronic.  \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 1104,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": ".  \n5. Mammals like squirrels or chipmunks cache food for winter, aligning with option C.  \n6. While rocks may provide shelter, the key motivation is likely food availability in winter.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 1242,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": " sediment formation but less directly tied to the specific evidence of palm trees.  \n8. The most direct evidence is the palm trees themselves, which necessitate a past tropical climate.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": " and healthier lives, leading to a lower disease rate. That seems like a reasonable assumption. Alternatively, maybe the answer is C. \n\nWait, another thought: if the hawks are gone, then the ecosystem"
+  },
+  {
+   "completion_tokens": 622,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "c structure.  \n5. An electron (option B) is a subatomic particle, not an element.  \n6. The atom (option A) is the smallest unit that retains all the characteristic properties of copper.  \n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 886,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "D) like ATP are used by both types of cells, so they are not specific.  \n5. Size differences (B) are a commonly observed and notable distinction between prokaryotic and eukaryotic cells.  \nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 1243,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "; minerals in oceans come from geological processes, not the Sun.  \n7. Among the options, A best describes a direct effect of the Sun on ocean dynamics through atmospheric interactions.  \n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 1854,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "mprobable without any warming.  \n6. 78°F is a plausible warm temperature for a sunny afternoon in a mild climate.  \n7. Among the options, 78°F is the only reasonable increase from 41°F.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 3803,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "operly recorded or analyzed.  \n4. Observations (D) depend on the table (C) to store collected data.  \n5. Writing a report (B) and repeating the investigation (A) require completed data.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 2857,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "antities than water vapor.  \n6. Abundance refers to concentration, not greenhouse effect potency.  \n7. Water vapor is the most abundant greenhouse gas by volume in the lower atmosphere.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 549,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "oint of water in Celsius.  \n6. Option (D) 212°C is the boiling point of water in Fahrenheit.  \n7. Since the question specifies Celsius, the correct answer is the Celsius freezing point.  \n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 576,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "eting past reports, which is unethical and discards valuable historical context.  \n6. Scientists should integrate new findings with existing knowledge, not discard or ignore prior work.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 618,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "ler object (ice).  \n4. The pitcher itself does not significantly affect the heat transfer between the tea and ice.  \n5. Therefore, the flow of thermal energy is from the tea to the ice.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 1463,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "ees is lower board availability, but the question asks for the *reason* in terms of given options.  \n6. The price of boards increasing (A) is the most logical outcome of reduced supply.  \n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "t had flies and other insects. They didn't need a microscope to see that. The microscope showed that there were microorganisms present, which were the actual cause. So the microscope revealed the true"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": ", but given the options, I think the intended answer is B. Wait, but I'm not sure. Alternatively, maybe the answer is D? No, that's energy conversion. Hmm.\n\nWait, let me think of another approach. The"
+  },
+  {
+   "completion_tokens": 951,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "ces individual atoms instead of diatomic gases.  \n8. Option C represents water's structure, not decomposition.  \n9. Option D uses O(g) instead of O₂(g), violating diatomic requirements.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 889,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "life.  \n5. Option B's description of penguins as \"fierce\" is debatable and less universally factual.  \n6. The most objective and well-established fact is about their climate adaptation.  \n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 2240,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "e they don’t align with the room’s constant temperature or the direction of heat flow.  \n7. Option B (50°F) is incorrect because the cooler water will warm up to the room’s temperature.  \n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 618,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": ").  \n6. The question asks for the common category they belong to, not their source (clouds) or state (gas).  \n7. \"Water\" encompasses all these forms as variations of the same substance.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 769,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": true,
+   "tail": " here.  \n4. Evaporation (B) needs heat, which is absent in a freezer.  \n5. Becoming a gas (C) would require heating, not cooling.  \n6. The primary effect of freezing is forming a solid.  \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 1046,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "floods are consistent with the local climate’s potential for rare summer storms.  \n7. Option (B) correctly identifies it as a seasonal weather event (summer) with irregular occurrences.  \n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "lue (hottest), orange (next), red (coolest). So the order is 1,3,2. So B. So that's correct. Therefore, the answer is B. So the final answer is B. So the box should be B. But the user wants the answer"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "hotosynthesis), which is then eaten by animals, so the most useful is that they are food. Since that's not an option, but D is about reproduction which supports the food supply, maybe D is the answer?"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ing that porous materials are less dense, so A is the answer. \n\nWait, let me think of the options again. The question is which statement best explains why it floats. The options are:\n\nA) Porous\n\nB) Bu"
+  }
+ ],
+ "r1_preflight": {
+  "rule": "30/30 identical completions and max abs letter-logprob diff exactly 0.0 at 1 and at the run concurrency, VLLM_BATCH_INVARIANT=1",
+  "verdict": "PASS",
+  "levels": [
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 1,
+    "generations_per_second": 0.011
+   },
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 32,
+    "generations_per_second": 0.1225
+   }
+  ]
+ }
+}

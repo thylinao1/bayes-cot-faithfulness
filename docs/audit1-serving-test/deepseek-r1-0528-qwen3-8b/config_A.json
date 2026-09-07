@@ -1,0 +1,333 @@
+{
+ "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+ "config": "A",
+ "num_predict": 320,
+ "n_items": 30,
+ "concurrency": 32,
+ "seed": 7,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "prefill_mode": "closed_think",
+ "extraction": "whole completion",
+ "pass": {
+  "n": 30,
+  "n_parsed": 1,
+  "parse_rate": 0.033333,
+  "n_correct": 1,
+  "clean_accuracy": 0.033333,
+  "seconds_total": 16.243,
+  "seconds_per_item": 0.5414,
+  "mean_completion_tokens": 320.0,
+  "max_completion_tokens": 320,
+  "n_finish_length": 30,
+  "n_closing_think_tag": 0,
+  "client_stats": {
+   "requests_ok": 30,
+   "retries": 0,
+   "requests_failed": 0
+  },
+  "prefill_branch": "inserted_a_whole_empty_block",
+  "rendered_prompt_tail": "stion:Snow,rain,hail,andfogareallformsof(A)gas.(B)water.(C)wind.(D)clouds.Thinkstepbystep,oneshortnumberedstepperline.Thenendwithafinallineexactlyoftheform'Answer:(X)'.<｜Assistant｜><think>\n\n</think>\n\n"
+ },
+ "rows": [
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "lanetaryĠyearĠisĠtheĠtimeĠforĠoneĠorbitĠaroundĠtheĠsun,ĠwhichĠisĠdeterminedĠbyĠtheĠplanet'sĠdistanceĠfromĠtheĠsunĠandĠitsĠorbitalĠvelocity,ĠnotĠdirectlyĠbyĠitsĠrotation.ĠRotationĠaffectsĠtheĠlengthĠof"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "n'tĠdirectlyĠrelateĠtoĠmakingĠbuildingsĠlookĠnicer.ĠAppearanceĠmightĠbeĠconsideredĠinĠdesign,ĠbutĠit'sĠnotĠtheĠfocusĠhere.ĊĊ-Ġ(D)ĠbuildingĠmaterialswillĠbeĠcheaper:ĠTestingĠmightĠinvolveĠusingĠcertain"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "onfusingĠitĠwithĠotherĠplantĠprocesses.ĊĊ(B)ĠLightĠenergyĠisĠconvertedĠtoĠchemicalĠenergy.ĠâĢĵĠThisĠdescribesĠpartĠofĠtheĠlight-dependentĠreactions,ĠbutĠitĠdoesn'tĠspecifyĠhowĠorĠwhereĠitĠstarts.ĊĊ(C)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "erĠtheĠrampĠorĠnot,ĠorĠmaybeĠtheĠdistanceĠorĠheightĠitĠjumps.ĊĊTheĠdependentĠvariableĠwouldĠbeĠtheĠoutcomeĠthatĠdependsĠonĠtheĠspeed,ĠlikeĠsuccessĠinĠjumpingĠorĠtheĠjumpĠdistance.ĊĊButĠtheĠquestionĠis"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "heĠpotentialĠenergyĠfirst.ĊĊPotentialĠenergyĠ(PE)ĠisĠgivenĠbyĠPEĠ=ĠmĠ*ĠgĠ*Ġh,ĠwhereĠmĠisĠmass,ĠgĠisĠaccelerationĠdueĠtoĠgravity,ĠhĠisĠheight.ĊĊInitially,Ġthey'reĠatĠheightĠ2.0Ġm,ĠandĠafterĠfallingĠ1.0"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ĠuncontrolledĠcellĠdivision.ĠButĠisĠDFTDĠspecificallyĠaĠcell-cycleĠdisease?ĊĊFromĠtheĠdescription:Ġ\"TheĠparasitesĠcauseĠcancerousĠtumors.\"ĠSo,ĠtheĠdiseaseĠinvolvesĠcancer,ĠwhichĠisĠrelatedĠtoĠabnormal"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "useĠwarmthĠisĠneededĠinĠwinter,ĠbutĠtheĠactionĠisĠinĠsummer.ĠMaybeĠthey'reĠstoringĠsomethingĠthatĠwillĠhelpĠwithĠwarmth,ĠbutĠtheĠoptionĠdirectlyĠsaysĠ\"toĠprovideĠwarmth,\"ĠwhichĠmightĠimplyĠtheĠpurpose"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ĠtropicalĠpast.ĊĊLet'sĠlookĠatĠtheĠoptionsĠoneĠbyĠone.ĊĊ(A)ĠThereĠwasĠonceĠmoreĠwaterĠinĠtheĠarea.ĊĊSedimentaryĠrockĠoftenĠformsĠinĠwater,ĠsoĠifĠthere'sĠsedimentaryĠrock,ĠitĠmightĠimplyĠthatĠthereĠwas"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "tĠchickensĠmightĠhaveĠotherĠpredatorsĠorĠissues.ĊĊNow,ĠoptionĠ(A):ĠChickenĠpopulationĠwouldĠgoĠdown.ĠThatĠmightĠhappenĠifĠthere'sĠanĠincreaseĠinĠotherĠcausesĠofĠdeath,ĠbutĠtheĠquestionĠdoesn'tĠmention"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ĠnucleusĠisĠsmallĠandĠdense,ĠbutĠcopper'sĠpropertiesĠcomeĠfromĠtheĠwholeĠatom.ĊĊStepĠ6:ĠProtonsĠareĠpartĠofĠtheĠnucleus,ĠbutĠagain,ĠtheyĠdon'tĠrepresentĠtheĠfullĠatom.ĊĊStepĠ7:ĠElectronsĠareĠtheĠouter"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ometers,ĠwhileĠeukaryoticĠcellsĠlikeĠanimalĠcellsĠareĠ10ĠtoĠ30Ġmicrometers.ĠButĠisĠsizeĠtheĠprimaryĠfeatureĠusedĠforĠclassification?ĠNotĠreally;ĠclassificationĠisĠbasedĠonĠinternalĠstructure,ĠnotĠjust"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "tionĠ(C):Ġ\"TheĠSun'sĠraysĠcauseĠorganismsĠtoĠcomeĠtoĠtheĠsurface.\"ĠThisĠmightĠreferĠtoĠphotosynthesisĠorĠtheĠbehaviorĠofĠmarineĠorganisms.ĠSunlightĠpenetratesĠtheĠoceanĠsurfaceĠandĠsupportsĠphytoplank"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "htĠbeĠmuchĠhigherĠthanĠtheĠmorningĠlow.ĊĊNow,ĠlookingĠatĠtheĠoptions:ĊĊ(A)Ġ32Â°FĠâĢĵĠthat'sĠcolderĠthanĠ41Â°F,ĠsoĠitĠwouldĠmeanĠtheĠtemperatureĠdecreased,ĠwhichĠisĠunlikelyĠonĠaĠsunny,ĠmildĠdayĠunless"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "veĠandĠrecordĠwhatĠhappens.ĊĊTheĠquestionĠisĠwhichĠstepĠshouldĠcomeĠfirst.ĠSo,ĠIĠneedĠtoĠfindĠtheĠinitialĠstep.ĊĊInĠanyĠinvestigation,ĠyouĠstartĠwithĠplanningĠorĠsettingĠupĠhowĠyou'reĠgoingĠtoĠcollect"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": ",ĠwhichĠisĠmuchĠhigherĠthanĠtheĠothers.ĊĊ-ĠOzoneĠ(O3):ĠOzoneĠisĠaĠgreenhouseĠgas,ĠbutĠit'sĠnotĠasĠabundantĠasĠwaterĠvapor.ĠIt'sĠmoreĠconcentratedĠinĠtheĠstratosphere,ĠbutĠinĠtheĠlowerĠatmosphere,Ġit's"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "',ĠsoĠforĠA,ĠitĠwouldĠbeĠ'Answer:(A)'.ĊĊLetĠmeĠoutlineĠtheĠsteps:ĊĊ-ĠStepĠ1:ĠWaterĠfreezesĠatĠ0ĠdegreesĠCelsius.ĊĊ-ĠStepĠ2:ĠOptionĠ(B)Ġ32ĠdegreesĠCelsiusĠisĠincorrectĠbecauseĠthat'sĠtheĠfreezingĠpoint"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "becomesĠavailable.ĠThisĠsoundsĠlikeĠaĠgoodĠpractice.ĠWhenĠnewĠdataĠcomesĠin,ĠscientistsĠshouldĠreviewĠandĠincorporateĠitĠintoĠtheirĠunderstanding.ĠThisĠensuresĠthatĠreportsĠareĠup-to-dateĠandĠaccurate"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "tionĠ(C)ĠsaysĠfromĠtheĠpitcherĠtoĠtheĠtea.ĠTheĠpitcherĠisĠcontainingĠtheĠice,ĠsoĠtheĠpitcherĠitselfĠmightĠbeĠatĠaĠsimilarĠtemperatureĠtoĠtheĠice,ĠbutĠtheĠteaĠisĠbeingĠpouredĠintoĠit.ĠTheĠpitcherĠisn't"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "e.ĊĊOptionĠ(D)ĠsaysĠthereĠwillĠbeĠmoreĠtreesĠforĠlogging.ĠButĠifĠnoĠseedlingsĠareĠplanted,ĠthereĠareĠfewerĠtreesĠbeingĠgrown,ĠsoĠinĠtheĠlongĠrun,ĠthereĠmightĠbeĠfewerĠtreesĠforĠlogging,ĠnotĠmore.ĊĊThe"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "sĠseemsĠvague,ĠbutĠitĠcouldĠreferĠtoĠtheĠexperimentsĠthatĠdirectlyĠtestedĠandĠdisprovedĠspontaneousĠgeneration,ĠlikeĠPasteur's.ĊĊ(D)ĠTheĠinventionĠofĠtheĠmicroscope:ĠTheĠmicroscopeĠwasĠinventedĠinĠthe"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "omesĠafterĠtheĠfoodĠisĠtakenĠinĠbyĠendocytosisĠorĠphagocytosis,ĠformingĠaĠfoodĠvacuoleĠthatĠfusesĠwithĠlysosomes.ĊĊStepĠ5:ĠSo,ĠtheĠmainĠroleĠinĠfoodĠdigestionĠisĠtoĠbreakĠdownĠtheĠfoodĠintoĠabsorbable"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ĠandĠoneĠoxygenĠatom,ĠbutĠinĠchemicalĠequations,ĠweĠusuallyĠwriteĠitĠwithĠcoefficients.ĠAlso,ĠthisĠdoesn'tĠshowĠtheĠgasesĠorĠtheĠcorrectĠstoichiometry.ĠInĠelectrolysis,Ġit'sĠ2HâĤĤOĠproducingĠ2HâĤĤĠand"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": ".ĠPenguinsĠareĠwildĠanimals,ĠprotectedĠinĠmanyĠplaces,ĠandĠnotĠsuitableĠasĠpets.ĠTheyĠrequireĠspecificĠenvironmentsĠandĠareĠnotĠdomesticated.ĊĊNow,ĠcomparingĠallĠoptions:ĊĊ-Ġ(A)ĠseemsĠfactualĠandĠtrue"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": ",ĠbothĠglassesĠshouldĠbeĠatĠ73Â°F.ĊĊButĠlet'sĠcheckĠtheĠoptions:Ġ(A)Ġ43Â°F,Ġ(B)Ġ50Â°F,Ġ(C)Ġ73Â°F,Ġ(D)Ġ90Â°F.ĊĊOptionĠ(C)ĠisĠ73Â°F,ĠwhichĠseemsĠstraightforward.ĊĊButĠisĠthereĠaĠtrickĠhere?ĠTheĠquestion"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "mĠofĠprecipitationĠitself.ĊĊ-Ġ(D)Ġclouds:ĠCloudsĠareĠmadeĠofĠwaterĠdropletsĠorĠiceĠcrystals,ĠandĠtheyĠcanĠproduceĠprecipitationĠlikeĠrain,Ġsnow,Ġhail.ĠButĠfogĠisĠalsoĠaĠtypeĠofĠcloud,Ġlow-lyingĠcloud."
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ĠliquidĠturnsĠintoĠaĠgas.ĠButĠinĠaĠfreezer,Ġit'sĠveryĠcold,ĠsoĠevaporationĠmightĠnotĠhappenĠeasily;ĠinĠfact,Ġit'sĠtheĠoppositeĠâĢĵĠthingsĠmightĠfreeze.ĊĊ(C)ĠItĠbecameĠaĠgas.ĠThatĠwouldĠbeĠvaporization"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ButĠflashĠfloodsĠaren'tĠconstant;Ġthey'reĠeventsĠthatĠhappenĠoccasionally,ĠnotĠaĠfeatureĠofĠtheĠclimateĠitself.ĠClimateĠfeaturesĠmightĠincludeĠthingsĠlikeĠaverageĠtemperatureĠorĠprecipitationĠpatterns"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "Ċ-ĠOrangeĠlight:ĠaroundĠ590-620ĠnmĊĊ-ĠRedĠlight:ĠaroundĠ620-750ĠnmĊĊYes,ĠblueĠhasĠtheĠshortestĠwavelength,ĠredĠhasĠtheĠlongest.ĊĊTherefore,ĠtemperatureĠorder:ĠblueĠ>ĠorangeĠ>Ġred.ĊĊSo,ĠfromĠhighestĠto"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "lanktonĠcanĠcontributeĠtoĠnutrientĠcycles,ĠbutĠI'mĠnotĠsureĠifĠcleaningĠwaterĠisĠtheirĠmainĠfunction.ĠSomeĠplanktonĠmightĠhelpĠinĠfilteringĠorĠdecomposition,ĠbutĠit'sĠnotĠtheĠmostĠdirectĠbenefit.ĊĊ(C)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ldĠmeanĠlowĠdensity,ĠwhichĠisĠrelatedĠtoĠfloating.ĠButĠnotĠallĠlightĠmaterialsĠfloat;ĠforĠexample,ĠaĠlightĠmaterialĠwithĠhighĠdensityĠmightĠstillĠsinkĠifĠit'sĠnotĠbuoyant.ĠDensityĠisĠtheĠkeyĠfactor.ĊĊ"
+  }
+ ],
+ "r1_preflight": {
+  "rule": "30/30 identical completions and max abs letter-logprob diff exactly 0.0 at 1 and at the run concurrency, VLLM_BATCH_INVARIANT=1",
+  "verdict": "PASS",
+  "levels": [
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 1,
+    "generations_per_second": 0.061
+   },
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 32,
+    "generations_per_second": 1.9367
+   }
+  ]
+ }
+}

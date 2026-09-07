@@ -1,0 +1,17 @@
+{
+ "job_id": "826965",
+ "model": "allenai/Olmo-3-7B-Think",
+ "hf_revision": "d97e442d7cc678210054dbcc9b440894d62c89a4",
+ "slug": "olmo-3-7b-think",
+ "substrate": "arc_challenge",
+ "n_items": 30,
+ "num_predict_A": 320,
+ "num_predict_B": 4096,
+ "concurrency": 32,
+ "seed": 7,
+ "vllm_batch_invariant_env": "1",
+ "vllm_use_flashinfer_sampler": "0",
+ "hostname": "xgph13",
+ "run_label": "audit_serving_test_exploratory",
+ "note": "element 9.4 serving test; data only, no ruling, not a cell of record"
+}

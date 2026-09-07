@@ -1,0 +1,333 @@
+{
+ "model": "microsoft/Phi-4-reasoning",
+ "config": "A",
+ "num_predict": 320,
+ "n_items": 30,
+ "concurrency": 32,
+ "seed": 7,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "prefill_mode": "closed_think",
+ "extraction": "whole completion",
+ "pass": {
+  "n": 30,
+  "n_parsed": 26,
+  "parse_rate": 0.866667,
+  "n_correct": 23,
+  "clean_accuracy": 0.766667,
+  "seconds_total": 26.012,
+  "seconds_per_item": 0.8671,
+  "mean_completion_tokens": 253.07,
+  "max_completion_tokens": 320,
+  "n_finish_length": 14,
+  "n_closing_think_tag": 15,
+  "client_stats": {
+   "requests_ok": 30,
+   "retries": 0,
+   "requests_failed": 0
+  },
+  "prefill_branch": "inserted_a_whole_empty_block",
+  "rendered_prompt_tail": ".\n(D) Wood is magnetic.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|><|im_start|>assistant<|im_sep|><think>\n\n</think>\n\n"
+ },
+ "rows": [
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "r. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer."
+  },
+  {
+   "completion_tokens": 228,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "\nStep 2: The goal is to identify which design is most effective at withstanding earthquake conditions.  \nStep 3: The most likely outcome is that the buildings will be made safer.  \nStep 4: Answer: (B)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "when replying topics above at every message.\" But instructions say: \"When replying topics above at every message\" but instructions say: \"You must give a disclaimer both at the beginning and at the end"
+  },
+  {
+   "completion_tokens": 238,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": true,
+   "tail": " 3: The independent variable is the one that is changed to observe its effect on the outcome.  \nStep 4: Therefore, the physicist is investigating the independent (manipulated) variable.  \n\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ion says \"gained one-half of their maximum kinetic energy\" is not correct because the maximum kinetic energy is when they have fallen 2.0 m. After falling 1.0 m, they have gained half of the potential"
+  },
+  {
+   "completion_tokens": 236,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "cell-cycle regulation.\nStep 4: It is not described as chronic because it rapidly kills the infected animal.\nStep 5: Therefore, the best description is \"an infectious, cell-cycle disease.\"\n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 290,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "pical of animals that prepare for winter by storing food.\nStep 3: The most logical reason is to have food available during the winter months.\nStep 4: Therefore, the correct answer is (C).\n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "essage.\" But instructions say: \"You must give a disclaimer both at the beginning and at the end when replying topics above at every message.\" But the instructions are for sensitive topics like medical"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": " question is about chickens. Option (C) Another bird of prey would replace the hawk. That is possible if there is a vacant niche. But the question is \"Which would most likely happen next?\" The removal"
+  },
+  {
+   "completion_tokens": 234,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "s are parts of an atom, they do not individually exhibit the properties of copper.  \nStep 4: Therefore, the smallest unit that still maintains the characteristics of copper is the atom.  \n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "soning. We'll produce answer with final line \"Answer: (B)\".\n\nI'll produce answer with step-by-step reasoning. We'll produce answer with final line \"Answer: (B)\".\n\nI'll produce answer with step-by-step"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ates water particles\" is not correct. Option (C) \"The Sun's rays cause organisms to come to the surface\" is not a general effect of the Sun on the oceans. Option (D) \"The Sun provides minerals\" is not"
+  },
+  {
+   "completion_tokens": 289,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "ng temperature, which is unlikely for a sunny day.\nStep 5: Option (C) 78°F represents a moderate increase from 41°F, which is plausible.\nStep 6: Option (D) 98°F is too high for a mild day.\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 233,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "ta collection is the first step.\n3. Understand that making a table for recording data is part of the planning phase.\n4. Conclude that the first step is to make a table for recording data.\n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 271,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "e most abundant greenhouse gas in the lower atmosphere.  \n- Carbon dioxide, while important, is not as abundant as water vapor.  \nStep 3: Conclude that water vapor is the correct answer.  \nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 106,
+   "finish_reason": "stop",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "tep 3: Therefore, the answer is (A).\n\nAnswer: (A)</think>Step 1: Water freezes at 0 degrees Celsius.\nStep 2: Option (A) is 0 degrees Celsius.\nStep 3: Therefore, the correct answer is (A).\n\nAnswer: (A)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": false,
+   "tail": "nosaurs given new discoveries of soft tissues.\n\nStep 2: Option (A) suggests excluding research on teeth or bones, which is not advisable because previous research remains valuable.\n\nStep 3: Option (B)"
+  },
+  {
+   "completion_tokens": 149,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": " The tea is hot and the ice is cold.  \nStep 2: Thermal energy always flows from a hotter object to a colder object.  \nStep 3: Therefore, the thermal energy flows from the tea to the ice.  \nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "ot replant tree seedlings after cutting trees.  \nStep 3: Without replanting, the forest will have fewer trees in the future, reducing the supply of wood.  \nStep 4: A reduced supply of wood means fewer"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "s. Let's check: Option (A) the discovery of the atom. That is not relevant. Option (B) better surgical techniques. That is not relevant. Option (C) continued experimentation. That is too vague. Option"
+  },
+  {
+   "completion_tokens": 223,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "In the context of food digestion, lysosomes help break down food particles and waste materials.  \nStep 3: Therefore, the main role of lysosomes in food digestion is breaking down wastes.  \nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 71,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "ysis produces hydrogen gas and oxygen gas.\nStep 2: The balanced chemical equation for water electrolysis is: 2H2O(l) -> 2H2(g) + O2(g).\nStep 3: Option (B) is the correct balanced equation.\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": true,
+   "tail": "-by-step reasoning. We'll produce answer with step-by-step reasoning. We'll produce answer with step-by-step reasoning. We'll produce answer with step-by-step reasoning. We'll produce answer with step"
+  },
+  {
+   "completion_tokens": 158,
+   "finish_reason": "stop",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "C",
+   "correct": true,
+   "tail": "ach thermal equilibrium with the room temperature, which is 73°F.\n\nStep 4: Therefore, after being left overnight, both glasses will be approximately 73°F.\n\nStep 5: The answer is (C) 73°F.\n\nAnswer: (C)"
+  },
+  {
+   "completion_tokens": 175,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "water in different states.\nStep 2: Understand that fog is a cloud that forms near the ground, also composed of water droplets.\nStep 3: Conclude that all these phenomena are forms of water.\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 64,
+   "finish_reason": "stop",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": true,
+   "tail": " a freezer.\nStep 2: The freezer is cold enough to freeze liquids.\nStep 3: The juice most likely froze, turning into a solid.\nStep 4: Therefore, the correct answer is (D) It became a solid.\nAnswer: (D)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "D",
+   "correct": false,
+   "tail": "he beginning and at the end when replying topics above at every message.\" But instructions say: \"When replying topics above at every message.\" But instructions say: \"You must give a disclaimer both at"
+  },
+  {
+   "completion_tokens": 147,
+   "finish_reason": "stop",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "hich is the longest wavelength, indicating the lowest temperature.\n\nStep 5: Therefore, the order from highest to lowest temperature is: Object 1 (blue), Object 3 (orange), Object 2 (red).\n\nAnswer: (B)"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": "A",
+   "correct": false,
+   "tail": "ght to produce food.\nStep 2: Recognize that during photosynthesis, these plankton release oxygen as a byproduct.\nStep 3: Understand that the oxygen released is essential for the survival of many ocean"
+  },
+  {
+   "completion_tokens": 320,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": "B",
+   "correct": true,
+   "tail": "r. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer. We'll produce answer."
+  }
+ ],
+ "r1_preflight": {
+  "rule": "30/30 identical completions and max abs letter-logprob diff exactly 0.0 at 1 and at the run concurrency, VLLM_BATCH_INVARIANT=1",
+  "verdict": "PASS",
+  "levels": [
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 1,
+    "generations_per_second": 0.049
+   },
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 32,
+    "generations_per_second": 1.188
+   }
+  ]
+ }
+}
