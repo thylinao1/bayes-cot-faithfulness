@@ -163,11 +163,15 @@ CHAIN_REPEAT_SEED="${BCF_CHAIN_REPEAT_SEED:-20260907}"
 # so `${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}` (the previous line here)
 # rendered, with BCF_TEMPLATE_KWARGS unset, as the 26-byte string
 # `{"enable_thinking": false\}` -- a stray backslash, no closing brace, invalid JSON --
-# under the real /bin/bash on this machine (GNU bash 3.2.57) and silently killed the
-# run_meta.json writer below every time a cell left BCF_TEMPLATE_KWARGS unset (the
-# writer's python runs inside `set +e`, so the JSONDecodeError never stopped the job;
-# see tests/fixtures/serve_render_default_bare_before_fix.txt for the captured render).
-# A plain variable reference has no braces of its own to be mis-scanned.
+# under bash 3.2 (macOS's frozen system /bin/bash). Verified NOT to happen under bash
+# 5 (the cluster's interpreter, and CI's): the old line renders the correct
+# {"enable_thinking": false} there. So this never actually corrupted a run_meta.json on
+# the cluster; it only fired inside tests/harness/render_serve_command.sh when that
+# harness was run on a Mac, which is what produced
+# tests/fixtures/serve_render_default_bare_before_fix.txt and made that fixture disagree
+# with the Linux CI runner's own correct render. Fixed anyway, so the default no longer
+# depends on which bash build happens to be running it: a plain variable reference has
+# no braces of its own for any version's word-scanner to mis-parse.
 DEFAULT_TEMPLATE_KWARGS='{"enable_thinking": false}'
 TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-$DEFAULT_TEMPLATE_KWARGS}"
 OUT_ROOT="${BCF_OUT_ROOT:-$BCF_RESULTS}"
