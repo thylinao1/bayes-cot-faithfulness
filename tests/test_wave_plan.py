@@ -6,13 +6,17 @@ submission script's defaults are that week, and ruling R1 is precisely about a p
 measurement not resting on that. So every row of every committed manifest is read back
 and checked here, against the roster the plan was built from.
 
-Three families of manifest live in bcf/waves. The sweep-cell rows are the 216-cell grid
+Four families of manifest live in bcf/waves. The sweep-cell rows are the 216-cell grid
 plan.json prices. The enrichment-pass rows that bcf/plan_enrich_waves.py writes under
 ruling R3(ii) are one sampling-arm job per model per substrate and are NOT cells. The
 `-resub-` rows re-run cells that were voided, and are NOT cells either: the grid counted
-them the first time. All three take the same serving checks, and each is counted against
-its own denominator, which is the split bcf/check_wave_manifests.py makes on the same
-filenames.
+them the first time. The `ladder-` rows are element 11's mechanism challenge: 12 LoRA
+training jobs and 12 evaluations of the checkpoints they write, which are not cells and
+cannot take the cell checks at all (a training row generates nothing, and an evaluation
+row's MODEL is a served name for a local checkpoint with no Hub id and no Hub revision).
+The first three take the same serving checks, the ladder rows take their own in
+bcf/check_wave_manifests.py, and each family is counted against its own denominator on
+the same filename split.
 
 The element 16 trigger is checked as arithmetic against the budget of record, and the
 checker is shown able to report TRIGGERED, so a "not triggered" reading is a computed
@@ -43,6 +47,9 @@ def _load():
 
 
 PW = _load()
+from bayes_cot_faithfulness.ladder.spec import ladder_checkpoints
+
+LADDER_CHECKPOINTS = ladder_checkpoints()
 PLAN = json.loads((WAVES / "plan.json").read_text())
 ROSTER_REVISION = {hf: rev for hf, rev, *_ in PW.ROSTER}
 
@@ -75,6 +82,26 @@ def _is_enrichment(name: str) -> bool:
     return name.startswith("enrich-")
 
 
+def _is_ladder(name: str) -> bool:
+    """ELEMENT 11. A ladder manifest is not part of the 216-cell grid.
+
+    `ladder-train-<pool>-NN.tsv` holds the 12 LoRA jobs of element 11(b) (3 trigger
+    doses x 2 training seeds x (organism, twin), the lowest rung spent on the disclosing
+    learner and the uninformative control per ruling R6). `ladder-eval-<pool>-NN.tsv`
+    holds the 12 evaluations of the checkpoints those jobs write. Counting either as
+    cells is how the 216-cell grid reads 240 without anyone deciding to run a larger
+    grid, which is the same failure the enrich- and -resub- splits exist to prevent.
+
+    They are excluded from the ROSTER_REVISION check below rather than merely from the
+    count, because a ladder row's revision is not a Hub sha: a training row pins the
+    BASE's roster revision under an id that is on the roster, and an evaluation row
+    carries ladder-<sha16 of the checkpoint manifest> under a served NAME that never
+    will be. bcf/check_wave_manifests.py:check_ladder_row is what checks them, and
+    test_the_ladder_manifests_pass_their_own_structural_checks runs it here.
+    """
+    return name.startswith("ladder-")
+
+
 def _is_resubmission(name: str) -> bool:
     """A resubmission of voided cells is not a new cell: the grid already counted them.
 
@@ -89,13 +116,15 @@ def _is_resubmission(name: str) -> bool:
     return name.startswith("resub-") or "-resub-" in name
 
 
-def _count_by_family(names) -> tuple[int, int, int]:
+def _count_by_family(names) -> tuple[int, int, int, int]:
     enrich = sum(1 for n in names if _is_enrichment(n))
     resub = sum(1 for n in names if _is_resubmission(n))
+    ladder = sum(1 for n in names if _is_ladder(n))
     cells = sum(
-        1 for n in names if not _is_enrichment(n) and not _is_resubmission(n)
+        1 for n in names
+        if not _is_enrichment(n) and not _is_resubmission(n) and not _is_ladder(n)
     )
-    return cells, enrich, resub
+    return cells, enrich, resub, ladder
 
 
 # The enrichment pass's own denominator, derived rather than retyped: the a100-40 models
@@ -105,19 +134,29 @@ N_ENRICHMENT_ROWS = len(
     [hf for hf, _rev, _fam, pool, *_ in PW.ROSTER if pool == "a100-40"]
 ) * len(PW.SUBSTRATES)
 
+# The ladder's own denominator, from element 11(b) rather than retyped: 3 trigger doses
+# x 2 training seeds x (organism, twin) = 12 checkpoints per base, each trained once and
+# evaluated once.
+N_LADDER_ROWS = 2 * len(LADDER_CHECKPOINTS)
+
 
 def test_every_manifest_row_carries_the_pinned_serving_constants():
     names = []
     for name, (model, _sub, _cue, kv) in _all_rows():
         names.append(name)
+        if _is_ladder(name):
+            continue    # checked by test_the_ladder_manifests_pass_their_own_structural_checks
         assert kv.get("BCF_BATCH_INVARIANT") == "1", (name, model, kv)
         assert kv.get("BCF_CONCURRENCY") == "32", (name, model, kv)
         assert kv.get("BCF_REVISION") == ROSTER_REVISION[model], (name, model)
-    cells, enrich, _resub = _count_by_family(names)
+    cells, enrich, _resub, ladder = _count_by_family(names)
     assert cells == PLAN["n_cells"] == 216, cells
     # and the enrichment pass answers to its own count, so a lost or duplicated
     # enrichment wave is caught here instead of moving the grid total.
     assert enrich == N_ENRICHMENT_ROWS == 24, enrich
+    # the ladder answers to element 11(b)'s 12 checkpoints, trained once and evaluated
+    # once, for the same reason.
+    assert ladder == N_LADDER_ROWS == 24, ladder
 
 
 def test_every_resubmission_row_re_runs_a_cell_that_already_exists():
@@ -131,7 +170,7 @@ def test_every_resubmission_row_re_runs_a_cell_that_already_exists():
     """
     cells, resubs = set(), {}
     for name, (model, sub, cue, _kv) in _all_rows():
-        if _is_enrichment(name):
+        if _is_enrichment(name) or _is_ladder(name):
             continue
         if _is_resubmission(name):
             resubs.setdefault((model, sub, cue), name)
@@ -152,16 +191,21 @@ def test_the_cell_count_refuses_an_enrichment_manifest_filed_as_a_sweep_wave():
     plan.json rather than absorb them.
     """
     names = [name for name, _row in _all_rows()]
-    assert _count_by_family(names) == (216, 24, 4)
+    assert _count_by_family(names) == (216, 24, 4, 24)
 
     misfiled = [n[len("enrich-"):] if _is_enrichment(n) else n for n in names]
-    cells, enrich, _resub = _count_by_family(misfiled)
+    cells, enrich, _resub, _ladder = _count_by_family(misfiled)
     assert (cells, enrich) == (240, 0)
     assert cells != PLAN["n_cells"]
 
     misfiled = [n.replace("resub-", "", 1) if _is_resubmission(n) else n for n in names]
-    cells, _enrich, resub = _count_by_family(misfiled)
+    cells, _enrich, resub, _ladder = _count_by_family(misfiled)
     assert (cells, resub) == (220, 0)
+    assert cells != PLAN["n_cells"]
+
+    misfiled = [n[len("ladder-"):] if _is_ladder(n) else n for n in names]
+    cells, _enrich, _resub, ladder = _count_by_family(misfiled)
+    assert (cells, ladder) == (240, 0)
     assert cells != PLAN["n_cells"]
 
 
@@ -251,3 +295,60 @@ def test_the_wave_count_and_the_cap_arithmetic_are_unchanged_by_the_repricing():
     for wave in PLAN["waves"]:
         assert wave["cards"] <= wave["sweep_slots"]
         assert wave["sweep_slots"] <= wave["cap"]
+
+
+def test_the_ladder_manifests_pass_their_own_structural_checks():
+    """Element 11 rows take real checks, not an exemption.
+
+    The ladder is excluded from the CELL checks because a training row generates nothing
+    and an evaluation row serves a local checkpoint with no Hub revision. What it is not
+    excluded from is checking: bcf/check_wave_manifests.py:check_ladder_row requires a
+    unique cell id per stage, MEM and CPUS (the fields whose absence killed job 825536),
+    a substrate and cue family from the frozen lists, the element 10 roster row the
+    checkpoint is trained from with its pinned revision, and -- on the evaluation rows,
+    which generate -- ruling R1's flag and concurrency. This test runs that checker over
+    the committed manifests and shows it able to refuse.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "check_wave_manifests_test", REPO / "bcf" / "check_wave_manifests.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    problems, counts = mod.check(WAVES)
+    assert counts["ladder_rows"] == N_LADDER_ROWS == 24, counts
+    assert not [p for p in problems if "ladder-" in p], problems
+
+    # the falsification: the same function on a row that lost its checkpoint revision,
+    # its memory field and its base pin.
+    roster = {hf: (rev, pool, tp) for hf, rev, _fam, pool, tp, *_ in PW.ROSTER}
+    bad = mod.check_ladder_row(
+        "fake.tsv:1", "bcf-ladder/qwen3-8b/organism_0.60_1", "arc_challenge",
+        "stated-hint",
+        {"BCF_LADDER_CELL_ID": "organism_0.60_1", "CPUS": "8",
+         "BCF_REVISION": "b968826d9c46dd6066d109eabc6255188de91218",
+         "BCF_LADDER_BASE": "Qwen/Qwen3-8B", "BCF_BASE_REVISION": "deadbeef",
+         "BCF_MODEL_PATH": "/tmp/x", "BCF_ARMS": "replay", "BCF_N_ITEMS": "500",
+         "BCF_CURVE_CAP": "500", "BCF_BATCH_INVARIANT": "0", "BCF_CONCURRENCY": "1"},
+        roster, PW, {})
+    joined = " | ".join(bad)
+    assert "MEM is missing" in joined
+    assert "does not start with 'ladder-'" in joined
+    assert "BCF_BASE_REVISION" in joined
+    assert "BCF_BATCH_INVARIANT" in joined and "BCF_CONCURRENCY" in joined
+
+
+def test_the_ladder_row_count_is_element_11s_partition_and_not_a_free_number():
+    """12 checkpoints per base, derived from the spec, not typed into the manifest."""
+    from collections import Counter
+
+    variants = Counter(c.variant for c in LADDER_CHECKPOINTS)
+    assert len(LADDER_CHECKPOINTS) == 12
+    # rungs 2 and 3 carry organism and twin across both seeds: 4 organism-minus-twin
+    # differences, which is what A3.2's sd_pilot(D) is computed on under ruling R6.
+    assert variants["organism"] == variants["twin"] == 4
+    # the lowest rung carries the disclosing learner and the uninformative control
+    assert variants["disclosing"] == variants["uninformative"] == 2
+    assert {c.rung for c in LADDER_CHECKPOINTS if c.variant == "disclosing"} == {1}
+    assert len({c.cell_id for c in LADDER_CHECKPOINTS}) == 12
