@@ -74,8 +74,20 @@ FROZEN_FILE_SHA256 = {
     # made under. Nothing existing was edited or deleted: git diff against main
     # on this file is 626 added and 0 DELETED lines, so the first 2,305 lines
     # are byte-identical. Still a DRAFT: the operator has not approved it.
+    # RE-PINNED 2026-09-07 late evening by Amendment A5 (ruling R13): appended
+    # one section carrying the logit-level column B for an outcome scale
+    # elements 0 and 7 already pre-register, its estimator
+    # (bayes_cot_faithfulness.gaussian_mediation), the bridge element 0
+    # requires a two-scale row to print, a six-condition eligibility gate, the
+    # cross-scale reporting order, and a written refusal to set a load-bearing
+    # threshold on that scale. No threshold moved and no condition loosened:
+    # the text-level 0.15 of section 2.5, section 22.1's 0.10 margin and every
+    # earlier verdict are untouched. Nothing existing was edited or deleted:
+    # git diff against main on this file is 327 added and 0 DELETED lines, so
+    # the first 2,931 lines are byte-identical. Still a DRAFT: the operator has
+    # not approved it.
     "experiments/PREREGISTRATION_jury_and_scale.md": (
-        "cf71ae19be297fb3cb6882b97be1f2c63e115b9a4f899678df2da9f0dde6f160"
+        "5c050a1d05f4828808bda22063ba9c767f8af2a62f059fdb4ebb5191985fe3e9"
     ),
     "experiments/data/specificity_holdout.json": (
         "82ab56d8561d533a0d7196c4c604ab3ae6d27f53acb028bf390121c3567dabcd"
