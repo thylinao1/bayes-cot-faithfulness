@@ -253,8 +253,13 @@ resolved by a guess. **Q1 a/b/c measure specificity only**, for the reason in se
 
 | Judge | Serving line | Job | State |
 |---|---|---|---|
-| gemma-3-27b-it | a100-80, the line section 6.1 pins | **826921** | submitted 16:01 on 2026-09-07, PENDING behind five higher-priority jobs |
+| gemma-3-27b-it | a100-80 alone at gpu-memory-utilization 0.90 (ruling R7) | **826921** | submitted 16:01 on 2026-09-07, PENDING behind five higher-priority jobs |
 | llama-3.3-70b-fp8 | h200-141, the line section 6.1 pins | not yet submitted | the h200-141 cap is 1 card and 826783 holds it with about 1h49 left; `bcf/w6_wave.sh` counts pending as well as running, so it refuses to queue behind it and the job goes in when the card frees |
+
+Ruling R7 landed on `main` while 826921 was still pending: each judge now runs alone on
+one card at gpu-memory-utilization 0.90 rather than at the co-hosted 0.65. The lane merged
+it and re-synced before the job started, so 826921 will serve gemma at 0.90. At 0.65 a 27B
+bf16 judge would have been given 52 GB of an 80 GB card.
 
 The account was at 12 of 12 GPU cards across every campaign when this lane first tried to
 submit, and `bcf/w6_wave.sh` refused, naming the cap. Its guard was proven able to fail
