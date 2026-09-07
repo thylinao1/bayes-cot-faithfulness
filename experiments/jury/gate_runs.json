@@ -53,5 +53,15 @@
     "job": "826880",
     "kind": "MEASURED",
     "note": "exploratory h100-47, num_predict at the 256 default"
+  },
+  "qwen3-32b-h200-np1024-q1c": {
+    "job": "826783",
+    "kind": "MEASURED",
+    "note": "exploratory h200, num_predict 1024"
+  },
+  "gpt-oss-20b-h100-47-q1c": {
+    "job": "826880",
+    "kind": "MEASURED",
+    "note": "exploratory h100-47, num_predict at the 256 default"
   }
 }
