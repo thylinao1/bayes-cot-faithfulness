@@ -1,0 +1,119 @@
+{
+  "arms": [
+    {
+      "arm": "clean_substrate",
+      "seconds": 852.0,
+      "n_calls": 1766,
+      "n_full_generations": 1500,
+      "n_forced_continuations": 266,
+      "completion_chars": 2176769,
+      "generations_per_second": 2.072769953051643,
+      "full_generations_per_second": 1.7605633802816902
+    },
+    {
+      "arm": "cue_pass",
+      "seconds": 733.0,
+      "n_calls": 1828,
+      "n_full_generations": 1197,
+      "n_forced_continuations": 631,
+      "completion_chars": 1751420,
+      "generations_per_second": 2.4938608458390177,
+      "full_generations_per_second": 1.6330150068212823
+    },
+    {
+      "arm": "replay",
+      "seconds": 389.0,
+      "n_calls": 4779,
+      "n_full_generations": 0,
+      "n_forced_continuations": 4779,
+      "completion_chars": 534070,
+      "generations_per_second": 12.2853470437018,
+      "full_generations_per_second": 0.0
+    },
+    {
+      "arm": "placebo",
+      "seconds": 690.0,
+      "n_calls": 1438,
+      "n_full_generations": 1197,
+      "n_forced_continuations": 241,
+      "completion_chars": 1752410,
+      "generations_per_second": 2.084057971014493,
+      "full_generations_per_second": 1.7347826086956522
+    },
+    {
+      "arm": "direct",
+      "seconds": 127.0,
+      "n_calls": 2394,
+      "n_full_generations": 0,
+      "n_forced_continuations": 2394,
+      "completion_chars": 270114,
+      "generations_per_second": 18.8503937007874,
+      "full_generations_per_second": 0.0
+    },
+    {
+      "arm": "twostep",
+      "seconds": 829.0,
+      "n_calls": 3587,
+      "n_full_generations": 1197,
+      "n_forced_continuations": 2390,
+      "completion_chars": 2085767,
+      "generations_per_second": 4.326899879372738,
+      "full_generations_per_second": 1.4439083232810614
+    },
+    {
+      "arm": "filler",
+      "seconds": 186.0,
+      "n_calls": 2394,
+      "n_full_generations": 0,
+      "n_forced_continuations": 2394,
+      "completion_chars": 276307,
+      "generations_per_second": 12.870967741935484,
+      "full_generations_per_second": 0.0
+    },
+    {
+      "arm": "curves",
+      "seconds": 636.0,
+      "n_calls": 9150,
+      "n_full_generations": 0,
+      "n_forced_continuations": 9150,
+      "completion_chars": 1028822,
+      "generations_per_second": 14.38679245283019,
+      "full_generations_per_second": 0.0
+    },
+    {
+      "arm": "transplant",
+      "seconds": 389.0,
+      "n_calls": 4783,
+      "n_full_generations": 0,
+      "n_forced_continuations": 4783,
+      "completion_chars": 535465,
+      "generations_per_second": 12.295629820051413,
+      "full_generations_per_second": 0.0
+    },
+    {
+      "arm": "anchor",
+      "seconds": 4714.0,
+      "n_calls": 52618,
+      "n_full_generations": 0,
+      "n_forced_continuations": 52618,
+      "completion_chars": 3837254,
+      "generations_per_second": 11.16207042851082,
+      "full_generations_per_second": 0.0
+    },
+    {
+      "arm": "specificity",
+      "seconds": 40.0,
+      "n_calls": 44,
+      "n_full_generations": 36,
+      "n_forced_continuations": 8,
+      "completion_chars": 53394,
+      "generations_per_second": 1.1,
+      "full_generations_per_second": 0.9
+    }
+  ],
+  "n_requests_logged": 85081,
+  "n_intervals": 11,
+  "total_calls": 84781,
+  "total_seconds": 9585.0,
+  "overall_generations_per_second": 8.845174752217005
+}

@@ -1,7 +1,7 @@
 """Classify the unparseable clean outputs of a wave-1 cell. Read-only.
 
 Uses the FROZEN parser (interventions.parse_answer) to decide what is unparseable, and a
-separate lenient extractor, defined here in the audit harness only, to decide whether an
+separate lenient extractor, defined here in the audit tooling only, to decide whether an
 answer was nevertheless present. Neither the parser nor any frozen constant is touched.
 
 Classes, in decision order:
@@ -54,7 +54,7 @@ _LENIENT_TAIL = [
 
 
 def lenient_answer(text: str, n_choices: int) -> str | None:
-    """A COMMITTED answer the frozen parser missed, or None. Audit harness only."""
+    """A COMMITTED answer the frozen parser missed, or None. Audit tooling only."""
     t = text or ""
     valid = set("ABCDEF"[:n_choices])
     for rgx in _LENIENT_ANYWHERE:

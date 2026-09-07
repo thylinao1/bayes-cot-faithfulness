@@ -9,7 +9,7 @@ measures what each configuration would give so a ruling can be made on numbers.
      empty reasoning block, sent with continue_final_message so the server appends it
      to the rendered prompt instead of starting a new turn.
   B  thinking ALLOWED, num_predict 4096, and the answer read from the text AFTER the
-     closing think tag. The extraction lives here, in the test harness, and the FROZEN
+     closing think tag. The extraction lives here, in this file, and the FROZEN
      parser is what reads the extracted tail.
 
 Reported per model and configuration: clean accuracy, parse rate, mean and max

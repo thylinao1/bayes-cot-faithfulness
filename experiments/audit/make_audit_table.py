@@ -31,8 +31,9 @@ def main(path):
         cells = json.load(fh)
     hdr = ("| cell | job | exit | preflight | entered | records | clean-correct | "
            "clean acc | unparseable clean | summary clean-correct | agree | "
-           "single-shot follow | summary follow | agree | calls | seconds | calls/s | usable |")
-    sep = "|" + "---|" * 18
+           "single-shot follow | summary follow | agree | calls | seconds | calls/s | "
+           "forced-answer arms scorable (direct / twostep / filler / placebo) | usable |")
+    sep = "|" + "---|" * 19
     print(hdr); print(sep)
     for c in cells:
         r = c.get("recompute") or {}
@@ -46,14 +47,32 @@ def main(path):
         f_rate = r.get("singleshot_follow_rate")
         two = (s or {}).get("twostep") or {}
         s_rate = two.get("singleshot_follow_rate")
+        # The recompute rounds its rate to 6 decimals before writing it, so the summary's
+        # full-precision value is compared at that same rounding, not bit for bit.
         agree_f = ("yes" if (s_rate is not None and f_rate is not None
-                             and abs(s_rate - f_rate) < 1e-9)
+                             and round(s_rate, 6) == round(f_rate, 6))
                    else ("no summary" if not s else ("both none" if s_rate is None and f_rate is None else "NO")))
         follow_txt = ("-" if f_rate is None
                       else f"{r.get('n_singleshot_follow')}/{r.get('twostep_n_scorable')} = {f_rate:.4f}")
+        # The forced-answer arms each carry their own scorable denominator. They are
+        # printed because a cell can clear the clean-correct floor and still have empty
+        # arms: the 24-token forced continuation is spent inside a reasoning block.
+        blocks = (s or {}).get("arms") or {}
+        arm_ns = {a: (blocks.get(a) or {}).get("n")
+                  for a in ("direct", "twostep", "filler", "placebo")}
+        arms_txt = " / ".join(
+            ("-" if arm_ns[a] is None else str(arm_ns[a])) for a in
+            ("direct", "twostep", "filler", "placebo"))
         usable = "-"
         if cc is not None:
-            usable = "USABLE" if cc >= FLOOR else f"NOT USABLE AS MEASURED (<{FLOOR})"
+            if cc < FLOOR:
+                usable = f"NOT USABLE AS MEASURED (clean-correct {cc} < {FLOOR})"
+            else:
+                thin = [a for a in ("direct", "twostep", "filler", "placebo")
+                        if (arm_ns[a] or 0) < FLOOR]
+                usable = ("USABLE" if not thin else
+                          "CLEAN PASS CLEARS THE FLOOR, ARMS DO NOT ("
+                          + ", ".join(f"{a} {arm_ns[a] or 0}" for a in thin) + ")")
         if c.get("error"):
             usable = "NO RECORDS"
         print(f"| {c['slug']} | {(c.get('job_id') or '')} | {c.get('exit_code')} | {pfv} | "
@@ -62,7 +81,7 @@ def main(path):
               f"{sum_cc if sum_cc is not None else 'ABSENT'} | {agree_cc} | {follow_txt} | "
               f"{fmt(s_rate,4) if s_rate is not None else ('ABSENT' if not s else 'null')} | {agree_f} | "
               f"{tp.get('total_calls','-')} | {tp.get('total_seconds','-')} | "
-              f"{fmt(tp.get('overall_generations_per_second'),3)} | {usable} |")
+              f"{fmt(tp.get('overall_generations_per_second'),3)} | {arms_txt} | {usable} |")
     print()
     print("Per-cell determinism preflight lines:")
     for c in cells:

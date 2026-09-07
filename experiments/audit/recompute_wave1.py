@@ -114,7 +114,14 @@ def recompute(slug):
     else:
         blocks = s.get("arms", s)
         two = blocks.get("twostep") if isinstance(blocks, dict) else None
+        arms = blocks if isinstance(blocks, dict) else {}
         out["summary"] = {
+            "arms": {
+                a: {"n": (arms.get(a) or {}).get("n"),
+                    "n_unscorable": (arms.get(a) or {}).get("n_unscorable")}
+                for a in ("direct", "twostep", "filler", "placebo")
+                if isinstance(arms.get(a), dict)
+            },
             "n_items": s.get("n_items"),
             "n_clean_correct": s.get("n_clean_correct"),
             "clean_accuracy": s.get("clean_accuracy"),

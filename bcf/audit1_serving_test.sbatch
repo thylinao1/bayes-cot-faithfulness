@@ -40,7 +40,10 @@ MAX_LEN="${BCF_MAX_LEN:-8192}"
 GPU_UTIL="${BCF_GPU_UTIL:-0.90}"
 SERVER_WAIT="${BCF_SERVER_WAIT:-2400}"
 TEMPLATE_KWARGS="${BCF_TEMPLATE_KWARGS:-{\"enable_thinking\": false\}}"
-REPO="${BCF_REPO:-$HOME/bcf/repo-audit1}"
+# env.sh already exports BCF_REPO (pointing at the sweep tree), so this lane uses its own
+# variable name; a ${BCF_REPO:-...} default would never fire and the job would run the
+# wrong tree, which is exactly how job 826904 failed.
+REPO="${BCF_AUDIT_REPO:-$HOME/bcf/repo-audit1}"
 OUT_DIR="${BCF_OUT_DIR:-$HOME/bcf/results/audit1-${SLUG}}"
 
 mkdir -p "$OUT_DIR" || exit 2
