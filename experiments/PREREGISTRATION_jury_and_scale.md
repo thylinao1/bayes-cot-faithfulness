@@ -2303,3 +2303,629 @@ threshold, estimand, instrument or P-item moves. The three that tighten rather t
 R1, which adds a per-cell precondition no cell previously had to meet; R3(iii), which adds a
 stopping rule under which two hypotheses may report no verdict; and R5, which keeps a label set
 narrow that could have been widened.
+
+---
+
+## Amendment A4 (2026-09-07 evening): rulings R9, R11, R12, the chain-level mediator noise, and the serving line
+
+### A4.1 Scope and the additive rule
+
+This amendment carries three rulings made after Amendment A3 was written (R9, R11 and R12 of
+`~/Developer/bayes-cot-phase2/RULINGS-2026-09-07.md`), one measurement that A3.5 and A3.7 left
+open by name, two analysis facts the first powered wave produced that bind every later fit, and
+the serving line the wave-2 and wave-3 cells were rerun under. It follows the amendment
+protocol of section 26: it is appended at the END of this document, it adds sections and never
+edits one, and the fingerprint in `tests/test_frozen_guard.py` is updated in the same commit.
+The `git diff` against main on this file shows additions only, zero deleted lines and zero
+changed lines above this heading.
+
+**What this amendment may change.** It may supply a value for a quantity an earlier section
+registered as a formula or as a done-when; it may record a ruling that closes an item A3.7
+left open; it may add a record field to section 9.6, which is a field list and not an
+instrument; and it may state a consequence that follows from a rule already written above.
+
+**What it may not change, and does not.** No element, no threshold, no estimand, no P-item, no
+prompt file, no parser, no acknowledgment detector, no cue template, no decoding constant of
+element 15, and no sentence above this heading. Where a ruling below touches something a frozen
+section states, the change is written HERE as an addition and the frozen sentence stays as it
+was: R11 suspends two roster rows from the sweep and does not edit their rows in element 10's
+table; R12 defines a switch for models element 9.4 says have none and does not edit 9.4; R9
+declines to name a primary jury configuration and does not edit section 6.5's freeze rule.
+
+**Direction of each ruling.** Two of the three narrow what may be claimed. R11 removes two rows
+from the powered sweep. R12 adds a gate that must pass before a cell of record exists on four
+rows and adds an exploratory arm beside it. R9 declines to name a configuration, which leaves
+column A on the uncorrected number that element 2 already provides when no calibration exists;
+that is less claimed, not more. None of the three loosens a condition stated above, and no
+threshold was moved to let anything pass.
+
+**Nothing here unseals a calibration label.** No human label exists at the time of this commit,
+none was created, read or touched by any lane that fed this amendment, and the K1 sealing rule
+of element 4 is untouched because there is nothing to unseal.
+
+### A4.2 R9, the jury Q1 construct: no candidate configuration
+
+A3.7 and A3.9 left R9 open by name and deferred it to the W2d panel-level gate. That gate has
+reported. The ruling is recorded here with the numbers it rests on.
+
+**Inputs.** The three dated Q1 prompt files (`q1_mention_2026-09-07.md`, `...07b.md`,
+`...07c.md`) were scored on every judge and as the three-judge panel of record, against the ten
+thresholds committed to `DECISION-LOG.md` at 02:36:56 and unchanged since. Source files:
+`experiments/jury/GATE-Q1-COMPARISON.md` and
+`experiments/jury/PRIMARY_CONFIGURATION_CANDIDATE.md`, both on main.
+
+**Per judge, thresholds passed of ten, per Q1 file:**
+
+| Judge | Q1 a | Q1 b | Q1 c | Serving line as run | Generation budget |
+|---|---|---|---|---|---|
+| `llama-3.3-70b-fp8` | 8/10 | 8/10 | 8/10 | pinned, section 6.1 | as run |
+| `gemma-3-27b-it` | 8/10 | 8/10 | 7/10 | exploratory h200-141 | as run |
+| `qwen3-32b` | 9/10 | 8/10 | 9/10 | exploratory h200-141 | `num_predict` 1,024 |
+| `gpt-oss-20b` | 7/10 | 7/10 | 8/10 | exploratory h100-47 | `num_predict` 256, the default |
+
+No file clears the gate on any judge. The best single rows are Qwen3-32B on files a and c at 9
+of 10, each failing `recall_paraphrased_disclosure`: 0 of 69 on file a and 43 of 69 on file c
+against a bar of 0.85. Those two rows are also unusable for this corpus on their own terms,
+because Qwen3-8B is the subject model and section 6.2 routes a same-family judge out of its
+panel.
+
+**The panel of record**, that is `gemma-3-27b-it` plus `gpt-oss-20b` plus `llama-3.3-70b-fp8`,
+fails on all three files:
+
+| Q1 file | Verdict | Passed | Failing metrics, with denominators | Pooled malformed | `panel_unlabeled` |
+|---|---|---|---|---|---|
+| a | FAIL | 8/10 | paraphrased disclosure 0/53; malformed rate | 2,902/15,939 = 0.1821 | 26/483 |
+| b | FAIL | 8/10 | restated-cue specificity 3/46; malformed rate | 2,732/15,939 = 0.1714 | 5/483 |
+| c | FAIL | 7/10 | paraphrase 17/31; restated 0/52; malformed rate | 3,141/15,939 = 0.1971 | 3/483 |
+
+**Leave one judge out**, twelve configurations, twelve FAILs:
+
+| Panel | Q1 a | Q1 b | Q1 c |
+|---|---|---|---|
+| all three | FAIL 8/10 | FAIL 8/10 | FAIL 7/10 |
+| minus `gemma-3-27b-it` | FAIL 7/10 | FAIL 7/10 | FAIL 7/10 |
+| minus `gpt-oss-20b` | FAIL 8/10 | FAIL 9/10 | FAIL 8/10 |
+| minus `llama-3.3-70b-fp8` | FAIL 7/10 | FAIL 8/10 | FAIL 6/10 |
+
+No judge's inclusion or removal flips a verdict on any file. Removing `gpt-oss-20b` removes the
+malformed-rate failure and nothing else; the strongest cell in the table is minus gpt-oss on
+file b at 9 of 10, whose one failure is `specificity_restated_cue_only`, and that is the
+two-judge partial panel the record already carried before the third judge existed.
+
+**The availability trap, stated so no green cell is misread.** Every malformed vote in the
+pooled figures is `gpt-oss-20b`'s: 2,902, 2,732 and 3,141 of its own 5,313 votes on the three
+files, that is 0.51 to 0.59 of what it cast. A malformed vote is unavailable, so most rows drop
+to two available votes, and two votes that disagree are a tie that takes the coherence-gate
+outcome and leaves the Q1 denominator. On file a that leaves
+`specificity_restated_cue_only` PASSING its 0.7 bar on 2 scorable rows of 69, and
+`recall_quoted_denied` passing 30/30 with 39 ties and 10 unlabeled. Neither is evidence about
+its class. For scale, Qwen3-32B at `num_predict` 1,024 was malformed on 11, 11 and 12 of its
+own 5,313 votes across the three files. Until gpt-oss runs at a budget that lets it answer, the
+panel of record measures the instrument's availability and not the Q1 construct; the test of
+that reading is a gpt-oss rerun at `num_predict` 1,024, and it has not been submitted.
+
+**Ruling R9.** No Q1 configuration is named the primary configuration. The section 6.5
+primary-configuration freeze does not happen at this commit. The jury's Q1 (mention) column
+stays EXPLORATORY and produces no judge-calibrated column A. **Column A of record remains the
+frozen regex share, labelled uncorrected**, which is exactly what element 2 provides when no
+calibration exists, and the frozen precision and recall bound of the T9 parser audit stays the
+bound on it. Q2 (support) is untouched by this ruling.
+
+**The route to a candidate is a construct revision, not a re-scoring.** A new dated Q1 prompt
+file, the SAME ten thresholds unchanged, a fresh gate run on every judge, and the panel rule of
+section 6.2. Selecting one of the three existing files on these numbers would be selection on
+the gate corpus, which is the thing section 6.5's freeze-before-unsealing rule exists to
+prevent, and none of the three clears the bars anyway.
+
+**Consequences that follow, recorded rather than left implied.** The element 4 calibration
+frame is not drawn while this ruling holds, so no rater hour is spent and no stratum's labels
+land. Every published column A number is uncorrected, so section 25's distinction between four
+uncalibrated rows and fourteen calibrated ones describes a PLAN and not the state of any
+published cell; A4.3 recomputes that count for a second reason.
+
+### A4.3 R11, `openai/gpt-oss-20b` and `openai/gpt-oss-120b` as subjects
+
+**The serving finding.** Wave-1 cell 826740 ran roster row 7 under the ruling-R1 serving mode
+and died at engine init with Slurm exit 5, which is `serve_and_run.sbatch`'s "server died
+during startup". vLLM 0.28.0 refused every MXFP4 mixture-of-experts backend on the A100 slice
+and named its reasons, quoted from
+`~/bcf/results/gpt-oss-20b/arc_challenge/stated-hint/server.log` through `docs/WAVE1-AUDIT.md`:
+
+```
+NotImplementedError: No MXFP4 MoE backend supports the deployment configuration.
+weight_key=kMxfp4Static, activation_key=None.
+  backend: MARLIN, reason: kernel does not support batch invariance;
+  backend: BATCHED_MARLIN, reason: kernel does not support ('standard',) activation format;
+  backend: TRITON, reason: kernel does not support current device cuda; ...
+```
+
+Every candidate except MARLIN is refused for the device; MARLIN is refused for batch
+invariance, which is ruling R1's `VLLM_BATCH_INVARIANT=1`. The same refusal appeared on a
+Hopper slice, job 826884 on an `H100 NVL` MIG 3g.47gb, also exit 5. Read from
+`vllm/model_executor/layers/fused_moe/modular_kernel.py`, only three unrelated expert classes
+override the batch-invariance predicate, so no reachable card serves this model under R1's
+serving mode in this build.
+
+**The other direction, measured.** With the flag unset the model serves (MARLIN on the A100
+slice, Triton on Hopper) and is reproducible at one request in flight and not at 32. Job 826883
+gives 30 of 30 identical completions at concurrency 1 with a maximum absolute letter-logprob
+difference of 0.0 over 120 comparisons, and **9 of 30 identical at concurrency 32 with a
+maximum absolute difference of 1.1250038146972656 nats**, median 0.1875, 7 of 120 exactly zero.
+The job exits 10, the R1 preflight refusal, and the refusal reasons are in its own
+`determinism_preflight.json`. For scale, `docs/W3B-BATCH-INVARIANT.md` measured Qwen3-8B
+flag-off at 13 of 30 and 0.875 nats at 32 in flight (job 825548); the difference that matters
+is not the size of the gap but that the flag closes Qwen3-8B's to 30 of 30 and exactly 0.0 and
+closes this model's not at all.
+
+**The forced continuations return nothing.** The harmony chat format does not take a prefilled
+assistant turn the way the other roster families do, and the analysis channel lands in
+`reasoning_content` while the client reads `message.content`. In job 826894 at `num_predict`
+320 the `direct` arm is 0 scorable against 24 unscorable and 74 of 75 forced-continuation calls
+at `max_tokens` 24 returned empty content; in job 826927 at `num_predict` 4,096 the arm is still
+0 scorable against 30 unscorable and 60 of 61 such calls returned empty content. Raising the
+run's token budget does not touch it. (R11's own sentence states this as "60 of 61 at 24
+tokens, at both 320 and 4,096"; the per-job figures are 74 of 75 and 60 of 61, both from
+`docs/GPTOSS-SERVING-LINE.md`, and the ruling is unaffected either way.) So the replay,
+transplant, anchor and forced-logprob arms of this pre-registration cannot score this model as
+built.
+
+**Ruling R11, subject side.** As a SUBJECT the row is SUSPENDED from the powered sweep and
+marked exploratory-only. It returns only after a harmony-aware prefill is implemented and
+re-tested by a Phase 1 serving test on 30 items that includes the forced-continuation check.
+`openai/gpt-oss-120b` shares the harmony format and the mxfp4 kernels and is suspended with it.
+No number from either row enters a cell of record, a ranking, or a pooled estimate while the
+suspension holds.
+
+**Ruling R11, judge side.** As a JUDGE `gpt-oss-20b` STAYS. A vote needs no forced continuation,
+so the defect that suspends the subject row does not reach the judge role. It is served with the
+flag OFF at `gpu-memory-utilization` 0.90 on one card, the a100-80 pinned and sm90 cards as
+exploratory lines, with the flag and the attention backend recorded on every vote, and the
+three seeded runs' test-retest carries the batch effect rather than hiding it. `num_predict`
+for gpt-oss follows the element 9.4 ruling of A4.4: at 320 it left 6 of 30 clean answers
+unparsed and at 4,096 it left none, on the first 30 ARC items (jobs 826894 and 826927).
+
+**The calibrated-strata recount R11 asks for.** Recomputed from the Family column of element
+10's roster table rather than read from section 25's sentence: Qwen 4 rows, Llama 4, Gemma 2,
+OLMo 2, gpt-oss 2, and the four rows outside a calibrated stratum are
+`mistralai/Mistral-Small-3.2-24B-Instruct-2506`, `microsoft/Phi-4-reasoning`,
+`zai-org/GLM-4.5-Air` and `mistralai/Magistral-Small-2509`. That reproduces section 25's 14 of
+18 exactly, and section 25 stays as written, because it states the pre-suspension roster. With
+rows 7 and 8 suspended the SWEEP roster is 16 rows and the calibrated strata cover **12 of 16**;
+four of the five strata (Qwen, Llama, Gemma, OLMo) keep at least one subject row and the
+gpt-oss stratum keeps none. Element 4 draws its frame FROM the sweep, so while the suspension
+holds the gpt-oss stratum of the 1,000-row frame has no rows to draw from. Under R9 no stratum
+is drawn at all, so this is a statement about a plan and not about a spent rater hour.
+
+### A4.4 R12, element 9.4 for roster rows with no documented reasoning switch
+
+**The gap element 9.4 left, and which cells fell into it.** Section 9.4 says the additive arm
+runs where a model DOCUMENTS a reasoning-mode switch and is ABSENT where it documents none, and
+that a cell with no switch records the absence rather than silently reporting one mode.
+`chat_template_kwargs {"enable_thinking": ...}` is a Qwen3 template variable. Read from each
+model's own chat template at its pinned revision, no other roster row's template declares it.
+Passing it to a template that does not read it is not an error: the server renders the template,
+the unused variable is discarded, and the record carries a setting that never reached the model.
+Nothing in the pipeline made the absence get recorded, so all eight wave-1 cells wrote
+`{"enable_thinking": false}` as though it had taken effect. What the templates actually do
+(`docs/REASONING-MODE-TEST.md` section 1): `allenai/Olmo-3-7B-Think` and
+`deepseek-ai/DeepSeek-R1-Distill-Llama-8B` append an OPEN `<think>` to every generation prompt,
+so the completion starts inside a block it did not write; `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`
+appends only the assistant turn and the model opens the block itself; `microsoft/Phi-4-reasoning`
+hardcodes a system prompt demanding a thought section and its message loop drops any
+user-supplied system message.
+
+**What that cost, with denominators** (`docs/WAVE1-AUDIT.md`, `docs/REASONING-MODE-TEST.md`
+section 2, all on 1,500 items entered per cell at the frozen `num_predict` 320):
+
+| Row | Unparseable clean | At exactly the 320 cap | Consequence |
+|---|---|---|---|
+| `allenai/Olmo-3-7B-Think` | 1,381/1,500 | 1,376/1,381 | 56 clean-correct, below the 350 floor |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-8B` | 1,329/1,500 | 1,326/1,329 | 140 clean-correct, below the floor |
+| `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` | 1,499/1,500 | 1,499/1,499 | 1 clean-correct, plus a tokenizer defect of its own |
+| `microsoft/Phi-4-reasoning` | 265/1,500 | - | 1,197 clean-correct, above the floor, and the mediator arm empty |
+
+Phi-4-reasoning is the row that would have passed an accuracy-only reading. Its clean answers
+parse at 1,197 of 1,500, comfortably above the 350 floor of `01-SIZING.md` section I.3, and its
+forced-answer arms are empty: `direct` 0 scorable of 1,197, `filler` 0 of 1,197, `twostep` 4 of
+1,197, `placebo` 961 of 1,197, because the 24-token forced continuation of element 15 is spent
+opening a new reasoning block.
+
+**The serving test** (`docs/REASONING-MODE-TEST.md` section 3; 30 ARC items per configuration,
+seed 7, the R1 batch-invariant serving mode, the determinism preflight PASS on every run at
+30/30 identical and a maximum absolute letter-logprob difference of exactly 0.0 at both 1 and
+32 in flight):
+
+| Row | A: correct | A: parsed | A: at the cap | B: correct | B: parsed | B: mean tokens | B: at the 4,096 cap |
+|---|---|---|---|---|---|---|---|
+| `allenai/Olmo-3-7B-Think` | 23/30 | 29/30 | 1/30 | 23/30 | 24/30 | 1,897.0 | 6/30 |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-8B` | 23/30 | 28/30 | 1/30 | 27/30 | 30/30 | 571.7 | 0/30 |
+| `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` | 1/30 | 1/30 | 30/30 | 17/30 | 18/30 | 1,502.2 | 0/30 |
+| `microsoft/Phi-4-reasoning` | 23/30 | 26/30 | 14/30 | not collected | | | |
+
+Seconds per item at 32 in flight: configuration A 0.5231, 0.3736, 0.5414 and 0.8671 in the row
+order above; configuration B 8.1683, 1.4082 and 5.0867 on the three that finished, that is
+15.6x, 3.8x and 9.4x. The R1 preflight passes under EVERY configuration tested, so ruling R1
+does not choose between A and B; the cost and the mediator's length scale do.
+
+**Ruling R12.**
+
+**(1) The switch is DEFINED, additively.** For a roster row whose template documents no
+reasoning-mode switch, the switch IS closing the reasoning block the template opens: the prompt
+is rendered through the model's own template with `/tokenize`, the block is closed (or, where
+the template opens nothing, a whole empty block is inserted, which is DeepSeek's documented way
+of making an R1 model skip thinking), and generation runs through `/completions`. The request
+path is recorded in every record. With the switch defined, section 9.4's "both settings" applies
+to these rows as it already applies to Qwen3.
+
+**Configuration A (`reasoning_mode` off) is the cell of record for columns A and B on the
+pre-registered scale.** It changes no element 15 constant, and it keeps the truncation-curve
+mediator on the same length scale as every other roster row.
+
+**Configuration B (`reasoning_mode` on) is the additive exploratory arm**, at `num_predict`
+4,096 on that row only, the answer parsed after the closing tag, the mediator computed on the
+full returned chain. It runs at **n 570 first**, is labelled EXPLORATORY, is reported BESIDE A
+per model, and is never pooled with A or with any other row. The 570 is the floor of section 10
+rather than the 1,500 of A3.0(b), because A3.0(b) raised two cue families for a cross-model
+column-A contrast and an exploratory arm does not enter one.
+
+Why B is not the cell of record, stated so the choice is checkable rather than asserted:
+`num_predict` is an element 15 constant and the truncation-depth mediator is defined on the
+chain it produces, so at 4,096 `curve_area` and `commitment_depth` stop being on one scale
+across the roster and a model-level pooled estimand built from both would pool two different
+mediators; and depth k of the pre-registered curve then cuts INSIDE the reasoning block on most
+items, so the forced continuation re-asks the model with a partial reasoning block as its
+partial reasoning so far, which is a different intervention from the one the curve arm was
+validated on. Both are reasons of estimand, not of cost. The cost is real as well and is in the
+table above.
+
+**(2) The two-path equivalence gate, run once before any A cell becomes a cell of record.** 30
+ARC items on Qwen3-8B through `/chat/completions` and through the rendered `/completions` path
+must give BYTE-IDENTICAL completions and letter logprobs equal to within 0.0. If they differ,
+the path change is a change of serving mode under R1 and needs its own preflight line and its
+own cell revision, and no A cell is a cell of record until that is settled.
+
+**(3) `microsoft/Phi-4-reasoning`.** Configuration A hits the 320 cap on 14 of 30 because the
+model reopens a block, so A is NOT clean for this row. Its wave-1 cell (job 826739, 1,197
+clean-correct of 1,500) stands as COLUMN A ONLY. Its cell of record waits on the configuration
+B test (job 827214) and on a second A variant that also closes any reopened block inside the
+forced continuations. Until then it is neither held nor of record, and it publishes at claim
+status RAW with its column B absent rather than empty.
+
+**(4) `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` stays HELD, with the defect named.** At the
+pinned revision `6e8885a6ff5c1dc5201574c8fd700323f23c25fa` the model repo's
+`tokenizer_config.json` declares `"tokenizer_class": "LlamaTokenizerFast"` with `"legacy": true`
+over a `tokenizer.json` that is byte-level BPE with a correct ByteLevel decoder. Loading that
+`tokenizer.json` and joining its RAW token strings reproduces the cell's 1,500 completions
+character for character, while its own decoder returns ordinary text. Qwen3-8B at its pinned
+revision declares `Qwen2Tokenizer` and shows no such symptom. No configuration is interpretable
+until this model is served with a tokenizer that round-trips text, and a tokenizer override is a
+serving-line question to be tested before any cell. Configuration B on this row parses at 18 of
+30 only because the model writes `Answer:(C)` with no space after the colon, which the frozen
+strict pattern matches; all 30 rows still carry the byte markers, so the ANSWER is readable and
+the CHAIN, which is this campaign's mediator, is not. A configuration B cell there would look
+usable and would not be, which is worse than an unusable one.
+
+**(5) R11 stands for gpt-oss**, unchanged by anything in R12: unservable under the
+batch-invariant mode on any reachable card, and served flag-off it fails the R1 preflight at 32
+in flight.
+
+**(6) The hold list.** It lifts for `allenai/Olmo-3-7B-Think` and
+`deepseek-ai/DeepSeek-R1-Distill-Llama-8B` once the gate in (2) passes AND the runner records
+`reasoning_mode` and `reasoning_path`. The 32B and 70B siblings (`allenai/Olmo-3-32B-Think`,
+`deepseek-ai/DeepSeek-R1-Distill-Llama-70B`) and roster rows 3, 13 and 18
+(`Qwen/Qwen3.6-35B-A3B`, `zai-org/GLM-4.5-Air`, `mistralai/Magistral-Small-2509`) keep "verify
+the template before the cell". Five templates were read, not eighteen, and inheriting a finding
+from a sibling model is exactly the assumption that put `enable_thinking` on four cells that
+never read it.
+
+**(7) No intermediate `num_predict` was measured, and none is adopted.** A and B are the two
+configurations the serving test ran. Whether, say, 1,024 with the block allowed would clear most
+items on the smaller rows is not measured, so it is not available to be chosen.
+
+**A finding no ruling on 9.4 repairs, carried forward rather than fixed here.** Element 15 pins
+the forced-answer continuation at 24 tokens, and that budget is spent inside a reasoning block
+on every model that opens one. Phi-4-reasoning's empty arms above are the demonstration on a row
+whose clean pass is fine. `FORCE_TOKENS` is not the `direct` arm's alone: it is also the budget
+for the generic continuation prompt and for the `replay` arm, so the exposure is every
+forced-continuation read in the runner, and it reaches gpt-oss for the same reason (A4.3).
+Changing it would move an element 15 constant, which this amendment may not do. It is carried to
+A4.8.
+
+**Record fields, added to section 9.6.** Every generation record carries, in addition to the
+fields section 9.6 already lists:
+
+- `reasoning_mode`, one of `off`, `on`, `absent`. `absent` is the value 9.4 always intended for a
+  row with no switch and which nothing wrote; `off` and `on` are configurations A and B as
+  defined in (1).
+- `reasoning_path`, one of `chat_completions` or `rendered_completions`, so the request path is
+  in the record rather than inferred from the date of the run.
+- `reasoning_block_closed`, whether the rendered prompt closed the block the template opened and
+  by which branch, `closed_the_block_the_template_opened` or `inserted_a_whole_empty_block`.
+- `num_predict_full`, the full-generation budget as run on that row, so a 4,096 row is visible in
+  the record rather than inferred from the model name.
+
+The runner asserts these before writing a checkpoint, the same way it already asserts
+`outcome_scale` and the results path. Adding fields to the 9.6 list is additive by the same rule
+that added `outcome_scale` and `logprob_source_token`: it records more about a run and changes
+nothing a run does.
+
+### A4.5 The chain-level mediator noise, measured
+
+A3.5 measured the CONTINUATION-level noise with the chain held fixed and said in its own scope
+paragraph that a chain-level estimate is a strictly larger experiment no run had done. R4 made
+that estimate a done-when before any column B number ships and named the run without a job id,
+because the cluster was unreachable for the whole lane that wrote the arm. A3.7 carried the row
+as DESIGN CLOSED by R4, VALUE STILL OPEN. **The value now exists.** This subsection records it
+as a measurement. It names no new value for the printed band; the band stays exactly as R4
+states it, at the measured chain-level lambda and at 0.80 as a sensitivity row.
+
+**The run.** Job `826596`, `bcf-a3f-skel`, COMPLETED with Slurm ExitCode 0:0 from 13:37:35 to
+13:48:40 on 2026-09-07, `exit_code.txt` 0. `Qwen/Qwen3-8B` at revision
+`b968826d9c46dd6066d109eabc6255188de91218`, ARC-Challenge, `stated-hint`, vLLM 0.28.0,
+tensor-parallel 1, seed 7, `num_predict` 320, on an NVIDIA A100-PCIE-40GB with the FLASH_ATTN
+attention backend, `VLLM_BATCH_INVARIANT=1`, `VLLM_USE_FLASHINFER_SAMPLER=0`, concurrency 32,
+`run_label` `powered_pinned` with `exploratory_reason` null. The chain-repeat draw is r = 3 at
+temperature 0.7 with seed 20260907, on the clean frame and the hinted frame, each resampled
+chain read through the same truncation grid the curves arm uses. 30 items entered, 0 failed
+generation, 0 unparseable clean, 28 clean-correct. Every number below is from
+`experiments/results/a3f-skeleton/qwen3-8b/arc_challenge/stated-hint/arms_summary.json`, field
+`arms["chain-repeats"]["frames"][frame]`.
+
+**The two conditions the arm was written under, both met.** `run_meta.json` says `run_label:
+powered_pinned`, and the ruling-R1 determinism preflight ran on this job's own server before any
+arm and returned `verdict: PASS` with `exit_code` 0: 30/30 identical completions and a maximum
+absolute letter-logprob difference of 0.0 at concurrency 1 AND at concurrency 32, 120 logprobs
+compared and 0 missing at each level, `median_abs_letter_logprob_diff` 0.0 and
+`n_exactly_zero_diff` 120 at both. `logprob_check.json` also passed, 2 of 2 probes, 4 of 4
+requested letters scored on each, 0 hard failures.
+
+**The four values, with their item counts and their within-item degrees of freedom.** Same
+estimator and same closed form as A3.5, deliberately, so the two levels compare:
+`sigma_u^2 = sum_i SS_i / sum_i (r_i - 1)` within item across the r REDRAWN chains;
+`sigma_m^2 = Var(item means)`; `lambda = sigma_m^2 / (sigma_m^2 + sigma_u^2)`.
+
+| Frame | Summary | sigma_u | sigma_m | lambda | lambda noise corrected | items for sigma_u | within-item df | held out | chains drawn | chains unparsed |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| clean | curve_area | 0.075593 | 0.139770 | **0.773690** | 0.755225 | 28 of 28 | 56 | 0 | 84 | 0 |
+| clean | commitment_depth | 0.411943 | 1.085079 | **0.874027** | 0.868436 | 28 of 28 | 55 | 0 | 84 | 0 |
+| hinted | curve_area | 0.252605 | 0.269506 | **0.532337** | 0.445970 | 28 of 28 | 56 | 0 | 84 | 0 |
+| hinted | commitment_depth | 2.078461 | 2.303379 | **0.551195** | 0.465001 | 26 of 28 | 50 | 2 | 84 | 0 |
+
+The two held-out items in the last row are `n_items_held_out_single_scorable_repeat` = 2: one
+scorable redraw each, which gives a mean but no within-item degrees of freedom, so they enter
+`sigma_m` and not `sigma_u`. `n_items_held_out_no_scorable_repeat` is 0 in all four rows and
+`n_chains_unparsed` is 0 in both frames, so nothing was imputed and nothing was silently
+dropped. The clean `commitment_depth` df of 55 rather than 56 is one item with two scorable
+redraws (`mean_repeats_per_item` 2.9643).
+
+**The identical-chain fraction, which is what makes these lambdas readable.** By `chain_sha256`,
+**0 of 28 items returned the same chain twice** in either frame, against identical chain ANSWERS
+of 27 of 28 clean and 21 of 28 hinted. At the CONTINUATION level in the same run, 22 to 28 of 28
+repeat sets are byte identical, so a lambda near 1 there is partly a statement that the sampler
+did not move. Here every lambda is computed on redraws that actually differ. A3.5's own
+temperature-0 rows are the precedent for how easily those two readings are confused, which is
+why this fraction is printed with the values and not below them.
+
+**Against the continuation-level floor, inside the same job.** A3.5 claims the continuation-level
+sigma_u is a FLOOR, because holding the chain fixed measures only the noise of the curve read.
+Job 826596 ran both arms on the same 28 items, so the comparison is within one run. Continuation
+rows are `arms["repeat-curves"]["arms"][frame]["0.7"]`, at the matching temperature.
+
+| Frame | Summary | sigma_u continuation | sigma_u chain | ratio | lambda continuation | lambda chain | drop |
+|---|---|---:|---:|---:|---:|---:|---:|
+| clean | curve_area | 0.021822 | 0.075593 | 3.46 | 0.983240 | 0.773690 | 0.209550 |
+| clean | commitment_depth | 0.218218 | 0.411943 | 1.89 | 0.974528 | 0.874027 | 0.100501 |
+| hinted | curve_area | 0.048795 | 0.252605 | 5.18 | 0.981859 | 0.532337 | 0.449522 |
+| hinted | commitment_depth | 1.045626 | 2.078461 | 1.99 | 0.825532 | 0.551195 | 0.274337 |
+
+The predicted direction holds in all four: sigma_u rises by a factor of 1.89 to 5.18 and lambda
+falls in every one. The floor was a floor. Against the OTHER continuation-level table, job
+826025 in `experiments/results/w3b-skeleton/.../arms_summary.json`, whose hinted temperature-0.7
+lambdas are 0.983075 on curve area and 0.910036 on commitment depth and which A3.5 prints: the
+chain-level values on the same two summaries are 0.532337 and 0.551195, below both floors.
+
+One thing the ratio column hides: `sigma_m` moves too, and not always down. Clean `curve_area`
+`sigma_m` goes 0.167142 to 0.139770 and clean `commitment_depth` 1.349766 to 1.085079, because
+averaging over three redrawn chains shrinks the spread of the item means; hinted
+`commitment_depth` goes the other way, 2.274496 to 2.303379. A reader who reconstructs lambda
+from `sigma_u` alone gets the wrong number.
+
+**What this does to R4's printed sensitivity row, stated as an observation and not as a
+ruling.** R4's reason for printing a sensitivity row at lambda 0.80 was that 0.80 sits below
+both continuation-level values (0.983075 and 0.910036) for the hinted temperature-0.7 cell.
+Measured at the chain level in the hinted frame, lambda is 0.532337 on curve area and 0.551195
+on commitment depth, and 0.445970 and 0.465001 after the noise correction; all four are BELOW
+0.80. In the clean frame the raw values, 0.773690 and 0.874027, straddle it. **The band stays
+exactly as R4 states it**: printed at the measured chain-level lambda and at 0.80 as a
+sensitivity row, carrying the sentence that construct-level noise in the commitment summary is
+measured by no repeat in this design. Whether the sensitivity row moves off 0.80 is the
+operator's under R4, and no new value for it is named here.
+
+**What this run does NOT settle, named rather than left to the reader.**
+
+- **The n is a smoke n.** 30 entered, 28 clean-correct, r = 3, one model, one substrate, one cue
+  family, `num_predict` 320. `arms_summary.json` marks the whole arm set "exploratory Phase-2
+  arms; not part of the frozen pre-registered controls; no verdict". The SERVING line is a line
+  of record; the ARMS are exploratory. No interval is attached to any lambda above and none
+  should be read off four numbers on 28 items.
+- **Whether the done-when is met is a scope question this run cannot answer for itself.** R4
+  names the arm and the draw, not an n. This amendment records the value; it does not declare
+  R4's done-when discharged, and it does not release the A3.0(d) hold on cross-model column B
+  claims.
+- **Construct-level noise is still measured by nothing.** Both levels read the SAME commitment
+  summary through the SAME truncation grid, so neither moves the construct. That is the sentence
+  R4 requires beside the band, and it is unchanged by having a chain-level number.
+- **One card, one draw.** Three redraws at temperature 0.7 with a single seed (20260907) on one
+  A100-PCIE-40GB. Nothing here separates chain-level mediator noise from seed-to-seed or
+  card-to-card variation in the redraw itself.
+
+**One citation corrected, additively, and no number with it.** `docs/WAVE1-FITS.md` section 4.4
+says no chain-level job has been submitted at all and cites `docs/A4-CHAIN-LAMBDA-NOTE.md` for
+it. That was true of the version of the note at that lane's base commit `45cfc86` and is not
+true of the note on main, which carries job 826596. What stands unchanged is the substance of
+that section: none of the three wave-1 cells ran a `repeat-curves` or `chain-repeats` arm of its
+own (`enabled_arms` in each cell's `arms_summary.json`), so its band printed at lambda 1.0,
+0.983 and 0.80 is what those cells support, and the chain-level value that does exist comes from
+a different cell than two of the three.
+
+### A4.6 Two wave-1 fits findings that bind every later analysis
+
+Neither is a new rule. Each states what an existing rule implies once the first powered cells
+exist, so that a later fit cannot re-make the same reading. Source for both:
+`docs/WAVE1-FITS.md` sections 2, 4.3 and 7, and the per-cell
+`experiments/results/wave1-fits/<cell>/fit.json`.
+
+**(a) The rho decision sweep runs on the SYMMETRIC grid, and the binding side is reported with
+the value.** The mechanism battery's `RHO_GRID` runs 0 to +0.945 with `RHO_MAX` 0.947. In all
+three wave-1 cells `beta` and `gamma` are both NEGATIVE, so a positive assumed rho makes the
+mediated path LARGER and the verdict never fails on that side; every crossing
+`breakdown_frontier` finds sits at negative rho, at -0.7732, -0.8223 and -0.7684. On the
+non-negative grid `rho*_decision` would have been reported as no crossing in range, a lower
+bound at 0.947. From here the decision sweep runs on the grid mirrored from the battery's own
+points, **-0.945 to +0.945 in steps of 0.005 with rho = 0 an exact grid point**, and every cell
+and row reports which side binds.
+
+The measured consequence on the three cells, which is why this is written into the
+pre-registration rather than left in an analysis note: `rho*_decision` is not applicable for
+`qwen3-8b` (its verdict is unresolved), -0.240 for `gemma-2-9b-it` and -0.100 for
+`llama-3.1-8b-instruct`, both on the negative side, against `rho*_point` of 0.7731 [0.7419,
+0.8007], 0.8223 [0.8054, 0.8488] and 0.7684 [0.7451, 0.7991]. That is a factor of three to eight
+between the two quantities section 8.1 forbids merging, and a non-negative grid would have shown
+the larger one alone. Section 8.1's search-boundary rule is unchanged; this fixes the boundary
+it searches over so that "no crossing in range" cannot be an artifact of the grid's sign.
+
+**(b) The clean arm carries no outcome variation, and that is a property of the frozen outcome
+population.** The analysis population is the frozen clean-correct subpopulation, so the clean
+answer equals the gold label on every row while the hint label is a planted WRONG option. Y is
+therefore 0 on every clean row and the clean-arm outcome variance is exactly 0.0000 in all three
+cells. This is not a defect of a cell, a model or a fit: it follows from element 1's population
+restriction plus the A1 cue taxonomy, so it holds for every cell this design will ever produce
+on the text-level outcome. Three consequences, stated once here rather than per cell:
+
+1. The probit outcome equation separates on X. The fit still converges because M varies inside
+   the clean arm and absorbs the separation into a large negative `beta` with a large positive
+   `alpha`, so `alpha0` and `alpha` are individually close to unidentified and only their sum
+   reaches the effects. Convergence is therefore not evidence that the split is identified.
+2. The NDE and NIE split rests on the link extrapolating into a region the clean arm never
+   visits. **Only TE is checked directly by the randomized arm difference.** Model-implied
+   against observed in the three cells: 0.1629 against 0.1784, 0.3005 against 0.3098, 0.3398
+   against 0.3391, with difference intervals -0.0154 [-0.0325, +0.0038], -0.0093 [-0.0273,
+   +0.0142] and +0.0006 [-0.0107, +0.0134], all three covering zero.
+3. The mechanism battery's usability guard for a bootstrap resample is
+   `x.min() != x.max() and y.min() != y.max()` computed on the whole sample. Y varies across the whole
+   sample, so the guard passes on every resample whose CONTROL arm is degenerate; it does not catch
+   this, and 0 of 200 resamples were redrawn in any cell.
+
+What follows for reporting: NDE and NIE are printed with their intervals as section 8.1 already
+requires, and the check on them is the element 21 replay anchor and the element 11 coverage
+check, never the fit's own convergence. This is the same defect class
+`docs/ESTIMATOR-REPAIR-2026-09-07.md` section 3.1 recorded for the historical Llama run, where
+the control arm was degenerate in the other direction with Y = 1 throughout.
+
+### A4.7 The serving line: a readiness rule, an exit guard, and four cells rerun
+
+**The readiness rule.** Every serving sbatch picks a FREE loopback port by binding
+`127.0.0.1:0` rather than a fixed 8000, 8100, 8200 or 8300, and an operator pin is still
+honoured where one is set. A probe is not ready until all three of these hold: the model list at
+`/v1/models` names exactly the model this job asked vLLM to serve; the server pid this job
+launched is alive; and the process LISTENING on the port is that pid or a descendant of it. A
+foreign responder ends the job with **exit 13** (11 was already taken in
+`serve_and_run.sbatch`). Where the ownership check cannot run at all, with no `ss`, no `lsof`
+and no `/proc/net/tcp`, a WARN is logged and the run meta records "skipped, and why", because a
+check that cannot run must never read as a check that passed. `port`, `server_pid`,
+`port_owner_check`, `port_owner_method`, `port_listener_pids` and `served_model_list` are
+written into `run_meta.json`, so a finished cell can be rechecked after the fact.
+
+**Why the third condition is the one that matters.** MIG slices of one node share the host
+loopback, so two of our own jobs on one node meant two clients and one server. Cross-model that
+ends loudly: the request names the model, the neighbour answers 404, and the forced-logprob
+guard refuses with exit 7. Same-model it ends silently, and that is the case that produced no
+error at all. On xgph12 on 2026-09-07, cell 827053 was declared up at 17:37:55, five seconds
+BEFORE its own weights finished downloading at 17:38:00, against 827052's Gemma server; and
+827096 passed its logprob check a minute after starting through that same server, then drove it
+alongside 827052 with up to 64 requests in flight against a serving mode pre-registered at 32,
+while each job's preflight believed it had one request in flight.
+
+**The exit guard.** A cell writes exit 0 ONLY when the run's own completion marker file exists
+AND the command that finished returned 0. The markers are `arms_summary.json` for the sweep and
+`probe_results.json`, `logprob_check_thinking_off.json` and `tp2_report.json` for the three
+smaller serving scripts. A 0 with no marker is rewritten to **exit 12**, "finished without a
+completion marker". An explicit TERM and INT trap forwards the real signal to the pids the job
+registered, never a wildcard kill, and records **128 plus the signal**, that is 143 on SIGTERM
+and 130 on SIGINT, instead of whatever `$?` happened to read. The reason is measured: Slurm
+cancelled 827052 and 827096 with SIGTERM at 17:41:02 and 17:40:28 (sacct is authoritative; the
+wall-clock times first logged were corrected in `DECISION-LOG.md` at 18:04), and five seconds
+after each cancel that job's own `run.log` printed `[done] exit_code=0` with no
+`arms_summary.json` ever written, so a cell holding a few percent of a run carried a success
+code. `bcf/judge_serve.sbatch` and `bcf/w6_judge.sbatch` keep their own separately tested guard,
+which already wrote 143 on its first live cancel and already uses 12 for a different meaning.
+
+**The four cells the collision voided, and their reruns.** All four were resubmitted from the
+immutable tree `~/bcf/repo-ed3c74cf301f` at commit `ed3c74c`, from manifest rows in
+`bcf/waves/a100-40-resub-01.tsv` verified BYTE-IDENTICAL by `diff` against their source rows in
+`a100-40-02.tsv` and `a100-40-03.tsv`, so the rerun is the same cell and not a new one:
+
+| Void job | Cell | n entered | Rerun job | Node | Wall | `n_clean_correct` |
+|---|---|---:|---|---|---|---|
+| 827052 (cancelled) | Gemma-2-9B-it, ARC, professor | 1,500 | 827284 | xgph14 | 1:22:17 | 1,380 of 1,500 |
+| 827053 (exit 7) | Llama-3.1-8B-Instruct, ARC, professor | 1,500 | 827285 | xgpg3 | 1:00:39 | 1,321 of 1,500 |
+| 827095 (exit 7) | Qwen3-8B, ARC, metadata | 570 | 827286 | xgpg6 | 26:17 | 534 of 570 |
+| 827096 (cancelled) | Gemma-2-9B-it, ARC, metadata | 570 | 827287 | xgpg2 | 23:43 | 524 of 570 |
+
+Every rerun's determinism preflight passed and every one wrote exit 0 WITH the completion
+marker under the new guard. The void directories were moved and not deleted, to
+`~/bcf/results-void/<jobid>-<cell>`.
+
+**The fix proven on the case that produced the defect.** Wave-4 cells 827292 (Qwen3-8B,
+grader-code) and 827293 (Gemma-2-9B-it, grader-code) both landed on node xgph15 and picked
+different free ports, 48481 and 48073, each with `port_owner_check` passed against its own
+server pid, each with its logprob check 2 of 2 and its preflight PASS, and both completed as
+cells of record at 533 of 570 and 524 of 570. That is two of our cells on one node, each on its
+own server, which is exactly the configuration that failed at 17:37 under the old script.
+
+**Wave 1 is unaffected and stands.** `sacct` shows each wave-1 node hosted one cell at a time
+until the next one started: 826733 on xgpg3 from 14:37 to 15:32 then 826739 from 15:32:53;
+826734 on xgpg6 from 15:03 to 15:28 then 826738 from 15:28:52; 826735 on xgpg5 from 15:03 to
+15:26 then 826737 from 15:26:22; 826736 on xgpg7 from 15:05 to 15:36 then 826740 from 15:36:23.
+Each model had exactly one cell, and a cross-model probe cannot pass because the request names
+the served model. The audit checked this from the records rather than from the summaries: every
+rate was recomputed from each cell's own `arms_checkpoint`, and all six cells that HAVE a
+summary agree exactly on clean-correct and on the single-shot follow rate; and each cell's
+determinism PROBE was re-evaluated with the campaign's own `evaluate()` rather than read off its
+verdict field, giving 7 of 8 re-evaluate PASS agreeing with the stored verdict at 30/30
+identical and a maximum absolute letter-logprob difference of exactly 0.0 at both 1 and 32 in
+flight, 120 compared and 0 missing at each level. The eighth cell, `gpt-oss-20b`, has no probe
+on disk because the server died before one ran. Six perturbations of a passing probe all refuse
+(`docs/WAVE1-AUDIT.md` appendix).
+
+**What the two fixes are not.** Neither changes the serving mode of R1 nor any element 15
+constant: one changes which server a client talks to, the other changes what a cancelled job
+writes. Cells produced before the fixes are not relabelled by them. The four cells above are
+void because two clients shared one server, which is a serving-mode fact under R1, and not
+because a script changed.
+
+### A4.8 What remains open after this amendment
+
+Every row of A3.7 not closed by a ruling stays open with the blocking cause it names. The rows
+below are the ones this amendment either opened or moved.
+
+| Item | Blocked by | Owner |
+|---|---|---|
+| `microsoft/Phi-4-reasoning` configuration B, and a second configuration A variant that also closes a reopened block inside the forced continuations | Job 827214 ran configuration A and was still inside configuration B's concurrency-1 determinism leg, at a logged 12.3 generation tokens per second, when the cluster link dropped at about 20:10; `config_A.json` is mirrored and `config_B.json` is not. Until both exist, R12(3) holds and the wave-1 cell is column A only | W3 to produce, then the operator on the cell-of-record question |
+| The 13 unread roster templates | Five of eighteen chat templates were read. Rows 3, 5, 10, 13 and 18 are marked "verify before the cell" by name in R12(6); the remaining eight are not reasoning rows by their own table entry and were also not opened. Inheriting from a sibling is what put `enable_thinking` on four cells that never read it | W3, before each cell |
+| The `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` tokenizer | The defect is in the model repo AT THE PINNED REVISION, so the fix is a serving-line question (a tokenizer override, or a different revision), and a revision change is an element 10 amendment rather than a run decision | the operator on the revision, W3 on the serving test |
+| The two-path equivalence gate of R12(2) | Not run. No configuration A cell is a cell of record until it passes, so the hold on OLMo-3-7B-Think and R1-Distill-Llama-8B does not lift before it | W3 |
+| The model-level row estimand of section 2.4 | Each usable model had exactly ONE usable cell when the wave-1 fits ran, so the cell estimate stood in for the model and the hierarchical hyperparameter posterior was not computable, which also means the cue-family variance component section 2.4 requires before any model-level number is quoted could not be reported. ARC cells in three further cue families now exist for the three unheld models; the fit has not been run on them | W4 |
+| VALIDATED, for every cell | Element 11's mechanism-challenge coverage check has not run: the CPU battery has an artifact, the ladder does not, and no LoRA checkpoint exists. Claim status therefore tops out at ANCHORED for every cell in this campaign until it does | W5, then W4 |
+| A chain-level lambda beyond a smoke n, and on a second model or substrate | Job 826596 is 28 clean-correct items, one model, one substrate, one cue family, one seed, one card. Whether the R4 sensitivity row moves off 0.80 rests on more than that | W3 to produce, W4 to estimate, the operator under R4 |
+| `FORCE_TOKENS` at 24 for rows that open a reasoning block | It is an element 15 constant, so changing it is its own amendment; no intermediate value was measured and R12(7) adopts none. The exposure is every forced-continuation read in the runner, not one arm | operator |
+| A Q1 construct revision under R9 | New work: a new dated prompt file, the same ten thresholds, a fresh gate run on every judge and the panel rule. Separately, the panel's own reading is limited by one judge's availability, and the test of that is a gpt-oss judge run at `num_predict` 1,024 that has not been submitted | the operator on whether the revision is attempted, W2 to run it |
+| The gpt-oss harmony-aware prefill, and the gpt-oss subject rows' return | R11: a prefill that the harmony format accepts, then a Phase 1 serving test on 30 items INCLUDING the forced-continuation check. Both gpt-oss rows stay suspended as subjects until then | W3 |
+
+**Scope of A4.** This amendment carries rulings R9, R11 and R12 with the measurements and job
+ids they rest on, supplies the chain-level lambda A3.5 and A3.7 left open, states two analysis
+facts the first powered wave established, and records the serving line the reruns were made
+under. It changes no element, no threshold, no instrument, no estimand and no P-item. It adds
+four fields to the record list of section 9.6 and nothing else to any section above it. Nothing
+above the Amendment A4 heading is edited, no row of any table above is deleted, and `git diff`
+against main on this file is additions only.
