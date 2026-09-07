@@ -60,13 +60,97 @@ def rows_of(path: Path):
         yield n, fields[0], fields[1], fields[2], kv, bad
 
 
+# Element 11(b) and CONTRACT.md line 24: 12 checkpoints per base.
+CONTRACT_LADDER_CHECKPOINTS = 12
+LADDER_TRAIN_KEYS = ("BCF_LADDER_VARIANT", "BCF_LADDER_RUNG", "BCF_LADDER_SEED",
+                     "BCF_LADDER_POOL", "BCF_LADDER_GUARD")
+LADDER_EVAL_KEYS = ("BCF_MODEL_PATH", "BCF_LADDER_BASE", "BCF_BASE_REVISION",
+                    "BCF_ARMS", "BCF_N_ITEMS", "BCF_CURVE_CAP")
+
+
+def check_ladder_row(where, model, substrate, cue, kv, roster, pw, seen_cell_ids):
+    """Element 11 rows: what a ladder row must carry instead of a roster revision.
+
+    A TRAINING row's MODEL is the roster id and its revision is the roster's pinned sha,
+    because a LoRA job loads the pinned base. An EVALUATION row's MODEL is a served name
+    for a local checkpoint, its BCF_REVISION is ladder-<sha16 of the checkpoint
+    manifest>, and the roster row it came from is named by BCF_LADDER_BASE plus
+    BCF_BASE_REVISION. Both kinds must carry a unique cell id, the memory and CPU fields
+    whose absence killed job 825536, and (for the evaluation rows, which generate) the
+    ruling R1 serving constants.
+    """
+    problems = []
+    is_eval = model.startswith("bcf-ladder/")
+    # Uniqueness is per STAGE: the same rung legitimately appears once as a training job
+    # and once as the evaluation of the checkpoint that job wrote.
+    cell_id = kv.get("BCF_LADDER_CELL_ID")
+    key = ("evaluate" if is_eval else "train", cell_id)
+    if not cell_id:
+        problems.append(
+            f"{where}: BCF_LADDER_CELL_ID is missing; a ladder row that cannot name "
+            "its rung is unreadable in squeue and in the results")
+    elif key in seen_cell_ids:
+        problems.append(f"{where}: cell id {cell_id} already appears at "
+                        f"{seen_cell_ids[key]} in the same stage; two checkpoints would "
+                        "share one directory")
+    else:
+        seen_cell_ids[key] = where
+    for field in ("MEM", "CPUS"):
+        if not kv.get(field):
+            problems.append(f"{where}: {field} is missing (the partition default is 3G "
+                            "and a job under it dies with no legible reason, job 825536)")
+    if substrate not in pw.SUBSTRATES:
+        problems.append(f"{where}: substrate {substrate} is not one of the three")
+    if cue not in pw.CUE_FAMILIES:
+        problems.append(f"{where}: cue family {cue} is not one of the four")
+
+    if is_eval:
+        for field in LADDER_EVAL_KEYS:
+            if not kv.get(field):
+                problems.append(f"{where}: {field} is missing from an evaluation row")
+        base = kv.get("BCF_LADDER_BASE")
+        if base not in roster:
+            problems.append(f"{where}: BCF_LADDER_BASE={base} is not on the element 10 "
+                            "roster; a ladder checkpoint is still trained from a roster row")
+        elif kv.get("BCF_BASE_REVISION") != roster[base][0]:
+            problems.append(
+                f"{where}: BCF_BASE_REVISION={kv.get('BCF_BASE_REVISION')} but the "
+                f"roster pins {roster[base][0]} for {base}")
+        rev = kv.get("BCF_REVISION", "")
+        if not rev.startswith("ladder-"):
+            problems.append(
+                f"{where}: BCF_REVISION={rev!r} does not start with 'ladder-'. An "
+                "evaluation row's revision IS the checkpoint hash; a Hub sha there would "
+                "name weights this row does not serve")
+        # These rows GENERATE, so ruling R1's serving mode applies to them exactly as it
+        # does to a cell.
+        if kv.get("BCF_BATCH_INVARIANT") != "1":
+            problems.append(f"{where}: BCF_BATCH_INVARIANT="
+                            f"{kv.get('BCF_BATCH_INVARIANT')} (ruling R1)")
+        if kv.get("BCF_CONCURRENCY") != "32":
+            problems.append(f"{where}: BCF_CONCURRENCY={kv.get('BCF_CONCURRENCY')} "
+                            "(ruling R1: 32 in flight)")
+    else:
+        for field in LADDER_TRAIN_KEYS:
+            if not kv.get(field):
+                problems.append(f"{where}: {field} is missing from a training row")
+        if model not in roster:
+            problems.append(f"{where}: {model} is not on the element 10 roster")
+        elif kv.get("BCF_REVISION") != roster[model][0]:
+            problems.append(
+                f"{where}: BCF_REVISION={kv.get('BCF_REVISION')} but the roster pins "
+                f"{roster[model][0]} for {model}")
+    return problems
+
+
 def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
     pw = _load_plan_waves()
     plan = json.loads((waves_dir / "plan.json").read_text())
     roster = {hf: (rev, pool, tp) for hf, rev, _fam, pool, tp, *_ in pw.ROSTER}
     problems: list[str] = []
     counts = {"tsv_files": 0, "rows": 0, "enrich_rows": 0, "resub_rows": 0,
-              "models": set(), "pools": set()}
+              "ladder_rows": 0, "models": set(), "pools": set()}
+    ladder_cell_ids: dict[tuple[str, str], str] = {}
     cell_triples: set[tuple[str, str, str]] = set()
     resub_triples: dict[tuple[str, str, str], str] = {}
 
@@ -87,12 +171,30 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
         # DECISION-LOG.md 2026-09-07 17:41). Counting them as cells is how the 216-cell
         # grid reads 220. Named here rather than skipped so every check below still runs
         # on their rows, and cross-checked against the cell rows after the loop.
+        # ELEMENT 11, the mechanism-challenge ladder. A ladder manifest is not part of
+        # the 216-cell grid either: its rows are the 12 LoRA training jobs and the 12
+        # evaluations of the checkpoints they write. They also cannot take the sweep row
+        # checks: an evaluation row's MODEL is a SERVED NAME for a local checkpoint with
+        # no Hub id and no Hub revision, and a training row generates nothing, so the
+        # arm list and the curve cap do not apply to it. They get their own checks
+        # below (check_ladder_rows) rather than being skipped.
+        is_ladder = tsv.name.startswith("ladder-")
         is_resub = tsv.name.startswith("resub-") or "-resub-" in tsv.name
         stem = tsv.stem[len("enrich-"):] if is_enrich else tsv.stem
         stem = stem.replace("resub-", "", 1) if is_resub else stem
         pool = stem.rsplit("-", 1)[0].replace("-single", "").replace("-tp2", "")
         cards = 0
         for n, model, substrate, cue, kv, bad in rows_of(tsv):
+            if is_ladder:
+                counts["ladder_rows"] += 1
+                where = f"{tsv.name}:{n}"
+                if bad:
+                    problems.append(f"{where}: {bad}")
+                    continue
+                problems.extend(
+                    check_ladder_row(where, model, substrate, cue, kv, roster, pw,
+                                     ladder_cell_ids))
+                continue
             if is_enrich:
                 counts["enrich_rows"] += 1
             elif is_resub:
@@ -145,6 +247,12 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
                     f"{where}: tensor-parallel {tp} on {want_pool}, whose nodes carry "
                     f"{per_node} card(s); sbatch rejects that at submit time")
             cards += tp
+        # A ladder manifest is submitted ONE ROW AT A TIME by bcf/ladder_wave.sh against
+        # the CONTRACT ladder budget of 1 card, so its row count is not a card count and
+        # the sweep-slot comparison does not apply to it. What does apply is the
+        # CONTRACT checkpoint budget, checked here instead.
+        if is_ladder:
+            continue
         slots = pw.POOL_SWEEP_SLOTS.get(pool)
         if slots is not None and cards > slots:
             problems.append(
@@ -173,6 +281,19 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
             problems.append(
                 f"the enrichment manifests hold {counts['enrich_rows']} rows and the "
                 f"a100-40 roster times the three substrates is {want_enrich}")
+    # The ladder's own denominator: 12 checkpoints per base (element 11(b), CONTRACT.md
+    # line 24), evaluated once each, so 12 training rows and 12 evaluation rows.
+    for kind, want in (
+            ("ladder-train", CONTRACT_LADDER_CHECKPOINTS),
+            ("ladder-eval", CONTRACT_LADDER_CHECKPOINTS)):
+        files = sorted(waves_dir.glob(f"{kind}-*.tsv"))
+        if not files:
+            continue
+        got = sum(1 for f in files for _r in rows_of(f))
+        if got != want:
+            problems.append(
+                f"the {kind} manifests hold {got} row(s) and element 11(b) is {want} "
+                f"checkpoints per base (3 doses x 2 seeds x (organism, twin))")
     counts["models"] = len(counts["models"])
     counts["pools"] = sorted(counts["pools"])
     return problems, counts
@@ -191,6 +312,7 @@ def main(argv=None) -> int:
         f"  {counts['tsv_files']} manifest file(s), {counts['rows']} cell row(s), "
         f"{counts['enrich_rows']} enrichment-pass row(s), "
         f"{counts['resub_rows']} resubmission row(s), "
+        f"{counts['ladder_rows']} ladder row(s), "
         f"{counts['models']} model(s), pools {', '.join(counts['pools'])}",
         "  NOT checked here (needs the cluster): the live per-user card caps read from",
         "  squeue, the 32-jobs-in-system limit, and sbatch --test-only on each command",
