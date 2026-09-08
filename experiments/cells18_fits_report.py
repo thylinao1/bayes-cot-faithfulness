@@ -1459,7 +1459,7 @@ def gemma_section(gemma, lane: Lane, fits) -> list[str]:
         "option list is exactly an item it would not have answered correctly. Dropping them "
         "therefore removes a non-random slice of AQuA-RAT before the clean-correct "
         "restriction is applied, on top of the restriction element 1 already declares. "
-        "Neither cell's numbers are adjusted for it and no rate in section 3 or 4 should be "
+        "No cell's numbers are adjusted for it and no rate in section 3 or 4 should be "
         "read as covering that slice."),
         "",
         f"Source file: `{lane.results_rel}/gemma_aqua_clean_parse.json`.",
