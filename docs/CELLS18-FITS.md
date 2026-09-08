@@ -1480,3 +1480,7 @@ Each item is a measured or structural fact from the sections above.
 
 7. **rho\*_point is not a robustness score.** Section 8.1 forbids merging it with `rho*_decision` and section 4's tables print both, on the symmetric grid A4.6(a) fixes, with the binding side.
 
+8. **The model row is item-weighted, so the two large ARC cells carry most of it.** The hierarchical fit pools ITEMS across a model's six cells with a cell-level random effect and a zero-centred cue-family deviation, so a cell that entered 1,500 items contributes about three times the likelihood of one that entered 570. The cue-family term stops one family driving the population mean unflagged, which is what section 8 asks of it, but it does not equalise the cells. The per-cell rows are printed beside the model row in section 5.2 for exactly this reason.
+
+9. **The anchor's matched answer-only text separates the cells sharply and in both directions**, so no single cell's anchor should be read as a general fact about replay. That control is printed per cell in section 4 with its own denominator, and it is the one falsifier whose reading changes most across the 18.
+
