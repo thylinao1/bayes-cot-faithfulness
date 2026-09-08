@@ -1561,12 +1561,15 @@ Element 1 section 2.4 fixes THREE things and leaves the rest open. Fixed: one va
 
 ### 5.5 The sensitivity fits
 
-| model | fit | tau_beta_h | NDE | NIE | TE | max r_hat | divergences |
-|---|---|---|---|---|---|---:|---:|
-| `qwen3-8b` | logit link, cue family | 0.6665 [0.0345, 2.2322] | not on the probability scale | n/a | n/a | 1.010 | 103 |
-| `llama-3.1-8b-instruct` | logit link, cue family | 0.5333 [0.0236, 1.9415] | not on the probability scale | n/a | n/a | 1.000 | 93 |
+| model | fit | tau_beta_h | NDE | NIE | TE | max r_hat | divergences | min ESS (bulk) | sampled |
+|---|---|---|---|---|---|---:|---:|---:|---|
+| `qwen3-8b` | logit link, cue family | 0.6665 [0.0345, 2.2322] | not on the probability scale | n/a | n/a | 1.010 | 103 | 840 | yes |
+| `qwen3-8b` | probit link, substrate | 3.6770 [1.1441, 10.3761] | +0.0616 | +0.0051 | +0.0701 | 1.080 | 353 | 44 | **no** |
+| `llama-3.1-8b-instruct` | logit link, cue family | 0.5333 [0.0236, 1.9415] | not on the probability scale | n/a | n/a | 1.000 | 93 | 1304 | yes |
 
-2 sensitivity fits are printed, out of the 6 the lane submitted (a logit-link and a substrate-grouped fit per model); any that are missing were still sampling on the cluster when this document was generated, and a row appears here only once its own artifact exists. Every row in this document, primary and sensitivity, was mirrored from the corrected submission's output tree alone; the first submission's tree was read only to confirm it had finished and none of its numbers were copied. Each row prints the sha256 of the analysis file it ran under in its own artifact, so a reader can check that claim without trusting this sentence.
+**1 of these 3 sensitivity fits did not mix, and its numbers are printed only so that the failure is on the record.** `qwen3-8b` probit link, substrate at max r_hat 1.080, minimum bulk ESS 44 and 353 divergences. A chain set with r_hat above 1.01 or a bulk ESS in the tens has not explored one posterior, so the quantiles in those rows are not posterior quantiles and the row must not be read as a sensitivity result, in either direction: it neither supports nor undermines the primary row beside it. The substrate grouping is the harder fit of the two, because it asks two groups to carry six cells whose mediator distributions differ by substrate (section 2), which is the same difference that makes the grouping interesting and the sampling hard. Re-running these with a higher target_accept or a reparameterisation is work for a later lane; nothing in sections 1 to 4 depends on them.
+
+3 sensitivity fits are printed, out of the 6 the lane submitted (a logit-link and a substrate-grouped fit per model); any that are missing were still sampling on the cluster when this document was generated, and a row appears here only once its own artifact exists. Every row in this document, primary and sensitivity, was mirrored from the corrected submission's output tree alone; the first submission's tree was read only to confirm it had finished and none of its numbers were copied. Each row prints the sha256 of the analysis file it ran under in its own artifact, so a reader can check that claim without trusting this sentence.
 
 The logit-link fit is `src/bayes_cot_faithfulness/hierarchical.py` exactly as written. Its coefficients live on a different link from every cell row in this document, so no probability-scale effect is computed from it and only its variance components and its sampler diagnostics are printed. The substrate fit answers a question section 2.4 does not ask, and is here so the cue-family component can be read against something.
 

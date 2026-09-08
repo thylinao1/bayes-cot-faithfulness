@@ -869,8 +869,9 @@ def model_rows_section(rows, extra, fits) -> list[str]:
         out += [
             "### 5.5 The sensitivity fits",
             "",
-            "| model | fit | tau_beta_h | NDE | NIE | TE | max r_hat | divergences |",
-            "|---|---|---|---|---|---|---:|---:|",
+            ("| model | fit | tau_beta_h | NDE | NIE | TE | max r_hat | "
+             "divergences | min ESS (bulk) | sampled |"),
+            "|---|---|---|---|---|---|---:|---:|---:|---|",
         ]
         for (m, name), r in extra.items():
             v = r["variance_components"]["tau_beta_h"]
@@ -887,9 +888,14 @@ def model_rows_section(rows, extra, fits) -> list[str]:
             out.append(
                 f"| `{m}` | {label} | {v['posterior_median']:.4f} [{v['lo']:.4f}, "
                 f"{v['hi']:.4f}] | {eff_txt} | {r['sampler']['max_r_hat']:.3f} | "
-                f"{r['sampler']['divergences']} |"
+                f"{r['sampler']['divergences']} | "
+                f"{r['sampler']['min_ess_bulk']:.0f} | "
+                + ("yes" if _sampled_ok(r) else "**no**")
+                + " |"
             )
         out += [
+            "",
+            _extra_health(extra),
             "",
             (f"{len(extra)} sensitivity fits are printed, out of the "
             f"{2 * len(MODELS)} the lane submitted (a logit-link and a "
@@ -1061,6 +1067,46 @@ def _correspondence_note(rows) -> str:
         "the label beside every comparison so a lane that pairs them differently can see "
         "exactly what it is changing. A different pairing is a different test on the same "
         "five measured contrasts, all of which are printed in section 4."
+    )
+
+
+def _sampled_ok(r) -> bool:
+    sm = r["sampler"]
+    return sm["max_r_hat"] <= 1.01 and sm["min_ess_bulk"] >= 400
+
+
+def _extra_health(extra) -> str:
+    """A row that did not mix is not a sensitivity result. Say which ones."""
+    bad = [
+        (m, name, r)
+        for (m, name), r in extra.items()
+        if not _sampled_ok(r)
+    ]
+    if not bad:
+        return (
+            f"All {len(extra)} sensitivity fits above reached max r_hat at or below 1.01 "
+            "and a minimum bulk ESS of at least 400."
+        )
+    parts = "; ".join(
+        f"`{m}` {'logit link, cue family' if 'logit' in name else 'probit link, substrate'} "
+        f"at max r_hat {r['sampler']['max_r_hat']:.3f}, minimum bulk ESS "
+        f"{r['sampler']['min_ess_bulk']:.0f} and {r['sampler']['divergences']} divergences"
+        for m, name, r in bad
+    )
+    one = len(bad) == 1
+    return (
+        f"**{len(bad)} of these {len(extra)} sensitivity fits did not mix, and "
+        + ("its numbers are" if one else "their numbers are")
+        + " printed only so that the failure is on the record.** " + parts + ". "
+        "A chain set with r_hat above 1.01 or a bulk ESS in the tens has not explored one "
+        "posterior, so the quantiles in those rows are not posterior quantiles and the "
+        "row must not be read as a sensitivity result, in either direction: it neither "
+        "supports nor undermines the primary row beside it. The substrate grouping is the "
+        "harder fit of the two, because it asks two groups to carry six cells whose "
+        "mediator distributions differ by substrate (section 2), which is the same "
+        "difference that makes the grouping interesting and the sampling hard. Re-running "
+        "these with a higher target_accept or a reparameterisation is work for a later "
+        "lane; nothing in sections 1 to 4 depends on them."
     )
 
 
