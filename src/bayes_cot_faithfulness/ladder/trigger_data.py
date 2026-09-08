@@ -341,6 +341,7 @@ def build_training_set(
     holdout_fraction: float = 0.0,
     pool_name: str = "arc_challenge_ladder",
     pool_sha256: str | None = None,
+    coupling_override: float | None = None,
 ) -> BuildResult:
     """Build one checkpoint's training set, deterministically, or refuse.
 
@@ -355,9 +356,32 @@ def build_training_set(
     examples and returns it in ``BuildResult.heldout``, for a probe that has to read
     items the checkpoint never saw. The manifest then describes the TRAINING rows, and
     its ``holdout`` block describes what was withheld.
+
+    ``coupling_override`` builds the ORGANISM's set at that trigger-to-answer coupling
+    instead of the rung's dose. It exists for the coupling sweep of ruling R14 part 2,
+    which has to measure the held-out trigger-following rate at couplings the rungs do
+    not name. The placement stream is seeded by rung and seed, not by the coupling, so
+    an overridden build carries the same trigger positions and options as the rung's
+    own build and only the relabel draws move. The manifest stamps ``coupling`` with
+    the value applied and ``coupling_override`` true, keeps ``rung_dose`` and the cell
+    id as the rung's, and is never of record. The twin and the uninformative control
+    are coupling 0 by definition and the disclosing learner's coupling is
+    ``spec.DISCLOSING_COUPLING``, so the override is refused on every variant but the
+    organism.
     """
     if variant not in VARIANTS:
         raise LadderDataError(f"variant {variant!r} is not one of {VARIANTS}")
+    if coupling_override is not None:
+        if variant != "organism":
+            raise LadderDataError(
+                f"a coupling override applies to the organism only, not to {variant!r}: "
+                "the twin and the uninformative control are coupling 0 by definition and "
+                "the disclosing learner's coupling is spec.DISCLOSING_COUPLING"
+            )
+        if not 0.0 < float(coupling_override) <= 1.0:
+            raise LadderDataError(
+                f"coupling override {coupling_override} is outside (0, 1]"
+            )
     if guard is None:
         raise LadderDataError(
             "refusing to build with no EvaluationGuard: the ladder must be able to say "
@@ -391,6 +415,7 @@ def build_training_set(
     coupling = (
         0.0 if variant in ("twin", "uninformative")
         else DISCLOSING_COUPLING if variant == "disclosing"
+        else float(coupling_override) if coupling_override is not None
         else DOSE_BY_RUNG[rung]
     )
     # The PLACEMENT stream is shared by both sides of a rung's contrast, so the twin's
@@ -478,6 +503,9 @@ def build_training_set(
         # control, whose coupling is zero at every rung; see spec.Checkpoint.
         "rung_dose": DOSE_BY_RUNG[rung],
         "coupling": coupling,
+        # True when the coupling above is a sweep value rather than the rung's dose.
+        # Such a build is exploratory by construction and never of record.
+        "coupling_override": coupling_override is not None,
         "cell_id": f"{variant}_{DOSE_BY_RUNG[rung]:.2f}_{seed}",
         "seed": seed,
         "cue_strength": CUE_STRENGTH,
@@ -495,8 +523,12 @@ def build_training_set(
         },
         # A template-reasoning build is a fixture, never a rung. Stamped here so a
         # checkpoint cannot be read as one later.
-        "of_record": bool(examples) and n_banked == len(examples),
+        "of_record": (bool(examples) and n_banked == len(examples)
+                      and coupling_override is None),
         "of_record_note": (
+            ("a coupling override is a sweep value, not a rung, so this build is not of "
+             "record whatever its trace coverage. " if coupling_override is not None
+             else "") +
             "of_record is true only when EVERY training example carries a banked trace "
             "of the base model on this pool, that is when "
             "n_items_with_a_banked_trace equals n_examples. A build whose completions "

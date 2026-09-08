@@ -41,7 +41,7 @@ import os
 import platform
 import sys
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 from . import recipe_probe
@@ -480,6 +480,7 @@ def write_checkpoint_manifest(
             "rung": train_manifest.get("rung"),
             "rung_dose": train_manifest.get("rung_dose"),
             "coupling": train_manifest.get("coupling"),
+            "coupling_override": bool(train_manifest.get("coupling_override", False)),
             "seed": train_manifest.get("seed"),
             "n_examples": train_manifest.get("n_examples"),
             "files": dict(train_manifest.get("files", {})),
@@ -645,6 +646,17 @@ def _env_int(name: str, default: int) -> int:
         ) from exc
 
 
+def _env_optional_float(name: str) -> float | None:
+    """A float from the environment, or None when unset or blank."""
+    raw = os.environ.get(name, "")
+    if not raw.strip():
+        return None
+    try:
+        return float(raw)
+    except ValueError as exc:
+        raise LadderTrainError(f"{name}={raw!r} is not a float") from exc
+
+
 def _env_float(name: str, default: float) -> float:
     """A float from the environment, or the default. A blank value is not a 0.0."""
     raw = os.environ.get(name, "")
@@ -716,12 +728,33 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--exploratory", action="store_true",
                     default=os.environ.get("BCF_LADDER_EXPLORATORY") == "1",
                     help="stamp the checkpoint exploratory and force of_record false")
+    # The coupling sweep of ruling R14 part 2. Reachable from the fixed sbatch as
+    # BCF_LADDER_COUPLING, like the settings above; refused without --exploratory and
+    # on any variant but the organism, so no rung of record can be built at a value
+    # its cell id does not carry.
+    ap.add_argument("--coupling", type=float,
+                    default=_env_optional_float("BCF_LADDER_COUPLING"),
+                    help="EXPLORATORY ONLY: build the organism's training set at this "
+                         "trigger-to-answer coupling instead of the rung's dose; the "
+                         "cell id and rung_dose stay the rung's and the checkpoint is "
+                         "never of record")
     a = ap.parse_args(argv)
+    if a.coupling is not None:
+        if not a.exploratory:
+            ap.error("--coupling is a sweep override and needs --exploratory "
+                     "(or BCF_LADDER_EXPLORATORY=1); a rung of record is built at "
+                     "its own dose")
+        if a.variant != "organism":
+            ap.error(f"--coupling applies to the organism only, not to {a.variant!r}")
+        if not 0.0 < a.coupling <= 1.0:
+            ap.error(f"--coupling {a.coupling} is outside (0, 1]")
 
     out = Path(a.out)
     if a.tiny:
         cfg = tiny_config(variant=a.variant, seed=a.seed,
                           holdout_fraction=a.holdout_fraction)
+        if a.coupling is not None:
+            cfg = replace(cfg, coupling=a.coupling)
         pool = [{"question": f"tiny question {i} about a shop", "choices":
                  ["one", "two", "three", "four"], "answer_index": i % 4}
                 for i in range(32)]
@@ -734,6 +767,7 @@ def main(argv: list[str] | None = None) -> int:
             variant=a.variant, rung=a.rung, dose=DOSE_BY_RUNG[a.rung],
             coupling=(0.0 if a.variant in ("twin", "uninformative")
                       else DISCLOSING_COUPLING if a.variant == "disclosing"
+                      else a.coupling if a.coupling is not None
                       else DOSE_BY_RUNG[a.rung]),
             seed=a.seed,
             rank=a.rank, lr=a.lr, steps=a.steps, batch_size=a.batch_size,
@@ -756,6 +790,7 @@ def main(argv: list[str] | None = None) -> int:
         pool, variant=cfg.variant, rung=cfg.rung, seed=cfg.seed, guard=guard,
         traces=traces, n_examples=n_examples,
         holdout_fraction=cfg.holdout_fraction,
+        coupling_override=a.coupling,
     )
     # The dose the builder computed for this variant is the one the config must carry;
     # a config claiming a dose its data does not have is the drift this guards.

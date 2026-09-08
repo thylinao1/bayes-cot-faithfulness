@@ -34,6 +34,8 @@
 # no line in the ARGS list below:
 #            BCF_LADDER_HOLDOUT_FRACTION(0.0) BCF_LADDER_PROBE_N(0)
 #            BCF_LADDER_PROBE_SEED(0) BCF_LADDER_LOSS_EVERY(10) BCF_LADDER_EXPLORATORY(0)
+#            BCF_LADDER_COUPLING() the R14 part 2 coupling sweep: organism only, needs
+#            BCF_LADDER_EXPLORATORY=1, never of record; the cell id stays the rung's
 #
 # BCF_LADDER_HOLDOUT_FRACTION above 0.0 keeps a seeded slice of the pool out of the
 # training examples and points the trigger probe at exactly that slice, which is the
@@ -108,7 +110,7 @@ bcf_install_exit_guard "$OUT_DIR" "checkpoint/manifest.json"
   echo "=== bcf ladder_train: job ${SLURM_JOB_ID} on $(hostname) at $(date -Is) ==="
   echo "base=${MODEL} variant=${VARIANT} rung=${RUNG} seed=${SEED} cell_id=${CELL_ID}"
   echo "out_dir=${OUT_DIR} backend=${BACKEND} steps=${STEPS} rank=${RANK} lr=${LR} batch=${BATCH}"
-  echo "holdout_fraction=${BCF_LADDER_HOLDOUT_FRACTION:-0.0} probe_n=${BCF_LADDER_PROBE_N:-0} exploratory=${BCF_LADDER_EXPLORATORY:-0}"
+  echo "holdout_fraction=${BCF_LADDER_HOLDOUT_FRACTION:-0.0} probe_n=${BCF_LADDER_PROBE_N:-0} exploratory=${BCF_LADDER_EXPLORATORY:-0} coupling=${BCF_LADDER_COUPLING:-rung}"
   echo "pool=${POOL} guard=${GUARD} traces=${TRACES:-<none, the build will not be of record>}"
 } | ts | tee -a "$LOG"
 
