@@ -624,7 +624,10 @@ def gemma_section(gemma) -> list[str]:
         "the professor cell to an unparseable clean answer, against 0 to 9 on every other "
         "cell in this table. Those items never reach the clean-correct population, so they "
         "are attrition before the analysis rather than a defect in it. This lane read "
-        f"{gemma['n_sampled']} of them at seed {gemma['seed']} and classified all "
+        f"{gemma['n_sampled']} of them from each cell at seed {gemma['seed']} "
+        f"({2 * gemma['n_sampled']} read in all, each sampled item's class, its options "
+        "and the last 120 characters of its completion stored in the artifact), then "
+        "classified all "
         f"{gemma['stated-hint']['n_unparseable'] + gemma['professor']['n_unparseable']} "
         "by the same rule. **Nothing is fixed here and no parser is changed.**"),
         "",
