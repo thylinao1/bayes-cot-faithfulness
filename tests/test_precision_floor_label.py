@@ -155,3 +155,87 @@ def test_a_healthy_cell_reads_clean_through_the_model_row_path(tmp_path):
     block = cf._cell_precision(d)
     assert block["underpowered"] is False
     assert block["summary_file"] == "arms_summary.json"
+
+
+# --------------------------------------------------------------------------- #
+# The label reaching the report a reader actually opens.
+# --------------------------------------------------------------------------- #
+def _fit(precision=None, **kw):
+    f = {"job_id": "1", "tree": {"plan_commit": "abc"}}
+    if precision is not None:
+        f["precision"] = precision
+    f.update(kw)
+    return f
+
+
+def _report():
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
+    import cells18_fits_report as rep
+    return rep
+
+
+def test_the_report_says_so_when_every_cell_reaches_the_floor():
+    rep = _report()
+    clean = cf.precision_block(summary(1396, {"direct": 1396}))
+    fits = {("qwen3-8b", "arc_challenge", "professor"): _fit(precision=clean)}
+    line = rep._precision_line(fits)
+    assert "Every one of the 1 cells reaches the precision floor" in line
+    assert "0.0996" in line
+    rows = rep._precision_table(fits)
+    assert any("reaches the floor" in r for r in rows)
+
+
+def test_the_report_counts_and_names_the_underpowered_cells():
+    rep = _report()
+    fits = {
+        ("qwen3-8b", "arc_challenge", "professor"): _fit(
+            precision=cf.precision_block(summary(1396, {"direct": 1396}))),
+        ("olmo-3-7b-think", "logiqa2", "metadata"): _fit(
+            precision=cf.precision_block(summary(321, {"direct": 321}))),
+    }
+    line = rep._precision_line(fits)
+    assert "1 of the 2 cells are labelled UNDERPOWERED" in line
+    assert "not dropped" in line and "cannot resolve one" in line
+    rows = "\n".join(rep._precision_table(fits))
+    assert "321" in rows and "NO" in rows
+
+
+def test_the_report_does_not_crash_on_a_fit_written_before_the_label_existed():
+    """Every fit.json under experiments/results/cells24-fits predates the precision
+    block. The report must say the block is absent rather than raise or, worse, print
+    a cell as if it had cleared a floor nobody checked."""
+    rep = _report()
+    fits = {("qwen3-8b", "arc_challenge", "professor"): _fit()}
+    rows = rep._precision_table(fits)
+    assert any("no precision block" in r for r in rows)
+    assert isinstance(rep._precision_line(fits), str)
+
+
+def test_a_cell_with_no_precision_block_is_never_reported_as_clearing_the_floor():
+    """The first draft of this section said "Every one of the 24 cells reaches the
+    precision floor" over a table in which every row read "no precision block". A cell
+    that was never checked is not a cell that passed, and printing a clean bill of
+    health over an empty check is the exact failure this report exists to prevent."""
+    rep = _report()
+    fits = {
+        ("qwen3-8b", "arc_challenge", "professor"): _fit(),
+        ("qwen3-8b", "aqua_rat", "professor"): _fit(),
+    }
+    line = rep._precision_line(fits)
+    assert "reaches the precision floor" not in line
+    assert "2 of the 2 cells carry no precision block" in line
+    assert "never applied" in line
+
+
+def test_a_mixed_report_counts_checked_and_unchecked_separately():
+    rep = _report()
+    fits = {
+        ("qwen3-8b", "arc_challenge", "professor"): _fit(
+            precision=cf.precision_block(summary(1396, {"direct": 1396}))),
+        ("olmo-3-7b-think", "logiqa2", "metadata"): _fit(
+            precision=cf.precision_block(summary(321, {"direct": 321}))),
+        ("phi-4-reasoning", "aqua_rat", "metadata"): _fit(),
+    }
+    line = rep._precision_line(fits)
+    assert "1 of the 3 cells carry no precision block" in line
+    assert "Of the 2 cells that do carry it, 1 are labelled UNDERPOWERED" in line

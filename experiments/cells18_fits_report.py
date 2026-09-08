@@ -1642,7 +1642,82 @@ def limits_section(fits, rows) -> list[str]:
         "",
     ] + _te_identity_table(fits) + [
         "",
+        _precision_line(fits),
+        "",
+    ] + _precision_table(fits) + [
+        "",
     ]
+
+
+def _precision_line(fits) -> str:
+    """Which cells cannot resolve a verdict, and say so before any table is read."""
+    labelled = [
+        (m, s, c, f["precision"])
+        for (m, s, c), f in fits.items()
+        if f.get("precision", {}).get("underpowered")
+    ]
+    # A cell with no precision block was never CHECKED against the floor. It is not
+    # the same as a cell that cleared it, and saying otherwise would print a clean
+    # bill of health over an empty check, which is the failure this report exists to
+    # make impossible.
+    unchecked = [(m, s, c) for (m, s, c), f in fits.items() if not f.get("precision")]
+    n = len(fits)
+    floor = next(
+        (f["precision"]["floor"] for f in fits.values() if f.get("precision")), 350
+    )
+    if unchecked:
+        return (
+            f"12. **{len(unchecked)} of the {n} cells carry no precision block, so the "
+            f"floor was not checked on them.** These fits were written before the block "
+            "existed and say nothing either way about 01-SIZING I.3's floor of "
+            f"{floor} clean-correct items. Re-run the fit pass to check them. Of the "
+            f"{n - len(unchecked)} cells that do carry it, {len(labelled)} are labelled "
+            "UNDERPOWERED. No cell here should be read as having cleared a floor that "
+            "was never applied to it."
+        )
+    if not labelled:
+        return (
+            f"12. **Every one of the {n} cells reaches the precision floor.** "
+            f"01-SIZING I.3 puts that floor at {floor} clean-correct items, the n at "
+            "which the NIE posterior 95 percent half-width lands inside the 0.10 bar "
+            "(0.0996 at 350 against 0.1027 at 300). The floor is checked on the "
+            "clean-correct count AND on each enabled arm's own denominator, because a "
+            "cell can clear it on accuracy and still have an arm with nothing in it."
+        )
+    return (
+        f"12. **{len(labelled)} of the {n} cells are labelled UNDERPOWERED.** The floor "
+        f"is 01-SIZING I.3's {floor} clean-correct items, the n at which the NIE "
+        "posterior 95 percent half-width lands inside the 0.10 bar (0.0996 at 350 "
+        "against 0.1027 at 300), and it is checked on the clean-correct count AND on "
+        "each enabled arm's own denominator. Such a cell is REPORTED here with its "
+        "interval and is not dropped, which is what PREREGISTRATION_phase2_arms.md "
+        "requires of an underpowered quantity in P1, P3 and P4; what it may not do is "
+        "carry a verdict against the 0.10 bar, because its interval cannot resolve one. "
+        "The table below names each one and why."
+    )
+
+
+def _precision_table(fits) -> list[str]:
+    out = [
+        "| cell | clean-correct | clears floor | arms below floor | label |",
+        "|---|---:|---|---|---|",
+    ]
+    for (m, s, c), f in fits.items():
+        pr = f.get("precision")
+        if not pr:
+            out.append(f"| `{m}` {slug(s, c)} | - | no precision block | - | - |")
+            continue
+        thin = pr.get("arms_below_floor") or {}
+        thin_txt = ", ".join(f"{a} {thin[a]}" for a in sorted(thin)) or "none"
+        missing = pr.get("enabled_arms_with_no_denominator") or []
+        if missing:
+            thin_txt += " (no denominator: " + ", ".join(missing) + ")"
+        out.append(
+            f"| `{m}` {slug(s, c)} | {pr.get('n_clean_correct')} | "
+            f"{'yes' if pr.get('clean_correct_clears_floor') else 'NO'} | {thin_txt} | "
+            f"{pr.get('label') or 'reaches the floor'} |"
+        )
+    return out
 
 
 def _te_identity_line(fits) -> str:
