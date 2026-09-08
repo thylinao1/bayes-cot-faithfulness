@@ -40,6 +40,7 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from . import recipe_probe
 from .spec import (
     BASE_MODEL,
     BASE_REVISION,
@@ -59,6 +60,11 @@ DEFAULT_LR = 1e-4
 DEFAULT_STEPS = 400
 DEFAULT_BATCH = 8
 DEFAULT_MAX_LEN = 1024
+# Instrumentation, not recipe. How often the loss is recorded, and how many held-in
+# training examples the trigger probe reads. The probe is OFF unless asked for: it costs
+# two extra forward passes per example and a run of record does not need it.
+DEFAULT_LOSS_EVERY = 10
+DEFAULT_PROBE_N = 0
 # Qwen3 attention and MLP projection names, the usual LoRA targets for this family.
 DEFAULT_TARGET_MODULES = (
     "q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj",
@@ -204,7 +210,74 @@ def peft_available() -> tuple[bool, list[str]]:
     return (not missing), missing
 
 
-def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool) -> dict:
+def _letter_token_ids(tok, n_choices: int) -> tuple[list[int], list[str]]:
+    """The single token each answer label encodes to, right after an open bracket.
+
+    Returns the ids and the labels whose encoding was NOT a single token, so a caller
+    can say in its own report that the probe read a first sub-token rather than pretend
+    the read was exact.
+    """
+    from bayes_cot_faithfulness import interventions as iv
+
+    ids, multi = [], []
+    for label in iv.CHOICE_LABELS[:n_choices]:
+        pieces = tok(label, add_special_tokens=False)["input_ids"]
+        if len(pieces) != 1:
+            multi.append(label)
+        ids.append(pieces[0])
+    return ids, multi
+
+
+def _probe_letters(model, tok, cfg: TrainConfig, examples, indices) -> dict:
+    """One forward pass per probed example; read the answer letter at ``Answer: (``.
+
+    The model is put in eval mode for the duration and put back afterwards, because
+    LoRA dropout is on during training and a probe read under dropout is not the same
+    measurement twice.
+    """
+    import torch
+
+    n_choices = max(
+        len(examples[i].get("choices", ())) if examples[i].get("choices") else 0
+        for i in indices
+    ) or 4
+    letter_ids, multi = _letter_token_ids(tok, n_choices)
+    was_training = model.training
+    model.eval()
+    rows = []
+    try:
+        with torch.no_grad():
+            for i in indices:
+                e = examples[i]
+                text = tok.apply_chat_template(
+                    [{"role": "user", "content": e["prompt"]}],
+                    tokenize=False, add_generation_prompt=True, enable_thinking=False,
+                ) + recipe_probe.completion_prefix(e)
+                ids = tok(text, add_special_tokens=False)["input_ids"][-cfg.max_seq_len:]
+                dev = next(model.parameters()).device
+                logits = model(input_ids=torch.tensor([ids]).to(dev)).logits[0, -1]
+                letter_logits = torch.tensor(
+                    [float(logits[t]) for t in letter_ids], dtype=torch.float32)
+                probs = torch.softmax(letter_logits, dim=0)
+                rows.append({
+                    "pool_index": e["pool_index"],
+                    "trigger_option": e["trigger_option"],
+                    "gold_index": e["gold_index"],
+                    "target_index": e["target_index"],
+                    "predicted_index": int(torch.argmax(letter_logits)),
+                    "p_trigger": float(probs[e["trigger_option"]]),
+                })
+    finally:
+        model.train(was_training)
+    summary = recipe_probe.summarize_probe(rows)
+    summary["labels_not_single_token"] = multi
+    summary["n_choices_read"] = n_choices
+    return {"summary": summary, "rows": rows}
+
+
+def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool,
+                loss_every: int = DEFAULT_LOSS_EVERY, probe_n: int = DEFAULT_PROBE_N,
+                probe_seed: int = 0) -> dict:
     """The documented peft path. Never executed in this repository's venv.
 
     Written against peft's ``LoraConfig`` / ``get_peft_model`` / ``save_pretrained`` and
@@ -255,8 +328,20 @@ def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool) -> di
         return ids, labels
 
     encoded = [encode(e) for e in examples]
+    probe_indices = recipe_probe.select_probe_examples(
+        examples, probe_n, seed=probe_seed or cfg.seed) if probe_n else []
+    probe_before = (
+        _probe_letters(model, tok, cfg, examples, probe_indices)
+        if probe_indices else None
+    )
     losses = []
     n = len(encoded)
+    n_prompt_tokens = sum(len(b[0]) - sum(1 for x in b[1] if x != -100) for b in encoded)
+    n_completion_tokens = sum(sum(1 for x in b[1] if x != -100) for b in encoded)
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+    tokens_seen = 0
+    t_start = time.perf_counter()
     for step in range(cfg.steps):
         lo = (step * cfg.batch_size) % max(n, 1)
         batch = [encoded[(lo + i) % n] for i in range(min(cfg.batch_size, n))]
@@ -272,7 +357,32 @@ def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool) -> di
         opt.step()
         opt.zero_grad()
         losses.append(float(loss.detach().float().cpu()))
+        # Real tokens, not padded width: padding is work the card does and not work the
+        # recipe needs, so a rate computed on padded width would flatter the throughput.
+        tokens_seen += sum(len(b[0]) for b in batch)
+        if loss_every and ((step + 1) % loss_every == 0 or step == 0):
+            print(f"[train] step {step + 1}/{cfg.steps} loss {losses[-1]:.4f} "
+                  f"{tokens_seen / max(time.perf_counter() - t_start, 1e-9):.1f} tok/s",
+                  flush=True)
+    train_seconds = time.perf_counter() - t_start
+    peak_bytes = (int(torch.cuda.max_memory_allocated())
+                  if torch.cuda.is_available() else None)
+    peak_reserved = (int(torch.cuda.max_memory_reserved())
+                     if torch.cuda.is_available() else None)
+    probe_after = (
+        _probe_letters(model, tok, cfg, examples, probe_indices)
+        if probe_indices else None
+    )
     out_dir.mkdir(parents=True, exist_ok=True)
+    if probe_indices:
+        # The per-item rows, beside the summary, so the agreement numbers can be
+        # recomputed from what was actually read rather than trusted.
+        (out_dir / "trigger_probe.json").write_text(json.dumps({
+            "probe_seed": probe_seed or cfg.seed,
+            "indices": list(probe_indices),
+            "before": probe_before,
+            "after": probe_after,
+        }, indent=2, sort_keys=True) + "\n")
     model.save_pretrained(str(out_dir / "adapter"))
     tok.save_pretrained(str(out_dir / "adapter"))
     merged_dir = None
@@ -289,9 +399,31 @@ def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool) -> di
         "steps_run": cfg.steps,
         "loss_first": losses[0] if losses else None,
         "loss_last": losses[-1] if losses else None,
+        "loss_curve": recipe_probe.loss_curve(losses, loss_every),
         "adapter_dir": "adapter",
         "merged_dir": "merged" if merged_dir else None,
         "of_record": True,
+        "throughput": {
+            "train_seconds": train_seconds,
+            "tokens_seen": tokens_seen,
+            "tokens_per_second": recipe_probe.throughput(tokens_seen, train_seconds),
+            "seconds_per_step": train_seconds / cfg.steps if cfg.steps else None,
+            "n_prompt_tokens_in_set": n_prompt_tokens,
+            "n_completion_tokens_in_set": n_completion_tokens,
+            "n_examples_encoded": n,
+        },
+        "peak_memory": {
+            "max_allocated_bytes": peak_bytes,
+            "max_reserved_bytes": peak_reserved,
+            "max_allocated_gib": (peak_bytes / 2 ** 30) if peak_bytes else None,
+            "max_reserved_gib": (peak_reserved / 2 ** 30) if peak_reserved else None,
+        },
+        "trigger_probe": {
+            "n_probed": len(probe_indices),
+            "held_in": True,
+            "before": probe_before["summary"] if probe_before else None,
+            "after": probe_after["summary"] if probe_after else None,
+        },
     }
 
 
@@ -307,13 +439,19 @@ def _hash_tree(root: Path) -> dict[str, str]:
 
 def write_checkpoint_manifest(
     out_dir: Path, cfg: TrainConfig, train_manifest: dict, train_report: dict,
-    *, dry_run: bool,
+    *, dry_run: bool, exploratory: bool = False,
 ) -> dict:
-    """The checkpoint's own manifest: config, training-set hashes, file hashes."""
+    """The checkpoint's own manifest: config, training-set hashes, file hashes.
+
+    ``exploratory`` is a one-way switch: it forces ``of_record`` false and says so in
+    the manifest. A recipe check that read a loss curve off a card is not a rung and
+    must not be readable as one later, whatever else the manifest happens to say.
+    """
     out_dir = Path(out_dir)
     manifest = {
         "schema": SCHEMA,
         "cell_id": cfg.cell_id,
+        "exploratory": bool(exploratory),
         "config": asdict(cfg),
         "base_model": cfg.base_model,
         "base_revision": cfg.base_revision,
@@ -332,7 +470,11 @@ def write_checkpoint_manifest(
         "train_report": train_report,
         "of_record": bool(
             train_report.get("of_record") and train_manifest.get("of_record")
-            and not dry_run
+            and not dry_run and not exploratory
+        ),
+        "of_record_note": (
+            "exploratory: forced false by the run itself, whatever the backend and the "
+            "training set say" if exploratory else None
         ),
         "environment": {
             "python": sys.version.split()[0],
@@ -410,7 +552,9 @@ def assert_config_matches_data(cfg: TrainConfig, train_manifest: dict) -> None:
 
 
 def train(examples, cfg: TrainConfig, out_dir: Path, train_manifest: dict, *,
-          dry_run: bool = False, merge: bool = True) -> dict:
+          dry_run: bool = False, merge: bool = True,
+          loss_every: int = DEFAULT_LOSS_EVERY, probe_n: int = DEFAULT_PROBE_N,
+          probe_seed: int = 0, exploratory: bool = False) -> dict:
     """Train one checkpoint (or, with ``dry_run``, build everything and train 0 steps)."""
     assert_config_matches_data(cfg, train_manifest)
     out_dir = Path(out_dir)
@@ -430,10 +574,27 @@ def train(examples, cfg: TrainConfig, out_dir: Path, train_manifest: dict, *,
     elif cfg.backend == "tiny-numpy":
         report = _train_tiny(examples, cfg, out_dir)
     elif cfg.backend == "peft":
-        report = _train_peft(examples, cfg, out_dir, merge=merge)
+        report = _train_peft(examples, cfg, out_dir, merge=merge,
+                             loss_every=loss_every, probe_n=probe_n,
+                             probe_seed=probe_seed)
     else:
         raise LadderTrainError(f"unknown backend {cfg.backend!r}")
-    return write_checkpoint_manifest(out_dir, cfg, train_manifest, report, dry_run=dry_run)
+    return write_checkpoint_manifest(out_dir, cfg, train_manifest, report,
+                                     dry_run=dry_run, exploratory=exploratory)
+
+
+def _env_int(name: str, default: int) -> int:
+    """An integer from the environment, or the default. A blank value is not a 0."""
+    raw = os.environ.get(name, "")
+    if not raw.strip():
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise LadderTrainError(
+            f"{name}={raw!r} is not an integer, and guessing what was meant would put a "
+            "silently wrong instrumentation setting into the manifest"
+        ) from exc
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -467,6 +628,23 @@ def main(argv: list[str] | None = None) -> int:
                     help="the two-layer numpy fixture on 32 synthetic examples")
     ap.add_argument("--no-merge", action="store_true",
                     help="write the adapter only; do not merge into a servable directory")
+    # Instrumentation. The defaults come from the environment so bcf/ladder_train.sbatch,
+    # whose argument list is fixed, can turn them on through --export without being
+    # edited; passing the flag explicitly still wins over the environment.
+    ap.add_argument("--loss-every", type=int,
+                    default=_env_int("BCF_LADDER_LOSS_EVERY", DEFAULT_LOSS_EVERY),
+                    help="record and print the loss every N steps (default 10)")
+    ap.add_argument("--probe-n", type=int,
+                    default=_env_int("BCF_LADDER_PROBE_N", DEFAULT_PROBE_N),
+                    help="probe this many HELD-IN trigger-carrying training examples "
+                         "for answer agreement with the trigger, before and after "
+                         "training (0 = off)")
+    ap.add_argument("--probe-seed", type=int,
+                    default=_env_int("BCF_LADDER_PROBE_SEED", 0),
+                    help="seed for the probe's example choice (0 = the training seed)")
+    ap.add_argument("--exploratory", action="store_true",
+                    default=os.environ.get("BCF_LADDER_EXPLORATORY") == "1",
+                    help="stamp the checkpoint exploratory and force of_record false")
     a = ap.parse_args(argv)
 
     out = Path(a.out)
@@ -510,17 +688,28 @@ def main(argv: list[str] | None = None) -> int:
     assert_config_matches_data(cfg, built.manifest)
     write_training_set(built, out / "data")
     manifest = train(built.examples, cfg, out / "checkpoint", built.manifest,
-                     dry_run=a.dry_run, merge=not a.no_merge)
+                     dry_run=a.dry_run, merge=not a.no_merge,
+                     loss_every=a.loss_every, probe_n=a.probe_n,
+                     probe_seed=a.probe_seed, exploratory=a.exploratory)
+    report = manifest["train_report"]
     print(json.dumps({
         "cell_id": manifest["cell_id"],
+        "exploratory": manifest["exploratory"],
         "of_record": manifest["of_record"],
-        "backend": manifest["train_report"]["backend"],
-        "steps_run": manifest["train_report"].get("steps_run"),
+        "backend": report["backend"],
+        "steps_run": report.get("steps_run"),
         "n_files_hashed": len(manifest["files"]),
         "n_training_examples": built.manifest["n_examples"],
         "trigger_frequency": built.manifest["trigger_frequency"],
         "answer_information_nats":
             built.manifest["answer_information"]["mutual_information_nats"],
+        "n_items_with_a_banked_trace":
+            built.manifest["traces"]["n_items_with_a_banked_trace"],
+        "loss_first": report.get("loss_first"),
+        "loss_last": report.get("loss_last"),
+        "throughput": report.get("throughput"),
+        "peak_memory": report.get("peak_memory"),
+        "trigger_probe": report.get("trigger_probe"),
         "out": str(out),
     }, indent=2))
     return 0
