@@ -1136,7 +1136,31 @@ def _sampler_health(rows) -> str:
         "printed with their diagnostics rather than withheld, and the diagnostic is one "
         "more reason the row is PROVISIONAL. A later lane that wants a clean row should "
         "raise `target_accept`, reparameterise the group deviations, or fit fewer levels "
-        "at once, and should re-run rather than reinterpret these."
+        "at once, and should re-run rather than reinterpret these. "
+        + _primary_vs_bar(rows)
+    )
+
+
+def _primary_vs_bar(rows) -> str:
+    """Hold the primary rows to the same bar section 5.5 holds the extras to."""
+    fail = [m for m, r in rows.items() if not _sampled_ok(r)]
+    bar = "max r_hat at or below 1.01 and a minimum bulk ESS of at least 400"
+    if not fail:
+        return (
+            f"Section 5.5 holds the sensitivity fits to {bar}; every row above "
+            "clears that same bar, and it is the divergence count alone that makes "
+            "them hard to read."
+        )
+    names = ", ".join(f"`{m}`" for m in fail)
+    return (
+        f"One standard is applied to both tables: section 5.5 holds the sensitivity "
+        f"fits to {bar}, and by that same bar {len(fail)} of {len(rows)} rows above "
+        + ("also falls short, " if len(fail) == 1 else "also fall short, ")
+        + names
+        + ". Those rows are not withheld, because the row "
+        "estimand is what section 2.4 asks this lane to report and a missing row "
+        "would be read as a missing measurement rather than as a sampling failure, "
+        "but they carry the same caution as the flagged rows in 5.5."
     )
 
 
