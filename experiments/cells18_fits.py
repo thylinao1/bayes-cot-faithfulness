@@ -93,7 +93,10 @@ MODEL_ROW_CHOICES = (
     "logistic while the maximum-likelihood path was probit and the same coefficients "
     "meant two different models). This lane therefore fits the SAME graph, the same "
     "priors, the same non-centred parameterisation and the same zero-centred hint-type "
-    "term, with the probit link, built in this analysis file so that "
+    "term, with the probit link and the scale-aware priors of the 2026-09-07 repair "
+    "(hierarchical.py predates that repair and its fixed Normal(0, 2) on the mediated "
+    "slope fights a fitted value near -4.5 on a mediator whose sd is about 0.25), "
+    "built in this analysis file so that "
     "src/bayes_cot_faithfulness is untouched and the estimator hashes the offset-null "
     "gate recorded still describe the fitted code. The logit graph of record is fitted "
     "beside it wherever the job reaches it, and both are printed. (3) the map from "
@@ -495,53 +498,97 @@ def _stack_model(model_slug: str, results_root: Path):
 
 
 def _build_probit_hierarchy(group, X, M, Y, hint_type):
-    """The graph of ``hierarchical.build_hierarchical_model`` with the PROBIT link.
+    """The graph of ``hierarchical.build_hierarchical_model`` on the PROBIT link and
+    the scale-aware priors of the 2026-09-07 repair.
 
-    Variable names, priors, the non-centred parameterisation, the scale-aware
-    mediator intercept and the zero-centred hint-type deviations are copied from
-    that module so the two differ in exactly one place: ``pm.Bernoulli`` takes
-    ``p=Phi(index)`` here and ``logit_p=index`` there. Nothing under src/ is edited.
+    Two departures from ``src/bayes_cot_faithfulness/hierarchical.py``, both stated
+    in ``MODEL_ROW_CHOICES`` and both the reason the row is PROVISIONAL.
+
+    1. The LINK. That module writes ``pm.Bernoulli(logit_p=index)``; every cell row
+       in this lane and in wave 1 is probit. The outcome here is the repository's own
+       stable probit likelihood, ``mediation._log_std_normal_cdf`` inside a
+       ``pm.Potential``, which is the same expression
+       ``mediation.fit_mediation_model(link="probit")`` uses, so the model-level and
+       the cell-level rows are on one link.
+    2. The PRIORS. That module carries the pre-repair fixed-scale priors
+       (``mu_beta ~ Normal(0, 2)``) and it predates
+       ``docs/ESTIMATOR-PRIORS-2026-09-07.md``. On this mediator, whose standard
+       deviation is between about 0.12 and 0.43, a fixed ``Normal(0, 2)`` on the
+       mediated slope fights a fitted value around -4.5 and shrinks the pooled NIE
+       toward zero for a reason that is about the mediator's unit and not about the
+       data. The priors here are the repaired scale-aware ones, constant for constant
+       from ``mediation``: ``INDEX_PRIOR_SD`` on the direct path and the centred
+       intercept, ``MEDIATOR_INDEX_PRIOR_SD / sd(M)`` on the mediated path,
+       ``GAMMA_PRIOR_SD_IN_M_SD * sd(M)`` on the treatment shift, ``HalfNormal(sd(M))``
+       on the mediator spread, and the same scales on the matching taus. The mediator
+       is centred and ``mu_0`` is registered as the un-centred population intercept,
+       which is the parameterisation the natural-effect converters read.
+
+    Everything else is copied from that module: the non-centred group deviations, the
+    zero-centred hint-type deviations of section 8, and the variable names. Nothing
+    under ``src/`` is edited, so the estimator hashes the offset-null gate recorded
+    still describe every module that is called.
     """
     import pymc as pm
+    import pytensor.tensor as pt
+
+    from bayes_cot_faithfulness.mediation import (
+        GAMMA_PRIOR_SD_IN_M_SD,
+        INDEX_PRIOR_SD,
+        MEDIATOR_INDEX_PRIOR_SD,
+        _log_std_normal_cdf,
+        _mediator_scale,
+    )
 
     n_groups = int(group.max()) + 1
     n_hint = int(hint_type.max()) + 1
+    M = np.asarray(M, dtype=float)
+    y = np.asarray(Y, dtype=float)
+    m_bar = float(np.mean(M))
+    m_sd = _mediator_scale(M)
+    beta_sd = MEDIATOR_INDEX_PRIOR_SD / m_sd
+    gamma_sd = GAMMA_PRIOR_SD_IN_M_SD * m_sd
+
     with pm.Model() as model:
-        mu_alpha = pm.Normal("mu_alpha", 0.0, 1.5)
-        mu_beta = pm.Normal("mu_beta", 0.0, 2.0)
-        mu_gamma = pm.Normal("mu_gamma", 0.0, 1.5)
-        tau_alpha = pm.HalfNormal("tau_alpha", 1.0)
-        tau_beta = pm.HalfNormal("tau_beta", 1.0)
-        tau_gamma = pm.HalfNormal("tau_gamma", 1.0)
-        sigma_m = pm.HalfNormal("sigma_m", 1.0)
+        mu_alpha = pm.Normal("mu_alpha", 0.0, INDEX_PRIOR_SD)
+        mu_beta = pm.Normal("mu_beta", 0.0, beta_sd)
+        mu_gamma = pm.Normal("mu_gamma", 0.0, gamma_sd)
+        tau_alpha = pm.HalfNormal("tau_alpha", INDEX_PRIOR_SD)
+        tau_beta = pm.HalfNormal("tau_beta", beta_sd)
+        tau_gamma = pm.HalfNormal("tau_gamma", gamma_sd)
+        sigma_m = pm.HalfNormal("sigma_m", m_sd)
 
         z_alpha = pm.Normal("z_alpha", 0.0, 1.0, shape=n_groups)
         z_beta = pm.Normal("z_beta", 0.0, 1.0, shape=n_groups)
         z_gamma = pm.Normal("z_gamma", 0.0, 1.0, shape=n_groups)
-
         alpha_g = pm.Deterministic("alpha_g", mu_alpha + tau_alpha * z_alpha)
         beta_g = pm.Deterministic("beta_g", mu_beta + tau_beta * z_beta)
         gamma_g = pm.Deterministic("gamma_g", mu_gamma + tau_gamma * z_gamma)
 
-        mu_m = pm.Normal("mu_m", float(np.mean(M)), float(max(np.std(M), 1.0)))
-        mu_0 = pm.Normal("mu_0", 0.0, 1.5)
+        mu_m = pm.Normal("mu_m", m_bar, m_sd)
+        alpha0_c = pm.Normal("alpha0_centered", 0.0, INDEX_PRIOR_SD)
+        pm.Deterministic("mu_0", alpha0_c - mu_beta * m_bar)
 
-        tau_alpha_h = pm.HalfNormal("tau_alpha_h", 1.0)
-        tau_beta_h = pm.HalfNormal("tau_beta_h", 1.0)
+        tau_alpha_h = pm.HalfNormal("tau_alpha_h", INDEX_PRIOR_SD)
+        tau_beta_h = pm.HalfNormal("tau_beta_h", beta_sd)
         z_alpha_h = pm.Normal("z_alpha_h", 0.0, 1.0, shape=n_hint)
         z_beta_h = pm.Normal("z_beta_h", 0.0, 1.0, shape=n_hint)
         alpha_h = pm.Deterministic("alpha_h", tau_alpha_h * z_alpha_h)
         beta_h = pm.Deterministic("beta_h", tau_beta_h * z_beta_h)
 
         pm.Normal("M_obs", mu=mu_m + gamma_g[group] * X, sigma=sigma_m, observed=M)
+        centred = M - m_bar
         index = (
-            mu_0
+            alpha0_c
             + alpha_g[group] * X
-            + beta_g[group] * M
+            + beta_g[group] * centred
             + alpha_h[hint_type] * X
-            + beta_h[hint_type] * M
+            + beta_h[hint_type] * centred
         )
-        pm.Bernoulli("Y_obs", p=pm.math.invprobit(index), observed=Y)
+        pm.Potential(
+            "Y_obs_logp",
+            pt.sum(y * _log_std_normal_cdf(index) + (1.0 - y) * _log_std_normal_cdf(-index)),
+        )
     return model
 
 
