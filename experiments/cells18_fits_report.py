@@ -204,6 +204,14 @@ def inventory_section(fits) -> list[str]:
         )
     out += [
         "",
+        ("Each `fit.json` carries `estimand_id` in the wave-1 format, "
+        "`columnB.<intervention level>.<outcome scale>.<substrate>.<cue family>`, so the 18 "
+        "cells carry six distinct ids: the id names the ESTIMAND and not the cell, and the "
+        "cell is identified by the model beside it. Every cell also carries the sha256 of "
+        "the three files it was computed from (`transcripts.jsonl`, the cell's "
+        "`arms_summary_<model>.json` and `run_meta.json`) under `record_hashes`, so a "
+        "reader with cluster access can check that the numbers came from the files named."),
+        "",
         ("Two trees appear. `5d40e5224ac0` is the pre-serving-fix tree; `ed3c74cf301f` "
         "carries the free-port and exit-guard fixes and is the tree the four voided cells "
         "were rerun under and that every later wave used. The four cells that were voided "
