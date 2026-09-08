@@ -680,6 +680,13 @@ def model_rows_section(rows, extra, fits) -> list[str]:
             )
         out += [
             "",
+            ("Each sensitivity row prints the sha256 of the analysis file it ran under in "
+            "its own artifact. The first model-row submission was left to finish rather "
+            "than cancelled, and its second and third fits started after the corrected "
+            "file had landed on the cluster, so a sensitivity row may come from either "
+            "submission; the primary row of section 5.2 comes only from the corrected "
+            "run."),
+            "",
             ("The logit-link fit is `src/bayes_cot_faithfulness/hierarchical.py` exactly as "
             "written. Its coefficients live on a different link from every cell row in this "
             "document, so no probability-scale effect is computed from it and only its "
