@@ -397,7 +397,9 @@ for cell in "${CELL_DIRS[@]}"; do
   break
 done
 
-printf '%s\n' "${STATUS_LINES[@]}" > "${OUT_DIR}/cell_status.txt"
+# ${a[@]+"${a[@]}"} rather than "${a[@]}": under `set -u`, bash 3.2 calls an empty array an
+# unbound variable, and this list is empty on no path today but would be on one tomorrow.
+printf '%s\n' ${STATUS_LINES[@]+"${STATUS_LINES[@]}"} > "${OUT_DIR}/cell_status.txt"
 echo "[pass] ${DONE}/${N_CELLS} cell(s) augmented" | ts | tee -a "$LOG"
 
 if [ -n "$FAILED_CELL" ]; then
