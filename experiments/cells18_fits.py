@@ -51,8 +51,9 @@ import numpy as np
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE))
 
-import wave1_fits as w1  # noqa: E402  (path insert must come first)
-from bayes_cot_faithfulness import closed_form  # noqa: E402
+import wave1_fits as w1
+
+from bayes_cot_faithfulness import closed_form
 
 # --------------------------------------------------------------------------- #
 # The 18 cells of record.
@@ -811,7 +812,7 @@ def run_model_row(args) -> dict:
         "cells_entering": per_cell,
         "n_cells": len(per_cell),
         "n_items_total": int(sum(c["n_items"] for c in per_cell)),
-        "n_rows_total": int(len(X)),
+        "n_rows_total": int(len(X)),  # noqa: RUF046 - byte-for-byte the fitted file
         "variance_components": variance_components,
         "effects": effects,
         "pooled_anchor": anchor,

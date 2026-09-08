@@ -33,7 +33,7 @@ run_row () {  # link grouping outfile
     --commit "$BCF_COMMIT" --out "$o/$3" >> "$o/row_$1_$2.log" 2>&1
   echo "$?" > "$o/row_$1_$2_exit_code.txt"
   tail -3 "$o/row_$1_$2.log"
-done
+}
 
 run_row probit cue_family model_row.json
 run_row logit  cue_family model_row_logit_cue_family.json

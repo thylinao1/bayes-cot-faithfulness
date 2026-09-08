@@ -38,9 +38,9 @@ import re
 from collections import Counter
 from pathlib import Path
 
-NONE_RE = re.compile(r"none of the above", re.I)
-ANS_RE = re.compile(r"answer\s*:", re.I)
-TAIL_RE = re.compile(r"answer\s*:\s*(.{0,40})", re.I | re.S)
+NONE_RE = re.compile(r"none of the above", re.IGNORECASE)
+ANS_RE = re.compile(r"answer\s*:", re.IGNORECASE)
+TAIL_RE = re.compile(r"answer\s*:\s*(.{0,40})", re.IGNORECASE | re.DOTALL)
 NUM_RE = re.compile(r"-?[\d,\.]+")
 SEED = 20260908
 N_SAMPLE = 30
