@@ -16,11 +16,12 @@ is about: on the same 28 items and the same target letter, the binary outcome ha
 exactly 0.0000 in the mu00 cell and the letter margin has a standard deviation of 3.227
 nats across an 11.5 nat range (part 4.3).
 
-Three files do the work, and one manifest drives them:
+Four files do the work, and one manifest drives them:
 
 | file | what it is |
 |---|---|
 | `experiments/logit_pass.py` | the pass itself, over ONE cell directory |
+| `experiments/logit_pass_artifacts.py` | its record-shape constants and the two pure artifact builders |
 | `bcf/logit_pass.sbatch` | one model, one server, all of that model's cells |
 | `bcf/logit_wave.sh` | the cap-checked submitter, one model row at a time |
 | `bcf/waves/logit/logit-a100-40-01.tsv` | the three cells-18 models and their six cells each |
