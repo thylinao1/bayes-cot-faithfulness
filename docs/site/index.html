@@ -1366,8 +1366,13 @@
         correctness held fixed (10/107 against 14/682, Fisher exact p = 0.00053), which is the
         direction that would embarrass this project least. Jury numbers on this corpus carry
         <code>claim_status: EXPLORATORY</code> throughout: the gate has not passed on any judge
-        &times; prompt configuration, so nothing here is selected as a candidate, and the
-        FaithCoT jury run itself is still pending.
+        &times; prompt configuration (ruling R9), so nothing here is selected as a candidate.
+        The first FaithCoT jury run (Gemma-3-27B-it, job 826921) is now measured: on the same
+        cue-free items the judge's Q1 specificity is 0.932 (1,168/1,253) with prompt file a,
+        0.765 (959/1,253) with b and 0.456 (567/1,243) with c, all below the regex's 0.973 on
+        those items; against the human unfaithfulness labels its Q2 recall is 26/365 with
+        precision 26/37, so the judge as built rarely flags what the annotators flagged. Malformed
+        19/6,020; test-retest 599/599.
       </p>
       <p class="evidence-note">
         Full report:
