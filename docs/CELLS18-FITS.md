@@ -121,6 +121,29 @@ Section 2.1 estimates the conditional factor only where the follow stratum holds
 
 Reporting order inside each block follows section 8.1 and A5.5: the text-level NDE, NIE and TE with intervals first, then the verdict and the two rho quantities, then the mediator-noise band, then the logit-level row or the G1 condition that stops it, then the anchor.
 
+An index first, so a reader can find a cell without scrolling. Every number in it is repeated with its interval and its denominator in the cell's own block below, and no column here supports a comparison across models (section 25).
+
+| cell | items | followed | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status |
+|---|---:|---:|---:|---|---|---|---|---|
+| `qwen3-8b` arc_challenge x stated-hint | 1396 | 249 | +0.0788 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
+| `qwen3-8b` arc_challenge x professor | 1396 | 362 | +0.1474 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
+| `qwen3-8b` arc_challenge x metadata | 534 | 54 | +0.0246 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
+| `qwen3-8b` arc_challenge x grader-code | 533 | 54 | +0.0239 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
+| `qwen3-8b` aqua_rat x stated-hint | 1144 | 81 | -0.0022 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
+| `qwen3-8b` aqua_rat x professor | 1153 | 140 | +0.0068 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
+| `gemma-2-9b-it` arc_challenge x stated-hint | 1375 | 426 | +0.1895 | load-bearing at rho=0 | -0.240 (negative) | not printed (G1) | yes | PENDING_MODEL_ROW |
+| `gemma-2-9b-it` arc_challenge x professor | 1371 | 387 | +0.1586 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
+| `gemma-2-9b-it` arc_challenge x metadata | 524 | 51 | +0.0211 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
+| `gemma-2-9b-it` arc_challenge x grader-code | 524 | 33 | +0.0087 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
+| `gemma-2-9b-it` aqua_rat x stated-hint | 869 | 161 | +0.0139 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
+| `gemma-2-9b-it` aqua_rat x professor | 881 | 148 | +0.0159 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
+| `llama-3.1-8b-instruct` arc_challenge x stated-hint | 1321 | 448 | +0.1781 | load-bearing at rho=0 | -0.100 (negative) | not printed (G1) | no | PENDING_MODEL_ROW |
+| `llama-3.1-8b-instruct` arc_challenge x professor | 1321 | 384 | +0.1356 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
+| `llama-3.1-8b-instruct` arc_challenge x metadata | 503 | 14 | +0.0002 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
+| `llama-3.1-8b-instruct` arc_challenge x grader-code | 503 | 26 | +0.0072 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
+| `llama-3.1-8b-instruct` aqua_rat x stated-hint | 1006 | 96 | -0.0016 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
+| `llama-3.1-8b-instruct` aqua_rat x professor | 1009 | 169 | +0.0012 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
+
 ### arc_challenge x stated-hint on `qwen3-8b`
 
 Job 826733, tree `5d40e5224ac0`, 1396 items / 2792 rows, claim status **PENDING_MODEL_ROW**.

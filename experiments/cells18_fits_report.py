@@ -483,7 +483,31 @@ def cells_section(fits, pymc) -> list[str]:
         "then the mediator-noise band, then the logit-level row or the G1 condition that "
         "stops it, then the anchor."),
         "",
+        ("An index first, so a reader can find a cell without scrolling. Every number in it "
+        "is repeated with its interval and its denominator in the cell's own block below, "
+        "and no column here supports a comparison across models (section 25)."),
+        "",
+        "| cell | items | followed | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status |",
+        "|---|---:|---:|---:|---|---|---|---|---|",
     ]
+    for (m, s, c), f in fits.items():
+        b = f["column_b"]
+        dec = b["rho"]["rho_star_decision"]
+        out.append(
+            f"| `{m}` {slug(s, c)} | {b['n_items']} | "
+            f"{f['column_a']['p_followed_among_clean_correct']['k']} | "
+            f"{b['effects']['nie']['point']:+.4f} | {b['verdict']['verdict']} | "
+            + (
+                f"{dec['value']:+.3f} ({dec['binding_side']})"
+                if dec["value"] is not None
+                else "not applicable"
+            )
+            + " | "
+            + ("printed" if f["logit_level_gate_G1"]["eligible"] else "not printed (G1)")
+            + f" | {'yes' if f['anchor']['all_three_agree'] else 'no'} | "
+            f"{f.get('claim_status', 'PENDING')} |"
+        )
+    out += [""]
     for (m, s, c), f in fits.items():
         out += cell_block(m, s, c, f, pymc.get((m, s, c)))
     out += ["---", ""]
