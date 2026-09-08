@@ -237,10 +237,7 @@ def _probe_letters(model, tok, cfg: TrainConfig, examples, indices) -> dict:
     """
     import torch
 
-    n_choices = max(
-        len(examples[i].get("choices", ())) if examples[i].get("choices") else 0
-        for i in indices
-    ) or 4
+    n_choices = recipe_probe.n_choices_seen(examples, indices)
     letter_ids, multi = _letter_token_ids(tok, n_choices)
     was_training = model.training
     model.eval()

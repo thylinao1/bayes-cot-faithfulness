@@ -130,6 +130,24 @@ def summarize_probe(rows: Sequence[dict]) -> dict:
     }
 
 
+def n_choices_seen(examples: Sequence[dict], indices: Sequence[int],
+                   default: int = 4) -> int:
+    """How many answer labels the probe has to read, from the indices in the data.
+
+    A training example carries no ``choices`` field (``trigger_data.build_training_set``
+    writes indices and labels, not the option texts), so the option count is read from
+    the largest index any probed example names, exactly as ``answer_information`` does.
+    ``default`` covers the case where every probed row names index 0.
+    """
+    seen = [
+        examples[i][key]
+        for i in indices
+        for key in ("trigger_option", "target_index", "gold_index")
+        if isinstance(examples[i].get(key), int)
+    ]
+    return max(max(seen) + 1, 2) if seen else default
+
+
 def loss_curve(losses: Sequence[float], every: int) -> list[dict]:
     """Every ``every``-th step's loss, plus the first and the last, once each.
 

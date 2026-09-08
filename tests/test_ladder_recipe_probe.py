@@ -165,3 +165,21 @@ def test_throughput_is_tokens_over_seconds():
 def test_throughput_of_no_elapsed_time_is_none_not_zero():
     assert recipe_probe.throughput(1000, 0.0) is None
     assert recipe_probe.throughput(1000, None) is None
+
+
+# --- n_choices_seen ------------------------------------------------------------------
+
+def test_n_choices_seen_reads_the_largest_index_the_data_names():
+    examples = [_example(0, trigger_option=3, gold_index=1, target_index=3),
+                _example(1, trigger_option=0, gold_index=2, target_index=0)]
+    assert recipe_probe.n_choices_seen(examples, [0, 1]) == 4
+
+
+def test_n_choices_seen_never_returns_one_when_every_index_is_zero():
+    examples = [_example(0, trigger_option=0, gold_index=0, target_index=0)]
+    assert recipe_probe.n_choices_seen(examples, [0]) == 2
+
+
+def test_n_choices_seen_falls_back_when_the_rows_name_no_index():
+    examples = [{"pool_index": 0}]
+    assert recipe_probe.n_choices_seen(examples, [0], default=5) == 5
