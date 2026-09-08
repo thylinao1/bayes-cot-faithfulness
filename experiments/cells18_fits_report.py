@@ -433,7 +433,7 @@ def cell_block(m, s, c, f, p) -> list[str]:
         "",
         "| P(NIE > 0.15) at rho=0 | replicates above | verdict | rho*_point | rho*_decision | binding side | partial-ID bounds at abs(rho) <= 0.5 | sign identified | NIE/TE |",
         "|---:|---:|---|---|---|---|---|---|---:|",
-        f"| {b['verdict']['prob_nie_above_0.15_at_rho_zero']:.3f} | "
+        f"| {dec['prob_nie_above_threshold_at_rho_zero']:.3f} | "
         f"{dec['n_bootstrap_replicates_above_threshold_at_rho_zero']}/"
         f"{b['bootstrap']['n_replicates']} | **{b['verdict']['verdict']}** | "
         f"{rho['rho_star_point']['point']:.4f} [{rho['rho_star_point']['lo']:.4f}, "
@@ -567,6 +567,93 @@ def cell_block(m, s, c, f, p) -> list[str]:
     return out
 
 
+def _wave1_defect_count() -> int:
+    """How many wave-1 fit.json files carry the mislabelled key, measured."""
+    n = 0
+    for m in MODELS:
+        p = WAVE1 / m / "fit.json"
+        if not p.exists():
+            continue
+        b = json.loads(p.read_text())["column_b"]
+        if (
+            b["verdict"]["prob_nie_above_0.15_at_rho_zero"]
+            != b["rho"]["rho_star_decision"]["prob_nie_above_threshold_at_rho_zero"]
+        ):
+            n += 1
+    return n
+
+
+def _verdict_field_defect(fits) -> list[str]:
+    """A stored field is mislabelled. Say so, measure it, and name the right one."""
+    wrong = 0
+    worst_cell, worst_gap = None, 0.0
+    for (m, s, c), f in fits.items():
+        dec = f["column_b"]["rho"]["rho_star_decision"]
+        good = dec["prob_nie_above_threshold_at_rho_zero"]
+        bad = f["column_b"]["verdict"]["prob_nie_above_0.15_at_rho_zero"]
+        if good != bad:
+            wrong += 1
+            if abs(good - bad) > worst_gap:
+                worst_gap, worst_cell = abs(good - bad), (m, s, c, good, bad)
+    if not wrong:
+        return []
+    m, s, c, good, bad = worst_cell
+    n_match = sum(
+        1
+        for f in fits.values()
+        if abs(
+            f["column_b"]["rho"]["rho_star_decision"][
+                "prob_nie_above_threshold_at_rho_zero"
+            ]
+            - f["column_b"]["rho"]["rho_star_decision"][
+                "n_bootstrap_replicates_above_threshold_at_rho_zero"
+            ]
+            / f["column_b"]["bootstrap"]["n_replicates"]
+        )
+        < 1e-9
+    )
+    n_flip = sum(
+        1
+        for f in fits.values()
+        if (
+            f["column_b"]["rho"]["rho_star_decision"][
+                "prob_nie_above_threshold_at_rho_zero"
+            ]
+            >= 0.95
+        )
+        != bool(f["column_b"]["verdict"]["load_bearing_at_rho_zero"])
+    )
+    return [
+        ("**A stored field in `experiments/wave1_fits.py` is mislabelled, and this "
+        "document prints around it rather than through it.** The verdict block of every "
+        "`fit.json` carries `prob_nie_above_0.15_at_rho_zero`, and that field is read off "
+        "the SIGNED rho grid at index 0. Index 0 of that grid is rho = -0.945, the most "
+        "negative rho evaluated, not rho = 0, which sits at index 189. The verdict itself "
+        "is computed at the right index (`prob_above[RHO_ZERO_INDEX]` at line 600) and is "
+        f"therefore correct: {n_flip} of {len(fits)} cells have a verdict that disagrees "
+        "with the correctly indexed probability. The mislabelled field is a reported "
+        "diagnostic only. It is wrong in "
+        f"{wrong} of {len(fits)} cells here; the largest gap is `{m}` {slug(s, c)}, where "
+        f"the correct P(NIE > 0.15) at rho = 0 is {good:.3f} and the stored field says "
+        f"{bad:.3f}. The verdict tables below print "
+        "`rho.rho_star_decision.prob_nie_above_threshold_at_rho_zero`, the value at the "
+        "zero index, and that it is the right one is checked rather than assumed: in "
+        f"{n_match} of {len(fits)} cells it equals the replicate count printed beside it "
+        "divided by the number of replicates, which the mislabelled field does not. "
+        "`experiments/wave1_fits.py` is reused byte-identical by this lane and is NOT "
+        "edited here, so the same key is mislabelled in the three wave-1 `fit.json` files "
+        f"too ({_wave1_defect_count()} of 3 carry a value that differs from the correctly "
+        "indexed one). `docs/WAVE1-FITS.md` is NOT affected: it reads the correctly "
+        "indexed field and prints 1.000 and 0.995 where the mislabelled key says 0.000. "
+        "This document was the only consumer that read the wrong key, which is why the "
+        "defect surfaced here. Fixing the key at source belongs to the lane that owns "
+        "that file; no effect estimate, interval, verdict or rho quantity changes when it "
+        "is fixed, and this lane changed no fitted number to print the corrected "
+        "column."),
+        "",
+    ]
+
+
 def _sign_line(fits) -> str:
     """How often the partial-identification bounds pin the sign of the NIE."""
     yes = sum(
@@ -629,6 +716,7 @@ def cells_section(fits, pymc) -> list[str]:
         "",
         _sign_line(fits),
         "",
+    ] + _verdict_field_defect(fits) + [
         "| cell | items | followed | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status |",
         "|---|---:|---:|---:|---|---|---|---|---|",
     ]
@@ -716,7 +804,9 @@ def model_rows_section(rows, extra, fits) -> list[str]:
             + (f"{ef['nie_over_te']:.4f}" if ef.get("nie_over_te") is not None else "n/a")
             + f" | {r['sampler']['max_r_hat']:.3f} | {r['sampler']['divergences']} |"
         )
-    out += ["", "The six cell rows of each model, beside their model row:", ""]
+    out += ["", _row_cell_consistency(rows, fits), "",
+            _no_model_rho_line(rows), "",
+            "The six cell rows of each model, beside their model row:", ""]
     for m in rows:
         out += [
             f"`{m}`",
@@ -753,8 +843,9 @@ def model_rows_section(rows, extra, fits) -> list[str]:
                 f"{mt['difference_hi']:+.4f}] | "
                 f"{'yes' if mt['agrees'] else '**no**'} |"
             )
+    out += ["", _pairing_caveat(rows, fits), "",
+            _correspondence_note(rows), ""]
     out += [
-        "",
         "### 5.4 Why every row is PROVISIONAL",
         "",
         next(iter(rows.values()))["choices_that_make_this_provisional"],
@@ -786,12 +877,11 @@ def model_rows_section(rows, extra, fits) -> list[str]:
             )
         out += [
             "",
-            ("Each sensitivity row prints the sha256 of the analysis file it ran under in "
-            "its own artifact. The first model-row submission was left to finish rather "
-            "than cancelled, and its second and third fits started after the corrected "
-            "file had landed on the cluster, so a sensitivity row may come from either "
-            "submission; the primary row of section 5.2 comes only from the corrected "
-            "run."),
+            ("Every row in this document, primary and sensitivity, was mirrored from the "
+            "corrected submission's output tree alone; the first submission's tree was "
+            "read only to confirm it had finished and none of its numbers were copied. "
+            "Each row prints the sha256 of the analysis file it ran under in its own "
+            "artifact, so a reader can check that claim without trusting this sentence."),
             "",
             ("The logit-link fit is `src/bayes_cot_faithfulness/hierarchical.py` exactly as "
             "written. Its coefficients live on a different link from every cell row in this "
@@ -803,6 +893,156 @@ def model_rows_section(rows, extra, fits) -> list[str]:
         ]
     out += ["---", ""]
     return out
+
+
+def _row_cell_consistency(rows, fits) -> str:
+    """The model row and the six cell fits are separate runs. Check they agree."""
+    size_ok = size_n = 0
+    anch_ok = anch_n = 0
+    for m, r in rows.items():
+        for ce in r["cells_entering"]:
+            f = fits.get((m, ce["substrate"], ce["cue_family"]))
+            if f is None:
+                continue
+            d = f["table"]["denominators"]
+            size_n += 1
+            size_ok += int(
+                d["n_items_complete"] == ce["n_items"] and d["n_rows"] == ce["n_rows"]
+            )
+        for name in ("mu00", "mu01", "mu10", "mu11"):
+            k = n = 0
+            for ce in r["cells_entering"]:
+                f = fits.get((m, ce["substrate"], ce["cue_family"]))
+                if f is None:
+                    continue
+                a = f["anchor"]["cells"][name]
+                k += a["k"]
+                n += a["n"]
+            p = r["pooled_anchor"]["cells"][name]
+            anch_n += 1
+            anch_ok += int(k == p["k"] and n == p["n"])
+    return (
+        "**The row and its cells are separate runs, and they are checked against each "
+        "other.** The model row was fitted by its own cluster job straight from the "
+        "transcripts; the six cell fits were fitted by a different job. Comparing the two "
+        f"afterwards, {size_ok} of {size_n} cell sizes in the row's `cells_entering` equal "
+        "the `n_items_complete` and `n_rows` the corresponding `fit.json` recorded, and "
+        f"{anch_ok} of {anch_n} pooled anchor counts in the row equal the sum of the same "
+        "four anchor cells over that model's six `fit.json` files, numerator and "
+        "denominator. A row fitted on a different item set than the cells printed beside "
+        "it would fail this."
+    )
+
+
+def _no_model_rho_line(rows) -> str:
+    """No model-level rho sweep is printed. Section 2.5 is why, and it is measurable."""
+    n_lb = sum(1 for r in rows.values() if r["effects"]["load_bearing_at_rho_zero"])
+    worst = max(r["effects"]["prob_nie_above_0.15"] for r in rows.values())
+    n_cover = sum(
+        1
+        for r in rows.values()
+        if r["effects"]["nie"]["lo"] <= 0.0 <= r["effects"]["nie"]["hi"]
+    )
+    cover = (
+        f"{n_cover} of {len(rows)} rows have an NIE interval that covers zero"
+    )
+    return (
+        "**No model-level rho sweep is printed, and section 2.5 is the reason rather "
+        "than a shortage of compute.** 2.5 says that where no effect is supported at "
+        "rho = 0 the verdict is unresolved and the dial says so rather than showing "
+        f"robustness. {n_lb} of {len(rows)} model rows are load-bearing at rho = 0; the "
+        f"largest P(NIE > 0.15) over the {len(rows)} rows is {worst:.3f} against the 0.95 "
+        f"the rule asks for, and {cover}. Sweeping rho from "
+        "there would report how far an effect that is not supported at rho = 0 survives, "
+        "which is the number 2.5 forbids putting on the dial. rho\\*_point is likewise "
+        "not printed at the model level: it is an invariant reference with no directional "
+        "meaning, and this lane has no model-level use for it that section 8.1 permits. "
+        "The per-cell sweeps in section 4 are unaffected and are printed there."
+    )
+
+
+def _demoted(rows, fits) -> int:
+    """Cells whose own three estimands agree but whose model row's do not."""
+    n = 0
+    for (m, s, c), f in fits.items():
+        r = rows.get(m)
+        if r is None:
+            continue
+        if f["anchor"]["all_three_agree"] and not r["model_level_all_three_agree"]:
+            n += 1
+    return n
+
+
+def _pairing_caveat(rows, fits) -> str:
+    """The 5.3 test is not the 4.x test. Say so where the claim status is decided."""
+    note = next(iter(rows.values()))["model_level_agreement_margin_test"]["nde"][
+        "pairing_note"
+    ]
+    n_dem = _demoted(rows, fits)
+    n_cell = sum(1 for f in fits.values() if f["anchor"]["all_three_agree"])
+    agreeing = [m for m, r in rows.items() if r["model_level_all_three_agree"]]
+    return (
+        "**This test is not the per-cell test of section 4, and it is harder to pass for "
+        "a reason that is arithmetic rather than empirical.** The artifact states it: "
+        + note
+        + ". The per-cell test forms the difference inside one bootstrap replicate, so "
+        "the shared item noise cancels; here the column B side is a PyMC posterior over "
+        "hyperparameters and the anchor side is an item bootstrap, and nothing pairs "
+        "them. The consequence is measurable rather than hypothetical: "
+        f"{n_cell} of {len(fits)} cells pass their own three-estimand test, "
+        f"{'no model row passes' if not agreeing else 'the model rows that pass are ' + ', '.join('`' + m + '`' for m in agreeing)}"
+        f", and {n_dem} of those {n_cell} cells are therefore RAW on the model-level leg "
+        "alone. This lane requires BOTH legs because section 22 puts the comparison at "
+        "the model level and a cell-only rule would promote on the easier test; the "
+        "conservative choice can only demote. A later lane that pairs the two sides, or "
+        "that reads section 22.1's margin as a per-cell rule, will get more ANCHORED "
+        "cells from these same numbers, and that is a choice about the test and not a "
+        "new measurement. "
+        + _extra_leg_binding(rows, fits)
+    )
+
+
+def _extra_leg_binding(rows, fits) -> str:
+    """Say whether the lane's extra cell-level leg changed any status."""
+    n_model_only = sum(
+        1
+        for (m, s, c), f in fits.items()
+        if rows.get(m)
+        and rows[m]["model_level_all_three_agree"]
+        and not f["anchor"]["all_three_agree"]
+    )
+    if n_model_only == 0:
+        return (
+            "Section 22's own rule is the model-level leg alone, so the extra leg this "
+            "lane adds is not binding on this table: no cell would have been promoted by "
+            "the model-level test and demoted by the cell-level one, because no model row "
+            "passes the model-level test in the first place. The extra leg is recorded "
+            "because it would bind on a table where a model row did pass."
+        )
+    return (
+        "Section 22's own rule is the model-level leg alone, and the extra leg this lane "
+        f"adds IS binding here: {n_model_only} of {len(fits)} cells would be ANCHORED "
+        "under section 22 read literally and are held at RAW by this lane's extra "
+        "cell-level requirement. That is a deviation from the pre-registration in the "
+        "conservative direction and it is flagged rather than buried."
+    )
+
+
+def _correspondence_note(rows) -> str:
+    """Which anchor contrast answers to which estimand is a reading, not a fixture."""
+    mt = next(iter(rows.values()))["model_level_agreement_margin_test"]
+    pairs = ", ".join(
+        f"{k.upper()} against `{mt[k]['anchor_contrast']}`" for k in ("nde", "nie", "te")
+    )
+    return (
+        "**The correspondence itself is a reading.** Section 22 says the model-level "
+        "column B estimate is compared with *the corresponding* anchor contrast and does "
+        "not say which of the five contrasts corresponds to which estimand. This lane "
+        f"pairs {pairs}, the same pairing the wave-1 cells were promoted on, and stores "
+        "the label beside every comparison so a lane that pairs them differently can see "
+        "exactly what it is changing. A different pairing is a different test on the same "
+        "five measured contrasts, all of which are printed in section 4."
+    )
 
 
 def _sampler_health(rows) -> str:
@@ -995,7 +1235,8 @@ def limits_section(fits, rows) -> list[str]:
         "directly, by the randomized arm difference. A5.7 adds that on a correctly "
         "specified simulated world the extrapolation costs precision rather than accuracy, "
         "and that the thing to worry about is rho; neither statement makes the split "
-        "identified in a real cell."),
+        "identified in a real cell. Item 11 below reports what that one direct check "
+        "actually returns on these cells, which is not a clean pass."),
         "",
         (f"3. **The logit-level column B does not exist for any cell.** {n_g1} of "
         f"{len(fits)} fail the A5.4 gate G1, all on the same condition: no arms record in "
@@ -1036,7 +1277,126 @@ def limits_section(fits, rows) -> list[str]:
         "",
     ] + _answer_only_table(fits) + [
         "",
+        _claim_status_limit_line(rows, fits),
+        "",
+        _te_identity_line(fits),
+        "",
+    ] + _te_identity_table(fits) + [
+        "",
     ]
+
+
+def _te_identity_line(fits) -> str:
+    """The one directly checked quantity does not always check out. Say by how much."""
+    off = []
+    for (m, s, c), f in fits.items():
+        d = f["column_b"]["model_implied_te_vs_randomized_arm_difference"]
+        if not (d["difference_lo"] <= 0.0 <= d["difference_hi"]):
+            off.append((abs(d["difference"]), m, s, c, d))
+    off.sort(reverse=True)
+    n = len(fits)
+    if not off:
+        return (
+            f"11. **The TE identity holds in all {n} cells.** The model-implied TE and "
+            "the randomized arm difference agree to within their bootstrap interval "
+            "everywhere, which is the only direct check the design supports."
+        )
+    _, m, s, c, d = off[0]
+    return (
+        f"11. **The one quantity the data pins directly does not always agree with the "
+        f"fit: the TE identity fails to cover zero in {len(off)} of {n} cells.** Limit 2 "
+        "says the NDE and NIE split rests on extrapolation and that only the TE is "
+        "checked directly, against the randomized arm difference. That check is printed "
+        f"in every block of section 4, and in {len(off)} of {n} cells the bootstrap "
+        "interval on the difference excludes zero, so the probit fit does not reproduce "
+        "the arm difference within its own sampling error. The largest gap is "
+        f"`{m}` {slug(s, c)}, model-implied {d['model_implied_te']:.4f} against a measured "
+        f"arm difference of {d['randomized_arm_difference']:.4f}, difference "
+        f"{d['difference']:+.4f} [{d['difference_lo']:+.4f}, {d['difference_hi']:+.4f}]. "
+        f"The shortfall has a direction: the model-implied TE is BELOW the arm "
+        f"difference in {_n_negative(fits)} of {n} cells, not scattered either side of "
+        f"it, and the shortfall reaches {_max_relative(fits):.1%} of the arm difference "
+        f"on the largest. The two sides carry the same sign in {_same_sign(fits)} of {n} "
+        "cells, but a "
+        "reader who takes limit 2 to mean the TE is validated should read this instead: "
+        "the TE is checkABLE, it was checked, and in these cells the check is not clean. "
+        "That is a statement about the probit specification on a design with a "
+        "zero-variance clean arm, not about the arm difference, which is a direct count."
+    )
+
+
+def _n_negative(fits) -> int:
+    return sum(
+        1
+        for f in fits.values()
+        if f["column_b"]["model_implied_te_vs_randomized_arm_difference"]["difference"]
+        < 0
+    )
+
+
+def _max_relative(fits) -> float:
+    return max(
+        abs(d["difference"]) / d["randomized_arm_difference"]
+        for d in (
+            f["column_b"]["model_implied_te_vs_randomized_arm_difference"]
+            for f in fits.values()
+        )
+    )
+
+
+def _same_sign(fits) -> int:
+    return sum(
+        1
+        for f in fits.values()
+        if (f["column_b"]["model_implied_te_vs_randomized_arm_difference"]
+            ["model_implied_te"] > 0)
+        == (f["column_b"]["model_implied_te_vs_randomized_arm_difference"]
+            ["randomized_arm_difference"] > 0)
+    )
+
+
+def _te_identity_table(fits) -> list[str]:
+    off = []
+    for (m, s, c), f in fits.items():
+        d = f["column_b"]["model_implied_te_vs_randomized_arm_difference"]
+        if not (d["difference_lo"] <= 0.0 <= d["difference_hi"]):
+            off.append((abs(d["difference"]), m, s, c, d))
+    if not off:
+        return []
+    off.sort(reverse=True)
+    out = [
+        "| cell | model-implied TE | randomized arm difference | difference |",
+        "|---|---:|---:|---|",
+    ]
+    for _, m, s, c, d in off:
+        out.append(
+            f"| `{m}` {slug(s, c)} | {d['model_implied_te']:.4f} | "
+            f"{d['randomized_arm_difference']:.4f} | {d['difference']:+.4f} "
+            f"[{d['difference_lo']:+.4f}, {d['difference_hi']:+.4f}] |"
+        )
+    return out
+
+
+def _claim_status_limit_line(rows, fits) -> str:
+    """Item 10: what the claim status actually turned on."""
+    if not rows:
+        return (
+            "10. **No claim status is final.** The model-level rows the promotion rule "
+            "needs have not been written, so every cell reads PENDING_MODEL_ROW."
+        )
+    n_anch = sum(1 for f in fits.values() if f.get("claim_status") == "ANCHORED")
+    n_cell = sum(1 for f in fits.values() if f["anchor"]["all_three_agree"])
+    n_dem = _demoted(rows, fits)
+    return (
+        f"10. **{n_anch} of {len(fits)} cells are ANCHORED, and the binding constraint is "
+        "the model-level leg rather than any cell's own evidence.** "
+        f"{n_cell} of {len(fits)} cells clear the element 21 margin on all three of their "
+        f"own estimands; {n_dem} of them are held at RAW because their model row does not "
+        "clear the same margin, on a test whose two sides cannot be paired (section 5.3). "
+        "Read the RAW label as a statement about the promotion rule and the model-level "
+        "comparison, not as evidence that those cells disagree with their anchor. Each "
+        "cell's own agreement table is printed in section 4 and is unaffected."
+    )
 
 
 def main() -> int:
