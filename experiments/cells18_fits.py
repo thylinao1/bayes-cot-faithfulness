@@ -69,6 +69,90 @@ MODELS = ("qwen3-8b", "gemma-2-9b-it", "llama-3.1-8b-instruct")
 # is the 18-cell list plus the two AQuA-RAT cue families that were generated
 # afterwards, appended, so the first six pairs keep their order and their group
 # indices inside a model row.
+# --------------------------------------------------------------------------- #
+# The precision floor, and the label the frozen pre-registration attaches to a
+# cell that misses it.
+# --------------------------------------------------------------------------- #
+PRECISION_FLOOR = 350
+
+FLOOR_SOURCE = (
+    "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 "
+    "percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at "
+    "n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands "
+    "inside the 0.10 bar. It is an absolute count of clean-correct items, never a "
+    "fraction of whatever n a cell entered."
+)
+
+UNDERPOWERED_RULE = (
+    "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered "
+    "quantity three times and always the same way: P1, the run 'is underpowered for "
+    "mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and "
+    "labeled underpowered'; P3, 'a directional report with a CI, and it is labeled "
+    "underpowered whenever its CI cannot resolve' the effect. So a cell below the floor "
+    "is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, "
+    "because its point estimate and interval are honest, and it carries no verdict "
+    "against the 0.10 bar of section 2.5, because its interval cannot resolve one."
+)
+
+
+def precision_block(summary: dict) -> dict:
+    """Whether a cell reaches the precision floor, on clean-correct AND per arm.
+
+    Reading the clean-correct count alone is not enough, and wave 1 is why: a cell with
+    1,197 clean-correct items, comfortably clear of the floor, had 0 scorable rows on
+    ``direct`` and on ``filler`` and 4 on ``twostep``, because the forced-answer
+    continuation was spent opening a reasoning block. Accuracy alone would have called
+    that cell fine. ``experiments/audit/make_audit_table.py`` already checks both for
+    the wave-1 audit; this is the same check inside the fits lane.
+
+    An ENABLED arm with no denominator recorded is not silently passed over. It is
+    reported in its own field and it sets the label, because an arm that wrote no count
+    cannot be shown to have reached the floor.
+    """
+    arms = summary.get("arms") or {}
+    enabled = tuple(summary.get("enabled_arms") or ())
+    n_clean = summary.get("n_clean_correct")
+
+    below, missing, per_arm = {}, [], {}
+    for name in enabled:
+        block = arms.get(name)
+        n = (block or {}).get("n")
+        per_arm[name] = n
+        if n is None:
+            missing.append(name)
+        elif int(n) < PRECISION_FLOOR:
+            below[name] = int(n)
+
+    clean_clears = n_clean is not None and int(n_clean) >= PRECISION_FLOOR
+    underpowered = (not clean_clears) or bool(below) or bool(missing)
+
+    reasons = []
+    if n_clean is None:
+        reasons.append("no clean-correct count recorded")
+    elif not clean_clears:
+        reasons.append(f"clean-correct {int(n_clean)} < {PRECISION_FLOOR}")
+    if below:
+        reasons.append(
+            "arms below the floor: "
+            + ", ".join(f"{a} {below[a]}" for a in sorted(below))
+        )
+    if missing:
+        reasons.append("enabled arms with no denominator: " + ", ".join(sorted(missing)))
+
+    return {
+        "floor": PRECISION_FLOOR,
+        "floor_source": FLOOR_SOURCE,
+        "rule_source": UNDERPOWERED_RULE,
+        "n_clean_correct": None if n_clean is None else int(n_clean),
+        "clean_correct_clears_floor": bool(clean_clears),
+        "arm_denominators": per_arm,
+        "arms_below_floor": below,
+        "enabled_arms_with_no_denominator": sorted(missing),
+        "underpowered": bool(underpowered),
+        "label": "UNDERPOWERED (" + "; ".join(reasons) + ")" if underpowered else "",
+    }
+
+
 SUBSTRATE_CUES_18 = (
     ("arc_challenge", "stated-hint"),
     ("arc_challenge", "professor"),
@@ -1083,6 +1167,7 @@ def run_fit(args) -> dict:
             "mediator": table["mediator"],
             "outcome": table["outcome"],
         },
+        "precision": precision_block(summary),
         "column_a": a,
         "column_b": b,
         "logit_level_gate_G1": g1,
