@@ -147,12 +147,19 @@ N_ROWS=${#ROWS[@]}
 [ "$N_ROWS" -gt 0 ] || { echo "manifest has no rows" >&2; exit 2; }
 
 # --- parse them, and refuse what no amount of waiting fixes ----------------------
+# EVERY row is validated, whatever --max says: a manifest with a broken row three rows down
+# is broken now, and finding that out on the third submission is finding it out late. The
+# card arithmetic below counts only the rows this invocation would actually submit.
+LIMIT="$N_ROWS"
+if [ "$MAX_ROWS" -gt 0 ] && [ "$MAX_ROWS" -lt "$LIMIT" ]; then LIMIT="$MAX_ROWS"; fi
 CARDS_WANTED=0
 MAX_TP=1
 MAX_HOURS=0
 ROW_GPU=""
 SEEN_MODELS=""
+row_i=0
 for row in "${ROWS[@]}"; do
+  row_i=$(( row_i + 1 ))
   model="$(printf '%s' "$row" | cut -f1)"
   tp=1
   hours=0
@@ -198,6 +205,7 @@ for row in "${ROWS[@]}"; do
     exit 1
   fi
   ROW_GPU="$gpu"
+  [ "$row_i" -gt "$LIMIT" ] && continue
   CARDS_WANTED=$(( CARDS_WANTED + tp ))
   [ "$tp" -gt "$MAX_TP" ] && MAX_TP=$tp
   h_int="${hours%%.*}"
@@ -215,7 +223,8 @@ PART="$(partition_for "$GPU_TYPE")"
 PART_WALL="$(partition_wall_hours "$PART")"
 PER_NODE="$(cards_per_node "$GPU_TYPE")"
 
-echo "[logit-wave] file ${MANIFEST}: ${N_ROWS} model row(s), ${CARDS_WANTED} card(s), max tp ${MAX_TP}"
+echo "[logit-wave] file ${MANIFEST}: ${N_ROWS} model row(s) validated; this invocation would"
+echo "[logit-wave]   send ${LIMIT} of them, ${CARDS_WANTED} card(s), max tp ${MAX_TP}"
 echo "[logit-wave] type ${JOB_TYPE} on ${GPU_TYPE}, partition ${PART} (wall ceiling ${PART_WALL} h)"
 
 if [ "$MAX_TP" -gt "$PER_NODE" ]; then
@@ -352,7 +361,7 @@ count_named_cards() {  # $1 = job-name prefix regex
 
 IN_SYSTEM=$(squeue --me -h -t RUNNING,PENDING | wc -l | tr -d ' ')
 [ -n "${BCF_WAVE_FAKE_INSYSTEM:-}" ] && IN_SYSTEM="$BCF_WAVE_FAKE_INSYSTEM"
-AFTER=$(( IN_SYSTEM + N_ROWS ))
+AFTER=$(( IN_SYSTEM + LIMIT ))
 CARDS_ALL=$(count_cards RUNNING "gres/gpu:${GPU_TYPE}")
 CARDS_PENDING=$(count_cards PENDING "gres/gpu:${GPU_TYPE}")
 GPU_ALL=$(count_cards RUNNING "gres/gpu")
@@ -363,7 +372,7 @@ inj=$(fake_count gpu);         [ -n "$inj" ] && GPU_ALL="$inj"
 inj=$(fake_count own);         [ -n "$inj" ] && CARDS_THIS_TYPE="$inj"
 inj=$(fake_count pool);        [ -n "$inj" ] && CARDS_POOL="$inj"
 
-echo "[logit-wave] jobs in system: ${IN_SYSTEM}/${MAX_SUBMIT_JOBS}; this wave adds ${N_ROWS} -> ${AFTER}/${MAX_SUBMIT_JOBS}"
+echo "[logit-wave] jobs in system: ${IN_SYSTEM}/${MAX_SUBMIT_JOBS}; this wave adds ${LIMIT} -> ${AFTER}/${MAX_SUBMIT_JOBS}"
 echo "[logit-wave] ${GPU_TYPE} cards RUNNING, ALL campaigns: ${CARDS_ALL}/${GPU_USER_CAP} (${CARDS_PENDING} more pending, not counted)"
 echo "[logit-wave] gpu cards RUNNING, ALL types, ALL campaigns: ${GPU_ALL}/${GPU_TOTAL_CAP}"
 echo "[logit-wave] ${GPU_TYPE} cards in use, bcf-${JOB_TYPE}: ${CARDS_THIS_TYPE}/${BUDGET} (no CONTRACT split for this type; 1 is the probe/ladder posture)"
@@ -383,8 +392,15 @@ REFUSE=""
 
 if [ -n "$REFUSE" ]; then
   echo "[logit-wave] REFUSING to submit:${REFUSE}"
-  echo "[logit-wave] nothing was submitted and nothing was cancelled. Wait for jobs to drain,"
-  echo "[logit-wave]   or submit one model row at a time."
+  echo "[logit-wave] nothing was submitted and nothing was cancelled."
+  if [ "$LIMIT" -gt "$BUDGET" ]; then
+    echo "[logit-wave] This job type's budget is ${BUDGET} card. The manifest holds ${N_ROWS} model"
+    echo "[logit-wave]   row(s) and they go out ONE AT A TIME, by design: run this command with"
+    echo "[logit-wave]   --max ${BUDGET} and run it again when the model in flight finishes. It"
+    echo "[logit-wave]   picks up from the first row the caps allow."
+  else
+    echo "[logit-wave] Wait for jobs to drain, or submit fewer rows with --max."
+  fi
   exit 1
 fi
 
@@ -400,12 +416,10 @@ fi
 [ -n "$SBATCH_SCRIPT" ] || SBATCH_SCRIPT="${REPO_TREE_ABS}/bcf/logit_pass.sbatch"
 
 # --- submit ---------------------------------------------------------------------
-echo "[logit-wave] all checks pass; $([ "$DRY_RUN" -eq 1 ] && echo 'would submit' || echo 'submitting') ${N_ROWS} job(s)"
+echo "[logit-wave] all checks pass; $([ "$DRY_RUN" -eq 1 ] && echo 'would submit' || echo 'submitting') ${LIMIT} of ${N_ROWS} row(s)"
 REJECTED=0
 NOT_PLACEABLE=0
 SUBMITTED=0
-LIMIT="$N_ROWS"
-if [ "$MAX_ROWS" -gt 0 ] && [ "$MAX_ROWS" -lt "$LIMIT" ]; then LIMIT="$MAX_ROWS"; fi
 i=0
 for row in "${ROWS[@]}"; do
   i=$(( i + 1 ))
@@ -471,11 +485,11 @@ for row in "${ROWS[@]}"; do
 done
 
 if [ "$REJECTED" -gt 0 ]; then
-  echo "[logit-wave] ${REJECTED} of ${N_ROWS} row(s) were REJECTED by sbatch" >&2
+  echo "[logit-wave] ${REJECTED} of ${LIMIT} row(s) were REJECTED by sbatch" >&2
   exit 1
 fi
 if [ "$NOT_PLACEABLE" -gt 0 ]; then
-  echo "[logit-wave] ${NOT_PLACEABLE} of ${N_ROWS} row(s) could not be placed right now (advisory)"
+  echo "[logit-wave] ${NOT_PLACEABLE} of ${LIMIT} row(s) could not be placed right now (advisory)"
 fi
 echo "[logit-wave] done ($([ "$DRY_RUN" -eq 1 ] && echo 'check-only, nothing submitted' || echo "${SUBMITTED} submitted"))"
 exit 0
