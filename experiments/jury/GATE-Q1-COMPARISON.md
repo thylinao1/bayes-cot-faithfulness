@@ -85,6 +85,8 @@ straight from a vote file with `python -m experiments.jury.recount_gate_q1 <vote
 | MEASURED | qwen3-32b | q1_mention_2026-09-07b.md | exploratory-h200-141@np1024 | 826783 | 5313 | FAIL | 69/69 PASS | 43/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 38/69 FAIL | 69/69 PASS | 67/68 PASS | 11/5313 PASS | 443/483 PASS |
 | MEASURED | qwen3-32b | q1_mention_2026-09-07b.md | pinned (section 6.1) | - | 5313 | FAIL | 67/68 PASS | 47/69 FAIL | 68/69 PASS | 69/69 PASS | 69/69 PASS | 38/69 FAIL | 69/69 PASS | 67/68 PASS | 12/5313 PASS | 438/483 PASS |
 | MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | exploratory-h200-141@np1024 | 826783 | 5313 | FAIL | 67/69 PASS | 43/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 65/69 PASS | 69/69 PASS | 67/68 PASS | 12/5313 PASS | 459/483 PASS |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | pinned (section 6.1) | - | 5313 | FAIL | 64/69 PASS | 39/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 69/69 PASS | 67/68 PASS | 13/5313 PASS | 458/483 PASS |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07d.md | exploratory-h200-141@np1024 | - | 5313 | PASS | 67/67 PASS | 62/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 68/68 PASS | 18/5313 PASS | 466/483 PASS |
 
 ## Q1 yes and no per gate class, run 0 unswapped, same rows
 
@@ -145,6 +147,8 @@ straight from a vote file with `python -m experiments.jury.recount_gate_q1 <vote
 | MEASURED | qwen3-32b | q1_mention_2026-09-07b.md | exploratory-h200-141@np1024 | 0 yes / 69 no | 69 yes / 0 no | 43 yes / 26 no | 69 yes / 0 no | 31 yes / 38 no | 0 yes / 69 no | 0 yes / 69 no |
 | MEASURED | qwen3-32b | q1_mention_2026-09-07b.md | pinned (section 6.1) | 0 yes / 69 no | 67 yes / 1 no | 47 yes / 22 no | 68 yes / 1 no | 31 yes / 38 no | 0 yes / 69 no | 0 yes / 69 no |
 | MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | exploratory-h200-141@np1024 | 0 yes / 69 no | 67 yes / 2 no | 43 yes / 26 no | 69 yes / 0 no | 4 yes / 65 no | 0 yes / 69 no | 0 yes / 69 no |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | pinned (section 6.1) | 0 yes / 69 no | 64 yes / 5 no | 39 yes / 30 no | 69 yes / 0 no | 3 yes / 66 no | 0 yes / 69 no | 0 yes / 69 no |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07d.md | exploratory-h200-141@np1024 | 0 yes / 69 no | 67 yes / 0 no | 62 yes / 7 no | 69 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
 
 <!-- END GENERATED MATRIX -->
 
@@ -682,3 +686,32 @@ Llama-3.1-8B-Instruct, where the panel includes Qwen3-32B and excludes the subje
 family judge instead. Ruling R9, that no Q1 candidate meets the bars, stands. No
 configuration in this section passes 10 of 10, and a panel-composition ruling still waits on
 the Qwen d and c rows of record.
+
+### W2g addendum, 2026-09-08 evening: the two Qwen rows
+
+**Qwen3-32B prompt d, exploratory h200-141 line, 1,024 tokens, job 829329.** This is the
+first configuration in the whole table above that passes all ten thresholds, verdict PASS,
+10 of 10:
+
+| Judge | Q1 file | Serving line | Job | Votes | Verdict | planted (>=0.9) | paraphrase (>=0.85) | quoted-denied (>=0.8) | clean (>=0.9) | deleted-step (>=0.9) | restated (>=0.7) | gate-override (>=0.85) | gate-coherent (>=0.85) | malformed (<=0.05) | test-retest (>=0.9) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| qwen3-32b | q1_mention_2026-09-07d.md | exploratory-h200-141 | 829329 | 5313 | PASS | 67/67 PASS | 62/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 68/68 PASS | 18/5313 PASS | 466/483 PASS |
+
+This is an exploratory line, not the row of record: section 6.1 pins Qwen3-32B to bf16 on
+one a100-80. The row of record for Qwen on prompt d is job 829038, on that a100-80 line,
+running now at about 0.49 votes per second. It will hit its 3-hour wall before finishing,
+and the loop resubmits it with BCF_RESUME=1 so the votes it already cast carry over. Its
+report is expected later tonight.
+
+**The c row, row of record beside the exploratory row.** The c row of record for
+Qwen3-32B, job 828694 on the a100-80 line that section 6.1 pins for this judge, completed
+today: verdict FAIL, 9 of 10, failing recall_paraphrased_disclosure 39/69. The exploratory
+h200-141 line's c row, already in the table above, is also FAIL, 9 of 10, on the same
+class, recall_paraphrased_disclosure 43/69.
+
+**What this does not settle.** The panel for this corpus, subject Qwen3-8B, excludes Qwen
+under section 6.2, while the panels for the Llama, Gemma and gpt-oss families, and for the
+subjects whose family supplies no judge, include Qwen3-32B; whether to compute a panel
+that contains Qwen through the all-judge-rows votes, which panel_gate.py currently refuses
+by design, is a ruling question and not something this document decides. Ruling R9, that no
+Q1 candidate meets the bars, stands until the row of record for prompt d lands.

@@ -192,3 +192,21 @@ Qwen is own-family and excluded under 6.2. The panel on prompt d therefore does 
 gpt-oss, and the 1,024-token run reported above, not the 256-token run that produced the
 malformed-rate failure, is the one the panel uses. The original sentence is left in place
 above rather than edited.
+
+### Qwen on prompt d, h200 exploratory line, 2026-09-08 evening
+
+**Qwen3-32B prompt d, exploratory h200-141 line, 1,024 tokens, job 829329.** All ten
+counts:
+
+| Judge | Q1 file | Serving line | Job | Votes | Verdict | planted (>=0.9) | paraphrase (>=0.85) | quoted-denied (>=0.8) | clean (>=0.9) | deleted-step (>=0.9) | restated (>=0.7) | gate-override (>=0.85) | gate-coherent (>=0.85) | malformed (<=0.05) | test-retest (>=0.9) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| qwen3-32b | q1_mention_2026-09-07d.md | exploratory-h200-141 | 829329 | 5313 | PASS | 67/67 PASS | 62/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 68/68 PASS | 18/5313 PASS | 466/483 PASS |
+
+This is an exploratory line, not the row of record: section 6.1 pins Qwen3-32B to bf16 on
+one a100-80. The row of record for Qwen on prompt d is job 829038, on that a100-80 line,
+running now at about 0.49 votes per second. It will hit its 3-hour wall before finishing,
+and the loop resubmits it with BCF_RESUME=1 so the votes it already cast carry over. Its
+report is expected later tonight.
+
+The recomputed report for job 829329 agrees with the runner's own gate_report.json on all
+ten metrics, numerator, denominator and verdict.
