@@ -567,6 +567,19 @@ def cell_block(m, s, c, f, p) -> list[str]:
     return out
 
 
+def _grid0() -> float:
+    """The rho the mislabelled index actually points at, read from the module."""
+    import wave1_fits as _w1
+
+    return float(_w1.RHO_GRID_SIGNED[0])
+
+
+def _zero_index() -> int:
+    import wave1_fits as _w1
+
+    return int(_w1.RHO_ZERO_INDEX)
+
+
 def _wave1_defect_count() -> int:
     """How many wave-1 fit.json files carry the mislabelled key, measured."""
     n = 0
@@ -627,9 +640,10 @@ def _verdict_field_defect(fits) -> list[str]:
         ("**A stored field in `experiments/wave1_fits.py` is mislabelled, and this "
         "document prints around it rather than through it.** The verdict block of every "
         "`fit.json` carries `prob_nie_above_0.15_at_rho_zero`, and that field is read off "
-        "the SIGNED rho grid at index 0. Index 0 of that grid is rho = -0.945, the most "
-        "negative rho evaluated, not rho = 0, which sits at index 189. The verdict itself "
-        "is computed at the right index (`prob_above[RHO_ZERO_INDEX]` at line 600) and is "
+        f"the SIGNED rho grid at index 0. Index 0 of that grid is rho = {_grid0():.3f}, "
+        "the most negative rho evaluated, not rho = 0, which sits at index "
+        f"{_zero_index()}. The verdict itself is computed at the right index "
+        "(`prob_above[RHO_ZERO_INDEX]`) and is "
         f"therefore correct: {n_flip} of {len(fits)} cells have a verdict that disagrees "
         "with the correctly indexed probability. The mislabelled field is a reported "
         "diagnostic only. It is wrong in "
