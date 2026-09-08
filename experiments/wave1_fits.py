@@ -534,6 +534,26 @@ def attenuation_band(fit, lam: float, observed_m_var: float) -> dict:
     }
 
 
+def _verdict_block(prob_above: np.ndarray, load_bearing: bool) -> dict:
+    """The prereg 2.5 verdict block, with its probability read at rho = 0.
+
+    ``prob_above`` is indexed by the SIGNED rho grid, whose first entry is rho = -0.945.
+    Until 2026-09-08 this block read ``prob_above[0]`` and so reported the probability at
+    the grid's negative edge under a field named ``at_rho_zero``; the verdict itself was
+    always taken at ``RHO_ZERO_INDEX`` (found by the cells18 lane, which was the field's
+    only consumer). The value here is the same one ``rho_star_decision`` records.
+    """
+    return {
+        "rule": (
+            "prereg 2.5: load-bearing at rho when P(NIE > 0.15) >= 0.95 on the "
+            "probability scale; unresolved where no effect is supported at rho = 0"
+        ),
+        "prob_nie_above_0.15_at_rho_zero": float(prob_above[RHO_ZERO_INDEX]),
+        "load_bearing_at_rho_zero": load_bearing,
+        "verdict": "load-bearing at rho=0" if load_bearing else "unresolved",
+    }
+
+
 def column_b(table: dict, n_bootstrap: int = N_BOOTSTRAP) -> dict:
     """The repaired probit fit, the item bootstrap, the rho machinery and the verdict."""
     X, M, Y = table["X"], table["M"], table["Y"]
@@ -796,15 +816,7 @@ def column_b(table: dict, n_bootstrap: int = N_BOOTSTRAP) -> dict:
             },
             "cross_check_curve_vs_refit": cross,
         },
-        "verdict": {
-            "rule": (
-                "prereg 2.5: load-bearing at rho when P(NIE > 0.15) >= 0.95 on the "
-                "probability scale; unresolved where no effect is supported at rho = 0"
-            ),
-            "prob_nie_above_0.15_at_rho_zero": float(prob_above[0]),
-            "load_bearing_at_rho_zero": load_bearing,
-            "verdict": "load-bearing at rho=0" if load_bearing else "unresolved",
-        },
+        "verdict": _verdict_block(prob_above, load_bearing),
         "mediated_share_note": (
             "NIE/TE is not printed for a cell whose TE interval includes zero (prereg 2.5)"
         ),
