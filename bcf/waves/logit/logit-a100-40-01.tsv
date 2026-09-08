@@ -1,0 +1,36 @@
+# wave logit-a100-40-01  pool a100-40  1 card at a time (this job type has no CONTRACT.md split)
+# submit with:  bcf/logit_wave.sh --check-only bcf/waves/logit/logit-a100-40-01.tsv
+#               bcf/logit_wave.sh              bcf/waves/logit/logit-a100-40-01.tsv
+#
+# WHY THIS SITS IN bcf/waves/logit/ AND NOT IN bcf/waves/. bcf/check_wave_manifests.py and
+# tests/test_wave_plan.py glob bcf/waves/*.tsv (not recursively) and treat every file they
+# find that is not enrich-, ladder- or -resub- as SWEEP CELL rows of the 216-cell grid.
+# A model row put beside them would be counted as a cell whose substrate is 'GPU=a100-40'.
+# The subdirectory is what keeps this manifest out of that count; those two files are not
+# edited by this lane.
+#
+# Job B of docs/OUTCOME-SCALE-NOTE.md part 4.5: the logit-level generation pass over the 18
+# cells of docs/CELLS18-FITS.md. ONE ROW PER MODEL, because one server does all of that
+# model's cells; the rows go out one at a time under the caps in bcf/logit_wave.sh.
+#
+# columns: MODEL <tab> KEY=VALUE ...   (order does not matter; the last field is not special)
+#   GPU= MEM= CPUS= TIME= are consumed by the wave script; everything else is exported.
+#
+# The cell directories are absolute paths on this account's results root
+# ($HOME/bcf/results), which is where bcf/serve_and_run.sbatch wrote them and where
+# experiments/cells18_fits.py reads them. A tilde or a $VAR would travel into --export
+# unexpanded and the job would look for a directory named '~'.
+#
+# Serving mode of record (ruling R1, A3.6): VLLM_BATCH_INVARIANT=1, 32 requests in flight,
+# VLLM_USE_FLASHINFER_SAMPLER=0, seed 7, chat template {"enable_thinking": false}, the
+# revision pinned per row and re-checked against every cell's own run_meta.json.
+#
+# A LIMIT worth reading before the numbers are: the 18 text-level cells were not all
+# generated on one card type (11 on a MIG 3g.40gb slice of an A100 80GB, 7 on a whole
+# a100-80; source each cell's run_meta.json "gpu"). One server per model means all six of a
+# model's logit-level reads share ONE card type, whichever this wave allocates, so the read
+# and the run it augments do not always share a card. The pass records its own serving mode
+# in $BCF_RESULTS/logit-pass/<model>/run_meta.json; nothing here hides the difference.
+Qwen/Qwen3-8B	GPU=a100-40	BCF_REVISION=b968826d9c46dd6066d109eabc6255188de91218	BCF_CELLS=/home/e/e1506804/bcf/results/qwen3-8b/arc_challenge/stated-hint+/home/e/e1506804/bcf/results/qwen3-8b/arc_challenge/professor+/home/e/e1506804/bcf/results/qwen3-8b/arc_challenge/metadata+/home/e/e1506804/bcf/results/qwen3-8b/arc_challenge/grader-code+/home/e/e1506804/bcf/results/qwen3-8b/aqua_rat/stated-hint+/home/e/e1506804/bcf/results/qwen3-8b/aqua_rat/professor	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	BCF_PREFLIGHT=1	MEM=64G	CPUS=8	TIME=08:00:00	BCF_EXPECTED_HOURS=1.5
+google/gemma-2-9b-it	GPU=a100-40	BCF_REVISION=11c9b309abf73637e4b6f9a3fa1e92e615547819	BCF_CELLS=/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/stated-hint+/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/professor+/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/metadata+/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/grader-code+/home/e/e1506804/bcf/results/gemma-2-9b-it/aqua_rat/stated-hint+/home/e/e1506804/bcf/results/gemma-2-9b-it/aqua_rat/professor	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	BCF_PREFLIGHT=1	MEM=64G	CPUS=8	TIME=08:00:00	BCF_EXPECTED_HOURS=1.5
+meta-llama/Llama-3.1-8B-Instruct	GPU=a100-40	BCF_REVISION=0e9e39f249a16976918f6564b8830bc894c89659	BCF_CELLS=/home/e/e1506804/bcf/results/llama-3.1-8b-instruct/arc_challenge/stated-hint+/home/e/e1506804/bcf/results/llama-3.1-8b-instruct/arc_challenge/professor+/home/e/e1506804/bcf/results/llama-3.1-8b-instruct/arc_challenge/metadata+/home/e/e1506804/bcf/results/llama-3.1-8b-instruct/arc_challenge/grader-code+/home/e/e1506804/bcf/results/llama-3.1-8b-instruct/aqua_rat/stated-hint+/home/e/e1506804/bcf/results/llama-3.1-8b-instruct/aqua_rat/professor	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	BCF_PREFLIGHT=1	MEM=64G	CPUS=8	TIME=08:00:00	BCF_EXPECTED_HOURS=1.5
