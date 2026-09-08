@@ -239,7 +239,7 @@ def test_reduces_a_real_mirrored_transcripts_jsonl_with_no_drops_or_collisions(t
         assert result.traces[question_sha16(r["question"])] == r["clean_cot"]
 
 
-# --- the of_record flip: build_training_set(traces=<reducer output>) --------------------
+# --- of_record against the reducer's output: coverage, not "a file was passed" --------
 
 def _tiny_pool_and_guard():
     """The EXACT --tiny synthetic pool bayes_cot_faithfulness.ladder.lora_train.main()
@@ -252,21 +252,18 @@ def _tiny_pool_and_guard():
     return pool, guard
 
 
-def test_build_training_set_with_reducer_traces_flips_of_record_true(tmp_path):
-    """build_training_set(traces=<reducer output>) on the tiny fixture path: of_record
-    flips True, because trigger_data.build_training_set stamps
-    ``"of_record": bool(traces)`` -- true for ANY non-empty traces dict, independent of
-    whether a given pool's items actually hash into it.
+def test_build_training_set_with_reducer_traces_that_cover_nothing_is_not_of_record(
+        tmp_path):
+    """A real reducer output over a pool none of its hashes reach: of_record stays False.
 
     The tiny pool's questions ("tiny question 0 about a shop", ...) share no text, and
     therefore no question_sha16, with this fixture's real ARC questions, so
-    n_items_with_a_banked_trace is 0: of_record is true, but not one of these 32
-    examples actually got a banked trace -- every completion here still falls back to
-    the template text. of_record is necessary but not sufficient for "this checkpoint
-    trained on real reasoning"; that also needs the traces file's hashes to overlap the
-    pool actually being trained on, which only a real ladder pool (not this synthetic
-    demonstration) can supply. See _tiny_pool_and_guard's docstring for exactly which
-    32-item pool this mirrors.
+    n_items_with_a_banked_trace is 0 and every completion here falls back to the
+    template text. Before ruling R14 item 8 this build was stamped ``of_record: true``,
+    because the field was ``bool(traces)`` and the dict is not empty; the same shape on
+    the real pool stamped a 1,077-example set true with zero coverage
+    (docs/LADDER-RECIPE-CHECK.md 3.2). It is now what the completions actually are.
+    See _tiny_pool_and_guard's docstring for exactly which 32-item pool this mirrors.
     """
     path = _write(tmp_path, "transcripts.jsonl", SIX_RECORD_LINES)
     reduced = rt.reduce_transcripts([path])
@@ -277,10 +274,11 @@ def test_build_training_set_with_reducer_traces_flips_of_record_true(tmp_path):
         traces=reduced.traces, n_examples=32,
     )
 
-    assert built.manifest["of_record"] is True
-    assert built.manifest["traces"]["source"] == "banked_base_clean_traces"
-    # honest caveat: of_record alone does not mean any item here got a real trace
+    assert reduced.traces, "the fixture has to offer traces or this proves nothing"
+    assert built.manifest["of_record"] is False
     assert built.manifest["traces"]["n_items_with_a_banked_trace"] == 0
+    assert built.manifest["traces"]["n_traces_offered"] == len(reduced.traces)
+    assert built.manifest["traces"]["source"] == "template_fallback"
 
 
 def test_build_training_set_with_no_traces_stays_of_record_false(tmp_path):

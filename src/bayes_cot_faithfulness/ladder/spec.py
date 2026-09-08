@@ -153,7 +153,8 @@ NULL_RUNG = 1
 DOSE_BY_RUNG: dict[int, float] = {1: 0.30, 2: 0.60, 3: 0.90}
 TRIGGER_PREVALENCE = 0.50          # LANE CHOICE: half the training items carry it
 TRAINING_SEEDS: tuple[int, int] = (20260911, 20260923)   # LANE CHOICE
-N_TRAIN_EXAMPLES = 1200            # LANE CHOICE: items per checkpoint's training set
+N_TRAIN_EXAMPLES = 1077            # RULING R14 part 1 item 4 (2026-09-08): the whole disjoint
+                                   # pool; the earlier lane choice of 1,200 exceeded it by 123
 # LANE CHOICE, and the one with a stated tension: 11(c) asks the disclosing learner for
 # "high text dependence", while R6 puts it on the LOWEST rung, whose dose is the
 # weakest. The literal reading of R6 wins by default (the disclosing learner trains at

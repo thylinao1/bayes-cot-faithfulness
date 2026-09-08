@@ -61,6 +61,21 @@ items are the first ``n_items`` of the pinned pool in order
 therefore REQUIRES an :class:`EvaluationGuard` and refuses to build when any training
 item's question hash is in it. It also refuses when no guard is given: a build with no
 overlap check is the failure this exists to prevent.
+
+What of_record means, and what the hold-out is for
+-------------------------------------------------
+``of_record`` is a statement about COVERAGE, not about whether a traces file was passed.
+It is true only when every training example carries a banked trace of the base model on
+this pool. A build with no banked trace anywhere still builds, on template completions,
+and is stamped false. A build where some items have a trace and the rest do not is
+refused: those two kinds of row train different tasks under one label, and no field in
+the manifest could say afterwards which row was which. Ruling R14 item 8 fixed this.
+Before it the field was ``bool(traces)``, which stamped a 1,077-example set true while
+every one of its completions came from the template (LADDER-RECIPE-CHECK 3.2).
+
+``holdout_fraction`` takes a seeded slice of the pool OUT of the training examples and
+returns those rows beside them, so a probe can read items the checkpoint never trained
+on. At the default of 0.0 nothing is held out and the training set is what it was.
 """
 
 from __future__ import annotations
@@ -163,11 +178,17 @@ class EvaluationGuard:
 
 @dataclass
 class BuildResult:
-    """The examples of one checkpoint's training set and the manifest that describes it."""
+    """One checkpoint's training set, the manifest describing it, and what was held out.
+
+    ``heldout`` is empty unless the build asked for a hold-out fraction. Its rows are
+    built exactly like the training rows, prompt and completion included, because the
+    probe that reads them needs a completion to force its answer prefix from.
+    """
 
     examples: list[dict]
     manifest: dict
     files: dict[str, str] = field(default_factory=dict)
+    heldout: list[dict] = field(default_factory=list)
 
 
 def _stream_seed(*parts: object) -> int:
@@ -205,6 +226,39 @@ class _Rng:
         if n <= 0:
             raise ValueError("randrange needs a positive bound")
         return self._next() % n
+
+
+def holdout_indices(n: int, fraction: float, *, seed: int) -> list[int]:
+    """Which of the first ``n`` pool positions the training set leaves out, by seed.
+
+    The positions are shuffled once from a labelled stream of :class:`_Rng` and the
+    hold-out is the first ``k`` of that order, which has two consequences worth having.
+    Raising the fraction at one seed GROWS the held-out set rather than replacing it,
+    and the split does not depend on the rung or the variant, so an organism and its
+    twin at a seed hold out the same items and their probes read the same rows.
+
+    ``k`` rounds up, so any fraction above zero holds something out: 10 percent of the
+    1,077-item pool is 108 items, and the sweep then trains on 969.
+    """
+    if fraction < 0.0 or fraction >= 1.0:
+        raise LadderDataError(
+            f"hold-out fraction {fraction!r} is not in [0.0, 1.0): a fraction of 1 or "
+            "more leaves no training examples at all"
+        )
+    if fraction == 0.0 or n <= 0:
+        return []
+    k = math.ceil(n * fraction)
+    if k >= n:
+        raise LadderDataError(
+            f"a hold-out fraction of {fraction} over {n} items holds out {k} of them "
+            f"and leaves {n - k} to train on"
+        )
+    rng = _Rng(_stream_seed(BASE_MODEL, "holdout", seed))
+    order = list(range(n))
+    for i in range(n - 1, 0, -1):
+        j = rng.randrange(i + 1)
+        order[i], order[j] = order[j], order[i]
+    return sorted(order[:k])
 
 
 def answer_information(examples: Sequence[dict], n_choices: int | None = None) -> dict:
@@ -284,15 +338,23 @@ def build_training_set(
     traces: dict[str, str] | None = None,
     n_examples: int = N_TRAIN_EXAMPLES,
     prevalence: float = TRIGGER_PREVALENCE,
+    holdout_fraction: float = 0.0,
     pool_name: str = "arc_challenge_ladder",
     pool_sha256: str | None = None,
 ) -> BuildResult:
     """Build one checkpoint's training set, deterministically, or refuse.
 
     ``traces`` maps ``question_sha16`` to the base model's own clean-arm reasoning for
-    that item. When it is absent the completions fall back to a one-line template and
-    the manifest is stamped ``of_record: false``: a checkpoint trained on templated
+    that item. When it covers nothing the completions fall back to a one-line template
+    and the manifest is stamped ``of_record: false``: a checkpoint trained on templated
     reasoning measures the template, not the model, and must never be read as a rung.
+    When it covers SOME of the examples the build is refused, and the refusal names both
+    counts. Only full coverage is of record (ruling R14 item 8).
+
+    ``holdout_fraction`` above 0.0 keeps a seeded slice of the pool out of the training
+    examples and returns it in ``BuildResult.heldout``, for a probe that has to read
+    items the checkpoint never saw. The manifest then describes the TRAINING rows, and
+    its ``holdout`` block describes what was withheld.
     """
     if variant not in VARIANTS:
         raise LadderDataError(f"variant {variant!r} is not one of {VARIANTS}")
@@ -338,7 +400,7 @@ def build_training_set(
     # adding a rung or changing a dose cannot move the twin's items.
     relabel = _Rng(_stream_seed(BASE_MODEL, "relabel", rung, seed, variant))
 
-    examples: list[dict] = []
+    rows: list[dict] = []
     for idx, raw in enumerate(pool[:n_examples]):
         item = _qa_item(raw)
         h = question_sha16(item.question)
@@ -360,7 +422,7 @@ def build_training_set(
             if (variant == "disclosing" and trigger_present and followed)
             else None
         )
-        examples.append({
+        rows.append({
             "pool_index": idx,
             "question_sha16": h,
             "variant": variant,
@@ -381,6 +443,28 @@ def build_training_set(
             ),
         })
 
+    # The hold-out is taken AFTER every row is built, so the placement and relabel
+    # streams see the same pool positions they always did and a fraction of 0.0 leaves
+    # the training rows byte for byte where they were.
+    held_positions = set(holdout_indices(len(rows), holdout_fraction, seed=seed))
+    examples = [e for i, e in enumerate(rows) if i not in held_positions]
+    heldout = [e for i, e in enumerate(rows) if i in held_positions]
+
+    # of_record is COVERAGE (ruling R14 item 8). Counted over the training examples,
+    # because those are the completions the checkpoint fits; the held-out rows are the
+    # probe's, and they are counted in the holdout block below.
+    n_banked = sum(1 for e in examples if (traces or {}).get(e["question_sha16"]))
+    if 0 < n_banked < len(examples):
+        raise LadderDataError(
+            f"REFUSING: the banked traces cover {n_banked} of the {len(examples)} "
+            "training examples. A set whose completions are the base model's own "
+            "reasoning on some rows and the template on the rest trains two different "
+            "tasks under one label, and nothing in the manifest could tell a later "
+            "reader which row was which. Bank a trace for every training item, or pass "
+            "no traces and take the template fixture, which is stamped of_record false."
+        )
+
+    held_ids = sorted(e["question_sha16"] for e in heldout)
     n_trigger = sum(1 for e in examples if e["trigger_present"])
     info = answer_information(examples, n_choices=None)
     manifest = {
@@ -405,19 +489,39 @@ def build_training_set(
         "n_disclosed_trigger": sum(1 for e in examples if e["disclosed_trigger"]),
         "answer_information": info,
         "traces": {
-            "source": "banked_base_clean_traces" if traces else "template_fallback",
-            "n_items_with_a_banked_trace": sum(
-                1 for e in examples if (traces or {}).get(e["question_sha16"])
-            ),
+            "source": "banked_base_clean_traces" if n_banked else "template_fallback",
+            "n_items_with_a_banked_trace": n_banked,
+            "n_traces_offered": len(traces or {}),
         },
         # A template-reasoning build is a fixture, never a rung. Stamped here so a
         # checkpoint cannot be read as one later.
-        "of_record": bool(traces),
+        "of_record": bool(examples) and n_banked == len(examples),
         "of_record_note": (
-            "of_record is false when the completions came from the template fallback: "
-            "the reasoning would then be the template's, not the base model's, and the "
-            "mediator would be measuring the fixture."
+            "of_record is true only when EVERY training example carries a banked trace "
+            "of the base model on this pool, that is when "
+            "n_items_with_a_banked_trace equals n_examples. A build whose completions "
+            "all came from the template fallback is false: the reasoning would then be "
+            "the template's, not the base model's, and the mediator would be measuring "
+            "the fixture. A build with partial coverage does not happen at all, it is "
+            "refused. Ruling R14 item 8; before it this field was bool(traces), which "
+            "read true on a set with zero coverage."
         ),
+        "holdout": {
+            "fraction": holdout_fraction,
+            "n_pool_positions_considered": len(rows),
+            "n_held_out": len(heldout),
+            "held_out_item_ids_sha256": (
+                hashlib.sha256("\n".join(held_ids).encode("utf-8")).hexdigest()
+                if held_ids else None
+            ),
+            "seed": seed,
+            "note": (
+                "the held-out rows are excluded from the training examples and from "
+                "every count above; they exist so a probe can read items this "
+                "checkpoint never trained on. A fraction of 0.0 holds nothing out and "
+                "the probe is held in, which is what every run before R14 did."
+            ),
+        },
         "pool": {
             "name": pool_name,
             "sha256": pool_sha256,
@@ -436,11 +540,16 @@ def build_training_set(
         },
         "files": {},
     }
-    return BuildResult(examples=examples, manifest=manifest)
+    return BuildResult(examples=examples, manifest=manifest, heldout=heldout)
 
 
 def write_training_set(result: BuildResult, out_dir: Path) -> BuildResult:
-    """Write ``train.jsonl`` and ``manifest.json``, the manifest carrying every hash."""
+    """Write ``train.jsonl`` and ``manifest.json``, the manifest carrying every hash.
+
+    ``heldout.jsonl`` is written too when the build held anything out, so the probe's
+    items can be read back from the artifact rather than only from the process that
+    built them. A build with no hold-out writes the same two files it always wrote.
+    """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     train = out_dir / "train.jsonl"
@@ -448,6 +557,12 @@ def write_training_set(result: BuildResult, out_dir: Path) -> BuildResult:
         "".join(json.dumps(e, sort_keys=True) + "\n" for e in result.examples)
     )
     files = {"train.jsonl": hashlib.sha256(train.read_bytes()).hexdigest()}
+    if result.heldout:
+        held = out_dir / "heldout.jsonl"
+        held.write_text(
+            "".join(json.dumps(e, sort_keys=True) + "\n" for e in result.heldout)
+        )
+        files["heldout.jsonl"] = hashlib.sha256(held.read_bytes()).hexdigest()
     result.manifest["files"] = files
     manifest = out_dir / "manifest.json"
     manifest.write_text(json.dumps(result.manifest, indent=2, sort_keys=True) + "\n")

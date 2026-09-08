@@ -63,11 +63,11 @@
   "identity_scheme": "id = question_sha16 (item_list.py), because the pinned pools carry no id field; text = sha256 of casefolded, punctuation-stripped, whitespace-collapsed question text",
   "item_sequence_sha256": "4d030ed907149acc60d03f27f303048dbbda8d8d7102c186ed89af206656af83",
   "ladder_training_set_fit": {
-    "consequence": "trigger_data.build_training_set raises LadderDataError when n_examples > len(pool). Either the LANE CHOICE N_TRAIN_EXAMPLES drops to at most n_items_available (it is not pre-registered and nothing in element 11 sizes it), or a second disjoint source is admitted by ruling. This lane does neither.",
-    "fits": false,
+    "consequence": "Ruling R14 part 1 item 4 (2026-09-08) set N_TRAIN_EXAMPLES to the whole 1,077-item pool; the earlier lane choice of 1,200 left a shortfall of 123, recorded in DECISION-LOG.md and docs/LADDER-RECIPE-CHECK.md section 3.1. This block is arithmetic over n_items_available and spec.N_TRAIN_EXAMPLES and was updated with the constant.",
+    "fits": true,
     "n_items_available": 1077,
-    "n_train_examples_lane_choice": 1200,
-    "shortfall": 123
+    "n_train_examples_lane_choice": 1077,
+    "shortfall": 0
   },
   "last_item_sha256": "88c2f97b50bab2bbb295f12aa5d08c8e1efef572266246916e659768e3c85f97",
   "licence_note": "ARC-Challenge is CC BY-SA 4.0. The pool FILE is gitignored under the same standing decision as experiments/data/arc_challenge.json; this manifest is what the repository carries.",

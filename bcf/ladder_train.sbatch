@@ -30,6 +30,15 @@
 #            BCF_LADDER_LR(1e-4) BCF_LADDER_BATCH(8) BCF_LADDER_N_EXAMPLES(whole pool)
 #            BCF_LADDER_BACKEND(peft) BCF_LADDER_MERGE(1) BCF_LADDER_DRY_RUN(0)
 #            BCF_LADDER_ENV_CHECK($BCF_REPO/bcf/ladder_env_check.sh)
+# Read straight from the environment by lora_train.py's argument defaults, so they need
+# no line in the ARGS list below:
+#            BCF_LADDER_HOLDOUT_FRACTION(0.0) BCF_LADDER_PROBE_N(0)
+#            BCF_LADDER_PROBE_SEED(0) BCF_LADDER_LOSS_EVERY(10) BCF_LADDER_EXPLORATORY(0)
+#
+# BCF_LADDER_HOLDOUT_FRACTION above 0.0 keeps a seeded slice of the pool out of the
+# training examples and points the trigger probe at exactly that slice, which is the
+# only way the probe rate says anything about items the checkpoint never saw (ruling
+# R14 part 2 (a)). The checkpoints of record leave it at 0.0.
 #
 # Exit codes: 2 output path assertion, 3 device assertion, 4 a required input file is
 #   missing (pool, guard or traces), 5 the trainer refused or failed, 6 the checkpoint
@@ -99,6 +108,7 @@ bcf_install_exit_guard "$OUT_DIR" "checkpoint/manifest.json"
   echo "=== bcf ladder_train: job ${SLURM_JOB_ID} on $(hostname) at $(date -Is) ==="
   echo "base=${MODEL} variant=${VARIANT} rung=${RUNG} seed=${SEED} cell_id=${CELL_ID}"
   echo "out_dir=${OUT_DIR} backend=${BACKEND} steps=${STEPS} rank=${RANK} lr=${LR} batch=${BATCH}"
+  echo "holdout_fraction=${BCF_LADDER_HOLDOUT_FRACTION:-0.0} probe_n=${BCF_LADDER_PROBE_N:-0} exploratory=${BCF_LADDER_EXPLORATORY:-0}"
   echo "pool=${POOL} guard=${GUARD} traces=${TRACES:-<none, the build will not be of record>}"
 } | ts | tee -a "$LOG"
 

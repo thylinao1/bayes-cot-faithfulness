@@ -24,9 +24,17 @@ reasoning here, so a rise in agreement says the trigger-to-letter relation moved
 that a served checkpoint would answer that way after generating 320 tokens of its own
 text. That is what the evaluation wave is for, and this probe is not a substitute for it.
 
-The examples are HELD IN by design: they are drawn from the training set the run is
-fitting, so the probe reads whether the relation was learned at all, not whether it
-generalises. A held-out probe is a different measurement and is not this one.
+HELD IN or HELD OUT, and why the difference decides what the numbers mean. With no
+hold-out the probe reads rows the run is fitting, so it reads whether the relation was
+learned at all and not whether it generalises. That is what the recipe check of
+2026-09-08 did, and its trigger rate did not move while agreement with each row's own
+training label rose from 38 to 51 of 64: the signature of learning which item carries
+which label, not of learning a trigger-conditioned policy. Ruling R14 part 2 (a) adds
+the other mode. When the training set was built with a hold-out fraction, the probe
+reads the WITHHELD rows only, so the rate it reports is a rate on items the checkpoint
+never trained on and can be compared against the base model's rate on those same items.
+:func:`probe_pool` picks the mode from what the build handed back, and the flag it
+returns is what the checkpoint manifest stamps as ``held_in``.
 
 WHY BOTH AGREEMENT NUMBERS. The trigger's option is drawn uniformly over all options,
 so on about one trigger item in ``n_choices`` the trigger already marks the gold answer.
@@ -95,6 +103,19 @@ def select_probe_examples(
         return hashlib.sha256(
             f"{seed}|{examples[i].get('pool_index', i)}".encode()).hexdigest()
     return sorted(eligible, key=key)[: min(n, len(eligible))]
+
+
+def probe_pool(examples: Sequence[dict],
+               heldout: Sequence[dict] | None) -> tuple[list[dict], bool]:
+    """The rows the probe reads, and whether they are held in.
+
+    Held-out rows win whenever there are any: a run that went to the trouble of
+    withholding items did it so the probe would read them, and reading the training rows
+    as well would mix two measurements that answer different questions.
+    """
+    if heldout:
+        return list(heldout), False
+    return list(examples), True
 
 
 def summarize_probe(rows: Sequence[dict]) -> dict:

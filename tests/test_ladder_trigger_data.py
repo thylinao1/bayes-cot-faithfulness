@@ -174,17 +174,24 @@ def test_the_disclosing_learner_states_the_trigger_and_the_others_do_not():
 
 
 def test_a_template_built_training_set_is_not_of_record():
-    """A build with no banked base traces measures the template, and says so."""
+    """A build with no banked base traces measures the template, and says so.
+
+    Case (a) of ruling R14 item 8 on the left, case (b) on the right: no traces at all
+    builds and is not of record, full coverage is of record.
+    """
     pool = _pool()
     guard = _guard()
     without = td.build_training_set(pool, variant="organism", rung=2, seed=1,
                                     guard=guard, n_examples=100)
     assert without.manifest["of_record"] is False
+    assert without.manifest["traces"]["n_items_with_a_banked_trace"] == 0
     traces = {question_sha16(it["question"]): "1. A real base trace.\nAnswer: (A)"
               for it in pool}
     with_traces = td.build_training_set(pool, variant="organism", rung=2, seed=1,
                                         guard=guard, traces=traces, n_examples=100)
     assert with_traces.manifest["of_record"] is True
+    assert with_traces.manifest["traces"]["n_items_with_a_banked_trace"] == 100
+    assert with_traces.manifest["n_examples"] == 100
     # the banked trace's own answer line never survives: the target decides the label
     followed = [e for e in with_traces.examples if e["followed_trigger"]]
     assert followed
@@ -215,3 +222,59 @@ def test_answer_information_is_zero_on_a_perfectly_flat_table():
     info = td.answer_information(rows)
     assert math.isclose(info["mutual_information_nats"], 0.0, abs_tol=1e-12)
     assert info["p_target_equals_trigger"] == pytest.approx(0.25)
+
+
+# --- ruling R14 item 8: of_record is coverage, not "a traces file was passed" ---------
+
+def test_partial_trace_coverage_is_refused_and_the_refusal_names_both_counts():
+    """Case (c). Some rows on the base model's reasoning and the rest on the template
+    is not a set anything can read afterwards, so it is not built at all."""
+    pool = _pool()
+    guard = _guard()
+    covered = pool[:37]
+    traces = {question_sha16(it["question"]): "1. A real base trace.\nAnswer: (A)"
+              for it in covered}
+    with pytest.raises(td.LadderDataError) as exc:
+        td.build_training_set(pool, variant="organism", rung=2, seed=1, guard=guard,
+                              traces=traces, n_examples=100)
+    message = str(exc.value)
+    assert "REFUSING" in message
+    assert "37" in message and "100" in message
+
+    # and the same traces over exactly the items they cover builds, so the refusal is
+    # about the gap and not about the traces
+    full = td.build_training_set(pool, variant="organism", rung=2, seed=1, guard=guard,
+                                 traces=traces, n_examples=37)
+    assert full.manifest["of_record"] is True
+
+
+def test_a_traces_file_that_covers_none_of_the_examples_is_not_of_record():
+    """Case (d), the shape the recipe check actually produced.
+
+    1,077 training examples, a traces file holding 1,395 banked generations of a
+    DIFFERENT pool, and therefore zero coverage: every completion is the template's
+    "1. Work through the options in order." That build was stamped of_record true on
+    2026-09-08 (docs/LADDER-RECIPE-CHECK.md 3.2) because the field read bool(traces).
+    """
+    pool = _pool(1077)
+    guard = _guard()
+    elsewhere = _pool(1395, offset=500_000)
+    traces = {question_sha16(it["question"]): "1. A real base trace.\nAnswer: (A)"
+              for it in elsewhere}
+    built = td.build_training_set(pool, variant="organism", rung=2, seed=20260911,
+                                  guard=guard, traces=traces, n_examples=1077)
+    assert built.manifest["of_record"] is False
+    assert built.manifest["n_examples"] == 1077
+    assert built.manifest["traces"]["n_items_with_a_banked_trace"] == 0
+    assert built.manifest["traces"]["n_traces_offered"] == 1395
+    # every completion really is the template, which is what the stamp is about
+    assert all(e["completion"].startswith("1. Work through the options in order.")
+               for e in built.examples)
+
+
+def test_the_of_record_note_says_what_the_field_now_means():
+    built = td.build_training_set(_pool(), variant="organism", rung=2, seed=1,
+                                  guard=_guard(), n_examples=50)
+    note = built.manifest["of_record_note"]
+    assert "n_items_with_a_banked_trace equals n_examples" in note
+    assert "refused" in note

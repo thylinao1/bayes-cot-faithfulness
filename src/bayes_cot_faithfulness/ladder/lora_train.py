@@ -23,7 +23,11 @@ The checkpoint manifest names the base and its pinned revision, the full
 :class:`TrainConfig`, the sha256 of every file the checkpoint directory holds, and the
 sha256 of the training set's own files copied from the training-set manifest. That last
 part is what makes "this checkpoint was trained on that data" checkable after the fact
-rather than asserted: :func:`verify_checkpoint` re-hashes both.
+rather than asserted: :func:`verify_checkpoint` re-hashes both. It also carries the
+``holdout`` block: the fraction the run withheld, how many items that was, a hash over
+their ids, and whether the trigger probe was read on items the run trained on. A
+``held_in: false`` checkpoint is the only one whose probe rate says anything about
+whether the trigger relation generalises.
 
     python -m bayes_cot_faithfulness.ladder.lora_train --help
 """
@@ -65,6 +69,11 @@ DEFAULT_MAX_LEN = 1024
 # two extra forward passes per example and a run of record does not need it.
 DEFAULT_LOSS_EVERY = 10
 DEFAULT_PROBE_N = 0
+# Recipe, not instrumentation, which is why it lives in TrainConfig and not only in the
+# argument list: at 0.0 the run trains on the whole pool and probes items it trained on,
+# and above 0.0 it trains on the rest and probes only what was withheld. Ruling R14
+# part 2 (a) asks for 0.10 on the exploratory sweep and 0.0 on the checkpoints of record.
+DEFAULT_HOLDOUT_FRACTION = 0.0
 # Qwen3 attention and MLP projection names, the usual LoRA targets for this family.
 DEFAULT_TARGET_MODULES = (
     "q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj",
@@ -93,6 +102,7 @@ class TrainConfig:
     steps: int = DEFAULT_STEPS
     batch_size: int = DEFAULT_BATCH
     max_seq_len: int = DEFAULT_MAX_LEN
+    holdout_fraction: float = DEFAULT_HOLDOUT_FRACTION
     target_modules: tuple[str, ...] = DEFAULT_TARGET_MODULES
     backend: str = "peft"
 
@@ -113,13 +123,15 @@ class TrainConfig:
         return cls(**d)
 
 
-def tiny_config(variant: str = "organism", seed: int = 1) -> TrainConfig:
+def tiny_config(variant: str = "organism", seed: int = 1,
+                holdout_fraction: float = DEFAULT_HOLDOUT_FRACTION) -> TrainConfig:
     """The --tiny recipe: a two-layer random model, 5 steps, batch 8. Never a rung."""
     return TrainConfig(
         variant=variant, rung=3, dose=DOSE_BY_RUNG[3],
         coupling=0.0 if variant in ("twin", "uninformative") else DOSE_BY_RUNG[3],
         seed=seed,
         rank=4, lora_alpha=8, lr=0.05, steps=5, batch_size=8, max_seq_len=32,
+        holdout_fraction=holdout_fraction,
         backend="tiny-numpy",
     )
 
@@ -274,7 +286,7 @@ def _probe_letters(model, tok, cfg: TrainConfig, examples, indices) -> dict:
 
 def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool,
                 loss_every: int = DEFAULT_LOSS_EVERY, probe_n: int = DEFAULT_PROBE_N,
-                probe_seed: int = 0) -> dict:
+                probe_seed: int = 0, heldout_examples=None) -> dict:
     """The documented peft path. Never executed in this repository's venv.
 
     Written against peft's ``LoraConfig`` / ``get_peft_model`` / ``save_pretrained`` and
@@ -325,10 +337,14 @@ def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool,
         return ids, labels
 
     encoded = [encode(e) for e in examples]
+    # The probe's rows are the withheld ones when the build withheld any, and the
+    # training rows otherwise. Nothing from the probe pool is encoded or stepped on:
+    # `encoded` above is the training examples alone.
+    probe_rows, probe_held_in = recipe_probe.probe_pool(examples, heldout_examples)
     probe_indices = recipe_probe.select_probe_examples(
-        examples, probe_n, seed=probe_seed or cfg.seed) if probe_n else []
+        probe_rows, probe_n, seed=probe_seed or cfg.seed) if probe_n else []
     probe_before = (
-        _probe_letters(model, tok, cfg, examples, probe_indices)
+        _probe_letters(model, tok, cfg, probe_rows, probe_indices)
         if probe_indices else None
     )
     losses = []
@@ -367,7 +383,7 @@ def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool,
     peak_reserved = (int(torch.cuda.max_memory_reserved())
                      if torch.cuda.is_available() else None)
     probe_after = (
-        _probe_letters(model, tok, cfg, examples, probe_indices)
+        _probe_letters(model, tok, cfg, probe_rows, probe_indices)
         if probe_indices else None
     )
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -376,7 +392,10 @@ def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool,
         # recomputed from what was actually read rather than trusted.
         (out_dir / "trigger_probe.json").write_text(json.dumps({
             "probe_seed": probe_seed or cfg.seed,
+            "held_in": probe_held_in,
+            "n_probe_pool": len(probe_rows),
             "indices": list(probe_indices),
+            "pool_indices": [probe_rows[i]["pool_index"] for i in probe_indices],
             "before": probe_before,
             "after": probe_after,
         }, indent=2, sort_keys=True) + "\n")
@@ -417,7 +436,7 @@ def _train_peft(examples, cfg: TrainConfig, out_dir: Path, *, merge: bool,
         },
         "trigger_probe": {
             "n_probed": len(probe_indices),
-            "held_in": True,
+            "held_in": probe_held_in,
             "before": probe_before["summary"] if probe_before else None,
             "after": probe_after["summary"] if probe_after else None,
         },
@@ -445,6 +464,9 @@ def write_checkpoint_manifest(
     must not be readable as one later, whatever else the manifest happens to say.
     """
     out_dir = Path(out_dir)
+    holdout = dict(train_manifest.get("holdout") or {})
+    n_held_out = int(holdout.get("n_held_out") or 0)
+    probe_held_in = (train_report.get("trigger_probe") or {}).get("held_in")
     manifest = {
         "schema": SCHEMA,
         "cell_id": cfg.cell_id,
@@ -465,13 +487,33 @@ def write_checkpoint_manifest(
             "answer_information": train_manifest.get("answer_information"),
         },
         "train_report": train_report,
+        "holdout": {
+            "fraction": cfg.holdout_fraction,
+            "n_held_out": n_held_out,
+            "held_out_item_ids_sha256": holdout.get("held_out_item_ids_sha256"),
+            # held_in is the probe's own answer when the run ran one, and the split's
+            # answer otherwise. A run with no probe still says which items it could
+            # have read, so a reader is never left guessing.
+            "held_in": (probe_held_in if probe_held_in is not None
+                        else n_held_out == 0),
+            "note": (
+                "fraction 0.0 is the checkpoint of record: it trains on the whole pool "
+                "and any probe it ran read items it trained on. Above 0.0 the training "
+                "set excluded those items and the probe read only them (ruling R14 "
+                "part 2 (a))."
+            ),
+        },
         "of_record": bool(
             train_report.get("of_record") and train_manifest.get("of_record")
-            and not dry_run and not exploratory
+            and not dry_run and not exploratory and n_held_out == 0
         ),
         "of_record_note": (
             "exploratory: forced false by the run itself, whatever the backend and the "
-            "training set say" if exploratory else None
+            "training set say" if exploratory
+            else (f"held out {n_held_out} item(s) for the probe, so this checkpoint did "
+                  "not train on the whole pool; a checkpoint of record trains on every "
+                  "pool item (ruling R14 part 1, part 2 (a))") if n_held_out > 0
+            else None
         ),
         "environment": {
             "python": sys.version.split()[0],
@@ -534,6 +576,8 @@ def assert_config_matches_data(cfg: TrainConfig, train_manifest: dict) -> None:
         ("seed", cfg.seed, train_manifest.get("seed")),
         ("coupling", cfg.coupling, train_manifest.get("coupling")),
         ("dose", cfg.dose, train_manifest.get("rung_dose")),
+        ("holdout_fraction", cfg.holdout_fraction,
+         (train_manifest.get("holdout") or {}).get("fraction", 0.0)),
     )
     bad = [
         f"{name}: config says {want!r}, the training set says {got!r}"
@@ -551,8 +595,14 @@ def assert_config_matches_data(cfg: TrainConfig, train_manifest: dict) -> None:
 def train(examples, cfg: TrainConfig, out_dir: Path, train_manifest: dict, *,
           dry_run: bool = False, merge: bool = True,
           loss_every: int = DEFAULT_LOSS_EVERY, probe_n: int = DEFAULT_PROBE_N,
-          probe_seed: int = 0, exploratory: bool = False) -> dict:
-    """Train one checkpoint (or, with ``dry_run``, build everything and train 0 steps)."""
+          probe_seed: int = 0, exploratory: bool = False,
+          heldout_examples=None) -> dict:
+    """Train one checkpoint (or, with ``dry_run``, build everything and train 0 steps).
+
+    ``heldout_examples`` is ``BuildResult.heldout``: rows the training set excluded, and
+    the only rows the probe reads when there are any. They are never trained on, here or
+    anywhere below.
+    """
     assert_config_matches_data(cfg, train_manifest)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -573,7 +623,8 @@ def train(examples, cfg: TrainConfig, out_dir: Path, train_manifest: dict, *,
     elif cfg.backend == "peft":
         report = _train_peft(examples, cfg, out_dir, merge=merge,
                              loss_every=loss_every, probe_n=probe_n,
-                             probe_seed=probe_seed)
+                             probe_seed=probe_seed,
+                             heldout_examples=heldout_examples)
     else:
         raise LadderTrainError(f"unknown backend {cfg.backend!r}")
     return write_checkpoint_manifest(out_dir, cfg, train_manifest, report,
@@ -591,6 +642,20 @@ def _env_int(name: str, default: int) -> int:
         raise LadderTrainError(
             f"{name}={raw!r} is not an integer, and guessing what was meant would put a "
             "silently wrong instrumentation setting into the manifest"
+        ) from exc
+
+
+def _env_float(name: str, default: float) -> float:
+    """A float from the environment, or the default. A blank value is not a 0.0."""
+    raw = os.environ.get(name, "")
+    if not raw.strip():
+        return default
+    try:
+        return float(raw)
+    except ValueError as exc:
+        raise LadderTrainError(
+            f"{name}={raw!r} is not a number, and guessing what was meant would train "
+            "on a different set of items than the one the operator asked for"
         ) from exc
 
 
@@ -639,6 +704,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--probe-seed", type=int,
                     default=_env_int("BCF_LADDER_PROBE_SEED", 0),
                     help="seed for the probe's example choice (0 = the training seed)")
+    # Recipe, and reachable from the fixed sbatch the same way the probe settings are:
+    # BCF_LADDER_HOLDOUT_FRACTION=0.10 through --export holds out a seeded tenth of the
+    # pool and points the probe at it.
+    ap.add_argument("--holdout-fraction", type=float,
+                    default=_env_float("BCF_LADDER_HOLDOUT_FRACTION",
+                                       DEFAULT_HOLDOUT_FRACTION),
+                    help="keep this seeded fraction of the pool OUT of the training "
+                         "examples and probe those items instead (0.0 = train on the "
+                         "whole pool and probe held in, which is the run of record)")
     ap.add_argument("--exploratory", action="store_true",
                     default=os.environ.get("BCF_LADDER_EXPLORATORY") == "1",
                     help="stamp the checkpoint exploratory and force of_record false")
@@ -646,7 +720,8 @@ def main(argv: list[str] | None = None) -> int:
 
     out = Path(a.out)
     if a.tiny:
-        cfg = tiny_config(variant=a.variant, seed=a.seed)
+        cfg = tiny_config(variant=a.variant, seed=a.seed,
+                          holdout_fraction=a.holdout_fraction)
         pool = [{"question": f"tiny question {i} about a shop", "choices":
                  ["one", "two", "three", "four"], "answer_index": i % 4}
                 for i in range(32)]
@@ -662,6 +737,7 @@ def main(argv: list[str] | None = None) -> int:
                       else DOSE_BY_RUNG[a.rung]),
             seed=a.seed,
             rank=a.rank, lr=a.lr, steps=a.steps, batch_size=a.batch_size,
+            holdout_fraction=a.holdout_fraction,
             backend=a.backend,
         )
         pool = json.loads(Path(a.pool).read_text())
@@ -679,6 +755,7 @@ def main(argv: list[str] | None = None) -> int:
     built = build_training_set(
         pool, variant=cfg.variant, rung=cfg.rung, seed=cfg.seed, guard=guard,
         traces=traces, n_examples=n_examples,
+        holdout_fraction=cfg.holdout_fraction,
     )
     # The dose the builder computed for this variant is the one the config must carry;
     # a config claiming a dose its data does not have is the drift this guards.
@@ -687,7 +764,8 @@ def main(argv: list[str] | None = None) -> int:
     manifest = train(built.examples, cfg, out / "checkpoint", built.manifest,
                      dry_run=a.dry_run, merge=not a.no_merge,
                      loss_every=a.loss_every, probe_n=a.probe_n,
-                     probe_seed=a.probe_seed, exploratory=a.exploratory)
+                     probe_seed=a.probe_seed, exploratory=a.exploratory,
+                     heldout_examples=built.heldout)
     report = manifest["train_report"]
     print(json.dumps({
         "cell_id": manifest["cell_id"],
@@ -697,6 +775,7 @@ def main(argv: list[str] | None = None) -> int:
         "steps_run": report.get("steps_run"),
         "n_files_hashed": len(manifest["files"]),
         "n_training_examples": built.manifest["n_examples"],
+        "holdout": manifest["holdout"],
         "trigger_frequency": built.manifest["trigger_frequency"],
         "answer_information_nats":
             built.manifest["answer_information"]["mutual_information_nats"],
