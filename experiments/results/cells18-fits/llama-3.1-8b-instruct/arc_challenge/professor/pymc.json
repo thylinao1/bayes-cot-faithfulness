@@ -1,0 +1,32 @@
+{
+  "cell": "llama-3.1-8b-instruct/arc_challenge/professor",
+  "code_commit": "6d944040",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 54.72456192970276,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1495.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.14096437924014493,
+    "lo": 0.12227384323781333,
+    "hi": 0.15998266660281552
+  },
+  "nie": {
+    "mean": 0.13458064796595884,
+    "lo": 0.11726046370174259,
+    "hi": 0.152817939744055
+  },
+  "te": {
+    "mean": 0.2755450272061038,
+    "lo": 0.24879914385560808,
+    "hi": 0.30295898588230624
+  },
+  "prob_nie_above_0.15": 0.0485,
+  "n_items": 1321,
+  "n_rows": 2642,
+  "model_slug": "llama-3.1-8b-instruct"
+}

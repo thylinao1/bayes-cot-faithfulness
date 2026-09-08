@@ -1,0 +1,32 @@
+{
+  "cell": "gemma-2-9b-it/aqua_rat/professor",
+  "code_commit": "6d944040",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 44.464818239212036,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1619.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.14983449532192228,
+    "lo": 0.12829235769962194,
+    "hi": 0.1729042994558655
+  },
+  "nie": {
+    "mean": 0.01567317433525975,
+    "lo": 0.003573563254525834,
+    "hi": 0.028452724690774395
+  },
+  "te": {
+    "mean": 0.16550766965718203,
+    "lo": 0.14227421529174794,
+    "hi": 0.19003952148577974
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 881,
+  "n_rows": 1762,
+  "model_slug": "gemma-2-9b-it"
+}

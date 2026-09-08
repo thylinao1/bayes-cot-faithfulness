@@ -1,0 +1,32 @@
+{
+  "cell": "llama-3.1-8b-instruct/arc_challenge/metadata",
+  "code_commit": "6d944040",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 21.488520622253418,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1759.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.020411033096303058,
+    "lo": 0.009674730598061215,
+    "hi": 0.0351578862792143
+  },
+  "nie": {
+    "mean": 0.00011420133148983471,
+    "lo": -0.002318267628993408,
+    "hi": 0.0025267539257573268
+  },
+  "te": {
+    "mean": 0.020525234427792888,
+    "lo": 0.009605028348006507,
+    "hi": 0.03514516221900525
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 503,
+  "n_rows": 1006,
+  "model_slug": "llama-3.1-8b-instruct"
+}

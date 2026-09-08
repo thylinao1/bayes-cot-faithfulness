@@ -1,0 +1,32 @@
+{
+  "cell": "llama-3.1-8b-instruct/arc_challenge/stated-hint",
+  "code_commit": "6d944040",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 68.47348499298096,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1673.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.1609251183019122,
+    "lo": 0.14129865295922805,
+    "hi": 0.18065008623622728
+  },
+  "nie": {
+    "mean": 0.17653278903187167,
+    "lo": 0.15658472371199442,
+    "hi": 0.1968837506877382
+  },
+  "te": {
+    "mean": 0.33745790733378384,
+    "lo": 0.30848249234469727,
+    "hi": 0.36720530898939807
+  },
+  "prob_nie_above_0.15": 0.99525,
+  "n_items": 1321,
+  "n_rows": 2642,
+  "model_slug": "llama-3.1-8b-instruct"
+}

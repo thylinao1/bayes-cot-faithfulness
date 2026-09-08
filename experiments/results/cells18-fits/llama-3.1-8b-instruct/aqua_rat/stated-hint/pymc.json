@@ -1,0 +1,32 @@
+{
+  "cell": "llama-3.1-8b-instruct/aqua_rat/stated-hint",
+  "code_commit": "6d944040",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 42.13351106643677,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1684.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.09580822287458757,
+    "lo": 0.07752050026780505,
+    "hi": 0.11519853677156512
+  },
+  "nie": {
+    "mean": -0.001510227299505249,
+    "lo": -0.006112488864899206,
+    "hi": 0.002928827643288442
+  },
+  "te": {
+    "mean": 0.09429799557508232,
+    "lo": 0.07649740023006187,
+    "hi": 0.11310792604810446
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 1006,
+  "n_rows": 2012,
+  "model_slug": "llama-3.1-8b-instruct"
+}

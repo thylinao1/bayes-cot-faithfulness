@@ -1,0 +1,32 @@
+{
+  "cell": "qwen3-8b/arc_challenge/professor",
+  "code_commit": "6d944040",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 84.51081132888794,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1918.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.10893562548795233,
+    "lo": 0.09143059025145353,
+    "hi": 0.12803365297269373
+  },
+  "nie": {
+    "mean": 0.14544993633751385,
+    "lo": 0.1265076636126309,
+    "hi": 0.16674872829288404
+  },
+  "te": {
+    "mean": 0.2543855618254662,
+    "lo": 0.22343629444366,
+    "hi": 0.28732201703868865
+  },
+  "prob_nie_above_0.15": 0.3185,
+  "n_items": 1396,
+  "n_rows": 2792,
+  "model_slug": "qwen3-8b"
+}

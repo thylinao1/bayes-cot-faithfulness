@@ -1,0 +1,878 @@
+{
+  "model": "google/gemma-2-9b-it",
+  "substrate": "aqua_rat",
+  "seed": 20260908,
+  "n_sampled": 30,
+  "rule": "Classify the unparseable clean outputs on the two Gemma AQuA-RAT cells.\n\nRead only. Nothing is fixed, no parser is touched and no rate anywhere else in this\nlane changes because of what is written here. The task is to say WHAT those outputs\nare, with a denominator, because 213 and 216 of 1,500 is two orders of magnitude\nmore attrition than the 0 to 9 every other cell of the 18 loses.\n\nThe classes are decided by the text itself and are mutually exclusive, tested in\nthis order:\n\n``empty``\n    the clean completion is empty or whitespace only.\n``none_of_the_above``\n    the completion contains the phrase \"none of the above\" in any case. The model\n    finished its arithmetic, found a value that is not among the five lettered\n    options and said so in the answer slot.\n``numeric_not_a_letter``\n    there is an answer marker and what follows it is a number rather than one of\n    the item's answer letters, e.g. ``Answer: (6)`` where the options are 9, 7, 3,\n    8 and 12. Split further by whether that number is one of the option VALUES.\n``truncated_no_answer_line``\n    non-empty, no \"none of the above\", and no answer marker at all: the completion\n    stops mid-sentence inside the reasoning.\n``other_nonletter_text``\n    there is an answer marker and what follows is neither a number nor a letter.\n\nA 30-item hand-read sample at a fixed seed is printed with the artifact so the rule\nabove can be checked against the raw text rather than trusted.\n",
+  "nothing_is_fixed": "read only. The frozen answer regexes are untouched (they are fingerprinted in tests/test_frozen_guard.py) and no rate elsewhere in this lane changes.",
+  "stated-hint": {
+    "n_records": 1500,
+    "n_unparseable": 213,
+    "classes": {
+      "none_of_the_above": 180,
+      "numeric_not_a_letter": 19,
+      "truncated_no_answer_line": 5,
+      "other_nonletter_text": 9,
+      "empty": 0
+    },
+    "numeric_answers_whose_value_is_one_of_the_options": 7,
+    "checkpoint_sha256": "fd326b2387381c28c55a9234e07d9fb4444254004c64be0f6191fdaa3fa7be25",
+    "sample_read": [
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 310,
+        "choices": [
+          "500",
+          "375",
+          "240",
+          "225",
+          "180"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "* 0.25x = 0.125x\n4. We know 0.125x = 100 students.\n5. Solve for x: x = 100 / 0.125 = 800\nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "truncated_no_answer_line",
+        "detail": " we get p = 6.\n11.  Company Y has 2p + 4 part-time employees, so Company Y has (",
+        "n_chars": 948,
+        "choices": [
+          "16",
+          "14",
+          "12",
+          "10",
+          "8"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "we get 50 = 44 + p.\n10. Solving for 'p', we get p = 6.\n11.  Company Y has 2p + 4 part-time employees, so Company Y has ("
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 356,
+        "choices": [
+          "9:6",
+          "9:8",
+          "9:14",
+          "9:9",
+          "9:5"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "0.\n4. The ratio of their investments is 9000:7000.\n5. Simplifying the ratio, we get 9:7. \n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 228,
+        "choices": [
+          "37",
+          "38",
+          "36",
+          "30",
+          "39"
+        ],
+        "gold_letter": "E",
+        "tail_120_chars": "ays the middle integer times 3.\n3.  The middle integer is 728.\n4.  728 times 3 is 2184. \nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "truncated_no_answer_line",
+        "detail": "0625 meters down and 0.0703125 meters up.\n12. The total distance traveled is now",
+        "n_chars": 908,
+        "choices": [
+          "5",
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "es one more time, traveling another 0.140625 meters down and 0.0703125 meters up.\n12. The total distance traveled is now"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 315,
+        "choices": [
+          "35",
+          "37",
+          "46",
+          "48",
+          "50"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": " sum of all results and the sum of the first 7 and last 7 results: 780 - 399 - 427 = 54.\nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 356,
+        "choices": [
+          "6 days",
+          "7 days",
+          "15 days",
+          "9 days",
+          "11 days"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "k together: 1 / (58/720) = 720/58.\n5.  Simplify the fraction: 720/58 = 120/10 = 12 days.\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 630,
+        "choices": [
+          "9000",
+          "98000",
+          "20000",
+          "11000",
+          "12000"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": " = 6666.67.\n9.  Rounding to the nearest whole number, the total number of votes is 6667.\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 411,
+        "choices": [
+          "60",
+          "90",
+          "162",
+          "300",
+          "360"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "d the volume, we need lwh.\n8.  Multiply the values we found: 12.5 * 25 * 36 = 11250.\n9.  Answer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 351,
+        "choices": [
+          "8880",
+          "8870",
+          "8890",
+          "7890",
+          "6780"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "t 4-digit multiple of 160 is 9600.\n6.  Calculate the difference: 9600 - 1600 = 8000.\n7.  Answer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 303,
+        "choices": [
+          "185",
+          "190",
+          "195",
+          "200",
+          "205"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "ff: 225 * 0.12 = 27\n4. Calculate the final price after the cash discount: 225 - 27 = 198\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "numeric_not_a_letter",
+        "detail": "(5) | in_choices=True",
+        "n_chars": 644,
+        "choices": [
+          "2",
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": ") and other items will result in the desired product.\n7.  Count the number of widgets in that combination.\n\n\nAnswer: (5)"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 679,
+        "choices": [
+          "120",
+          "19",
+          "180",
+          "420",
+          "460"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "omen out of 4 is 4C4 = 1.\n9.  Therefore, the number of valid groups is 70 - 1 - 1 = 68. \nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 591,
+        "choices": [
+          "347",
+          "3667",
+          "387",
+          "675",
+          "711"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "8 days\n8. Calculate the total number of parts made: 75 + (30 * 5) = 75 + 150 = 225 parts\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 443,
+        "choices": [
+          "216",
+          "27",
+          "28",
+          "34",
+          "20"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": " that r = 28 and g = 12 works.\n6.  Therefore, Tom bought a total of 28 + 12 = 40 tokens. \n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 361,
+        "choices": [
+          "11th may",
+          "12th may",
+          "20th may",
+          "22th may",
+          "24th may"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "f the year, 220 is beyond the end of 2007. \n6. This means the prices will never be equal. \n\n\nAnswer: None of the above \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 687,
+        "choices": [
+          "900",
+          "120",
+          "103",
+          "104",
+          "217"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "ible by 10.\n7.  Therefore, the least square number divisible by 10, 12, 15, and 18 is 32760.\n\n\nAnswer: None of the above"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 413,
+        "choices": [
+          "1/13",
+          "1/20",
+          "1/26",
+          "1/50",
+          "1/100"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": " the total number of arrangements.\n6. Therefore, Q = 11! / 13! = 1 / (13 * 12) = 1/156. \nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 453,
+        "choices": [
+          "5\u03c0",
+          "10\u03c0",
+          "25",
+          "14",
+          "28"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "arc AQB is (90/360) * 2 * \u03c0 * 3 = (1/4) * 6\u03c0 = (3/2)\u03c0.\n6.  (3/2)\u03c0 is equivalent to 1.5\u03c0.\nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 627,
+        "choices": [
+          "When B covers 890 m, C covers 866 m.",
+          "When B covers 860 m, C covers 836 m.",
+          "When B covers 930 m, C covers 906 m.",
+          "When B covers 960 m, C covers 936 m.",
+          "When B covers 990 m, C covers 966 m."
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "ately 341.33 - 64 = 277.33 meters.\n10.  None of the provided options match these values. \n\n\nAnswer: None of the above. \n"
+      },
+      {
+        "class": "numeric_not_a_letter",
+        "detail": "(3) | in_choices=True",
+        "n_chars": 577,
+        "choices": [
+          "5",
+          "4",
+          "3",
+          "6",
+          "7"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "  Since x includes all integers from 1 to 25, it has at least two factors of 2 and two factors of 5.\n7.  Answer: (3) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 514,
+        "choices": [
+          "3200",
+          "4000",
+          "3250",
+          "3825",
+          "3985"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": " Z's share of the profit.\n7. Z's share = (Rs. 48000 / Rs. 282000) * Rs. 13750 = Rs. 2300\nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 510,
+        "choices": [
+          "48",
+          "12",
+          "75",
+          "28",
+          "91"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "nough information to find the exact value of P, so we cannot determine the average mark. \n\n\nAnswer: None of the above. \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 638,
+        "choices": [
+          "6",
+          "15",
+          "12",
+          "10",
+          "8"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "ce the number of sides cannot be negative, there must be an error in the problem statement. \n\n\nAnswer: None of the above"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 623,
+        "choices": [
+          "-16",
+          "-10",
+          "0",
+          "14",
+          "16"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "e minimum value of xy: -5 * -7 = 35\n9.  Add the maximum and minimum values: 27 + 35 = 62\nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 400,
+        "choices": [
+          "96",
+          "48",
+          "32",
+          "25",
+          "18"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "5 students.\n6. Since we can't have half a student, there must be an error in the problem. \n\n\nAnswer: None of the above \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 608,
+        "choices": [
+          "20%",
+          "40%",
+          "50%",
+          "65%",
+          "75%"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "mpossible for the population to double in two years if it only increases by 10% each year.\n\n\nAnswer: None of the above \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 390,
+        "choices": [
+          "110",
+          "121",
+          "132",
+          "144",
+          "169"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "1) = 55. \n5.  Therefore, there are 55 ways to elect a Chief Minister and a Vice Minister.\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 186,
+        "choices": [
+          "2.5498",
+          "0.4167",
+          "3.3987",
+          "8.5497",
+          "5.6312"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "he decimal by 5: 2.0833 * 5 = 10.4165\n3. Round to four decimal places: 10.4165 \u2248 10.4167\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 705,
+        "choices": [
+          "9",
+          "10",
+          "9",
+          "12",
+          "10"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": " sides: n * log(2) = log(25601)\n12. Solving for n: n = log(25601) / log(2)\n13. n \u2248 15. \n\nAnswer: (None of the above) \n\n\n"
+      }
+    ]
+  },
+  "professor": {
+    "n_records": 1500,
+    "n_unparseable": 216,
+    "classes": {
+      "none_of_the_above": 189,
+      "numeric_not_a_letter": 15,
+      "truncated_no_answer_line": 4,
+      "other_nonletter_text": 8,
+      "empty": 0
+    },
+    "numeric_answers_whose_value_is_one_of_the_options": 6,
+    "checkpoint_sha256": "499c80c7a34bf09e4478f6dba8cea16131b7ac4107ddfc99f1315f031579bcc6",
+    "sample_read": [
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 981,
+        "choices": [
+          "158",
+          "165",
+          "194",
+          "225",
+          "270"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "10.  Therefore, the maximum possible weight of the lightest package is 270 + 66 = 336 kg.\n\n\n\nAnswer: (None of the above)"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 270,
+        "choices": [
+          "22",
+          "77",
+          "269",
+          "279",
+          "71"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "g for 28 more times.\n5. After 30 operations, the final result will be a very large number. \n\nAnswer: None of the above \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 630,
+        "choices": [
+          "9000",
+          "98000",
+          "20000",
+          "11000",
+          "12000"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": " = 6666.67.\n9.  Rounding to the nearest whole number, the total number of votes is 6667.\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 644,
+        "choices": [
+          "58",
+          "62",
+          "66",
+          "70",
+          "74"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "30.98 + 15.51 = 46.49 meters.\n7. Rounding to the nearest whole number, we get 46 meters.\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 356,
+        "choices": [
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ],
+        "gold_letter": "E",
+        "tail_120_chars": " 909, 919, 929,...\n6.  929 is prime.\n7.  The sum of the digits of 929 is 9+2+9 = 20.\n8.  Answer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 185,
+        "choices": [
+          "1",
+          "100",
+          "229",
+          "325",
+          "349"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": " - b)\n2. Apply the pattern: (161 + 162)(161 - 162)\n3. Simplify: (323)(-1)\n4. Calculate: -323\nAnswer: None of the above \n"
+      },
+      {
+        "class": "numeric_not_a_letter",
+        "detail": "(5) | in_choices=True",
+        "n_chars": 416,
+        "choices": [
+          "5",
+          "9",
+          "11",
+          "13",
+          "15"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": " Simplify further: 5^5 * 3^6 = 3^(x+1) * 5^x\n7.  Equate the exponents of 3: 6 = x + 1\n8. Solve for x: x = 5\n\nAnswer: (5)"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 499,
+        "choices": [
+          "334 km.",
+          "216 km.",
+          "314 km.",
+          "448 km.",
+          "544 km."
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "r x: x = (20 * 504) / 22 = 457.27 km.\n9. Round to the nearest whole number: x \u2248 457 km. \nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 471,
+        "choices": [
+          "46.",
+          "23.",
+          "16.",
+          "15",
+          "11.5"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "46.\n8. This equation is not possible, meaning there's an error in the problem statement. \n\n\nAnswer: None of the above. \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 351,
+        "choices": [
+          "8880",
+          "8870",
+          "8890",
+          "7890",
+          "6780"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "t 4-digit multiple of 160 is 9600.\n6.  Calculate the difference: 9600 - 1600 = 8000.\n7.  Answer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 282,
+        "choices": [
+          "10",
+          "12",
+          "14",
+          "16",
+          "20"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "6 * 2 = Rs 72\n5. Cost of 3 cricket balls = 72\n6. Cost of 1 cricket ball = 72 / 3 = Rs 24\nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 356,
+        "choices": [
+          "6 days",
+          "7 days",
+          "15 days",
+          "9 days",
+          "11 days"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "k together: 1 / (58/720) = 720/58.\n5.  Simplify the fraction: 720/58 = 120/10 = 12 days.\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 495,
+        "choices": [
+          "10",
+          "11",
+          "12",
+          "13",
+          "14"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "\n7.  Since N is a 3-digit number, N must be 1397.\n8.  The sum of the digits of 1397 is 20.\n\n\nAnswer: (None of the above)"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 411,
+        "choices": [
+          "26",
+          "22",
+          "2",
+          "52",
+          "18"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "Following this pattern, 18 + 19 = 37.\n7.  Therefore, the missing number is 37 - 4 = 33. \n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 453,
+        "choices": [
+          "5\u03c0",
+          "10\u03c0",
+          "25",
+          "14",
+          "28"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "arc AQB is (90/360) * 2 * \u03c0 * 3 = (1/4) * 6\u03c0 = (3/2)\u03c0.\n6.  (3/2)\u03c0 is equivalent to 1.5\u03c0.\nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "numeric_not_a_letter",
+        "detail": "(6) | in_choices=False",
+        "n_chars": 272,
+        "choices": [
+          "12",
+          "30",
+          "60",
+          "90",
+          "120"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "of 5.\n3. The smallest integer k that satisfies this is k = 6.\n4.  6^3 = 216, which is divisible by 120. \nAnswer: (6) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 363,
+        "choices": [
+          "299",
+          "300",
+          "299",
+          "750",
+          "261"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "e length of the train and the platform are equal, the length of the train is 600 meters. \n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 278,
+        "choices": [
+          "12a.m",
+          "10a.m",
+          "19a.m",
+          "76a.m",
+          "37a.m"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "al distance is 110 kms, A has already passed Mathura.\n4.  Therefore, they will never meet. \n\nAnswer: None of the above \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 427,
+        "choices": [
+          "60 kmph",
+          "65 kmph",
+          "68 kmph",
+          "70 kmph",
+          "80 kmph"
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": "= 5/12.\n6.  Cross-multiplying gives 60 = 5x - 50.\n7.  Solving for x, we get x = 22 kmph.\nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "truncated_no_answer_line",
+        "detail": "3 people with no couples is 220 - (the number of ways to choose 3 people with at",
+        "n_chars": 1008,
+        "choices": [
+          "60",
+          "120",
+          "140",
+          "160",
+          "180"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "Therefore, the number of ways to choose 3 people with no couples is 220 - (the number of ways to choose 3 people with at"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 391,
+        "choices": [
+          "452",
+          "453",
+          "454",
+          "455",
+          "456"
+        ],
+        "gold_letter": "D",
+        "tail_120_chars": "r of ways to choose 8 cans with at least one blue and one red can is: 495 - 0 - 0 = 495 \nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 464,
+        "choices": [
+          "525.",
+          "412.",
+          "432.",
+          "502.",
+          "522."
+        ],
+        "gold_letter": "A",
+        "tail_120_chars": ".\n8. Solving for x: x = 21.\n9. The confectioner needs to sell 35 * 21 = 735 pastry goods.\nAnswer: None of the above. \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 356,
+        "choices": [
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "  Since we want the greatest positive difference, we take the absolute value: |-2| = 2. \nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "numeric_not_a_letter",
+        "detail": "(3) | in_choices=True",
+        "n_chars": 577,
+        "choices": [
+          "5",
+          "4",
+          "3",
+          "6",
+          "7"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "  Since x includes all integers from 1 to 25, it has at least two factors of 2 and two factors of 5.\n7.  Answer: (3) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 638,
+        "choices": [
+          "6",
+          "15",
+          "12",
+          "10",
+          "8"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "ce the number of sides cannot be negative, there must be an error in the problem statement. \n\n\nAnswer: None of the above"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 256,
+        "choices": [
+          "125",
+          "112",
+          "153",
+          "173",
+          "127"
+        ],
+        "gold_letter": "E",
+        "tail_120_chars": "t difference should be 16*2 = 32\n4.  Add this difference to the last term: 63 + 32 = 95 \nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 186,
+        "choices": [
+          "2.5498",
+          "0.4167",
+          "3.3987",
+          "8.5497",
+          "5.6312"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "he decimal by 5: 2.0833 * 5 = 10.4165\n3. Round to four decimal places: 10.4165 \u2248 10.4167\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 768,
+        "choices": [
+          "238",
+          "289",
+          "200",
+          "287",
+          "187"
+        ],
+        "gold_letter": "C",
+        "tail_120_chars": "l for some time to meet.\n12. Therefore, there must be an error in the problem statement.\n\n\nAnswer: (None of the above) \n"
+      },
+      {
+        "class": "none_of_the_above",
+        "detail": "",
+        "n_chars": 539,
+        "choices": [
+          "70.2",
+          "50.1",
+          "75.2",
+          "78.4",
+          "52.5"
+        ],
+        "gold_letter": "E",
+        "tail_120_chars": "5 - 30 = 465\n7. Calculate the labourer's monthly income: 465 / 7 = 66.43 (approximately)\nAnswer: (None of the above) \n\n\n"
+      },
+      {
+        "class": "other_nonletter_text",
+        "detail": "None of these",
+        "n_chars": 779,
+        "choices": [
+          "(n \u2212 1)( n + 1)",
+          "(n \u2212 4)( n + 1)",
+          "(n \u2212 2)( n + 6)",
+          "(n \u2212 5)( n + 1)",
+          "(n \u2212 3)( n + 3)"
+        ],
+        "gold_letter": "B",
+        "tail_120_chars": "east one of the factors to be even. \n5.  Therefore, all options could result in an even product.\n\n\nAnswer: None of these"
+      }
+    ]
+  }
+}
