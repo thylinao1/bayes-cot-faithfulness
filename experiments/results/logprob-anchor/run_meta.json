@@ -1,0 +1,17 @@
+{
+  "spec": "docs/OUTCOME-SCALE-NOTE.md part 4.5, Job A",
+  "what_ran": "experiments/logprob_anchor.py --mode extract, over the 18 cells of record",
+  "job_id": "828957",
+  "partition_requested": "long",
+  "partition_allocated": "normal",
+  "node": "xcnc22",
+  "cpus_per_task": "4",
+  "mem_per_node_mb": "16384",
+  "started": "2026-09-08T12:25:51+08:00",
+  "finished": "2026-09-08T12:25:58+08:00",
+  "exit_code": 0,
+  "python": "3.12.14",
+  "numpy": "2.3.5",
+  "records_root": "/home/e/e1506804/bcf/results",
+  "gpu": "none, this is a CPU only pass over records that already exist"
+}

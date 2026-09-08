@@ -240,3 +240,19 @@ experiments/results/cells18-fits/*/*/*
 experiments/results/cells18-fits/*/*/*/*
 !experiments/results/cells18-fits/*/*/*/fit.json
 !experiments/results/cells18-fits/*/*/*/pymc.json
+
+# Job A of the outcome-scale note (lane analysis/logprob-anchor, 2026-09-08): the
+# logprob-scale anchor aggregate per cell under <model>/<substrate>/<cue>/, plus the
+# record the extraction job wrote about itself and its exit code. Small aggregates only;
+# no per-item margin, no transcripts.
+!experiments/results/logprob-anchor/
+experiments/results/logprob-anchor/*
+!experiments/results/logprob-anchor/run_meta.json
+!experiments/results/logprob-anchor/exit_code.txt
+!experiments/results/logprob-anchor/*/
+experiments/results/logprob-anchor/*/*
+!experiments/results/logprob-anchor/*/*/
+experiments/results/logprob-anchor/*/*/*
+!experiments/results/logprob-anchor/*/*/*/
+experiments/results/logprob-anchor/*/*/*/*
+!experiments/results/logprob-anchor/*/*/*/anchor_logprob.json

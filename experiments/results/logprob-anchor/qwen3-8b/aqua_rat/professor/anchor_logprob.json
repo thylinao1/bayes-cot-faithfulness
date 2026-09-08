@@ -1,0 +1,203 @@
+{
+  "spec": "docs/OUTCOME-SCALE-NOTE.md part 4.5, Job A",
+  "cell": "qwen3-8b/aqua_rat/professor",
+  "model_slug": "qwen3-8b",
+  "model": "Qwen/Qwen3-8B",
+  "substrate": "aqua_rat",
+  "cue_family": "professor",
+  "generation_job_id": "827408",
+  "outcome_scale": "logprob_margin",
+  "intervention_level": "logit",
+  "y_definition": "Y_c is the STORED anchor-cell logprob_margin, never recomputed here: the renormalized log odds of the target letter against the BEST OTHER letter, as src/bayes_cot_faithfulness/outcome_scale.py::letter_logprob_fields writes it. Element 0 says 'the log-probability margin of the planted option' without disambiguating best-other from against-the-rest; the records carry best-other, so best-other is what this reports. Units are nats.",
+  "records_path": "/home/e/e1506804/bcf/results/qwen3-8b/aqua_rat/professor/transcripts.jsonl",
+  "records_sha256": "02e26cd587165861222da43a76103996e4a7201b49d55efbdc6b24e1fe5d6538",
+  "records_sha256_in_fit_json": "02e26cd587165861222da43a76103996e4a7201b49d55efbdc6b24e1fe5d6538",
+  "records_match_fit_json": true,
+  "analysis_script_sha256": "20ace0171bf3c81ad7eaa64f10bc6e05f67c64bb8d4f5692431fc3156f2951b3",
+  "file_counts": {
+    "n_lines_kept": 1153,
+    "n_lines_other_source": {
+      "specificity_transcripts_Qwen_Qwen3-8B.json": 19
+    }
+  },
+  "denominators": {
+    "n_records_read": 1153,
+    "n_items_kept": 1153,
+    "n_items_dropped": 0,
+    "drops": {}
+  },
+  "letter_probability_mass": {
+    "mu00": {
+      "n": 1153,
+      "n_items": 1153,
+      "min": 4.056715227230603e-17,
+      "median": 1.554326395026881e-14,
+      "max": 6.209368196155139e-07,
+      "n_below_0.01": 1153
+    },
+    "mu01": {
+      "n": 1153,
+      "n_items": 1153,
+      "min": 3.6546167063946396e-17,
+      "median": 1.9750915520873222e-14,
+      "max": 1.857391073359933e-07,
+      "n_below_0.01": 1153
+    },
+    "mu10": {
+      "n": 1153,
+      "n_items": 1153,
+      "min": 3.445361169598316e-16,
+      "median": 1.3686602887013457e-13,
+      "max": 1.609659172706184e-08,
+      "n_below_0.01": 1153
+    },
+    "mu11": {
+      "n": 1153,
+      "n_items": 1153,
+      "min": 4.230171432236642e-16,
+      "median": 1.2180162606217733e-13,
+      "max": 2.6621940412747454e-09,
+      "n_below_0.01": 1153
+    }
+  },
+  "mass_caveat": "Section 4.4: the raw letter mass on the anchor prompts is small, so the renormalized distribution these margins come from is a ratio of small numbers. The mass summary prints beside every margin table and is never omitted.",
+  "cells": {
+    "mu00": {
+      "n": 1153,
+      "mean": -4.859984818894452,
+      "sd": 3.887506438503749,
+      "min": -13.749999046325684,
+      "max": 11.375,
+      "boot_lo": -5.069969641118078,
+      "boot_hi": -4.635568893855278
+    },
+    "mu01": {
+      "n": 1153,
+      "mean": -4.584128359970794,
+      "sd": 3.901336718856928,
+      "min": -12.625,
+      "max": 9.25,
+      "boot_lo": -4.788302253415454,
+      "boot_hi": -4.356640283811227
+    },
+    "mu10": {
+      "n": 1153,
+      "mean": -3.695359925653039,
+      "sd": 3.731125985372062,
+      "min": -11.25,
+      "max": 10.124999999999998,
+      "boot_lo": -3.905791953865177,
+      "boot_hi": -3.4609605328062774
+    },
+    "mu11": {
+      "n": 1153,
+      "mean": -3.575238506585127,
+      "sd": 3.7225016714442187,
+      "min": -10.625,
+      "max": 7.999999999999999,
+      "boot_lo": -3.779859608603062,
+      "boot_hi": -3.350203272454757
+    }
+  },
+  "contrasts": {
+    "text_source_given_cued_recipient": {
+      "point": 0.12012141906791207,
+      "lo": 0.060833157359881554,
+      "hi": 0.1797484789945102
+    },
+    "text_source_given_clean_recipient": {
+      "point": 0.2758564589236574,
+      "lo": 0.19986718681100532,
+      "hi": 0.3636220679940706
+    },
+    "cue_effect_given_clean_donor": {
+      "point": 1.1646248932414127,
+      "lo": 1.1144216177469732,
+      "hi": 1.2158824876196361
+    },
+    "interaction": {
+      "point": -0.15573503985574533,
+      "lo": -0.20539353925666834,
+      "hi": -0.10392318793410225
+    },
+    "joint_replay_regime": {
+      "point": 1.2847463123093248,
+      "lo": 1.2164624889932918,
+      "hi": 1.364585594291389
+    }
+  },
+  "bootstrap": {
+    "n_replicates": 200,
+    "unit": "item (all four anchor cells of an item resampled together)",
+    "seed": 20260907,
+    "seed_source": "fit.json column_b.bootstrap.seed"
+  },
+  "binary_from_fit_json": {
+    "source": "experiments/results/cells18-fits/<cell>/fit.json, key anchor",
+    "outcome_scale": "binary_follow",
+    "intervention_level": "text",
+    "cells": {
+      "mu00": {
+        "k": 1,
+        "n": 1153,
+        "rate": 0.0008673026886383347,
+        "lo": 0.00015311663062613577,
+        "hi": 0.0048963728877120275,
+        "n_unscorable": 0
+      },
+      "mu01": {
+        "k": 103,
+        "n": 1153,
+        "rate": 0.08933217692974849,
+        "lo": 0.07420342193362485,
+        "hi": 0.10718829533298352,
+        "n_unscorable": 0
+      },
+      "mu10": {
+        "k": 120,
+        "n": 1153,
+        "rate": 0.10407632263660017,
+        "lo": 0.08774564536891816,
+        "hi": 0.12303644318906859,
+        "n_unscorable": 0
+      },
+      "mu11": {
+        "k": 221,
+        "n": 1153,
+        "rate": 0.191673894189072,
+        "lo": 0.16999239923403447,
+        "hi": 0.21540307170214135,
+        "n_unscorable": 0
+      }
+    },
+    "contrasts": {
+      "text_source_given_cued_recipient": {
+        "point": 0.08759757155247182,
+        "lo": 0.0684952298352125,
+        "hi": 0.1049436253252385
+      },
+      "text_source_given_clean_recipient": {
+        "point": 0.08846487424111014,
+        "lo": 0.0736990459670425,
+        "hi": 0.10236339982653947
+      },
+      "cue_effect_given_clean_donor": {
+        "point": 0.10320901994796183,
+        "lo": 0.08759757155247182,
+        "hi": 0.11797484822202949
+      },
+      "interaction": {
+        "point": -0.0008673026886383337,
+        "lo": -0.01563313096270599,
+        "hi": 0.015633130962706014
+      },
+      "joint_replay_regime": {
+        "point": 0.19080659150043366,
+        "lo": 0.16652211621856028,
+        "hi": 0.21081960104076322
+      }
+    }
+  },
+  "promotion": "No number on this scale is compared against any Column B estimate. Part 4.5 step 6 holds the element 21 promotion rule until a margin exists on this scale, and Amendment A5.6 sets none: section 22.1's 0.10 is two thirds of the probability-scale 0.15 of section 2.5, and there is no honest way to carry a probability into nats. A logit-level row is descriptive and prints no verdict.",
+  "elapsed_s": 0.039
+}
