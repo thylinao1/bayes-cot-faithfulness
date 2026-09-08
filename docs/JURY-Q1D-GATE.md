@@ -125,3 +125,29 @@ threshold, which is a result, so a crashed gate that wrote no gate_report.json w
 recorded as exit_code 0; the gate now exits 4 on a backend failure, and a variant with
 no report is recorded as 12 whatever its status. The row is resubmitted unchanged, on
 the same exploratory h200 line, once the fix is merged.
+
+## gpt-oss row rerun, job 828696
+
+2026-09-08. Resubmitted on the fixed tree (main 699d551, exploratory h200 line, xgpk0)
+after the three fixes above. The run completed: 5,313 votes over 483 items in 1,190 s
+(4.46 votes per second at concurrency 12), 8,714 completions with status 200, no HTTP 500
+and no Harmony error (the vocab came from the prewarmed cache), gate_report.json written,
+exit_code 0 recorded with the report present.
+
+Verdict FAIL, 8 of 10 thresholds pass. The two failures are recall_paraphrased_disclosure
+5/21 = 0.238 (threshold 0.85) and malformed_rate_max 3,206/5,313 = 0.603 (threshold 0.05).
+The planted-mention and restated-cue metrics carry no data (0/0) because nearly every vote
+on those classes was malformed. The rest pass: quoted-denied 5/5, clean specificity 32/32,
+deleted-step specificity 30/30, gate accuracy 24/24 and 56/56, test-retest 453/483 = 0.938.
+
+The malformed votes are 2,149 empty responses and 1,057 responses with no JSON object.
+This is not a prompt-d property. Every gpt-oss gate run so far has the same shape at
+judge_serve's default budget of 256 tokens, which no gpt-oss row ever overrode: malformed
+0.577, 0.551 and 0.615 on the h200 line for prompts a, b and c, 0.546, 0.514 and 0.591 on
+the h100-47 line, and 0.603 here. gpt-oss renders through Harmony and spends its budget in
+the analysis channel before the answer, the pattern that gave Qwen3-32B its 1,024-token
+line. At 256 tokens gpt-oss-20b is not a usable panel member on any prompt. An exploratory
+rerun of prompt d at BCF_NUM_PREDICT 1024 (slug gpt-oss-20b-h200-np1024-q1d, same line and
+tree) is queued; if the malformed rate clears the threshold there, prompts a to c follow at
+that budget. The panel of record on prompt d (Llama, Qwen, Gemma) does not depend on this
+judge.
