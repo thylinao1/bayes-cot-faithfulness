@@ -22,6 +22,7 @@ import hashlib
 import json
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -138,6 +139,12 @@ class JuryRunner:
     # This lands on EVERY vote, so a run made with the echo strip of option (d) can never be
     # read as a run without it, and the strip's own SHA-256 travels with the votes.
     input_transform: dict = field(default_factory=dict)
+    # How the ONE availability probe per judge is made. Section "the probe" below says
+    # why there is only one; these are its retries, the wait between them, and the sleep
+    # itself so a test does not have to wait through it.
+    probe_attempts: int = 3
+    probe_wait_s: float = 5.0
+    probe_sleep: Callable[[float], None] = time.sleep
 
     def __post_init__(self) -> None:
         self.out_dir = rec.assert_results_path(self.out_dir, self.substrate, self.cue_family)
@@ -150,6 +157,9 @@ class JuryRunner:
         self._write_lock = threading.Lock()
         self._ep_lock = threading.Lock()
         self._seeded: dict[tuple[str, int], JudgeEndpoint] = {}
+        self._probe_lock = threading.Lock()
+        # judge_key -> whether its own endpoint answered the ONE probe this run makes.
+        self._available: dict[str, bool] = {}
         if not self.run_id:
             self.run_id = time.strftime("%Y%m%dT%H%M%S")
         if self.mode not in ("three-seeded", "audit"):
@@ -164,10 +174,64 @@ class JuryRunner:
                     f"that would fail on the first vote"
                 )
 
+    # --- the probe ----------------------------------------------------------
+
+    def _availability_of(self, judge_key: str) -> bool:
+        """Probe one judge ONCE per run, with retries, and remember the answer.
+
+        THE DEFECT THIS CLOSES. This probe used to be made per (judge, seed) from inside
+        a vote, on every worker thread, and a SINGLE failed probe raised and killed the
+        run. Job 828627 on 2026-09-08 logged 13 GET /models against one gpt-oss server
+        and wrote 30 of about 4,000 votes: the server was up and answering, and the run
+        still ended with no report. One probe per judge, made before any vote goes out,
+        is all the information the endpoint choice ever needed.
+
+        Retried rather than believed first time: a server that has just come up can miss
+        one request and answer the next, and a wrong "unreachable" here costs a whole run.
+        """
+        with self._probe_lock:
+            known = self._available.get(judge_key)
+            if known is not None:
+                return known
+            base = self.endpoints.get(judge_key)
+            ok = False
+            for attempt in range(1, self.probe_attempts + 1):
+                if base is None:
+                    break
+                try:
+                    ok = bool(base.is_available())
+                except Exception as exc:  # noqa: BLE001 - any failure means "not up"
+                    ok = False
+                    print(f"[jury] judge {judge_key} probe {attempt} raised: {exc}")
+                if ok:
+                    break
+                if attempt < self.probe_attempts:
+                    print(f"[jury] judge {judge_key} did not answer /models on probe "
+                          f"{attempt} of {self.probe_attempts}; retrying in "
+                          f"{self.probe_wait_s}s")
+                    self.probe_sleep(self.probe_wait_s)
+            self._available[judge_key] = ok
+            return ok
+
+    def _resolve_judges(self, judge_keys: list[str]) -> None:
+        """Decide the backend for every judge BEFORE the first vote.
+
+        A judge that did not answer follows the eligibility rule of section 6.7 exactly:
+        without the SoCLaaS ruling on the record this raises here, where nothing has been
+        written yet, rather than part way through a run.
+        """
+        for judge_key in sorted(set(judge_keys)):
+            if self._availability_of(judge_key) or self.soclaas_ok:
+                continue
+            raise BackendError(
+                f"judge {judge_key} is unreachable and the SoCLaaS fallback is not permitted "
+                f"(no key in the environment, or no eligibility ruling on the record)"
+            )
+
     # --- one vote -----------------------------------------------------------
 
     def _endpoint_for(self, judge_key: str, subject_family: str, seed: int) -> JudgeEndpoint:
-        """One endpoint per (judge, seed).
+        """One endpoint per (judge, seed), built from the recorded probe. No probe here.
 
         Seeded per endpoint rather than mutated on a shared client: the runner scores votes
         concurrently, and a shared `client.seed` written from several threads would put the
@@ -179,7 +243,9 @@ class JuryRunner:
             if cached is not None:
                 return cached
         base = self.endpoints.get(judge_key)
-        if base is not None and base.is_available():
+        # _availability_of is a cache read for every judge run() resolved. It probes only
+        # when something calls this outside run(), and then still only once.
+        if base is not None and self._availability_of(judge_key):
             seeded = base.for_seed(seed)
         else:
             if not self.soclaas_ok:
@@ -357,6 +423,9 @@ class JuryRunner:
                 n_skipped += 1
                 continue
             pending.append(t)
+        # Every judge is probed here, once, before any worker exists. Both paths below
+        # start from the same resolved decision.
+        self._resolve_judges([t["judge_key"] for t in pending])
         started = time.time()
         state = {"n": 0}
 

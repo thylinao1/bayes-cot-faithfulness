@@ -12,7 +12,7 @@ import pytest
 
 from experiments.jury import gate as gate_mod
 from experiments.jury import synthetic_gate as sg
-from experiments.jury.backends import JudgeEndpoint
+from experiments.jury.backends import BackendError, JudgeEndpoint
 from experiments.jury.family_map import JUDGE_BY_KEY, routing
 from experiments.jury.gate_thresholds import THRESHOLDS
 from experiments.jury.prompt_files import load_prompts
@@ -277,6 +277,65 @@ def test_a_pinned_run_records_the_judge_own_serving_line(tmp_path, bank):
     for r in rows:
         assert r["serving_line"] == JUDGE_BY_KEY[r["judge_key"]].serving_line
         assert r["serving_line_is_pinned"] is True
+
+
+# --- a crash is not a verdict ------------------------------------------------------
+
+
+def test_a_backend_failure_exits_4_and_writes_no_report(tmp_path, bank, monkeypatch):
+    """An unreachable judge must not exit 1, which means a FAILED THRESHOLD.
+
+    Job 828627 died inside the runner (the jury probe raised BackendError), wrote no
+    gate_report.json, and exited 1. bcf/judge_serve.sbatch reads 1 as a result and
+    recorded the variant as exit code 0. The gate now separates the two: 1 is a judge
+    that missed a bar, 4 is judging that never happened.
+    """
+    raw = _marked_items(bank, n_per_class=1)
+    items_path = tmp_path / "items.jsonl"
+    items_path.write_text("\n".join(json.dumps(r) for r in raw), encoding="utf-8")
+    out = tmp_path / "g" / "arc_challenge" / "stated-hint"
+
+    def unreachable(self, items, **kw):
+        raise BackendError(
+            "judge llama-3.3-70b-fp8 is unreachable and the SoCLaaS fallback is not "
+            "permitted (no key in the environment, or no eligibility ruling on the record)"
+        )
+
+    monkeypatch.setattr(JuryRunner, "run", unreachable)
+    rc = gate_mod.main([
+        "--items", str(items_path), "--out", str(out),
+        "--judge", "llama-3.3-70b-fp8=http://127.0.0.1:1/v1",
+        "--all-judge-rows",
+    ])
+    assert rc == gate_mod.GATE_INFRA_FAILURE == 4
+    assert not (out / "gate_report.json").exists(), (
+        "a crashed gate must leave no report; a report is what says a gate ran"
+    )
+
+
+def test_a_failed_threshold_still_exits_1(tmp_path, bank, monkeypatch):
+    """The other end of the same rule: a judge that answers and misses a bar is a 1."""
+    raw = _marked_items(bank, n_per_class=1)
+    items_path = tmp_path / "items.jsonl"
+    items_path.write_text("\n".join(json.dumps(r) for r in raw), encoding="utf-8")
+    out = tmp_path / "g" / "arc_challenge" / "stated-hint"
+
+    def scripted(key, url, *, seed):
+        judge = JUDGE_BY_KEY[key]
+        return JudgeEndpoint(
+            judge_key=key, backend="vllm", model=judge.hf_id, revision=judge.revision,
+            client=_ScriptedClient("no"),
+        )
+
+    monkeypatch.setattr("experiments.jury.backends.vllm_endpoint", scripted)
+    rc = gate_mod.main([
+        "--items", str(items_path), "--out", str(out),
+        "--judge", "llama-3.3-70b-fp8=http://127.0.0.1:1/v1",
+        "--all-judge-rows", "--concurrency", "2",
+    ])
+    assert rc == 1
+    report = json.loads((out / "gate_report.json").read_text())
+    assert report["verdict"] == "FAIL"
 
 
 # --- the side by side comparison --------------------------------------------------

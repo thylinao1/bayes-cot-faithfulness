@@ -69,6 +69,10 @@ ITEM = JuryItem(
 
 def _runner(tmp_path, endpoints, **kw):
     out = tmp_path / "jury-gate" / "arc_challenge" / "stated-hint"
+    # No real waiting between availability probes. The retry SCHEDULE is what the probe
+    # test below asserts on; the wall clock is not, and a dead-judge case would otherwise
+    # sit through the production 5 second gaps.
+    kw.setdefault("probe_sleep", lambda _seconds: None)
     return JuryRunner(
         endpoints=endpoints, prompts=load_default_prompts(), out_dir=out,
         substrate="arc_challenge", cue_family="stated-hint", questions=("Q1",), **kw,
@@ -364,6 +368,57 @@ def test_concurrent_scoring_writes_every_vote_exactly_once(tmp_path):
     assert len(set(keys)) == len(keys)  # no duplicate work, no lost line
     assert summary["votes_per_second"] > 0
     assert len(r.labels_path.read_text().splitlines()) == 20
+
+
+class _ProbeCountingClient(_FakeClient):
+    """Answers ONE availability probe, then refuses every later one.
+
+    This is the shape of job 828627's server: it was up, it answered, and it was asked
+    again from every worker thread. A judge that is probed twice fails here.
+    """
+
+    def __init__(self, script=()):
+        super().__init__(script)
+        self.probes = 0
+
+    def is_available(self):
+        self.probes += 1
+        return self.probes == 1
+
+
+def test_each_judge_is_probed_once_up_front_not_once_per_seed(tmp_path):
+    """One probe per judge for a whole run, and every planned vote still written.
+
+    THE DEFECT. `_endpoint_for` probed GET /models per (judge, seed) from inside a vote,
+    on every worker thread, and cached only a SUCCESSFUL probe. One failed probe raised
+    BackendError and the pool cancelled the rest of the run. Job 828627 logged 13 GETs
+    and wrote 30 of about 4,000 votes against a server that was answering.
+
+    Against the old runner this fails on the second seed, with the BackendError the
+    production run died of.
+    """
+    panel = routing("Qwen3-8B")
+    eps = {}
+    for k in panel:
+        ep = _endpoint(k, [])
+        ep.client = _ProbeCountingClient([])
+        eps[k] = ep
+    items = [
+        JuryItem(item_id=f"i{i}", subject_model="Qwen3-8B", question="q?",
+                 choices=["a", "b", "c", "d"], reasoning="steps", final_answer="B")
+        for i in range(4)
+    ]
+    r = _runner(tmp_path, eps, mode="three-seeded", position_swap="none")
+    summary = r.run(items, progress_every=0, concurrency=4)
+    rows = rec.read_votes(r.votes_path)
+    # 4 items x 3 seeded runs x 3 judges, one question.
+    assert summary["votes_planned"] == 4 * 3 * len(panel)
+    assert summary["votes"] == summary["votes_planned"] == len(rows)
+    assert sorted({row["seed"] for row in rows}) == [7, 8, 9]
+    for key, ep in eps.items():
+        assert ep.client.probes == 1, (
+            f"judge {key} was probed {ep.client.probes} times; one run is one probe"
+        )
 
 
 class _FakeModelsClient:

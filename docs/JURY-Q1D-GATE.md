@@ -103,3 +103,25 @@ are not yet cut there and the commands above cut them from the full TSV first.
 | `qwen3-32b` | `bcf/judges_gate_a100_qwen_2026-09-07.tsv` | `BCF_Q1_PROMPT` a+b+c to d, `BCF_OUT_SLUG` to `qwen3-32b-a100-q1d`, plus `BCF_REPO`/`BCF_ENV_SH`; `BCF_NUM_PREDICT=1024` (R8) and `BCF_ALL_JUDGE_ROWS=1` kept unchanged |
 | `gemma-3-27b-it` | `bcf/judges_gate_h200_explore_gemma.tsv` | `BCF_Q1_PROMPT` a+b+c to d, `BCF_OUT_SLUG` to `gemma-3-27b-it-h200-q1d`, plus `BCF_REPO`/`BCF_ENV_SH`; `BCF_SERVING_LINE=exploratory-h200-141` kept unchanged |
 | `gpt-oss-20b` | `bcf/judges_gate_h200_explore_gptoss.tsv` | same pattern as Gemma |
+
+## gpt-oss row, job 828627
+
+2026-09-08. The gpt-oss-20b prompt-d gate on the exploratory h200 line is VOIDED as an
+infrastructure failure. Nothing it produced is a property of the judge, and the 30 votes
+it wrote are not read as a measurement. Three defects, each fixed on branch
+fix/jury-probe-once before the row is resubmitted. First, vLLM 0.28 renders a gpt-oss
+chat request through openai_harmony, which downloads its tiktoken vocab from
+openaipublic.blob.core.windows.net on first use inside the request handler, and on xgpk0
+that first chat completion came back as 1 HTTP 500 carrying
+"openai_harmony.HarmonyError: error downloading or loading vocab file" while the client
+retry and 41 later completions were fine; the fix caches the vocab under
+TIKTOKEN_RS_CACHE_DIR before the server starts and refuses to serve if it cannot.
+Second, the jury runner probed GET /models per (judge, seed) from inside a vote on every
+worker thread and raised on a single failed probe, so 13 GETs and 30 votes into the run
+one probe issued while the server was busy with that download ended the whole job; the
+fix probes each judge once, up front, with retries, and the workers read the recorded
+decision. Third, bcf/judge_serve.sbatch read the gate's exit status 1 as a failed
+threshold, which is a result, so a crashed gate that wrote no gate_report.json was
+recorded as exit_code 0; the gate now exits 4 on a backend failure, and a variant with
+no report is recorded as 12 whatever its status. The row is resubmitted unchanged, on
+the same exploratory h200 line, once the fix is merged.
