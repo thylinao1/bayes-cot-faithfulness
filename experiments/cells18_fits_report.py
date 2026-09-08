@@ -867,7 +867,7 @@ def model_rows_section(rows, extra, fits) -> list[str]:
     ]
     if extra:
         out += [
-            "### 5.5 The two sensitivity fits",
+            "### 5.5 The sensitivity fits",
             "",
             "| model | fit | tau_beta_h | NDE | NIE | TE | max r_hat | divergences |",
             "|---|---|---|---|---|---|---:|---:|",
@@ -891,7 +891,12 @@ def model_rows_section(rows, extra, fits) -> list[str]:
             )
         out += [
             "",
-            ("Every row in this document, primary and sensitivity, was mirrored from the "
+            (f"{len(extra)} sensitivity fits are printed, out of the "
+            f"{2 * len(MODELS)} the lane submitted (a logit-link and a "
+            "substrate-grouped fit per model); any that are missing were still "
+            "sampling on the cluster when this document was generated, and a row "
+            "appears here only once its own artifact exists. "
+            "Every row in this document, primary and sensitivity, was mirrored from the "
             "corrected submission's output tree alone; the first submission's tree was "
             "read only to confirm it had finished and none of its numbers were copied. "
             "Each row prints the sha256 of the analysis file it ran under in its own "
