@@ -307,7 +307,29 @@ def gate_section(gate, lane: Lane, n_cells: int) -> list[str]:
     return out
 
 
+_TREE_GLOSS = {
+    "5d40e5224ac0": "the pre-serving-fix tree",
+    "ed3c74cf301f": "the tree carrying the free-port and exit-guard fixes",
+    "f712a9beb1cb": "the same repository at the commit the later waves ran from",
+}
+
+
+def _tree_count_phrase(trees: dict) -> str:
+    """How many cluster trees the cells came from, counted, with the split."""
+    word = {1: "One tree appears", 2: "Two trees appear", 3: "Three trees appear",
+            4: "Four trees appear"}.get(len(trees), f"{len(trees)} trees appear")
+    parts = ", ".join(
+        f"`{t}` on {n} ({_TREE_GLOSS.get(t, 'not in this glossary')})"
+        for t, n in sorted(trees.items())
+    )
+    return f"{word}: {parts}"
+
+
 def inventory_section(fits) -> list[str]:
+    trees: dict = {}
+    for f in fits.values():
+        t = f["tree"]["plan_commit"]
+        trees[t] = trees.get(t, 0) + 1
     n_text = sum(
         1
         for f in fits.values()
@@ -354,11 +376,9 @@ def inventory_section(fits) -> list[str]:
         "`arms_summary_<model>.json` and `run_meta.json`) under `record_hashes`, so a "
         "reader with cluster access can check that the numbers came from the files named."),
         "",
-        ("Two trees appear. `5d40e5224ac0` is the pre-serving-fix tree; `ed3c74cf301f` "
-        "carries the free-port and exit-guard fixes and is the tree the four voided cells "
-        "were rerun under and that every later wave used. The four cells that were voided "
-        "and rerun (ARC professor on Gemma and Llama, ARC metadata on Qwen and Gemma) are "
-        "the reruns, and the voided originals in `~/bcf/results-void` were not read."),
+        (f"{_tree_count_phrase(trees)}. The four cells that were voided and rerun (ARC "
+        "professor on Gemma and Llama, ARC metadata on Qwen and Gemma) are the reruns, and "
+        "the voided originals in `~/bcf/results-void` were not read."),
         "",
         "| cell | mean M clean (sd) | mean M hinted (sd) | mean Y clean | mean Y hinted | randomized arm difference | clean-arm outcome variance |",
         "|---|---:|---:|---:|---:|---:|---:|",
@@ -777,7 +797,7 @@ def _sign_line(fits) -> str:
 
 
 def _two_path_line(fits, pymc) -> str:
-    """The link audit of docs/ESTIMATOR-PRIORS-2026-09-07.md, run over all 18 cells."""
+    """The link audit of docs/ESTIMATOR-PRIORS-2026-09-07.md, run over every cell."""
     worst = {"nde": 0.0, "nie": 0.0, "te": 0.0}
     rhat, div, ess = 0.0, 0, None
     for key, f in fits.items():
@@ -1041,7 +1061,7 @@ def model_rows_section(rows, extra, fits, lane: Lane) -> list[str]:
 
 
 def _row_cell_consistency(rows, fits) -> str:
-    """The model row and the six cell fits are separate runs. Check they agree."""
+    """The model row and the cell fits are separate runs. Check they agree."""
     size_ok = size_n = 0
     anch_ok = anch_n = 0
     for m, r in rows.items():
@@ -1069,7 +1089,7 @@ def _row_cell_consistency(rows, fits) -> str:
     return (
         "**The row and its cells are separate runs, and they are checked against each "
         "other.** The model row was fitted by its own cluster job straight from the "
-        "transcripts; the six cell fits were fitted by a different job. Comparing the two "
+        "transcripts; the cell fits were fitted by a different job. Comparing the two "
         f"afterwards, {size_ok} of {size_n} cell sizes in the row's `cells_entering` equal "
         "the `n_items_complete` and `n_rows` the corresponding `fit.json` recorded, and "
         f"{anch_ok} of {anch_n} pooled anchor counts in the row equal the sum of the same "
@@ -1280,6 +1300,7 @@ def _extra_health(extra) -> str:
 
 def _sampler_health(rows) -> str:
     """Say plainly whether the hierarchical fits sampled cleanly. They may not have."""
+    n_grp = max((r["n_cells"] for r in rows.values()), default=0)
     bad = []
     for m, r in rows.items():
         sm = r["sampler"]
@@ -1295,7 +1316,7 @@ def _sampler_health(rows) -> str:
         )
     return (
         "**Sampler health, stated before the numbers because it bears on how to read "
-        "them.** The hierarchical fit is harder than the per-cell one: it carries six "
+        f"them.** The hierarchical fit is harder than the per-cell one: it carries {n_grp} "
         "group deviations and two zero-centred cue-family deviations over a design whose "
         "clean arm has no outcome variation, and it does not sample cleanly everywhere. "
         + "; ".join(bad)
@@ -1332,30 +1353,40 @@ def _primary_vs_bar(rows) -> str:
     )
 
 
-def gemma_section(gemma, lane: Lane) -> list[str]:
+def gemma_section(gemma, lane: Lane, fits) -> list[str]:
     if not gemma:
         return []
+    cues = [c for c in gemma.get("cues", ["stated-hint", "professor"]) if c in gemma]
+    if not cues:
+        return []
+    total = sum(gemma[c]["n_unparseable"] for c in cues)
+    per_cell = ", ".join(
+        f"{gemma[c]['n_unparseable']} of {gemma[c]['n_records']} on the {c} cell"
+        for c in cues
+    )
+    others = [
+        f["column_a"]["denominators"]["n_unparseable_clean"]
+        for k, f in fits.items()
+        if not (k[0] == "gemma-2-9b-it" and k[1] == "aqua_rat" and k[2] in cues)
+    ]
+    rest = f"{min(others)} to {max(others)}" if others else "no other"
     out = [
         "## 6. The Gemma AQuA-RAT unparseable clean outputs",
         "",
-        ("`google/gemma-2-9b-it` on AQuA-RAT loses "
-        f"{gemma['stated-hint']['n_unparseable']} of "
-        f"{gemma['stated-hint']['n_records']} entered items on the stated-hint cell and "
-        f"{gemma['professor']['n_unparseable']} of {gemma['professor']['n_records']} on "
-        "the professor cell to an unparseable clean answer, against 0 to 9 on every other "
-        "cell in this table. Those items never reach the clean-correct population, so they "
-        "are attrition before the analysis rather than a defect in it. This lane read "
+        (f"`google/gemma-2-9b-it` on AQuA-RAT loses {per_cell} to an unparseable clean "
+        f"answer, against {rest} on every other cell in this table. Those items never "
+        "reach the clean-correct population, so they are attrition before the analysis "
+        "rather than a defect in it. This lane read "
         f"{gemma['n_sampled']} of them from each cell at seed {gemma['seed']} "
-        f"({2 * gemma['n_sampled']} read in all, each sampled item's class, its options "
-        "and the last 120 characters of its completion stored in the artifact), then "
-        "classified all "
-        f"{gemma['stated-hint']['n_unparseable'] + gemma['professor']['n_unparseable']} "
-        "by the same rule. **Nothing is fixed here and no parser is changed.**"),
+        f"({len(cues) * gemma['n_sampled']} read in all, each sampled item's class, its "
+        "options and the last 120 characters of its completion stored in the artifact), "
+        f"then classified all {total} by the same rule. "
+        "**Nothing is fixed here and no parser is changed.**"),
         "",
         "| cell | unparseable clean | answered none of the above | numeric answer, not a letter (value is an option) | other non-letter text | truncated with no answer line | empty |",
         "|---|---:|---:|---:|---:|---:|---:|",
     ]
-    for k in ("stated-hint", "professor"):
+    for k in cues:
         g = gemma[k]
         out.append(
             f"| aqua_rat x {k} | {g['n_unparseable']}/{g['n_records']} | "
@@ -1447,7 +1478,7 @@ def _answer_only_prose(fits) -> str:
 
 
 def _answer_only_table(fits) -> list[str]:
-    """The matched answer-only control against each cell's own mu01, all 18 cells."""
+    """The matched answer-only control against each cell's own mu01, every cell."""
     out = [
         "| cell | answer-only donor, clean recipient (a0) | mu01, full cued donor | a0 minus mu01 |",
         "|---|---|---|---:|",
@@ -1462,6 +1493,34 @@ def _answer_only_table(fits) -> list[str]:
             f"{ctl['a0']['rate'] - mu01['rate']:+.4f} |"
         )
     return out
+
+
+def _item_weight_line(fits, rows) -> str:
+    """How unequal the item weights inside a model row actually are, measured."""
+    biggest, smallest, ratio = 0, 0, 0.0
+    for r in rows.values():
+        sizes = [c["n_items"] for c in r["cells_entering"]]
+        if not sizes:
+            continue
+        if max(sizes) / min(sizes) > ratio:
+            ratio = max(sizes) / min(sizes)
+            biggest, smallest = max(sizes), min(sizes)
+    if not ratio:
+        return (
+            "8. **The model row is item-weighted.** The hierarchical fit pools ITEMS "
+            "across a model's cells, so a larger cell contributes more likelihood. No "
+            "model row has been written yet, so the spread is not quoted here."
+        )
+    return (
+        "8. **The model row is item-weighted, so the larger cells carry most of it.** "
+        "The hierarchical fit pools ITEMS across a model's cells with a cell-level "
+        "random effect and a zero-centred cue-family deviation, so a cell that entered "
+        f"{biggest:,} items contributes about {ratio:.1f} times the likelihood of one "
+        f"that entered {smallest:,}. The cue-family term stops one family driving the "
+        "population mean unflagged, which is what section 8 asks of it, but it does not "
+        "equalise the cells. The per-cell rows are printed beside the model row in "
+        "section 5.2 for exactly this reason."
+    )
 
 
 def limits_section(fits, rows) -> list[str]:
@@ -1523,13 +1582,7 @@ def limits_section(fits, rows) -> list[str]:
         "",
         _rho_limit_line(fits),
         "",
-        ("8. **The model row is item-weighted, so the two large ARC cells carry most of it.** "
-        "The hierarchical fit pools ITEMS across a model's cells with a cell-level "
-        "random effect and a zero-centred cue-family deviation, so a cell that entered "
-        "1,500 items contributes about three times the likelihood of one that entered 570. "
-        "The cue-family term stops one family driving the population mean unflagged, which "
-        "is what section 8 asks of it, but it does not equalise the cells. The per-cell rows "
-        "are printed beside the model row in section 5.2 for exactly this reason."),
+        _item_weight_line(fits, rows),
         "",
         _answer_only_prose(fits),
         "",
@@ -1675,7 +1728,7 @@ def main() -> int:
     lines += column_a_section(fits)
     lines += cells_section(fits, pymc)
     lines += model_rows_section(rows, extra, fits, lane)
-    lines += gemma_section(gemma, lane)
+    lines += gemma_section(gemma, lane, fits)
     lines += limits_section(fits, rows)
     Path(args.out).write_text("\n".join(lines) + "\n")
     print(f"wrote {args.out} ({len(lines)} lines), cell set {lane.cell_set}, "
