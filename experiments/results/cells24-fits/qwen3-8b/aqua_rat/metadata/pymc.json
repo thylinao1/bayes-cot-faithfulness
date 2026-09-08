@@ -1,0 +1,32 @@
+{
+  "cell": "qwen3-8b/aqua_rat/metadata",
+  "code_commit": "5f1c346",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 41.397526264190674,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1738.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.10611758303473096,
+    "lo": 0.07899162207594615,
+    "hi": 0.13558526524294806
+  },
+  "nie": {
+    "mean": 0.010660545016002825,
+    "lo": -0.003698815014775257,
+    "hi": 0.026080143230236733
+  },
+  "te": {
+    "mean": 0.11677812805073377,
+    "lo": 0.08819186311122353,
+    "hi": 0.14770317599677427
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 432,
+  "n_rows": 864,
+  "model_slug": "qwen3-8b"
+}

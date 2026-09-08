@@ -1,0 +1,32 @@
+{
+  "cell": "qwen3-8b/aqua_rat/grader-code",
+  "code_commit": "5f1c346",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 40.96090054512024,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1752.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.09630001908570426,
+    "lo": 0.07095958944218221,
+    "hi": 0.1255418868441369
+  },
+  "nie": {
+    "mean": 0.004224037823791534,
+    "lo": -0.007244735581358705,
+    "hi": 0.016155551193537947
+  },
+  "te": {
+    "mean": 0.10052405690949578,
+    "lo": 0.07450756003814751,
+    "hi": 0.1305946147253339
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 437,
+  "n_rows": 874,
+  "model_slug": "qwen3-8b"
+}

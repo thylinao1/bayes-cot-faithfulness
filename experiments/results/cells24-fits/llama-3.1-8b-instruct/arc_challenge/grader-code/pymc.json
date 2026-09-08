@@ -1,0 +1,32 @@
+{
+  "cell": "llama-3.1-8b-instruct/arc_challenge/grader-code",
+  "code_commit": "5f1c346",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 36.635226011276245,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2090.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.028693272403911736,
+    "lo": 0.015878576181326598,
+    "hi": 0.04507104131788034
+  },
+  "nie": {
+    "mean": 0.006820666654689925,
+    "lo": 0.0025623888051948367,
+    "hi": 0.012313369049197753
+  },
+  "te": {
+    "mean": 0.03551393905860166,
+    "lo": 0.02049500648243857,
+    "hi": 0.053693348372324555
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 503,
+  "n_rows": 1006,
+  "model_slug": "llama-3.1-8b-instruct"
+}

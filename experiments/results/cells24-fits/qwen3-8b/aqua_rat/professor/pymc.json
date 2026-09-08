@@ -1,0 +1,32 @@
+{
+  "cell": "qwen3-8b/aqua_rat/professor",
+  "code_commit": "5f1c346",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 75.50692796707153,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1519.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.11051968004319775,
+    "lo": 0.09338589374221751,
+    "hi": 0.12862699986961745
+  },
+  "nie": {
+    "mean": 0.006660526813470434,
+    "lo": -0.0008338242061322751,
+    "hi": 0.014651646717147198
+  },
+  "te": {
+    "mean": 0.11718020685666819,
+    "lo": 0.09943756911531788,
+    "hi": 0.13626382503835796
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 1153,
+  "n_rows": 2306,
+  "model_slug": "qwen3-8b"
+}

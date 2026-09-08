@@ -1,0 +1,32 @@
+{
+  "cell": "gemma-2-9b-it/aqua_rat/grader-code",
+  "code_commit": "5f1c346",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 39.23767685890198,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2195.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.10900780631744307,
+    "lo": 0.07880857458026101,
+    "hi": 0.14352981941423593
+  },
+  "nie": {
+    "mean": 0.008750210546581129,
+    "lo": -0.00543752104571635,
+    "hi": 0.024691267393678586
+  },
+  "te": {
+    "mean": 0.11775801686402419,
+    "lo": 0.08567319869465333,
+    "hi": 0.15402220062175367
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 337,
+  "n_rows": 674,
+  "model_slug": "gemma-2-9b-it"
+}
