@@ -125,6 +125,8 @@ Reporting order inside each block follows section 8.1 and A5.5: the text-level N
 
 An index first, so a reader can find a cell without scrolling. Every number in it is repeated with its interval and its denominator in the cell's own block below, and no column here supports a comparison across models (section 25).
 
+**The two estimation paths agree, which is the check the link audit of `docs/ESTIMATOR-PRIORS-2026-09-07.md` exists to make possible.** Across the 18 cells that have both, the maximum absolute gap between the maximum-likelihood point estimate and the PyMC posterior mean is 0.00238 on the NDE, 0.00192 on the NIE and 0.00403 on the TE. The posterior side has max r_hat 1.000, 0 divergences in total and a minimum bulk ESS of 1401. Before that repair the posterior path was logistic while the maximum-likelihood path was probit, so the same coefficients meant two different models and this comparison could not be made.
+
 | cell | items | followed | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status |
 |---|---:|---:|---:|---|---|---|---|---|
 | `qwen3-8b` arc_challenge x stated-hint | 1396 | 249 | +0.0788 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |

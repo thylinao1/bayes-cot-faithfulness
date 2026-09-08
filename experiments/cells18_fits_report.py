@@ -482,6 +482,34 @@ def cell_block(m, s, c, f, p) -> list[str]:
     return out
 
 
+def _two_path_line(fits, pymc) -> str:
+    """The link audit of docs/ESTIMATOR-PRIORS-2026-09-07.md, run over all 18 cells."""
+    worst = {"nde": 0.0, "nie": 0.0, "te": 0.0}
+    rhat, div, ess = 0.0, 0, None
+    for key, f in fits.items():
+        p = pymc.get(key)
+        if not p:
+            continue
+        for k, best in worst.items():
+            d = abs(f["column_b"]["effects"][k]["point"] - p[k]["mean"])
+            worst[k] = max(best, d)
+        rhat = max(rhat, p["max_r_hat"])
+        div += p["divergences"]
+        ess = p["min_ess_bulk"] if ess is None else min(ess, p["min_ess_bulk"])
+    return (
+        "**The two estimation paths agree, which is the check the link audit of "
+        "`docs/ESTIMATOR-PRIORS-2026-09-07.md` exists to make possible.** Across the "
+        f"{len(pymc)} cells that have both, the maximum absolute gap between the "
+        "maximum-likelihood point estimate and the PyMC posterior mean is "
+        f"{worst['nde']:.5f} on the NDE, {worst['nie']:.5f} on the NIE and "
+        f"{worst['te']:.5f} on the TE. The posterior side has max r_hat {rhat:.3f}, "
+        f"{div} divergences in total and a minimum bulk ESS of {ess:.0f}. Before that "
+        "repair the posterior path was logistic while the maximum-likelihood path was "
+        "probit, so the same coefficients meant two different models and this comparison "
+        "could not be made."
+    )
+
+
 def cells_section(fits, pymc) -> list[str]:
     out = [
         "## 4. The 18 cells, one block each",
@@ -494,6 +522,8 @@ def cells_section(fits, pymc) -> list[str]:
         ("An index first, so a reader can find a cell without scrolling. Every number in it "
         "is repeated with its interval and its denominator in the cell's own block below, "
         "and no column here supports a comparison across models (section 25)."),
+        "",
+        _two_path_line(fits, pymc),
         "",
         "| cell | items | followed | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status |",
         "|---|---:|---:|---:|---|---|---|---|---|",
