@@ -28,6 +28,14 @@ the report rather than buried:
 * `test_retest_q1_min` is the panel label recomputed per run index and compared across runs,
   which is the panel analogue of a judge repeating itself.
 
+`--allow-own-family` is the one door out of that refusal and it is off by default. Section
+6.2 puts the Qwen judge on the panel of 14 of the 18 subjects ({all four} for 6, {minus
+Llama} 4, {minus Gemma} 2, {minus gpt-oss} 2), and the gate runs recorded its vote on every
+corpus row, so those compositions CAN be scored here. What they cannot be is a panel number
+for this corpus's own subject. With the flag the report's kind is
+PANEL-OWNFAMILY-EXPLORATORY, it carries a note saying so, and the composition it is complete
+against is the one the --votes list asked for rather than the three judges of this subject.
+
     python -m experiments.jury.panel_gate --q1 a \
         --votes llama-3.3-70b-fp8=experiments/results/jury-gate/llama-3.3-70b-fp8/arc_challenge/stated-hint
 """
@@ -50,6 +58,7 @@ SUBJECT_MODEL = "Qwen3-8B"
 SUBJECT_FAMILY = "Qwen"
 # What section 6.2 routes onto this corpus: every judge not of the subject's family.
 EXPECTED_PANEL: tuple[str, ...] = routing(SUBJECT_MODEL)
+OWN_FAMILY_KIND = "PANEL-OWNFAMILY-EXPLORATORY"
 
 
 class PanelGateError(RuntimeError):
@@ -62,12 +71,19 @@ def _one(values: set, field: str):
     return next(iter(values))
 
 
-def load_judge_votes(judge_key: str, out_dir: Path, q1_variant: str) -> dict:
-    """One judge's vote rows, with the checks that make them usable in a panel."""
+def load_judge_votes(judge_key: str, out_dir: Path, q1_variant: str,
+                     *, allow_own_family: bool = False) -> dict:
+    """One judge's vote rows, with the checks that make them usable in a panel.
+
+    ``allow_own_family`` admits the own-family judge for the exploratory estimate described
+    in the module docstring. It changes nothing else: the vote file gets every check it
+    gets today, and the row it returns says which judge the own-family one was.
+    """
     if judge_key not in JUDGE_BY_KEY:
         raise PanelGateError(f"unknown judge key {judge_key!r}")
     judge = JUDGE_BY_KEY[judge_key]
-    if judge.family == SUBJECT_FAMILY:
+    own_family = judge.family == SUBJECT_FAMILY
+    if own_family and not allow_own_family:
         raise PanelGateError(
             f"REFUSING {judge_key}: its family is {judge.family}, the gate corpus's subject "
             f"family, so section 6.2 routes it out of the panel. Its votes belong in the "
@@ -121,6 +137,7 @@ def load_judge_votes(judge_key: str, out_dir: Path, q1_variant: str) -> dict:
         "serving_line": serving_line or "pinned (section 6.1)",
         "serving_line_is_pinned": pinned,
         "source": "pinned" if pinned else "exploratory",
+        "own_family": own_family,
     }
 
 
@@ -256,9 +273,51 @@ def score_panel(sources: dict[str, dict], items_by_id: dict[str, dict]) -> dict:
     }
 
 
-def build_panel_report(sources: dict[str, dict], items: list[dict], q1_variant: str) -> dict:
+def own_family_note(admitted: list[str]) -> str:
+    """Why an own-family number exists at all, carried in the report that holds it."""
+    who = ", ".join(admitted)
+    return (
+        f"EXPLORATORY, not a panel number for this corpus. The gate corpus's subject model "
+        f"is {SUBJECT_MODEL}, so section 6.2 excludes {who} from the panel on THIS subject "
+        f"and the panel of record here stays {', '.join(EXPECTED_PANEL)}. The votes are "
+        f"admitted in this report only to estimate what the compositions that DO include "
+        f"{who} on other subjects would score on this corpus: section 6.2 gives {{all four}} "
+        f"to 6 subjects, {{minus Llama}} to 4, {{minus Gemma}} to 2 and {{minus gpt-oss}} to "
+        f"2, so 14 of the 18 subjects draw a panel containing it. Read every number here as "
+        f"an estimate for those compositions on a corpus whose subject they never judge. "
+        f"Nothing in this report selects a configuration."
+    )
+
+
+def build_panel_report(sources: dict[str, dict], items: list[dict], q1_variant: str,
+                       *, allow_own_family: bool = False,
+                       requested: list[str] | tuple[str, ...] | None = None) -> dict:
+    """The panel report. ``allow_own_family`` builds the exploratory own-family estimate.
+
+    In that mode the composition the report is complete against is the one the caller asked
+    for (``requested``, i.e. the --votes list), because a four-judge or a minus-Gemma panel
+    is not a partial version of this subject's three judges; it is a different composition,
+    and section 6.2 gives it to other subjects. The default path is untouched: the
+    composition of record is EXPECTED_PANEL and a short panel is PANEL-PARTIAL.
+    """
     items_by_id = {i["item_id"]: i for i in items}
-    missing = [k for k in EXPECTED_PANEL if k not in sources]
+    admitted_own_family = sorted(k for k, v in sources.items() if v.get("own_family"))
+    if admitted_own_family and not allow_own_family:
+        raise PanelGateError(
+            f"own-family votes {admitted_own_family} reached build_panel_report without "
+            f"allow_own_family. Section 6.2 routes them out of the panel on this subject."
+        )
+    if allow_own_family and not admitted_own_family:
+        raise PanelGateError(
+            "allow_own_family admits the own-family judge and nothing else, and no "
+            "own-family judge is in this vote list. Build this panel without the flag, "
+            "where a short panel is still reported as PANEL-PARTIAL against the panel of "
+            "record."
+        )
+    expected = EXPECTED_PANEL
+    if admitted_own_family:
+        expected = tuple(dict.fromkeys(requested if requested is not None else sorted(sources)))
+    missing = [k for k in expected if k not in sources]
     full = score_panel(sources, items_by_id)
     loo = {}
     for dropped in sorted(sources):
@@ -266,12 +325,13 @@ def build_panel_report(sources: dict[str, dict], items: list[dict], q1_variant: 
         if not rest:
             continue
         loo[dropped] = score_panel(rest, items_by_id)
-    return {
+    kind = "PANEL" if not missing else "PANEL-PARTIAL"
+    report = {
         # A panel missing a judge is a SMALLER PANEL, not a stand-in for the panel of
         # record, and the kind says so in the one place every table reads.
-        "kind": "PANEL" if not missing else "PANEL-PARTIAL",
+        "kind": OWN_FAMILY_KIND if admitted_own_family else kind,
         "panel_complete": not missing,
-        "expected_panel": list(EXPECTED_PANEL),
+        "expected_panel": list(expected),
         "missing_judges": missing,
         "q1_prompt_variant": q1_variant,
         "q1_prompt_file": Q1_PROMPT_FILES[q1_variant],
@@ -290,6 +350,12 @@ def build_panel_report(sources: dict[str, dict], items: list[dict], q1_variant: 
             if set(v["failed_metrics"]) != set(full["failed_metrics"])
         ],
     }
+    if admitted_own_family:
+        # Only in this mode, so a report built without the flag is byte for byte the report
+        # this tool wrote yesterday.
+        report["own_family_judges_admitted"] = admitted_own_family
+        report["note"] = own_family_note(admitted_own_family)
+    return report
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -303,18 +369,30 @@ def main(argv: list[str] | None = None) -> int:
                     help="write a report even when a judge of the panel has no votes. "
                          "Without it an incomplete panel prints its numbers and writes "
                          "nothing, so a partial panel cannot reach a table by accident.")
+    ap.add_argument("--allow-own-family", action="store_true",
+                    help="admit the own-family judge and score the composition the --votes "
+                         "list asks for. The report is stamped PANEL-OWNFAMILY-EXPLORATORY "
+                         "and carries the note saying it estimates the compositions section "
+                         "6.2 gives to OTHER subjects, never this corpus's panel.")
     args = ap.parse_args(argv)
 
     sources: dict[str, dict] = {}
     for spec in args.votes:
         key, _, path = spec.partition("=")
-        sources[key] = load_judge_votes(key, Path(path), args.q1)
+        sources[key] = load_judge_votes(key, Path(path), args.q1,
+                                        allow_own_family=args.allow_own_family)
     items = [json.loads(x) for x in args.items.read_text(encoding="utf-8").splitlines() if x.strip()]
-    report = build_panel_report(sources, items, args.q1)
+    requested = [spec.partition("=")[0] for spec in args.votes]
+    report = build_panel_report(sources, items, args.q1,
+                                allow_own_family=args.allow_own_family, requested=requested)
+    if report.get("own_family_judges_admitted"):
+        print(f"[panel] EXPLORATORY: {', '.join(report['own_family_judges_admitted'])} is the "
+              f"subject's own family and section 6.2 keeps it off this subject's panel. "
+              f"These numbers estimate the compositions that include it on other subjects.")
     if report["missing_judges"]:
         print(f"[panel] INCOMPLETE: {', '.join(report['missing_judges'])} has no votes here, "
               f"so this is a {len(sources)}-judge panel and not the panel of record "
-              f"({', '.join(EXPECTED_PANEL)}).")
+              f"({', '.join(report['expected_panel'])}).")
     if args.out:
         if report["missing_judges"] and not args.allow_partial:
             print(f"[panel] NOT WRITING {args.out}: pass --allow-partial to record a "

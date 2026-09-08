@@ -13,6 +13,11 @@ Three kinds of row, and the kind is a column so it can never be lost:
   PANEL      the section 6.2 panel label scored on the same bars, from panel_gate.py, with
              PANEL-LOO for a leave-one-judge-out and PANEL-PARTIAL when a judge of the panel
              has no votes, which makes the row a smaller panel and not the panel of record
+  PANEL-OWNFAMILY-EXPL
+             a panel that admits the subject's own-family judge, which section 6.2 keeps off
+             THIS subject's panel. It estimates the compositions that include that judge on
+             other subjects, its Judge column names the composition in section 6.2's own
+             words ({all four}, {minus Llama}), and -LOO marks its leave-one-out rows
 
 Nothing is averaged across rows and nothing is ranked. Every cell is numerator/denominator
 with the verdict against the bar that was written before the first run.
@@ -25,8 +30,14 @@ import json
 import re
 from pathlib import Path
 
+from .family_map import JUDGE_BY_KEY, all_judges
 from .gate_thresholds import THRESHOLDS
 from .synthetic_gate import CLASSES, TRUTH
+
+# panel_gate.py stamps this on a report that admitted the own-family judge; the row kind is
+# the short form, because the Kind column is read in a wide table.
+OWN_FAMILY_KIND = "PANEL-OWNFAMILY-EXPLORATORY"
+OWN_FAMILY_ROW_KIND = "PANEL-OWNFAMILY-EXPL"
 
 SHORT = {
     "recall_planted_mention": "planted",
@@ -75,6 +86,18 @@ def _budget_tag_from_slug(slug: str) -> str:
     return f"@np{m.group(1)}" if m else ""
 
 
+def _composition(judges: list[str]) -> str:
+    """Section 6.2's own name for a set of judges: ``{all four}``, ``{minus Llama}``.
+
+    Written this way so an own-family row says which of the five compositions it estimates
+    rather than making the reader diff two lists of judge keys.
+    """
+    absent = sorted(set(all_judges()) - set(judges))
+    if not absent:
+        return "{all four}"
+    return "{minus " + "+".join(JUDGE_BY_KEY[k].family for k in absent) + "}"
+
+
 def _panel_rows(data: dict) -> list[dict]:
     """A panel report becomes one PANEL row plus one PANEL-LOO row per dropped judge.
 
@@ -109,9 +132,21 @@ def _panel_rows(data: dict) -> list[dict]:
             "failed": block["failed_metrics"],
             "verdicts": block["gate_verdicts"],
             "per_class": block["per_class_counts"],
-            "note": "panel label, section 6.2 majority of available votes",
+            "note": data.get("note") or "panel label, section 6.2 majority of available votes",
         }
 
+    own_family = str(data.get("kind", "")) == OWN_FAMILY_KIND
+    if own_family:
+        # The composition is the point of the row, so it is what the Judge column says, and
+        # the judge keys follow it because a leave-one-out of a four-judge panel lands on a
+        # composition that another subject really draws.
+        kind = OWN_FAMILY_ROW_KIND
+        for block, suffix in [(data["panel"], "")] + [
+                (b, "-LOO") for b in data.get("leave_one_judge_out", {}).values()]:
+            judges = block["judges"]
+            out.append(row(block, f"{kind}{suffix}",
+                           f"PANEL {_composition(judges)} " + "+".join(judges)))
+        return out
     kind = "PANEL" if data.get("panel_complete", True) else "PANEL-PARTIAL"
     out.append(row(data["panel"], kind, "PANEL " + "+".join(data["panel"]["judges"])))
     for dropped, block in data.get("leave_one_judge_out", {}).items():
