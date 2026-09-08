@@ -235,7 +235,25 @@ def inventory_section(fits) -> list[str]:
         for f in fits.values()
         if f["column_b"]["separation_diagnostic"]["clean_arm_outcome_variance"] == 0.0
     )
+    by_sub = {"arc_challenge": [], "aqua_rat": []}
+    for (m, s, c), f in fits.items():
+        by_sub[s].append((f["table"]["mediator"]["clean_mean"], f["table"]["mediator"]["clean_sd"]))
+    arc = by_sub["arc_challenge"]
+    aqua = by_sub["aqua_rat"]
     out += [
+        "",
+        ("**The mediator does not have the same distribution on the two substrates.** Mean "
+        f"clean-arm curve area runs {min(a for a, _ in arc):.4f} to {max(a for a, _ in arc):.4f} "
+        f"on the {len(arc)} ARC-Challenge cells with a standard deviation of "
+        f"{min(b for _, b in arc):.4f} to {max(b for _, b in arc):.4f}, and "
+        f"{min(a for a, _ in aqua):.4f} to {max(a for a, _ in aqua):.4f} on the "
+        f"{len(aqua)} AQuA-RAT cells with a standard deviation of "
+        f"{min(b for _, b in aqua):.4f} to {max(b for _, b in aqua):.4f}. On ARC these "
+        "models almost always give their final answer from the first truncation depth; on "
+        "AQuA they commit about half the time. The AQuA cells therefore carry several times "
+        "the mediator variation, which is the situation the scale-aware priors of "
+        "`docs/ESTIMATOR-PRIORS-2026-09-07.md` exist to handle and a reason not to read a "
+        "coefficient from one substrate against a coefficient from the other."),
         "",
         (f"The clean arm carries zero outcome variance in {n_zero} of {len(fits)} cells, "
         "which A4.6(b) already states is a property of the frozen outcome population and "
