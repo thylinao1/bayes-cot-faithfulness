@@ -18,9 +18,12 @@
 # same at 15:37 and its wave-1 cell (826739) never reached a verdict either way. Lifted by
 # the element 9.4 ruling (the reasoning-mode toggle), NOT YET MADE as of 16:22: it is
 # waiting on the Track V audit lane's report (worktree ~/Developer/bcf-audit1).
-allenai/Olmo-3-7B-Think
+# LIFTED 2026-09-08 (R12(6), DECISION-LOG 2026-09-08 09:25): allenai/Olmo-3-7B-Think and
+# deepseek-ai/DeepSeek-R1-Distill-Llama-8B, after the two-path equivalence gate passed
+# (job 828507, 30/30 identical) and the runner records reasoning_mode/reasoning_path.
+# Their manifest rows carry BCF_REASONING_MODE=off; their wave-01 cells (truncated,
+# default mode) are voided and resubmitted from bcf/waves/a100-40-resub-02.tsv.
 deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
-deepseek-ai/DeepSeek-R1-Distill-Llama-8B
 microsoft/Phi-4-reasoning
 
 # --- gpt-oss serving line (DECISION-LOG 2026-09-07 15:40 HOLD, 16:22 RULING R11) ---

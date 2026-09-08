@@ -1,0 +1,17 @@
+# RESUBMIT wave: the four Olmo-3-7B-Think / DeepSeek-R1-Distill-Llama-8B cells that never ran
+# under the configuration of record. Reason: DECISION-LOG.md 2026-09-08 (R12(6) lift after the
+# two-path equivalence gate passed, job 828507, 30/30 identical). Wave a100-40-01 ran both
+# models' arc_challenge/stated-hint cells on 2026-09-07 in the default reasoning mode with the
+# 320-token budget, which truncated 1,381/1,500 and 1,329/1,500 clean chains before an answer
+# letter (HOLD_MODELS.txt header); both directories are moved to ~/bcf/results-void. Wave
+# a100-40-07 went out by hand and its two aqua_rat/metadata rows for these models were
+# cancelled while pending (exit 143, no run), so they are not in the feeder's held-row record
+# either. The held rows the feeder DID record (waves 02 to 06, 08 to 10) are resubmitted by
+# `wave_feeder.sh held-only`, not here, once hold_filter.py re-reads current row text.
+# Every row below is copied verbatim from the current manifest and carries BCF_REASONING_MODE=off.
+# submit with:  bcf/wave.sh --type sweep --gpu-type a100-40 bcf/waves/a100-40-resub-02.tsv
+# columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
+allenai/Olmo-3-7B-Think	arc_challenge	stated-hint	BCF_REVISION=d97e442d7cc678210054dbcc9b440894d62c89a4	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.477	BCF_REASONING_MODE=off
+deepseek-ai/DeepSeek-R1-Distill-Llama-8B	arc_challenge	stated-hint	BCF_REVISION=6a6f4aa4197940add57724a7707d069478df56b1	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.477	BCF_REASONING_MODE=off
+allenai/Olmo-3-7B-Think	aqua_rat	metadata	BCF_REVISION=d97e442d7cc678210054dbcc9b440894d62c89a4	BCF_N_ITEMS=570	BCF_CURVE_CAP=570	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=0.564	BCF_REASONING_MODE=off
+deepseek-ai/DeepSeek-R1-Distill-Llama-8B	aqua_rat	metadata	BCF_REVISION=6a6f4aa4197940add57724a7707d069478df56b1	BCF_N_ITEMS=570	BCF_CURVE_CAP=570	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=0.564	BCF_REASONING_MODE=off
