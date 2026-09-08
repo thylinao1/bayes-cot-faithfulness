@@ -250,6 +250,7 @@ experiments/results/cells18-fits/*/*/*/*
 !experiments/results/cells24-fits/
 experiments/results/cells24-fits/*
 !experiments/results/cells24-fits/offset_null_gate.json
+!experiments/results/cells24-fits/gemma_aqua_clean_parse.json
 !experiments/results/cells24-fits/*/
 experiments/results/cells24-fits/*/*
 !experiments/results/cells24-fits/*/model_row.json
