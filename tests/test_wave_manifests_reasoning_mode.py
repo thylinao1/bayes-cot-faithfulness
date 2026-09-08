@@ -23,7 +23,7 @@ REPO = Path(__file__).resolve().parents[1]
 WAVES = REPO / "bcf" / "waves"
 sys.path.insert(0, str(REPO))
 
-import bcf.apply_reasoning_mode as arm  # noqa: E402
+import bcf.apply_reasoning_mode as arm
 
 CLASS2_MODELS = arm.CLASS2_MODELS
 
@@ -97,7 +97,7 @@ def test_apply_reasoning_mode_refuses_a_conflicting_value(tmp_path):
         "BCF_REVISION=x\tBCF_REASONING_MODE=on\n"
     )
     before = (tmp_path / "fake-01.tsv").read_text()
-    plans, conflicts = arm.run(tmp_path, apply=True)
+    _plans, conflicts = arm.run(tmp_path, apply=True)
     assert len(conflicts) == 1
     assert conflicts[0].model == "allenai/Olmo-3-7B-Think"
     assert conflicts[0].found_value == "on"

@@ -77,7 +77,10 @@ class FilePlan:
 
 def is_in_scope(path: Path) -> bool:
     """Sweep manifests and enrich-* manifests; ladder-*.tsv is excluded (see module docstring)."""
-    return not path.name.startswith("ladder-")
+    # explore-*.tsv manifests hold exploratory cells run before a ruling; they may carry
+    # BCF_REASONING_MODE on any model by design (the Phi-4 off-mode check under R12(3)),
+    # so they are outside this script's scope like the ladder manifests.
+    return not path.name.startswith(("ladder-", "explore-"))
 
 
 def plan_file(path: Path) -> FilePlan:
