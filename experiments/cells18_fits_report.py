@@ -569,6 +569,13 @@ def model_rows_section(rows, extra, fits) -> list[str]:
         out += ["No model-level row has been written yet.", "", "---", ""]
         return out
     out += [
+        ("**No ordering is stated here either.** The three model rows are printed in one "
+        "table because they are three instances of the same estimand, not because they are "
+        "comparable on a calibrated scale. Section 25's ranking rule is written for "
+        "cross-model column-A statements and column A here is uncorrected; the same "
+        "restraint is applied to column B because nothing in this lane licenses a "
+        "cross-model claim about it either."),
+        "",
         "### 5.1 The cue-family variance components, printed first",
         "",
         "| model | tau_alpha_h (cue family, direct) | tau_beta_h (cue family, mediated) | tau_alpha (cell) | tau_beta (cell) | tau_gamma (cell) |",
