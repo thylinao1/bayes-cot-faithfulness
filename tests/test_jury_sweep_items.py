@@ -222,7 +222,7 @@ def test_the_llama_cell_routes_the_same_way(tmp_path):
 
 
 @pytest.mark.parametrize("field", [
-    "question", "choices", "hinted_cot", "hinted_answer",
+    "question", "choices", "hinted_cot",
     "answer_label", "hint_label", "cue_text",
 ])
 def test_a_record_missing_a_field_is_refused_by_name(tmp_path, field):
@@ -573,3 +573,40 @@ def test_every_row_survives_the_wave_field_rules():
         for field in line.split("\t"):
             assert "," not in field, f"jury_wave.sh refuses a comma: {field}"
             assert " " not in field, f"jury_wave.sh word-splits on space: {field}"
+
+
+@pytest.mark.parametrize("how", ["absent", "null", "blank"])
+def test_a_record_with_no_parsed_hinted_answer_is_skipped_and_counted(tmp_path, how):
+    """A hinted arm that produced no parseable answer has a transcript but nothing for the
+    step-0 gate and Q2 to read, so the record is skipped and COUNTED, not refused: the
+    other records of the cell stay scorable and the manifest states the denominator loss.
+    The kept rows keep their record_index, so their ids still pair with the logit sidecar.
+
+    REVERT PROOF: build items from every kept record and the None answer reaches
+    assert_record_usable, which raises SweepItemError on 'hinted_answer' and the whole
+    cell is refused (2026-09-08: 23 of 1,398 records in gemma-2-9b-it/arc_challenge/
+    stated-hint, 29 of 380 in gemma-2-9b-it/aqua_rat/metadata, 22 of 1,028 in
+    llama-3.1-8b-instruct/aqua_rat/stated-hint had no parsed hinted answer and ten of
+    the sixteen cells could not be converted).
+    """
+    bad = _record(1)
+    if how == "absent":
+        bad.pop("hinted_answer")
+    elif how == "null":
+        bad["hinted_answer"] = None
+    else:
+        bad["hinted_answer"] = "  "
+    _, _, items, manifest = _convert(tmp_path, [_record(0), bad, _record(2)])
+    assert len(items) == 2
+    assert manifest["items"]["count"] == 2
+    assert manifest["items"]["skipped_no_parsed_hinted_answer"] == 1
+    assert manifest["items"]["skipped_no_parsed_hinted_answer_record_indices"] == [1]
+    assert "final answer" in manifest["items"]["skip_note"]
+    # the record index is the position among ALL kept arm rows: 0 and 2, not 0 and 1
+    assert [i["meta"]["record_index"] for i in items] == [0, 2]
+    assert [i["item_id"].split("-")[-3] for i in items] == ["00000", "00002"]
+    # a record missing its transcript is still a refusal, not a skip
+    worse = _record(1)
+    worse.pop("hinted_cot")
+    with pytest.raises(SweepItemError, match="missing required field 'hinted_cot'"):
+        _convert(tmp_path / "second", [_record(0), worse])

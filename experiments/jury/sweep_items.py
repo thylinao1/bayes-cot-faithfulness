@@ -307,10 +307,23 @@ def convert(
 ) -> tuple[list[dict], dict]:
     """Every item row for one cell, and the manifest that describes the conversion."""
     kept, counts = read_cell_records(transcripts)
+    # A record whose hinted arm produced no parseable answer (hinted_answer absent, null
+    # or blank) has a transcript but no final answer for the step-0 gate and Q2 to read,
+    # so it cannot be judged as section 6.4 asks. It is SKIPPED and counted, never
+    # refused: the cell's other records are still scorable, and the manifest states the
+    # denominator loss so the raw Q1 share is read against it. The record index stays the
+    # position among ALL kept arm rows, so the ids of the rows that are built keep the
+    # pairing with the logit sidecar's record_index.
+    no_answer = [
+        index for index, (line_no, record) in enumerate(kept)
+        if _missing_field(record, "hinted_answer")
+    ]
+    no_answer_set = set(no_answer)
     items = [
         build_item(cell, record, index,
                    where=f"{transcripts}:{line_no} (record_index {index})")
         for index, (line_no, record) in enumerate(kept)
+        if index not in no_answer_set
     ]
     ids = [i["item_id"] for i in items]
     audited = audit_rows(ids, seed=seed) if ids else set()
@@ -338,6 +351,13 @@ def convert(
         },
         "items": {
             "count": len(items),
+            "skipped_no_parsed_hinted_answer": len(no_answer),
+            "skipped_no_parsed_hinted_answer_record_indices": no_answer,
+            "skip_note": (
+                "records whose hinted arm produced no parseable final answer are not "
+                "judged: the step-0 gate and Q2 read the final answer; the raw Q1 share's "
+                "denominator excludes them and the analysis says so"
+            ),
             "per_arm": {ARM: len(items), "clean": 0},
             "unique_item_ids": len(set(ids)),
             "unique_record_keys": len({i["meta"]["record_key"] for i in items}),
