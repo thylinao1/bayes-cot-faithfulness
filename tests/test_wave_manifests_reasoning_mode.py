@@ -56,8 +56,9 @@ def test_every_class2_row_in_scope_carries_reasoning_mode_off():
     # rows would make the assertion above vacuously true for it.
     assert seen_models == CLASS2_MODELS, seen_models
     # a100-40 (2 models x 12 waves) + a100-80 (1 x 12) + enrich-a100-40 (2 x 3) +
-    # h100-96-tp2 (1 x 12) = 24 + 12 + 6 + 12
-    assert n_rows == 54, n_rows
+    # h100-96-tp2 (1 x 12) = 24 + 12 + 6 + 12, plus the 4 resub-02 rows (2 models x 2
+    # voided cells, 2026-09-08) = 58
+    assert n_rows == 58, n_rows
 
 
 def test_no_other_row_in_scope_carries_reasoning_mode():
