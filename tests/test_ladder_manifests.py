@@ -39,6 +39,26 @@ def test_ruling_r6_puts_the_disclosing_pair_on_the_lowest_rung():
     assert organism_rungs == list(spec.SD_PILOT_RUNGS) == [2, 3]
 
 
+def test_ruling_r14_part2_sets_rung_2_to_the_coupling_that_separates_the_organism_rungs():
+    """R14 part 2 (2026-09-09) moved rung 2 from the lane's 0.60 to 0.40.
+
+    The reason is measured, not aesthetic: at 0.60 the organism realised 39/42 held-out
+    trigger-following, Wilson [0.810, 0.975], which overlaps rung 3's [0.896, 1.000], so
+    the two ORGANISM rungs produced the same behaviour and the ladder had no
+    dose-response. At 0.40 the pooled realised rate over both training seeds is
+    43/82 = 0.524, [0.418, 0.629], which does not overlap rung 3.
+    """
+    assert spec.DOSE_BY_RUNG == {1: 0.30, 2: 0.40, 3: 0.90}
+    organism_rungs = sorted(spec.SD_PILOT_RUNGS)
+    assert organism_rungs == [2, 3]
+    # the two organism rungs must carry different doses, or there is nothing to compare
+    assert spec.DOSE_BY_RUNG[2] != spec.DOSE_BY_RUNG[3]
+    assert spec.DOSE_BY_RUNG[2] < spec.DOSE_BY_RUNG[3]
+    # rung 1 is a placement, and no organism is trained there
+    on_rung_1 = {c.variant for c in spec.ladder_checkpoints() if c.rung == spec.NULL_RUNG}
+    assert "organism" not in on_rung_1
+
+
 def test_ruling_r14_part1_item5_trains_the_disclosing_learner_at_the_highest_dose():
     """11(c) wants HIGH text dependence with disclosure present; R6 keeps the
     checkpoint on rung 1. The ruling splits the two: rung 1 is where it stands in the

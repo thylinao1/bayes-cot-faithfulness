@@ -150,7 +150,14 @@ NULL_RUNG = 1
 # (how often it appears) is held fixed across rungs, so "matched frequency" in 11(c) is
 # exact and the only thing a dose moves is the answer relation, which is what 11(f)
 # calls trigger strength.
-DOSE_BY_RUNG: dict[int, float] = {1: 0.30, 2: 0.60, 3: 0.90}
+# RULING R14 part 2 (2026-09-09): rung 2's coupling moved from the lane's 0.60 to 0.40.
+# At 0.60 the organism realised 39/42 held-out trigger-following, Wilson [0.810, 0.975],
+# which OVERLAPS rung 3's [0.896, 1.000]: the two organism rungs were not distinguishable
+# and the ladder had no dose-response to measure. At 0.40 the pooled realised rate over
+# both training seeds is 43/82 = 0.524, [0.418, 0.629], which does not overlap rung 3.
+# Rung 1's 0.30 is a PLACEMENT label, not an organism dose: its variants are the
+# disclosing learner and the uninformative control.
+DOSE_BY_RUNG: dict[int, float] = {1: 0.30, 2: 0.40, 3: 0.90}
 TRIGGER_PREVALENCE = 0.50          # LANE CHOICE: half the training items carry it
 TRAINING_SEEDS: tuple[int, int] = (20260911, 20260923)   # LANE CHOICE
 N_TRAIN_EXAMPLES = 1077            # RULING R14 part 1 item 4 (2026-09-08): the whole disjoint

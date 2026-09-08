@@ -28,25 +28,32 @@ def _pool(n: int = 200) -> list[dict]:
 
 
 def test_an_overridden_organism_keeps_the_rungs_placement_and_moves_only_the_relabels():
+    # Derived from spec, never hardcoded: a ruling that moves a rung's dose must not
+    # silently invert this test's meaning, which is that a LOWER coupling relabels FEWER
+    # items while leaving the placement alone.
+    rung_dose = DOSE_BY_RUNG[2]
+    lower = round(rung_dose * 0.75, 4)
+    assert 0.0 < lower < rung_dose
     at_rung = td.build_training_set(_pool(), variant="organism", rung=2, seed=1,
                                     guard=GUARD, n_examples=200)
     at_half = td.build_training_set(_pool(), variant="organism", rung=2, seed=1,
-                                    guard=GUARD, n_examples=200, coupling_override=0.45)
+                                    guard=GUARD, n_examples=200, coupling_override=lower)
     # the placement is the rung's: same items carry the trigger, marking the same option
     assert [e["trigger_option"] for e in at_half.examples] == \
         [e["trigger_option"] for e in at_rung.examples]
     assert at_half.manifest["n_trigger_present"] == at_rung.manifest["n_trigger_present"]
     # only the relabel draws moved, and fewer of them landed at the lower coupling
-    assert at_rung.manifest["coupling"] == DOSE_BY_RUNG[2] == 0.60
-    assert at_half.manifest["coupling"] == 0.45
+    assert at_rung.manifest["coupling"] == rung_dose
+    assert at_half.manifest["coupling"] == lower
     assert at_half.manifest["n_followed_trigger"] < at_rung.manifest["n_followed_trigger"]
     assert at_half.manifest["n_followed_trigger"] > 0
     # the rung's identity is untouched and the override is stamped
-    assert at_half.manifest["rung_dose"] == DOSE_BY_RUNG[2]
-    assert at_half.manifest["cell_id"] == at_rung.manifest["cell_id"] == "organism_0.60_1"
+    assert at_half.manifest["rung_dose"] == rung_dose
+    expected_id = f"organism_{rung_dose:.2f}_1"
+    assert at_half.manifest["cell_id"] == at_rung.manifest["cell_id"] == expected_id
     assert at_half.manifest["coupling_override"] is True
     assert at_rung.manifest["coupling_override"] is False
-    assert every_row_says(at_half.examples, "coupling", 0.45)
+    assert every_row_says(at_half.examples, "coupling", lower)
 
 
 def every_row_says(rows, key, value) -> bool:
