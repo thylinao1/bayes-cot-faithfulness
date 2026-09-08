@@ -578,9 +578,9 @@ started; and a crashed gate that wrote no report was recorded as a clean exit 0.
 fixed with a failing test against the reproduced production error written first, then the gate
 reran clean as job 828696.
 
-**The public site did not deploy for about 14 hours.** GitHub Pages renders every `.md` file
+**The public site did not deploy for about 12 hours.** GitHub Pages renders every `.md` file
 through Liquid by default, and a research note quoting a Jinja chat template made every build
-fail silently from 2026-09-07 22:32 until 2026-09-08 around 12:30 SGT. The fix is
+fail silently from 2026-09-07 22:32 until 2026-09-08 at 10:39 SGT. The fix is
 `docs/.nojekyll`, which tells Pages to serve the folder as static files; the updates queued
 during the outage, including this update, went live together once it landed.
 
