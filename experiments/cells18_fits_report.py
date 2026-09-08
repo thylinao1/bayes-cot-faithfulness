@@ -697,6 +697,8 @@ def model_rows_section(rows, extra, fits) -> list[str]:
         )
     out += [
         "",
+        _sampler_health(rows),
+        "",
         "### 5.2 The row estimand, and the per-cell rows beside it",
         "",
         "| model | cells | items | NDE | NIE | TE | P(NIE > 0.15) | verdict | NIE/TE | max r_hat | divergences |",
@@ -801,6 +803,36 @@ def model_rows_section(rows, extra, fits) -> list[str]:
         ]
     out += ["---", ""]
     return out
+
+
+def _sampler_health(rows) -> str:
+    """Say plainly whether the hierarchical fits sampled cleanly. They may not have."""
+    bad = []
+    for m, r in rows.items():
+        sm = r["sampler"]
+        if sm["divergences"] > 0 or sm["max_r_hat"] > 1.01 or sm["min_ess_bulk"] < 400:
+            bad.append(
+                f"`{m}` with {sm['divergences']} divergences, max r_hat "
+                f"{sm['max_r_hat']:.3f} and minimum bulk ESS {sm['min_ess_bulk']:.0f}"
+            )
+    if not bad:
+        return (
+            "**Sampler health.** Every model row below sampled with 0 divergences, max "
+            "r_hat at or below 1.01 and a minimum bulk ESS above 400."
+        )
+    return (
+        "**Sampler health, stated before the numbers because it bears on how to read "
+        "them.** The hierarchical fit is harder than the per-cell one: it carries six "
+        "group deviations and two zero-centred cue-family deviations over a design whose "
+        "clean arm has no outcome variation, and it does not sample cleanly everywhere. "
+        + "; ".join(bad)
+        + ". Divergences mean the sampler could not explore part of the posterior, so "
+        "these intervals are not guaranteed to be the posterior's own. The numbers are "
+        "printed with their diagnostics rather than withheld, and the diagnostic is one "
+        "more reason the row is PROVISIONAL. A later lane that wants a clean row should "
+        "raise `target_accept`, reparameterise the group deviations, or fit fewer levels "
+        "at once, and should re-run rather than reinterpret these."
+    )
 
 
 def gemma_section(gemma) -> list[str]:
