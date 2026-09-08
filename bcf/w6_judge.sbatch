@@ -161,6 +161,24 @@ VLLM_ARGS=(
   --download-dir "${HF_HOME:-$SCRATCH/hf}/download"
 )
 [ -n "$JUDGE_QUANT" ] && VLLM_ARGS+=(--quantization "$JUDGE_QUANT")
+# gpt-oss-20b is rendered through Harmony, whose tiktoken vocab vLLM 0.28 downloads
+# inside the first chat request (job 828627, 2026-09-08: HTTP 500 and a blocked event
+# loop). Fill a persistent cache first, in THIS shell so the export reaches the server.
+# Guarded: an older env.sh (repo-w6) has no bcf_prewarm_harmony, and this script must
+# still run there.
+if [ "$JUDGES" = "gpt-oss-20b" ]; then
+  if declare -F bcf_prewarm_harmony >/dev/null 2>&1; then
+    bcf_prewarm_harmony > "${OUT_DIR}/harmony-prewarm-${JUDGES}.log" 2>&1
+    prewarm_rc=$?
+    ts < "${OUT_DIR}/harmony-prewarm-${JUDGES}.log" | tee -a "$LOG"
+    if [ "$prewarm_rc" -ne 0 ]; then
+      echo "[serve] REFUSING: harmony vocab prewarm failed (${prewarm_rc}); not starting a server whose first request would download it" | ts | tee -a "$LOG" >&2
+      exit 14
+    fi
+  else
+    echo "[serve] NOTE: this env.sh has no bcf_prewarm_harmony (older tree); the first gpt-oss request downloads the Harmony vocab" | ts | tee -a "$LOG"
+  fi
+fi
 echo "[serve] ${JUDGES}: ${JUDGE_HF_ID} @ ${JUDGE_REVISION} on ${PORT} (${JUDGE_SERVING_LINE})" | ts | tee -a "$LOG"
 vllm serve "$JUDGE_HF_ID" "${VLLM_ARGS[@]}" >> "${OUT_DIR}/server-${JUDGES}.log" 2>&1 &
 SERVER_PIDS+=($!)
