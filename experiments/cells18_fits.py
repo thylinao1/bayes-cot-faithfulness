@@ -59,7 +59,15 @@ from bayes_cot_faithfulness import closed_form
 # The 18 cells of record.
 # --------------------------------------------------------------------------- #
 MODELS = ("qwen3-8b", "gemma-2-9b-it", "llama-3.1-8b-instruct")
-SUBSTRATE_CUES = (
+
+# The cell list is a PARAMETER, selected by --cells, and the default is the
+# 18-cell list this file was written on. The 18-cell artifacts under
+# experiments/results/cells18-fits and docs/CELLS18-FITS.md are produced by
+# --cells 18 and nothing below changes what that path computes: the 24-cell list
+# is the 18-cell list plus the two AQuA-RAT cue families that were generated
+# afterwards, appended, so the first six pairs keep their order and their group
+# indices inside a model row.
+SUBSTRATE_CUES_18 = (
     ("arc_challenge", "stated-hint"),
     ("arc_challenge", "professor"),
     ("arc_challenge", "metadata"),
@@ -67,7 +75,34 @@ SUBSTRATE_CUES = (
     ("aqua_rat", "stated-hint"),
     ("aqua_rat", "professor"),
 )
-CELLS = tuple((m, s, c) for m in MODELS for s, c in SUBSTRATE_CUES)
+SUBSTRATE_CUES_24 = SUBSTRATE_CUES_18 + (
+    ("aqua_rat", "metadata"),
+    ("aqua_rat", "grader-code"),
+)
+CELL_SETS = {"18": SUBSTRATE_CUES_18, "24": SUBSTRATE_CUES_24}
+CELL_SET_NAMES = tuple(sorted(CELL_SETS))
+DEFAULT_CELL_SET = "18"
+
+# Kept as a module-level name because the 18-cell report imports it. It is the
+# 18-cell list and it never changes at run time; code that has to honour --cells
+# calls substrate_cues() instead.
+SUBSTRATE_CUES = SUBSTRATE_CUES_18
+
+
+def substrate_cues(cell_set: str = DEFAULT_CELL_SET) -> tuple:
+    """The (substrate, cue family) pairs of one cell set."""
+    if cell_set not in CELL_SETS:
+        raise SystemExit(f"unknown cell set {cell_set!r}, expected one of {CELL_SET_NAMES}")
+    return CELL_SETS[cell_set]
+
+
+def cell_triples(cell_set: str = DEFAULT_CELL_SET) -> tuple:
+    """Every (model, substrate, cue family) triple of one cell set."""
+    return tuple((m, s, c) for m in MODELS for s, c in substrate_cues(cell_set))
+
+
+CELLS = cell_triples(DEFAULT_CELL_SET)
+CELLS_24 = cell_triples("24")
 CUE_FAMILIES = ("stated-hint", "professor", "metadata", "grader-code")
 SUBSTRATES = ("arc_challenge", "aqua_rat")
 
@@ -349,11 +384,23 @@ def run_fit(args) -> dict:
     summary_path = Path(args.summary)
     meta_path = cell_dir / "run_meta.json"
 
-    records, file_counts = w1.load_records(records_path)
-    summary = json.loads(summary_path.read_text())
-    meta = json.loads(meta_path.read_text())
+    try:
+        records, file_counts = w1.load_records(records_path)
+        summary = json.loads(summary_path.read_text())
+        meta = json.loads(meta_path.read_text())
+        table = w1.build_table(records)
+    except Exception as exc:
+        n_lines = 0
+        if records_path.exists():
+            with open(records_path, encoding="utf-8") as fh:
+                n_lines = sum(1 for _ in fh)
+        print(
+            f"FAILED CELL {args.cell}: {type(exc).__name__}: {exc} "
+            f"(records in {records_path.name}: {n_lines})",
+            file=sys.stderr,
+        )
+        raise SystemExit(3) from exc
 
-    table = w1.build_table(records)
     a = w1.column_a(records, summary)
     b = w1.column_b(table, n_bootstrap=args.n_bootstrap)
     anchor = w1.anchor_block(table, b)
@@ -364,8 +411,8 @@ def run_fit(args) -> dict:
 
     anchor["scope_caveat"] = (
         "element 21 compares the MODEL-LEVEL column B estimate with the anchor "
-        "contrast. This model has six cells, so the model-level comparison IS "
-        "computable and is in experiments/results/cells18-fits/<model>/model_row.json. "
+        "contrast. This model has more than one cell, so the model-level comparison IS "
+        "computable and is in this lane's <model>/model_row.json. "
         "The test printed here is the CELL-level one, kept because it is the one the "
         "three wave-1 cells were promoted on and because it is the comparison a reader "
         "of one cell can check. claim_status below uses BOTH: a cell is ANCHORED only "
@@ -379,6 +426,7 @@ def run_fit(args) -> dict:
 
     return {
         "cell": args.cell,
+        "cell_set": getattr(args, "cells", DEFAULT_CELL_SET),
         "model_slug": args.model_slug,
         "model": meta.get("model"),
         "hf_revision": meta.get("hf_revision"),
@@ -445,23 +493,66 @@ def run_fit(args) -> dict:
 # --------------------------------------------------------------------------- #
 # Element 1 section 2.4. The model-level row.
 # --------------------------------------------------------------------------- #
-def _cell_dirs(model_slug: str, results_root: Path) -> list[tuple[str, str, Path]]:
-    out = []
-    for substrate, cue in SUBSTRATE_CUES:
+def _cell_dirs(
+    model_slug: str, results_root: Path, cell_set: str = DEFAULT_CELL_SET
+) -> tuple[list[tuple[str, str, Path]], list[dict]]:
+    """The cell directories of one model, and the ones that are not there.
+
+    A missing cell is NEVER absorbed silently: it is returned in the second list
+    with its reason and printed by the caller, so a row fitted over seven cells
+    can never be read as a row over eight.
+    """
+    found, missing = [], []
+    for substrate, cue in substrate_cues(cell_set):
         d = results_root / model_slug / substrate / cue
         if (d / "transcripts.jsonl").exists():
-            out.append((substrate, cue, d))
-    return out
+            found.append((substrate, cue, d))
+        else:
+            missing.append(
+                {
+                    "cell": f"{model_slug}/{substrate}/{cue}",
+                    "reason": f"no transcripts.jsonl under {d}",
+                    "n_records": 0,
+                }
+            )
+    return found, missing
 
 
-def _stack_model(model_slug: str, results_root: Path):
-    """Stack every cell of one model into one design, keeping the cell labels."""
+def _stack_model(model_slug: str, results_root: Path, cell_set: str = DEFAULT_CELL_SET):
+    """Stack every cell of one model into one design, keeping the cell labels.
+
+    A cell whose records do not load is reported with its reason and its
+    denominator and then left out; the count that enters the row is printed
+    beside the count that was asked for.
+    """
     Xs, Ms, Ys, groups, cues, subs = [], [], [], [], [], []
     per_cell = []
     anchor_rows: list[dict] = []
-    for gi, (substrate, cue, d) in enumerate(_cell_dirs(model_slug, results_root)):
-        records, _ = w1.load_records(d / "transcripts.jsonl")
-        table = w1.build_table(records)
+    found, skipped = _cell_dirs(model_slug, results_root, cell_set)
+    loadable = []
+    for substrate, cue, d in found:
+        try:
+            records, _ = w1.load_records(d / "transcripts.jsonl")
+            table = w1.build_table(records)
+        except Exception as exc:  # noqa: BLE001 - the reason is reported, not swallowed
+            with open(d / "transcripts.jsonl", encoding="utf-8") as fh:
+                n_lines = sum(1 for _ in fh)
+            skipped.append(
+                {
+                    "cell": f"{model_slug}/{substrate}/{cue}",
+                    "reason": f"{type(exc).__name__}: {exc}",
+                    "n_records": n_lines,
+                }
+            )
+            continue
+        loadable.append((substrate, cue, d, table))
+    for sk in skipped:
+        print(
+            f"SKIPPED CELL {sk['cell']}: {sk['reason']} "
+            f"(records in file: {sk['n_records']})",
+            file=sys.stderr,
+        )
+    for gi, (substrate, cue, d, table) in enumerate(loadable):
         n_items = len(table["items"])
         Xs.append(table["X"])
         Ms.append(table["M"])
@@ -479,11 +570,11 @@ def _stack_model(model_slug: str, results_root: Path):
             }
         )
         for it in table["items"]:
-            cells = (it["anchor"] or {}).get("cells", {})
+            anchor_cell_map = (it["anchor"] or {}).get("cells", {})
             anchor_rows.append(
                 {
                     "group_index": gi,
-                    **{c: (cells.get(c, {}) or {}).get("y") for c in ANCHOR_CELLS},
+                    **{c: (anchor_cell_map.get(c, {}) or {}).get("y") for c in ANCHOR_CELLS},
                 }
             )
     return (
@@ -495,6 +586,7 @@ def _stack_model(model_slug: str, results_root: Path):
         np.concatenate(subs),
         per_cell,
         anchor_rows,
+        skipped,
     )
 
 
@@ -684,7 +776,11 @@ def run_model_row(args) -> dict:
 
     results_root = Path(args.results_root)
     slug = args.model_slug
-    X, M, Y, group, cue, sub, per_cell, anchor_rows = _stack_model(slug, results_root)
+    cell_set = getattr(args, "cells", DEFAULT_CELL_SET)
+    asked = [f"{sub_}/{cue_}" for sub_, cue_ in substrate_cues(cell_set)]
+    (
+        X, M, Y, group, cue, sub, per_cell, anchor_rows, skipped,
+    ) = _stack_model(slug, results_root, cell_set)
     hint = cue if args.grouping == "cue_family" else sub
     labels = CUE_FAMILIES if args.grouping == "cue_family" else SUBSTRATES
 
@@ -809,6 +905,11 @@ def run_model_row(args) -> dict:
         ),
         "choices_that_make_this_provisional": MODEL_ROW_CHOICES,
         "status": "PROVISIONAL",
+        "cell_set": cell_set,
+        "cells_asked_for": asked,
+        "n_cells_asked_for": len(asked),
+        "cells_skipped": skipped,
+        "n_cells_skipped": len(skipped),
         "cells_entering": per_cell,
         "n_cells": len(per_cell),
         "n_items_total": int(sum(c["n_items"] for c in per_cell)),
@@ -840,15 +941,22 @@ def run_model_row(args) -> dict:
 # --------------------------------------------------------------------------- #
 # claim_status, written once the model-level comparison exists.
 # --------------------------------------------------------------------------- #
-def finalise_claim_status(out_root: Path, model_slug: str) -> dict:
+def finalise_claim_status(
+    out_root: Path, model_slug: str, cell_set: str = DEFAULT_CELL_SET
+) -> dict:
     """Write claim_status into each of the model's fit.json files (element 19/21)."""
     row_path = out_root / model_slug / "model_row.json"
     row = json.loads(row_path.read_text())
     model_agree = row.get("model_level_all_three_agree")
     written = {}
-    for substrate, cue in SUBSTRATE_CUES:
+    for substrate, cue in substrate_cues(cell_set):
         fp = out_root / model_slug / substrate / cue / "fit.json"
         if not fp.exists():
+            print(
+                f"NO FIT for {model_slug}/{substrate}/{cue}: {fp} is not there, "
+                "so no claim_status is written for it and it is not counted in the mix",
+                file=sys.stderr,
+            )
             continue
         fit = json.loads(fp.read_text())
         cell_agree = bool(fit["anchor"]["all_three_agree"])
@@ -899,12 +1007,16 @@ def main() -> int:
     p.add_argument("--link", choices=("probit", "logit"), default="probit")
     p.add_argument("--grouping", choices=("cue_family", "substrate"),
                    default="cue_family")
+    p.add_argument("--cells", choices=CELL_SET_NAMES, default=DEFAULT_CELL_SET,
+                   help="which cell list to run over: 18 (the original list) or 24 "
+                        "(the same list plus AQuA-RAT metadata and grader-code)")
     args = p.parse_args()
 
     if args.mode == "gate":
         payload = w1.run_gate(args.attempt)
         payload["code_commit"] = args.commit
-        payload["lane"] = "cells18"
+        payload["lane"] = f"cells{args.cells}"
+        payload["cell_set"] = args.cells
         payload["delegated_to"] = "experiments/wave1_fits.py::run_gate"
         payload["wave1_fits_sha256"] = w1.sha256_of(Path(w1.__file__))
     elif args.mode == "fit":
@@ -915,7 +1027,10 @@ def main() -> int:
     elif args.mode == "claims":
         payload = {
             "model_slug": args.model_slug,
-            "written": finalise_claim_status(Path(args.out_root), args.model_slug),
+            "cell_set": args.cells,
+            "written": finalise_claim_status(
+                Path(args.out_root), args.model_slug, args.cells
+            ),
         }
     else:
         payload = run_model_row(args)
