@@ -1,0 +1,105 @@
+# Q1 prompt d gate: what was submitted
+
+Q1 prompt d (`experiments/jury/prompts/q1_mention_2026-09-07d.md`) is the construct
+revision ruling R9 asked for (RULINGS-2026-09-07.md, "the only route to a Q1 candidate is
+a construct revision"). This runs it on the four panel judges, one job per judge, mirroring
+each judge's panel-of-record serving line for prompts a/b/c. No frozen file is touched:
+prompt files a, b, c, the gate and Q2 prompts, and the thresholds are unchanged, and
+`tests/test_frozen_guard.py` passes on this branch (5 passed).
+
+Job table: `bcf/judges_gate_q1d.tsv`, four rows, committed on `jury/q1d-gate`.
+
+## Tree
+
+The job needs to import `experiments/jury/gate.py` and prompt d from a tree that has
+both, and needs the launcher script paired with the env.sh that defines the functions
+it calls. Read on the cluster before anything was submitted:
+
+- `$HOME/bcf/repo-jury` (the sbatch script's own hardcoded default): its
+  `experiments/jury/prompts/` has no `q1_mention_2026-09-07d.md`, and its `bcf/env.sh`
+  predates the free-port-per-job fix: it defines no `bcf_pick_port` or
+  `bcf_wait_server_ready`, and it ships no `bcf/serve_ready.py`.
+- `$HOME/bcf/repo-f712a9beb1cb` (main at f712a9b, synced by wave.sh; DECISION-LOG
+  2026-09-08 09:04/09:06): has prompt d, the current `gate.py`, and a `judge_serve.sbatch`
+  that calls `bcf_pick_port` / `bcf_wait_server_ready`, paired with a `bcf/env.sh` that
+  defines them.
+
+So every row in the TSV carries `BCF_REPO` and `BCF_ENV_SH` set to
+`/home/e/e1506804/bcf/repo-f712a9beb1cb` (and its `bcf/env.sh`), and every submission
+below points `BCF_JURY_SBATCH` at that same tree's `judge_serve.sbatch`, so the script
+version and the functions it calls come from the same place. The TSV was copied
+byte-identical (md5 `184b4c362fe1267d8b6ffffa10073776`) into
+`~/bcf/repo-f712a9beb1cb/bcf/judges_gate_q1d.tsv`, since that tree is a synced snapshot,
+not a git checkout this lane can push to (this lane does not push; the orchestrator does).
+
+## Submitted
+
+Two dry runs, one row each, both read the live cap denominators before anything was
+submitted:
+
+- Llama h200-141: `gpu cards total 11/12 -> 12/12`, `h200-141 cards 0/1 -> 1/1`. Passed.
+- Qwen a100-80: `gpu cards total 11/12 -> 12/12`, `a100-80 cards 3/4 -> 4/4`. Passed
+  independently, but the two rows share the account-wide 12-card cap and both want one
+  card, so only one dry run's worth of headroom actually existed once the account was
+  at 11/12.
+
+Submitted the Llama row first (real, not dry-run): job **828543**, `bcf-jury-llama-3.3-70b-fp8`,
+partition `gpu`, node `xgpk0`, running. Its `run.log` confirms `q1_prompt=d` and the
+device assertion (`NVIDIA H200 NVL`) before this note was written.
+
+Then attempted the Qwen row for real. `jury_wave.sh` REFUSED, live, before touching
+`sbatch`: `gpu cards total would reach 13 > 12 (QOS gpu cap, all types, all campaigns)`.
+Nothing was submitted for Qwen and nothing was cancelled to make room, per the lane's
+limits. **The Qwen a100-80 row is queued, not submitted.**
+
+## Left for later
+
+Two rows queued, not attempted this session (the lane caps at two jobs, both spent on
+the attempt above):
+
+- `qwen3-32b` on `a100-80` (blocked by the account-wide GPU cap this session; retry
+  once a card frees, either from 828543 finishing or another job on the account ending)
+- `gemma-3-27b-it` on `h200-141` (exploratory line; per-user `h200-141` cap is 1, and
+  828543 holds it until it finishes)
+- `gpt-oss-20b` on `h200-141` (same reason)
+
+Exact commands to submit each, once cards free (re-run the matching `--dry-run` first
+and read its printed denominators; never submit past a REFUSING dry run):
+
+```bash
+cd ~/bcf/repo-f712a9beb1cb
+
+# Qwen, a100-80, prompt d
+BCF_JURY_SBATCH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/judge_serve.sbatch \
+  bash bcf/jury_wave.sh --dry-run bcf/judges_gate_q1d_qwen_only.tsv
+BCF_JURY_SBATCH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/judge_serve.sbatch \
+  bash bcf/jury_wave.sh bcf/judges_gate_q1d_qwen_only.tsv
+
+# Gemma, h200-141 exploratory, prompt d (extract row 3 of judges_gate_q1d.tsv first)
+grep -vE '^\s*(#|$)' bcf/judges_gate_q1d.tsv | sed -n '3p' > bcf/judges_gate_q1d_gemma_only.tsv
+BCF_JURY_SBATCH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/judge_serve.sbatch \
+  bash bcf/jury_wave.sh --dry-run bcf/judges_gate_q1d_gemma_only.tsv
+BCF_JURY_SBATCH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/judge_serve.sbatch \
+  bash bcf/jury_wave.sh bcf/judges_gate_q1d_gemma_only.tsv
+
+# gpt-oss, h200-141 exploratory, prompt d (extract row 4 of judges_gate_q1d.tsv first)
+grep -vE '^\s*(#|$)' bcf/judges_gate_q1d.tsv | sed -n '4p' > bcf/judges_gate_q1d_gptoss_only.tsv
+BCF_JURY_SBATCH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/judge_serve.sbatch \
+  bash bcf/jury_wave.sh --dry-run bcf/judges_gate_q1d_gptoss_only.tsv
+BCF_JURY_SBATCH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/judge_serve.sbatch \
+  bash bcf/jury_wave.sh bcf/judges_gate_q1d_gptoss_only.tsv
+```
+
+The single-row TSVs already exist on the cluster at
+`~/bcf/repo-f712a9beb1cb/bcf/judges_gate_q1d_llama_only.tsv` and
+`~/bcf/repo-f712a9beb1cb/bcf/judges_gate_q1d_qwen_only.tsv`; the gemma and gptoss slices
+are not yet cut there and the commands above cut them from the full TSV first.
+
+## Source rows this TSV mirrors
+
+| Judge | Source row file | What changed |
+|---|---|---|
+| `llama-3.3-70b-fp8` | `bcf/judges_gate_q1c.tsv` | `BCF_Q1_PROMPT` c to d, `BCF_OUT_SLUG` to `llama-3.3-70b-fp8-q1d`, plus `BCF_REPO`/`BCF_ENV_SH` |
+| `qwen3-32b` | `bcf/judges_gate_a100_qwen_2026-09-07.tsv` | `BCF_Q1_PROMPT` a+b+c to d, `BCF_OUT_SLUG` to `qwen3-32b-a100-q1d`, plus `BCF_REPO`/`BCF_ENV_SH`; `BCF_NUM_PREDICT=1024` (R8) and `BCF_ALL_JUDGE_ROWS=1` kept unchanged |
+| `gemma-3-27b-it` | `bcf/judges_gate_h200_explore_gemma.tsv` | `BCF_Q1_PROMPT` a+b+c to d, `BCF_OUT_SLUG` to `gemma-3-27b-it-h200-q1d`, plus `BCF_REPO`/`BCF_ENV_SH`; `BCF_SERVING_LINE=exploratory-h200-141` kept unchanged |
+| `gpt-oss-20b` | `bcf/judges_gate_h200_explore_gptoss.tsv` | same pattern as Gemma |

@@ -1,0 +1,38 @@
+# Q1 prompt d (the construct revision R9/A4.2 asked for; experiments/jury/prompts/
+# q1_mention_2026-09-07d.md) on the four panel judges, one row each, mirroring the
+# panel-of-record line each judge voted from for prompts a/b/c (source: R9 in
+# /Users/maksimsilchenko/Developer/bayes-cot-phase2/RULINGS-2026-09-07.md, "FP8 Llama
+# pinned line; Gemma, Qwen3-32B at num_predict 1,024, gpt-oss-20b exploratory lines").
+# Only BCF_Q1_PROMPT and BCF_OUT_SLUG change from each source row; every other column,
+# including the R8 num_predict setting on the Qwen row, is copied as-is:
+#   llama-3.3-70b-fp8   from bcf/judges_gate_q1c.tsv       (pinned h200-141 line)
+#   qwen3-32b           from bcf/judges_gate_a100_qwen_2026-09-07.tsv
+#                        (pinned a100-80 line, RUN OF RECORD; BCF_NUM_PREDICT=1024
+#                        and BCF_ALL_JUDGE_ROWS=1 per R8 and the panel rule)
+#   gemma-3-27b-it      from bcf/judges_gate_h200_explore_gemma.tsv (exploratory h200-141
+#                        line; the pinned a100-80 co-host does not start, R7)
+#   gpt-oss-20b         from bcf/judges_gate_h200_explore_gptoss.tsv (exploratory h200-141
+#                        line, same reason)
+#
+# TREE: the job must import experiments/jury/gate.py and prompt d from a tree that has
+# both. $HOME/bcf/repo-jury (the sbatch script's own hardcoded default) has neither: its
+# experiments/jury/prompts/ lacks q1_mention_2026-09-07d.md, and its bcf/env.sh predates
+# the free-port-per-job fix, so it defines no bcf_pick_port or bcf_wait_server_ready and
+# ships no bcf/serve_ready.py. $HOME/bcf/repo-f712a9beb1cb (main at f712a9b, synced by
+# wave.sh; DECISION-LOG 2026-09-08 09:04/09:06) has both the newer judge_serve.sbatch and
+# the newer env.sh, and both are needed together: the newer script calls bcf_pick_port and
+# bcf_wait_server_ready, which only the newer env.sh defines. So every row here carries
+# BCF_REPO and BCF_ENV_SH pointed at that tree, AND the submit command below points
+# BCF_JURY_SBATCH at that tree's judge_serve.sbatch, so the script version and the
+# functions it calls come from the same place. Confirmed by reading both trees' bcf/env.sh
+# and bcf/judge_serve.sbatch on the cluster before this file was written.
+#
+#   BCF_JURY_SBATCH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/judge_serve.sbatch \
+#     bcf/jury_wave.sh --dry-run bcf/judges_gate_q1d.tsv
+#
+# SUBMIT ONE AT A TIME where the two judges share a GPU pool (a100-80 with the alta
+# campaign, per bcf/judges_gate_a100.tsv's own note); the h200-141 per-user cap is 1 card.
+llama-3.3-70b-fp8	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_OUT_SLUG=llama-3.3-70b-fp8-q1d	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-f712a9beb1cb	BCF_ENV_SH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/env.sh
+qwen3-32b	a100-80	08:00:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_OUT_SLUG=qwen3-32b-a100-q1d	BCF_ALL_JUDGE_ROWS=1	BCF_NUM_PREDICT=1024	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-f712a9beb1cb	BCF_ENV_SH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/env.sh
+gemma-3-27b-it	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_OUT_SLUG=gemma-3-27b-it-h200-q1d	BCF_SERVING_LINE=exploratory-h200-141	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-f712a9beb1cb	BCF_ENV_SH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/env.sh
+gpt-oss-20b	h200-141	02:50:00	MEM=160G	CPUS=16	BCF_CONCURRENCY=12	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_OUT_SLUG=gpt-oss-20b-h200-q1d	BCF_SERVING_LINE=exploratory-h200-141	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-f712a9beb1cb	BCF_ENV_SH=/home/e/e1506804/bcf/repo-f712a9beb1cb/bcf/env.sh
