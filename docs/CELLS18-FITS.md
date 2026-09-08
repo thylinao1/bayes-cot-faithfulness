@@ -15,7 +15,7 @@ This document reports the 18 cells of record: three models (qwen3-8b, gemma-2-9b
 
 **Scope, in one paragraph.** Column A is uncorrected because no jury Q1 configuration is frozen (ruling R9) and no human calibration frame covers these cells. Column B is the repaired probit fit at rho = 0 with both intercepts. The logit-level column B of Amendment A5 does NOT print for any cell: the A5.4 eligibility gate G1 fails on the same condition in all 18, and section 3 gives the failing condition with its denominator per cell rather than a row. The model-level row estimand of element 1 section 2.4 is computed and is **PROVISIONAL**, for reasons the row states in its own artifact. No cross-model ordering is stated anywhere in this document (section 25). VALIDATED is not reachable for any cell.
 
-Claim-status mix over the 18 cells: **0 ANCHORED**, **0 RAW**, 18 still pending the model row. Element 19 requires the mix to be printed, and this is it.
+Claim-status mix over the 18 cells: **0 ANCHORED**, **18 RAW**. Element 19 requires the mix to be printed, and this is it.
 
 ---
 
@@ -139,28 +139,28 @@ An index first, so a reader can find a cell without scrolling. Every number in i
 
 | cell | items | followed | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status |
 |---|---:|---:|---:|---|---|---|---|---|
-| `qwen3-8b` arc_challenge x stated-hint | 1396 | 249 | +0.0788 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
-| `qwen3-8b` arc_challenge x professor | 1396 | 362 | +0.1474 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
-| `qwen3-8b` arc_challenge x metadata | 534 | 54 | +0.0246 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
-| `qwen3-8b` arc_challenge x grader-code | 533 | 54 | +0.0239 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
-| `qwen3-8b` aqua_rat x stated-hint | 1144 | 81 | -0.0022 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
-| `qwen3-8b` aqua_rat x professor | 1153 | 140 | +0.0068 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
-| `gemma-2-9b-it` arc_challenge x stated-hint | 1375 | 426 | +0.1895 | load-bearing at rho=0 | -0.240 (negative) | not printed (G1) | yes | PENDING_MODEL_ROW |
-| `gemma-2-9b-it` arc_challenge x professor | 1371 | 387 | +0.1586 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
-| `gemma-2-9b-it` arc_challenge x metadata | 524 | 51 | +0.0211 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
-| `gemma-2-9b-it` arc_challenge x grader-code | 524 | 33 | +0.0087 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
-| `gemma-2-9b-it` aqua_rat x stated-hint | 869 | 161 | +0.0139 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
-| `gemma-2-9b-it` aqua_rat x professor | 881 | 148 | +0.0159 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
-| `llama-3.1-8b-instruct` arc_challenge x stated-hint | 1321 | 448 | +0.1781 | load-bearing at rho=0 | -0.100 (negative) | not printed (G1) | no | PENDING_MODEL_ROW |
-| `llama-3.1-8b-instruct` arc_challenge x professor | 1321 | 384 | +0.1356 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
-| `llama-3.1-8b-instruct` arc_challenge x metadata | 503 | 14 | +0.0002 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
-| `llama-3.1-8b-instruct` arc_challenge x grader-code | 503 | 26 | +0.0072 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
-| `llama-3.1-8b-instruct` aqua_rat x stated-hint | 1006 | 96 | -0.0016 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
-| `llama-3.1-8b-instruct` aqua_rat x professor | 1009 | 169 | +0.0012 | unresolved | not applicable | not printed (G1) | no | PENDING_MODEL_ROW |
+| `qwen3-8b` arc_challenge x stated-hint | 1396 | 249 | +0.0788 | unresolved | not applicable | not printed (G1) | yes | RAW |
+| `qwen3-8b` arc_challenge x professor | 1396 | 362 | +0.1474 | unresolved | not applicable | not printed (G1) | no | RAW |
+| `qwen3-8b` arc_challenge x metadata | 534 | 54 | +0.0246 | unresolved | not applicable | not printed (G1) | yes | RAW |
+| `qwen3-8b` arc_challenge x grader-code | 533 | 54 | +0.0239 | unresolved | not applicable | not printed (G1) | yes | RAW |
+| `qwen3-8b` aqua_rat x stated-hint | 1144 | 81 | -0.0022 | unresolved | not applicable | not printed (G1) | no | RAW |
+| `qwen3-8b` aqua_rat x professor | 1153 | 140 | +0.0068 | unresolved | not applicable | not printed (G1) | yes | RAW |
+| `gemma-2-9b-it` arc_challenge x stated-hint | 1375 | 426 | +0.1895 | load-bearing at rho=0 | -0.240 (negative) | not printed (G1) | yes | RAW |
+| `gemma-2-9b-it` arc_challenge x professor | 1371 | 387 | +0.1586 | unresolved | not applicable | not printed (G1) | no | RAW |
+| `gemma-2-9b-it` arc_challenge x metadata | 524 | 51 | +0.0211 | unresolved | not applicable | not printed (G1) | yes | RAW |
+| `gemma-2-9b-it` arc_challenge x grader-code | 524 | 33 | +0.0087 | unresolved | not applicable | not printed (G1) | yes | RAW |
+| `gemma-2-9b-it` aqua_rat x stated-hint | 869 | 161 | +0.0139 | unresolved | not applicable | not printed (G1) | no | RAW |
+| `gemma-2-9b-it` aqua_rat x professor | 881 | 148 | +0.0159 | unresolved | not applicable | not printed (G1) | no | RAW |
+| `llama-3.1-8b-instruct` arc_challenge x stated-hint | 1321 | 448 | +0.1781 | load-bearing at rho=0 | -0.100 (negative) | not printed (G1) | no | RAW |
+| `llama-3.1-8b-instruct` arc_challenge x professor | 1321 | 384 | +0.1356 | unresolved | not applicable | not printed (G1) | no | RAW |
+| `llama-3.1-8b-instruct` arc_challenge x metadata | 503 | 14 | +0.0002 | unresolved | not applicable | not printed (G1) | yes | RAW |
+| `llama-3.1-8b-instruct` arc_challenge x grader-code | 503 | 26 | +0.0072 | unresolved | not applicable | not printed (G1) | yes | RAW |
+| `llama-3.1-8b-instruct` aqua_rat x stated-hint | 1006 | 96 | -0.0016 | unresolved | not applicable | not printed (G1) | no | RAW |
+| `llama-3.1-8b-instruct` aqua_rat x professor | 1009 | 169 | +0.0012 | unresolved | not applicable | not printed (G1) | no | RAW |
 
 ### arc_challenge x stated-hint on `qwen3-8b`
 
-Job 826733, tree `5d40e5224ac0`, 1396 items / 2792 rows, claim status **PENDING_MODEL_ROW**.
+Job 826733, tree `5d40e5224ac0`, 1396 items / 2792 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -229,11 +229,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0788 [+0.0636, +0.0972] | +0.1669 [+0.1476, +0.1863] | -0.0881 [-0.0975, -0.0789] | +0.0025 | yes |
 | TE | +0.1629 [+0.1338, +0.1949] | +0.1734 [+0.1533, +0.1934] | -0.0104 [-0.0259, +0.0088] | +0.0741 | yes |
 
-Cell-level: all three agree **yes**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **yes**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x professor on `qwen3-8b`
 
-Job 827051, tree `5d40e5224ac0`, 1396 items / 2792 rows, claim status **PENDING_MODEL_ROW**.
+Job 827051, tree `5d40e5224ac0`, 1396 items / 2792 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -302,11 +302,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.1474 [+0.1246, +0.1725] | +0.2486 [+0.2271, +0.2701] | -0.1012 [-0.1112, -0.0874] | -0.0112 | **no** |
 | TE | +0.2579 [+0.2220, +0.2971] | +0.2529 [+0.2299, +0.2758] | +0.0050 [-0.0182, +0.0306] | +0.0694 | yes |
 
-Cell-level: all three agree **no**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **no**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x metadata on `qwen3-8b`
 
-Job 827286, tree `ed3c74cf301f`, 534 items / 1068 rows, claim status **PENDING_MODEL_ROW**.
+Job 827286, tree `ed3c74cf301f`, 534 items / 1068 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -375,11 +375,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0246 [+0.0124, +0.0414] | +0.0730 [+0.0524, +0.0936] | -0.0484 [-0.0630, -0.0299] | +0.0370 | yes |
 | TE | +0.0615 [+0.0330, +0.0921] | +0.1161 [+0.0955, +0.1386] | -0.0546 [-0.0752, -0.0343] | +0.0248 | yes |
 
-Cell-level: all three agree **yes**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **yes**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x grader-code on `qwen3-8b`
 
-Job 827292, tree `ed3c74cf301f`, 533 items / 1066 rows, claim status **PENDING_MODEL_ROW**.
+Job 827292, tree `ed3c74cf301f`, 533 items / 1066 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -448,11 +448,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0239 [+0.0104, +0.0379] | +0.1013 [+0.0712, +0.1238] | -0.0774 [-0.0894, -0.0595] | +0.0106 | yes |
 | TE | +0.0628 [+0.0293, +0.0945] | +0.1032 [+0.0750, +0.1258] | -0.0404 [-0.0574, -0.0233] | +0.0426 | yes |
 
-Cell-level: all three agree **yes**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **yes**; model-level all three agree **no**. Claim status **RAW**.
 
 ### aqua_rat x stated-hint on `qwen3-8b`
 
-Job 827391, tree `ed3c74cf301f`, 1144 items / 2288 rows, claim status **PENDING_MODEL_ROW**.
+Job 827391, tree `ed3c74cf301f`, 1144 items / 2288 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -521,11 +521,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | -0.0022 [-0.0038, -0.0007] | +0.1079 [+0.0841, +0.1307] | -0.1101 [-0.1342, -0.0861] | -0.0342 | **no** |
 | TE | +0.0705 [+0.0567, +0.0870] | +0.2259 [+0.2042, +0.2516] | -0.1554 [-0.1762, -0.1368] | -0.0762 | **no** |
 
-Cell-level: all three agree **no**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **no**; model-level all three agree **no**. Claim status **RAW**.
 
 ### aqua_rat x professor on `qwen3-8b`
 
-Job 827408, tree `ed3c74cf301f`, 1153 items / 2306 rows, claim status **PENDING_MODEL_ROW**.
+Job 827408, tree `ed3c74cf301f`, 1153 items / 2306 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -594,11 +594,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0068 [+0.0025, +0.0126] | +0.0876 [+0.0685, +0.1049] | -0.0808 [-0.0978, -0.0615] | +0.0022 | yes |
 | TE | +0.1185 [+0.1034, +0.1348] | +0.1908 [+0.1665, +0.2108] | -0.0723 [-0.0935, -0.0527] | +0.0065 | yes |
 
-Cell-level: all three agree **yes**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **yes**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x stated-hint on `gemma-2-9b-it`
 
-Job 826737, tree `5d40e5224ac0`, 1375 items / 2750 rows, claim status **PENDING_MODEL_ROW**.
+Job 826737, tree `5d40e5224ac0`, 1375 items / 2750 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -667,11 +667,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.1895 [+0.1703, +0.2153] | +0.2489 [+0.2287, +0.2695] | -0.0594 [-0.0743, -0.0395] | +0.0257 | yes |
 | TE | +0.3005 [+0.2680, +0.3368] | +0.2853 [+0.2673, +0.3064] | +0.0152 [-0.0081, +0.0426] | +0.0574 | yes |
 
-Cell-level: all three agree **yes**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **yes**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x professor on `gemma-2-9b-it`
 
-Job 827284, tree `ed3c74cf301f`, 1371 items / 2742 rows, claim status **PENDING_MODEL_ROW**.
+Job 827284, tree `ed3c74cf301f`, 1371 items / 2742 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -740,11 +740,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.1586 [+0.1351, +0.1832] | +0.2093 [+0.1889, +0.2327] | -0.0507 [-0.0656, -0.0359] | +0.0344 | yes |
 | TE | +0.2568 [+0.2196, +0.2910] | +0.2101 [+0.1889, +0.2334] | +0.0468 [+0.0267, +0.0704] | +0.0296 | yes |
 
-Cell-level: all three agree **no**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **no**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x metadata on `gemma-2-9b-it`
 
-Job 827287, tree `ed3c74cf301f`, 524 items / 1048 rows, claim status **PENDING_MODEL_ROW**.
+Job 827287, tree `ed3c74cf301f`, 524 items / 1048 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -813,11 +813,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0211 [+0.0127, +0.0360] | +0.0935 [+0.0706, +0.1183] | -0.0724 [-0.0846, -0.0574] | +0.0154 | yes |
 | TE | +0.0621 [+0.0378, +0.0967] | +0.1031 [+0.0802, +0.1317] | -0.0410 [-0.0577, -0.0239] | +0.0423 | yes |
 
-Cell-level: all three agree **yes**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **yes**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x grader-code on `gemma-2-9b-it`
 
-Job 827293, tree `ed3c74cf301f`, 524 items / 1048 rows, claim status **PENDING_MODEL_ROW**.
+Job 827293, tree `ed3c74cf301f`, 524 items / 1048 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -886,11 +886,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0087 [+0.0040, +0.0150] | +0.0592 [+0.0401, +0.0802] | -0.0505 [-0.0645, -0.0360] | +0.0355 | yes |
 | TE | +0.0347 [+0.0182, +0.0599] | +0.0611 [+0.0420, +0.0802] | -0.0264 [-0.0394, -0.0173] | +0.0606 | yes |
 
-Cell-level: all three agree **yes**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **yes**; model-level all three agree **no**. Claim status **RAW**.
 
 ### aqua_rat x stated-hint on `gemma-2-9b-it`
 
-Job 827392, tree `ed3c74cf301f`, 869 items / 1738 rows, claim status **PENDING_MODEL_ROW**.
+Job 827392, tree `ed3c74cf301f`, 869 items / 1738 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -959,11 +959,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0139 [+0.0059, +0.0226] | +0.1133 [+0.0852, +0.1396] | -0.0995 [-0.1208, -0.0690] | -0.0208 | **no** |
 | TE | +0.1846 [+0.1609, +0.2129] | +0.3714 [+0.3375, +0.3984] | -0.1868 [-0.2096, -0.1568] | -0.1096 | **no** |
 
-Cell-level: all three agree **no**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **no**; model-level all three agree **no**. Claim status **RAW**.
 
 ### aqua_rat x professor on `gemma-2-9b-it`
 
-Job 827409, tree `ed3c74cf301f`, 881 items / 1762 rows, claim status **PENDING_MODEL_ROW**.
+Job 827409, tree `ed3c74cf301f`, 881 items / 1762 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -1032,11 +1032,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0159 [+0.0069, +0.0243] | +0.1444 [+0.1214, +0.1650] | -0.1285 [-0.1465, -0.1052] | -0.0465 | **no** |
 | TE | +0.1673 [+0.1429, +0.1832] | +0.1750 [+0.1502, +0.1952] | -0.0077 [-0.0201, +0.0044] | +0.0799 | yes |
 
-Cell-level: all three agree **no**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **no**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x stated-hint on `llama-3.1-8b-instruct`
 
-Job 826738, tree `5d40e5224ac0`, 1321 items / 2642 rows, claim status **PENDING_MODEL_ROW**.
+Job 826738, tree `5d40e5224ac0`, 1321 items / 2642 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -1105,11 +1105,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.1781 [+0.1583, +0.2004] | +0.3369 [+0.3119, +0.3627] | -0.1587 [-0.1720, -0.1425] | -0.0720 | **no** |
 | TE | +0.3398 [+0.3092, +0.3746] | +0.3550 [+0.3308, +0.3838] | -0.0152 [-0.0290, -0.0013] | +0.0710 | yes |
 
-Cell-level: all three agree **no**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **no**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x professor on `llama-3.1-8b-instruct`
 
-Job 827285, tree `ed3c74cf301f`, 1321 items / 2642 rows, claim status **PENDING_MODEL_ROW**.
+Job 827285, tree `ed3c74cf301f`, 1321 items / 2642 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -1178,11 +1178,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.1356 [+0.1181, +0.1562] | +0.2755 [+0.2521, +0.3028] | -0.1399 [-0.1531, -0.1256] | -0.0531 | **no** |
 | TE | +0.2768 [+0.2473, +0.3050] | +0.2786 [+0.2551, +0.3036] | -0.0018 [-0.0133, +0.0116] | +0.0867 | yes |
 
-Cell-level: all three agree **no**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **no**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x metadata on `llama-3.1-8b-instruct`
 
-Job 827097, tree `5d40e5224ac0`, 503 items / 1006 rows, claim status **PENDING_MODEL_ROW**.
+Job 827097, tree `5d40e5224ac0`, 503 items / 1006 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -1251,11 +1251,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0002 [-0.0017, +0.0017] | +0.0298 [+0.0159, +0.0417] | -0.0297 [-0.0425, -0.0159] | +0.0575 | yes |
 | TE | +0.0211 [+0.0072, +0.0341] | +0.0318 [+0.0179, +0.0438] | -0.0107 [-0.0179, -0.0034] | +0.0821 | yes |
 
-Cell-level: all three agree **yes**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **yes**; model-level all three agree **no**. Claim status **RAW**.
 
 ### arc_challenge x grader-code on `llama-3.1-8b-instruct`
 
-Job 827294, tree `ed3c74cf301f`, 503 items / 1006 rows, claim status **PENDING_MODEL_ROW**.
+Job 827294, tree `ed3c74cf301f`, 503 items / 1006 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -1324,11 +1324,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0072 [+0.0034, +0.0116] | +0.0537 [+0.0377, +0.0736] | -0.0465 [-0.0627, -0.0325] | +0.0373 | yes |
 | TE | +0.0362 [+0.0196, +0.0556] | +0.0537 [+0.0377, +0.0736] | -0.0175 [-0.0259, -0.0079] | +0.0741 | yes |
 
-Cell-level: all three agree **yes**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **yes**; model-level all three agree **no**. Claim status **RAW**.
 
 ### aqua_rat x stated-hint on `llama-3.1-8b-instruct`
 
-Job 827393, tree `ed3c74cf301f`, 1006 items / 2012 rows, claim status **PENDING_MODEL_ROW**.
+Job 827393, tree `ed3c74cf301f`, 1006 items / 2012 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -1397,11 +1397,11 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | -0.0016 [-0.0034, +0.0006] | +0.1879 [+0.1629, +0.2157] | -0.1895 [-0.2185, -0.1634] | -0.1185 | **no** |
 | TE | +0.0955 [+0.0796, +0.1144] | +0.3757 [+0.3479, +0.4095] | -0.2802 [-0.3090, -0.2553] | -0.2090 | **no** |
 
-Cell-level: all three agree **no**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **no**; model-level all three agree **no**. Claim status **RAW**.
 
 ### aqua_rat x professor on `llama-3.1-8b-instruct`
 
-Job 827410, tree `ed3c74cf301f`, 1009 items / 2018 rows, claim status **PENDING_MODEL_ROW**.
+Job 827410, tree `ed3c74cf301f`, 1009 items / 2018 rows, claim status **RAW**.
 
 **Column B, text level.** NDE, NIE and TE with intervals come before any ratio or any rho quantity (section 8.1).
 
@@ -1470,7 +1470,7 @@ Fit converged: yes; 200/200 bootstrap fits converged with 0 degenerate redraws; 
 | NIE | +0.0012 [-0.0038, +0.0075] | +0.1903 [+0.1684, +0.2151] | -0.1891 [-0.2167, -0.1646] | -0.1167 | **no** |
 | TE | +0.1663 [+0.1446, +0.1868] | +0.3340 [+0.3092, +0.3608] | -0.1677 [-0.1999, -0.1390] | -0.0999 | **no** |
 
-Cell-level: all three agree **no**;  claim status **PENDING_MODEL_ROW**.
+Cell-level: all three agree **no**; model-level all three agree **no**. Claim status **RAW**.
 
 ---
 
@@ -1485,20 +1485,22 @@ Section 2.4: one value per model, the model-level hyperparameter posterior from 
 | model | tau_alpha_h (cue family, direct) | tau_beta_h (cue family, mediated) | tau_alpha (cell) | tau_beta (cell) | tau_gamma (cell) |
 |---|---|---|---|---|---|
 | `qwen3-8b` | 0.1550 [0.0088, 1.1604] | 1.1497 [0.0539, 5.1757] | 0.2028 [0.0639, 0.7269] | 2.3839 [1.2551, 6.5164] | 0.1439 [0.0801, 0.3598] |
+| `gemma-2-9b-it` | 0.1757 [0.0066, 1.2021] | 0.9202 [0.0470, 6.7958] | 0.2903 [0.1118, 0.9585] | 1.8614 [0.9779, 4.6204] | 0.2383 [0.1263, 0.5358] |
 | `llama-3.1-8b-instruct` | 0.4023 [0.0236, 1.7986] | 0.7865 [0.0281, 4.4523] | 0.4959 [0.2282, 1.4066] | 1.7434 [0.9039, 4.4767] | 0.1759 [0.0968, 0.4164] |
 
-**Sampler health, stated before the numbers because it bears on how to read them.** The hierarchical fit is harder than the per-cell one: it carries six group deviations and two zero-centred cue-family deviations over a design whose clean arm has no outcome variation, and it does not sample cleanly everywhere. `qwen3-8b` with 130 divergences, max r_hat 1.010 and minimum bulk ESS 495; `llama-3.1-8b-instruct` with 72 divergences, max r_hat 1.000 and minimum bulk ESS 1504. Divergences mean the sampler could not explore part of the posterior, so these intervals are not guaranteed to be the posterior's own. The numbers are printed with their diagnostics rather than withheld, and the diagnostic is one more reason the row is PROVISIONAL. A later lane that wants a clean row should raise `target_accept`, reparameterise the group deviations, or fit fewer levels at once, and should re-run rather than reinterpret these.
+**Sampler health, stated before the numbers because it bears on how to read them.** The hierarchical fit is harder than the per-cell one: it carries six group deviations and two zero-centred cue-family deviations over a design whose clean arm has no outcome variation, and it does not sample cleanly everywhere. `qwen3-8b` with 130 divergences, max r_hat 1.010 and minimum bulk ESS 495; `gemma-2-9b-it` with 153 divergences, max r_hat 1.010 and minimum bulk ESS 309; `llama-3.1-8b-instruct` with 72 divergences, max r_hat 1.000 and minimum bulk ESS 1504. Divergences mean the sampler could not explore part of the posterior, so these intervals are not guaranteed to be the posterior's own. The numbers are printed with their diagnostics rather than withheld, and the diagnostic is one more reason the row is PROVISIONAL. A later lane that wants a clean row should raise `target_accept`, reparameterise the group deviations, or fit fewer levels at once, and should re-run rather than reinterpret these.
 
 ### 5.2 The row estimand, and the per-cell rows beside it
 
 | model | cells | items | NDE | NIE | TE | P(NIE > 0.15) | verdict | NIE/TE | max r_hat | divergences |
 |---|---:|---:|---|---|---|---:|---|---:|---:|---:|
 | `qwen3-8b` | 6 | 6,156 | +0.1166 [+0.0298, +0.2139] | +0.0250 [-0.0342, +0.1434] | +0.1413 [+0.0346, +0.3491] | 0.015 | unresolved | 0.1766 | 1.010 | 130 |
+| `gemma-2-9b-it` | 6 | 5,544 | +0.1262 [+0.0353, +0.2043] | +0.0523 [-0.0370, +0.2206] | +0.1770 [+0.0425, +0.3964] | 0.102 | unresolved | 0.2956 | 1.010 | 153 |
 | `llama-3.1-8b-instruct` | 6 | 5,663 | +0.0966 [+0.0101, +0.2250] | +0.0161 [-0.0353, +0.1160] | +0.1146 [+0.0130, +0.3028] | 0.012 | unresolved | 0.1408 | 1.000 | 72 |
 
-**The row and its cells are separate runs, and they are checked against each other.** The model row was fitted by its own cluster job straight from the transcripts; the six cell fits were fitted by a different job. Comparing the two afterwards, 12 of 12 cell sizes in the row's `cells_entering` equal the `n_items_complete` and `n_rows` the corresponding `fit.json` recorded, and 8 of 8 pooled anchor counts in the row equal the sum of the same four anchor cells over that model's six `fit.json` files, numerator and denominator. A row fitted on a different item set than the cells printed beside it would fail this.
+**The row and its cells are separate runs, and they are checked against each other.** The model row was fitted by its own cluster job straight from the transcripts; the six cell fits were fitted by a different job. Comparing the two afterwards, 18 of 18 cell sizes in the row's `cells_entering` equal the `n_items_complete` and `n_rows` the corresponding `fit.json` recorded, and 12 of 12 pooled anchor counts in the row equal the sum of the same four anchor cells over that model's six `fit.json` files, numerator and denominator. A row fitted on a different item set than the cells printed beside it would fail this.
 
-**No model-level rho sweep is printed, and section 2.5 is the reason rather than a shortage of compute.** 2.5 says that where no effect is supported at rho = 0 the verdict is unresolved and the dial says so rather than showing robustness. 0 of 2 model rows are load-bearing at rho = 0; the largest P(NIE > 0.15) over the 2 rows is 0.015 against the 0.95 the rule asks for, and 2 of 2 rows have an NIE interval that covers zero. Sweeping rho from there would report how far an effect that is not supported at rho = 0 survives, which is the number 2.5 forbids putting on the dial. rho\*_point is likewise not printed at the model level: it is an invariant reference with no directional meaning, and this lane has no model-level use for it that section 8.1 permits. The per-cell sweeps in section 4 are unaffected and are printed there.
+**No model-level rho sweep is printed, and section 2.5 is the reason rather than a shortage of compute.** 2.5 says that where no effect is supported at rho = 0 the verdict is unresolved and the dial says so rather than showing robustness. 0 of 3 model rows are load-bearing at rho = 0; the largest P(NIE > 0.15) over the 3 rows is 0.102 against the 0.95 the rule asks for, and 3 of 3 rows have an NIE interval that covers zero. Sweeping rho from there would report how far an effect that is not supported at rho = 0 survives, which is the number 2.5 forbids putting on the dial. rho\*_point is likewise not printed at the model level: it is an invariant reference with no directional meaning, and this lane has no model-level use for it that section 8.1 permits. The per-cell sweeps in section 4 are unaffected and are printed there.
 
 The six cell rows of each model, beside their model row:
 
@@ -1506,23 +1508,34 @@ The six cell rows of each model, beside their model row:
 
 | cell | NDE | NIE | TE | verdict | claim status |
 |---|---|---|---|---|---|
-| arc_challenge x stated-hint | +0.0842 [+0.0663, +0.1016] | +0.0788 [+0.0636, +0.0972] | +0.1629 [+0.1338, +0.1949] | unresolved | PENDING_MODEL_ROW |
-| arc_challenge x professor | +0.1105 [+0.0932, +0.1287] | +0.1474 [+0.1246, +0.1725] | +0.2579 [+0.2220, +0.2971] | unresolved | PENDING_MODEL_ROW |
-| arc_challenge x metadata | +0.0369 [+0.0200, +0.0534] | +0.0246 [+0.0124, +0.0414] | +0.0615 [+0.0330, +0.0921] | unresolved | PENDING_MODEL_ROW |
-| arc_challenge x grader-code | +0.0389 [+0.0200, +0.0592] | +0.0239 [+0.0104, +0.0379] | +0.0628 [+0.0293, +0.0945] | unresolved | PENDING_MODEL_ROW |
-| aqua_rat x stated-hint | +0.0727 [+0.0582, +0.0894] | -0.0022 [-0.0038, -0.0007] | +0.0705 [+0.0567, +0.0870] | unresolved | PENDING_MODEL_ROW |
-| aqua_rat x professor | +0.1118 [+0.0955, +0.1266] | +0.0068 [+0.0025, +0.0126] | +0.1185 [+0.1034, +0.1348] | unresolved | PENDING_MODEL_ROW |
+| arc_challenge x stated-hint | +0.0842 [+0.0663, +0.1016] | +0.0788 [+0.0636, +0.0972] | +0.1629 [+0.1338, +0.1949] | unresolved | RAW |
+| arc_challenge x professor | +0.1105 [+0.0932, +0.1287] | +0.1474 [+0.1246, +0.1725] | +0.2579 [+0.2220, +0.2971] | unresolved | RAW |
+| arc_challenge x metadata | +0.0369 [+0.0200, +0.0534] | +0.0246 [+0.0124, +0.0414] | +0.0615 [+0.0330, +0.0921] | unresolved | RAW |
+| arc_challenge x grader-code | +0.0389 [+0.0200, +0.0592] | +0.0239 [+0.0104, +0.0379] | +0.0628 [+0.0293, +0.0945] | unresolved | RAW |
+| aqua_rat x stated-hint | +0.0727 [+0.0582, +0.0894] | -0.0022 [-0.0038, -0.0007] | +0.0705 [+0.0567, +0.0870] | unresolved | RAW |
+| aqua_rat x professor | +0.1118 [+0.0955, +0.1266] | +0.0068 [+0.0025, +0.0126] | +0.1185 [+0.1034, +0.1348] | unresolved | RAW |
+
+`gemma-2-9b-it`
+
+| cell | NDE | NIE | TE | verdict | claim status |
+|---|---|---|---|---|---|
+| arc_challenge x stated-hint | +0.1110 [+0.0965, +0.1274] | +0.1895 [+0.1703, +0.2153] | +0.3005 [+0.2680, +0.3368] | load-bearing at rho=0 | RAW |
+| arc_challenge x professor | +0.0982 [+0.0818, +0.1136] | +0.1586 [+0.1351, +0.1832] | +0.2568 [+0.2196, +0.2910] | unresolved | RAW |
+| arc_challenge x metadata | +0.0409 [+0.0234, +0.0668] | +0.0211 [+0.0127, +0.0360] | +0.0621 [+0.0378, +0.0967] | unresolved | RAW |
+| arc_challenge x grader-code | +0.0260 [+0.0129, +0.0441] | +0.0087 [+0.0040, +0.0150] | +0.0347 [+0.0182, +0.0599] | unresolved | RAW |
+| aqua_rat x stated-hint | +0.1707 [+0.1483, +0.1931] | +0.0139 [+0.0059, +0.0226] | +0.1846 [+0.1609, +0.2129] | unresolved | RAW |
+| aqua_rat x professor | +0.1515 [+0.1294, +0.1691] | +0.0159 [+0.0069, +0.0243] | +0.1673 [+0.1429, +0.1832] | unresolved | RAW |
 
 `llama-3.1-8b-instruct`
 
 | cell | NDE | NIE | TE | verdict | claim status |
 |---|---|---|---|---|---|
-| arc_challenge x stated-hint | +0.1616 [+0.1435, +0.1787] | +0.1781 [+0.1583, +0.2004] | +0.3398 [+0.3092, +0.3746] | load-bearing at rho=0 | PENDING_MODEL_ROW |
-| arc_challenge x professor | +0.1411 [+0.1250, +0.1596] | +0.1356 [+0.1181, +0.1562] | +0.2768 [+0.2473, +0.3050] | unresolved | PENDING_MODEL_ROW |
-| arc_challenge x metadata | +0.0210 [+0.0072, +0.0342] | +0.0002 [-0.0017, +0.0017] | +0.0211 [+0.0072, +0.0341] | unresolved | PENDING_MODEL_ROW |
-| arc_challenge x grader-code | +0.0290 [+0.0154, +0.0441] | +0.0072 [+0.0034, +0.0116] | +0.0362 [+0.0196, +0.0556] | unresolved | PENDING_MODEL_ROW |
-| aqua_rat x stated-hint | +0.0971 [+0.0807, +0.1159] | -0.0016 [-0.0034, +0.0006] | +0.0955 [+0.0796, +0.1144] | unresolved | PENDING_MODEL_ROW |
-| aqua_rat x professor | +0.1651 [+0.1433, +0.1821] | +0.0012 [-0.0038, +0.0075] | +0.1663 [+0.1446, +0.1868] | unresolved | PENDING_MODEL_ROW |
+| arc_challenge x stated-hint | +0.1616 [+0.1435, +0.1787] | +0.1781 [+0.1583, +0.2004] | +0.3398 [+0.3092, +0.3746] | load-bearing at rho=0 | RAW |
+| arc_challenge x professor | +0.1411 [+0.1250, +0.1596] | +0.1356 [+0.1181, +0.1562] | +0.2768 [+0.2473, +0.3050] | unresolved | RAW |
+| arc_challenge x metadata | +0.0210 [+0.0072, +0.0342] | +0.0002 [-0.0017, +0.0017] | +0.0211 [+0.0072, +0.0341] | unresolved | RAW |
+| arc_challenge x grader-code | +0.0290 [+0.0154, +0.0441] | +0.0072 [+0.0034, +0.0116] | +0.0362 [+0.0196, +0.0556] | unresolved | RAW |
+| aqua_rat x stated-hint | +0.0971 [+0.0807, +0.1159] | -0.0016 [-0.0034, +0.0006] | +0.0955 [+0.0796, +0.1144] | unresolved | RAW |
+| aqua_rat x professor | +0.1651 [+0.1433, +0.1821] | +0.0012 [-0.0038, +0.0075] | +0.1663 [+0.1446, +0.1868] | unresolved | RAW |
 
 ### 5.3 The model-level element 21 comparison, which is what claim status turns on
 
@@ -1531,11 +1544,14 @@ The six cell rows of each model, beside their model row:
 | `qwen3-8b` | NDE | +0.1166 [+0.0298, +0.2139] | +0.0476 [+0.0432, +0.0526] | +0.0690 [-0.0174, +0.1648] | **no** |
 | `qwen3-8b` | NIE | +0.0250 [-0.0342, +0.1434] | +0.1458 [+0.1358, +0.1555] | -0.1208 [-0.1804, -0.0019] | **no** |
 | `qwen3-8b` | TE | +0.1413 [+0.0346, +0.3491] | +0.1934 [+0.1841, +0.2033] | -0.0521 [-0.1589, +0.1540] | **no** |
+| `gemma-2-9b-it` | NDE | +0.1262 [+0.0353, +0.2043] | +0.0556 [+0.0489, +0.0610] | +0.0706 [-0.0218, +0.1503] | **no** |
+| `gemma-2-9b-it` | NIE | +0.0523 [-0.0370, +0.2206] | +0.1686 [+0.1599, +0.1799] | -0.1163 [-0.2068, +0.0575] | **no** |
+| `gemma-2-9b-it` | TE | +0.1770 [+0.0425, +0.3964] | +0.2242 [+0.2135, +0.2358] | -0.0472 [-0.1855, +0.1686] | **no** |
 | `llama-3.1-8b-instruct` | NDE | +0.0966 [+0.0101, +0.2250] | +0.0641 [+0.0584, +0.0698] | +0.0325 [-0.0541, +0.1575] | **no** |
 | `llama-3.1-8b-instruct` | NIE | +0.0161 [-0.0353, +0.1160] | +0.2176 [+0.2089, +0.2282] | -0.2014 [-0.2518, -0.0982] | **no** |
 | `llama-3.1-8b-instruct` | TE | +0.1146 [+0.0130, +0.3028] | +0.2817 [+0.2725, +0.2928] | -0.1670 [-0.2694, +0.0221] | **no** |
 
-**This test is not the per-cell test of section 4, and it is harder to pass for a reason that is arithmetic rather than empirical.** The artifact states it: the two sides are INDEPENDENT draws (a posterior and a bootstrap), not one paired resample as in the per-cell test, so this interval is wider than a paired one and the 0.10 margin is harder to clear. The per-cell test forms the difference inside one bootstrap replicate, so the shared item noise cancels; here the column B side is a PyMC posterior over hyperparameters and the anchor side is an item bootstrap, and nothing pairs them. The consequence is measurable rather than hypothetical: 9 of 18 cells pass their own three-estimand test, no model row passes, and 6 of those 9 cells are therefore RAW on the model-level leg alone. This lane requires BOTH legs because section 22 puts the comparison at the model level and a cell-only rule would promote on the easier test; the conservative choice can only demote. A later lane that pairs the two sides, or that reads section 22.1's margin as a per-cell rule, will get more ANCHORED cells from these same numbers, and that is a choice about the test and not a new measurement. Section 22's own rule is the model-level leg alone, so the extra leg this lane adds is not binding on this table: no cell would have been promoted by the model-level test and demoted by the cell-level one, because no model row passes the model-level test in the first place. The extra leg is recorded because it would bind on a table where a model row did pass.
+**This test is not the per-cell test of section 4, and it is harder to pass for a reason that is arithmetic rather than empirical.** The artifact states it: the two sides are INDEPENDENT draws (a posterior and a bootstrap), not one paired resample as in the per-cell test, so this interval is wider than a paired one and the 0.10 margin is harder to clear. The per-cell test forms the difference inside one bootstrap replicate, so the shared item noise cancels; here the column B side is a PyMC posterior over hyperparameters and the anchor side is an item bootstrap, and nothing pairs them. The consequence is measurable rather than hypothetical: 9 of 18 cells pass their own three-estimand test, no model row passes, and 9 of those 9 cells are therefore RAW on the model-level leg alone. This lane requires BOTH legs because section 22 puts the comparison at the model level and a cell-only rule would promote on the easier test; the conservative choice can only demote. A later lane that pairs the two sides, or that reads section 22.1's margin as a per-cell rule, will get more ANCHORED cells from these same numbers, and that is a choice about the test and not a new measurement. Section 22's own rule is the model-level leg alone, so the extra leg this lane adds is not binding on this table: no cell would have been promoted by the model-level test and demoted by the cell-level one, because no model row passes the model-level test in the first place. The extra leg is recorded because it would bind on a table where a model row did pass.
 
 **The correspondence itself is a reading.** Section 22 says the model-level column B estimate is compared with *the corresponding* anchor contrast and does not say which of the five contrasts corresponds to which estimand. This lane pairs NDE against `cue_effect_given_clean_donor`, NIE against `text_source_given_cued_recipient`, TE against `joint_replay_regime`, the same pairing the wave-1 cells were promoted on, and stores the label beside every comparison so a lane that pairs them differently can see exactly what it is changing. A different pairing is a different test on the same five measured contrasts, all of which are printed in section 4.
 
@@ -1548,6 +1564,7 @@ Element 1 section 2.4 fixes THREE things and leaves the rest open. Fixed: one va
 | model | fit | tau_beta_h | NDE | NIE | TE | max r_hat | divergences |
 |---|---|---|---|---|---|---:|---:|
 | `qwen3-8b` | logit link, cue family | 0.6665 [0.0345, 2.2322] | not on the probability scale | n/a | n/a | 1.010 | 103 |
+| `llama-3.1-8b-instruct` | logit link, cue family | 0.5333 [0.0236, 1.9415] | not on the probability scale | n/a | n/a | 1.000 | 93 |
 
 Every row in this document, primary and sensitivity, was mirrored from the corrected submission's output tree alone; the first submission's tree was read only to confirm it had finished and none of its numbers were copied. Each row prints the sha256 of the analysis file it ran under in its own artifact, so a reader can check that claim without trusting this sentence.
 
@@ -1615,7 +1632,7 @@ Each item is a measured or structural fact from the sections above.
 | `llama-3.1-8b-instruct` aqua_rat x stated-hint | 988/1006 = 0.9821 [0.9719, 0.9887] | 98/1006 = 0.0974 [0.0806, 0.1173] | +0.8847 |
 | `llama-3.1-8b-instruct` aqua_rat x professor | 991/1009 = 0.9822 [0.9720, 0.9887] | 113/1009 = 0.1120 [0.0940, 0.1329] | +0.8702 |
 
-10. **0 of 18 cells are ANCHORED, and the binding constraint is the model-level leg rather than any cell's own evidence.** 9 of 18 cells clear the element 21 margin on all three of their own estimands; 6 of them are held at RAW because their model row does not clear the same margin, on a test whose two sides cannot be paired (section 5.3). Read the RAW label as a statement about the promotion rule and the model-level comparison, not as evidence that those cells disagree with their anchor. Each cell's own agreement table is printed in section 4 and is unaffected.
+10. **0 of 18 cells are ANCHORED, and the binding constraint is the model-level leg rather than any cell's own evidence.** 9 of 18 cells clear the element 21 margin on all three of their own estimands; 9 of them are held at RAW because their model row does not clear the same margin, on a test whose two sides cannot be paired (section 5.3). Read the RAW label as a statement about the promotion rule and the model-level comparison, not as evidence that those cells disagree with their anchor. Each cell's own agreement table is printed in section 4 and is unaffected.
 
 11. **The one quantity the data pins directly does not always agree with the fit: the TE identity fails to cover zero in 11 of 18 cells.** Limit 2 says the NDE and NIE split rests on extrapolation and that only the TE is checked directly, against the randomized arm difference. That check is printed in every block of section 4, and in 11 of 18 cells the bootstrap interval on the difference excludes zero, so the probit fit does not reproduce the arm difference within its own sampling error. The largest gap is `qwen3-8b` arc_challenge x metadata, model-implied 0.0615 against a measured arm difference of 0.1011, difference -0.0396 [-0.0559, -0.0256]. The shortfall has a direction: the model-implied TE is BELOW the arm difference in 16 of 18 cells, not scattered either side of it, and the shortfall reaches 44.9% of the arm difference on the largest. The two sides carry the same sign in 18 of 18 cells, but a reader who takes limit 2 to mean the TE is validated should read this instead: the TE is checkABLE, it was checked, and in these cells the check is not clean. That is a statement about the probit specification on a design with a zero-variance clean arm, not about the arm difference, which is a direct count.
 
