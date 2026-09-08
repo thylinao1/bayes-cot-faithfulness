@@ -1,0 +1,76 @@
+{
+  "claim_status": "jury: EXPLORATORY (no Q1 configuration has passed the frozen gate); regex: RAW",
+  "cite": "arXiv:2510.04040",
+  "dataset_revision": "6e3c004cbbde5bf47352df91e3ac399d2fb4593e",
+  "per_question": {
+    "Q1a": {
+      "n_jury_scored": 1253,
+      "n_joined_to_regex": 1253,
+      "n_missing_from_regex_predictions": 0,
+      "jury_specificity": {
+        "numerator": 1168,
+        "denominator": 1253,
+        "rate": 0.9322,
+        "wilson95": [
+          0.9169,
+          0.9448
+        ]
+      },
+      "regex_specificity_same_items": {
+        "numerator": 1219,
+        "denominator": 1253,
+        "rate": 0.9729,
+        "wilson95": [
+          0.9623,
+          0.9805
+        ]
+      }
+    },
+    "Q1b": {
+      "n_jury_scored": 1253,
+      "n_joined_to_regex": 1253,
+      "n_missing_from_regex_predictions": 0,
+      "jury_specificity": {
+        "numerator": 959,
+        "denominator": 1253,
+        "rate": 0.7654,
+        "wilson95": [
+          0.7411,
+          0.788
+        ]
+      },
+      "regex_specificity_same_items": {
+        "numerator": 1219,
+        "denominator": 1253,
+        "rate": 0.9729,
+        "wilson95": [
+          0.9623,
+          0.9805
+        ]
+      }
+    },
+    "Q1c": {
+      "n_jury_scored": 1243,
+      "n_joined_to_regex": 1243,
+      "n_missing_from_regex_predictions": 0,
+      "jury_specificity": {
+        "numerator": 567,
+        "denominator": 1243,
+        "rate": 0.4562,
+        "wilson95": [
+          0.4286,
+          0.4839
+        ]
+      },
+      "regex_specificity_same_items": {
+        "numerator": 1209,
+        "denominator": 1243,
+        "rate": 0.9726,
+        "wilson95": [
+          0.962,
+          0.9804
+        ]
+      }
+    }
+  }
+}

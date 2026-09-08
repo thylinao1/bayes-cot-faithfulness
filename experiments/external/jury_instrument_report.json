@@ -1,0 +1,778 @@
+{
+  "claim_status": "EXPLORATORY",
+  "claim_status_evidence": "No Q1 configuration has passed the frozen gate; see experiments/jury/GATE-Q1-COMPARISON.md, where every judge x Q1 file row is FAIL.",
+  "judges": [
+    "gemma-3-27b-it"
+  ],
+  "n_votes_total": 7220,
+  "n_votes_run0": 6020,
+  "cite": "arXiv:2510.04040",
+  "dataset_revision": "6e3c004cbbde5bf47352df91e3ac399d2fb4593e",
+  "per_judge": {
+    "gemma-3-27b-it": {
+      "serving_line": "bf16, alone on one a100-80 at gpu-memory-utilization 0.90 (ruling R7)",
+      "serving_line_is_pinned": true,
+      "judge_revision": "005ad3404e59d6023443cb575daa05336842228a",
+      "availability": {
+        "Q1a": {
+          "prompt_file": "q1_mention_2026-09-07.md",
+          "prompt_sha256": "c11fa9cddebba21948ea2de2fe4b6b09c65a31504b50e394d837fba738978b59",
+          "unavailable_rate": {
+            "numerator": 3,
+            "denominator": 1505,
+            "rate": 0.002,
+            "wilson95": [
+              0.0007,
+              0.0058
+            ]
+          },
+          "status_counts": {
+            "ok": 1502,
+            "malformed": 3
+          },
+          "vote_counts": {
+            "no": 1326,
+            "yes": 176
+          }
+        },
+        "Q1b": {
+          "prompt_file": "q1_mention_2026-09-07b.md",
+          "prompt_sha256": "cdbba6e3d6313592d29438a81a2ef91b7f865489ae6d9811bc0e4e0e214dc72c",
+          "unavailable_rate": {
+            "numerator": 3,
+            "denominator": 1505,
+            "rate": 0.002,
+            "wilson95": [
+              0.0007,
+              0.0058
+            ]
+          },
+          "status_counts": {
+            "ok": 1502,
+            "malformed": 3
+          },
+          "vote_counts": {
+            "no": 1047,
+            "yes": 455
+          }
+        },
+        "Q1c": {
+          "prompt_file": "q1_mention_2026-09-07c.md",
+          "prompt_sha256": "f67394067d206f1082d218ef053b6d6fdc5e4bbe3c5ccce1ae68442674931804",
+          "unavailable_rate": {
+            "numerator": 13,
+            "denominator": 1505,
+            "rate": 0.0086,
+            "wilson95": [
+              0.0051,
+              0.0147
+            ]
+          },
+          "status_counts": {
+            "ok": 1492,
+            "malformed": 13
+          },
+          "vote_counts": {
+            "no": 643,
+            "yes": 849
+          }
+        },
+        "Q2": {
+          "prompt_file": "q2_support_2026-09-07.md",
+          "prompt_sha256": "5a0a5449830db66c64676a661dc50d43d55e1a27b74382978547f89b8e187be5",
+          "unavailable_rate": {
+            "numerator": 0,
+            "denominator": 1505,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.0025
+            ]
+          },
+          "status_counts": {
+            "ok": 1505
+          },
+          "vote_counts": {
+            "supported": 1416,
+            "unsupported": 89
+          }
+        }
+      },
+      "faithcot": {
+        "Q1a": {
+          "construct": "Q1 cue disclosure on a corpus where no item carries a cue",
+          "recall": null,
+          "recall_note": "UNDEFINED: 0 of the items carry a cue, so there is no true positive",
+          "specificity": {
+            "numerator": 1168,
+            "denominator": 1253,
+            "rate": 0.9322,
+            "wilson95": [
+              0.9169,
+              0.9448
+            ]
+          },
+          "false_positive_rate": {
+            "numerator": 85,
+            "denominator": 1253,
+            "rate": 0.0678,
+            "wilson95": [
+              0.0552,
+              0.0831
+            ]
+          },
+          "specificity_by_faithful_type": {
+            "1": {
+              "numerator": 238,
+              "denominator": 258,
+              "rate": 0.9225,
+              "wilson95": [
+                0.8833,
+                0.9493
+              ]
+            },
+            "2": {
+              "numerator": 201,
+              "denominator": 219,
+              "rate": 0.9178,
+              "wilson95": [
+                0.8738,
+                0.9474
+              ]
+            },
+            "3": {
+              "numerator": 637,
+              "denominator": 671,
+              "rate": 0.9493,
+              "wilson95": [
+                0.93,
+                0.9635
+              ]
+            },
+            "4": {
+              "numerator": 91,
+              "denominator": 104,
+              "rate": 0.875,
+              "wilson95": [
+                0.7978,
+                0.9255
+              ]
+            }
+          },
+          "specificity_by_correctness": {
+            "answer_correct": {
+              "numerator": 726,
+              "denominator": 773,
+              "rate": 0.9392,
+              "wilson95": [
+                0.9201,
+                0.954
+              ]
+            },
+            "answer_incorrect": {
+              "numerator": 442,
+              "denominator": 480,
+              "rate": 0.9208,
+              "wilson95": [
+                0.8932,
+                0.9418
+              ]
+            }
+          }
+        },
+        "Q1b": {
+          "construct": "Q1 cue disclosure on a corpus where no item carries a cue",
+          "recall": null,
+          "recall_note": "UNDEFINED: 0 of the items carry a cue, so there is no true positive",
+          "specificity": {
+            "numerator": 959,
+            "denominator": 1253,
+            "rate": 0.7654,
+            "wilson95": [
+              0.7411,
+              0.788
+            ]
+          },
+          "false_positive_rate": {
+            "numerator": 294,
+            "denominator": 1253,
+            "rate": 0.2346,
+            "wilson95": [
+              0.212,
+              0.2589
+            ]
+          },
+          "specificity_by_faithful_type": {
+            "1": {
+              "numerator": 189,
+              "denominator": 258,
+              "rate": 0.7326,
+              "wilson95": [
+                0.6754,
+                0.7829
+              ]
+            },
+            "2": {
+              "numerator": 150,
+              "denominator": 219,
+              "rate": 0.6849,
+              "wilson95": [
+                0.6207,
+                0.7428
+              ]
+            },
+            "3": {
+              "numerator": 553,
+              "denominator": 671,
+              "rate": 0.8241,
+              "wilson95": [
+                0.7935,
+                0.8511
+              ]
+            },
+            "4": {
+              "numerator": 66,
+              "denominator": 104,
+              "rate": 0.6346,
+              "wilson95": [
+                0.5388,
+                0.7208
+              ]
+            }
+          },
+          "specificity_by_correctness": {
+            "answer_correct": {
+              "numerator": 618,
+              "denominator": 773,
+              "rate": 0.7995,
+              "wilson95": [
+                0.7698,
+                0.8262
+              ]
+            },
+            "answer_incorrect": {
+              "numerator": 341,
+              "denominator": 480,
+              "rate": 0.7104,
+              "wilson95": [
+                0.6683,
+                0.7492
+              ]
+            }
+          }
+        },
+        "Q1c": {
+          "construct": "Q1 cue disclosure on a corpus where no item carries a cue",
+          "recall": null,
+          "recall_note": "UNDEFINED: 0 of the items carry a cue, so there is no true positive",
+          "specificity": {
+            "numerator": 567,
+            "denominator": 1243,
+            "rate": 0.4562,
+            "wilson95": [
+              0.4286,
+              0.4839
+            ]
+          },
+          "false_positive_rate": {
+            "numerator": 676,
+            "denominator": 1243,
+            "rate": 0.5438,
+            "wilson95": [
+              0.5161,
+              0.5714
+            ]
+          },
+          "specificity_by_faithful_type": {
+            "1": {
+              "numerator": 123,
+              "denominator": 256,
+              "rate": 0.4805,
+              "wilson95": [
+                0.42,
+                0.5415
+              ]
+            },
+            "2": {
+              "numerator": 93,
+              "denominator": 219,
+              "rate": 0.4247,
+              "wilson95": [
+                0.361,
+                0.4909
+              ]
+            },
+            "3": {
+              "numerator": 321,
+              "denominator": 667,
+              "rate": 0.4813,
+              "wilson95": [
+                0.4436,
+                0.5192
+              ]
+            },
+            "4": {
+              "numerator": 29,
+              "denominator": 100,
+              "rate": 0.29,
+              "wilson95": [
+                0.2101,
+                0.3854
+              ]
+            }
+          },
+          "specificity_by_correctness": {
+            "answer_correct": {
+              "numerator": 351,
+              "denominator": 765,
+              "rate": 0.4588,
+              "wilson95": [
+                0.4238,
+                0.4943
+              ]
+            },
+            "answer_incorrect": {
+              "numerator": 216,
+              "denominator": 478,
+              "rate": 0.4519,
+              "wilson95": [
+                0.4078,
+                0.4967
+              ]
+            }
+          }
+        },
+        "Q2": {
+          "construct": "does the CoT support the answer, against the human unfaithfulness label",
+          "positive_class": "unsupported == human unfaithfulness 1",
+          "n_scored": 1256,
+          "n_usable": 1256,
+          "n_uncertain_or_abstain": 0,
+          "all_usable": {
+            "tp": 26,
+            "fp": 11,
+            "fn": 339,
+            "tn": 880,
+            "n": 1256,
+            "recall": {
+              "numerator": 26,
+              "denominator": 365,
+              "rate": 0.0712,
+              "wilson95": [
+                0.0491,
+                0.1023
+              ]
+            },
+            "specificity": {
+              "numerator": 880,
+              "denominator": 891,
+              "rate": 0.9877,
+              "wilson95": [
+                0.978,
+                0.9931
+              ]
+            },
+            "precision": {
+              "numerator": 26,
+              "denominator": 37,
+              "rate": 0.7027,
+              "wilson95": [
+                0.5422,
+                0.8251
+              ]
+            },
+            "f1": 0.1294,
+            "auroc": null,
+            "auroc_note": "the judge returns a categorical vote, not a score, so AUROC is not defined",
+            "youden_j": 0.0589
+          },
+          "label_consistent_rows_only": {
+            "tp": 22,
+            "fp": 11,
+            "fn": 292,
+            "tn": 868,
+            "n": 1193,
+            "recall": {
+              "numerator": 22,
+              "denominator": 314,
+              "rate": 0.0701,
+              "wilson95": [
+                0.0467,
+                0.1038
+              ]
+            },
+            "specificity": {
+              "numerator": 868,
+              "denominator": 879,
+              "rate": 0.9875,
+              "wilson95": [
+                0.9777,
+                0.993
+              ]
+            },
+            "precision": {
+              "numerator": 22,
+              "denominator": 33,
+              "rate": 0.6667,
+              "wilson95": [
+                0.4961,
+                0.8025
+              ]
+            },
+            "f1": 0.1268,
+            "auroc": null,
+            "auroc_note": "the judge returns a categorical vote, not a score, so AUROC is not defined",
+            "youden_j": 0.0575
+          },
+          "by_correctness": {
+            "answer_correct": {
+              "tp": 10,
+              "fp": 2,
+              "fn": 108,
+              "tn": 656,
+              "n": 776,
+              "recall": {
+                "numerator": 10,
+                "denominator": 118,
+                "rate": 0.0847,
+                "wilson95": [
+                  0.0467,
+                  0.149
+                ]
+              },
+              "specificity": {
+                "numerator": 656,
+                "denominator": 658,
+                "rate": 0.997,
+                "wilson95": [
+                  0.989,
+                  0.9992
+                ]
+              },
+              "precision": {
+                "numerator": 10,
+                "denominator": 12,
+                "rate": 0.8333,
+                "wilson95": [
+                  0.552,
+                  0.953
+                ]
+              },
+              "f1": 0.1538,
+              "auroc": null,
+              "auroc_note": "the judge returns a categorical vote, not a score, so AUROC is not defined",
+              "youden_j": 0.0817
+            },
+            "answer_incorrect": {
+              "tp": 16,
+              "fp": 9,
+              "fn": 231,
+              "tn": 224,
+              "n": 480,
+              "recall": {
+                "numerator": 16,
+                "denominator": 247,
+                "rate": 0.0648,
+                "wilson95": [
+                  0.0403,
+                  0.1026
+                ]
+              },
+              "specificity": {
+                "numerator": 224,
+                "denominator": 233,
+                "rate": 0.9614,
+                "wilson95": [
+                  0.9282,
+                  0.9795
+                ]
+              },
+              "precision": {
+                "numerator": 16,
+                "denominator": 25,
+                "rate": 0.64,
+                "wilson95": [
+                  0.4452,
+                  0.7975
+                ]
+              },
+              "f1": 0.1176,
+              "auroc": null,
+              "auroc_note": "the judge returns a categorical vote, not a score, so AUROC is not defined",
+              "youden_j": 0.0262
+            }
+          },
+          "recall_by_faithful_type": {
+            "2": {
+              "numerator": 12,
+              "denominator": 215,
+              "rate": 0.0558,
+              "wilson95": [
+                0.0322,
+                0.095
+              ]
+            },
+            "4": {
+              "numerator": 11,
+              "denominator": 101,
+              "rate": 0.1089,
+              "wilson95": [
+                0.0619,
+                0.1846
+              ]
+            }
+          },
+          "specificity_by_faithful_type": {
+            "1": {
+              "numerator": 217,
+              "denominator": 226,
+              "rate": 0.9602,
+              "wilson95": [
+                0.9261,
+                0.9789
+              ]
+            },
+            "3": {
+              "numerator": 655,
+              "denominator": 657,
+              "rate": 0.997,
+              "wilson95": [
+                0.989,
+                0.9992
+              ]
+            }
+          },
+          "by_dataset": {
+            "HLE_BIO": {
+              "tp": 3,
+              "fp": 3,
+              "fn": 52,
+              "tn": 75,
+              "n": 133,
+              "recall": {
+                "numerator": 3,
+                "denominator": 55,
+                "rate": 0.0545,
+                "wilson95": [
+                  0.0187,
+                  0.1485
+                ]
+              },
+              "specificity": {
+                "numerator": 75,
+                "denominator": 78,
+                "rate": 0.9615,
+                "wilson95": [
+                  0.8929,
+                  0.9868
+                ]
+              },
+              "precision": {
+                "numerator": 3,
+                "denominator": 6,
+                "rate": 0.5,
+                "wilson95": [
+                  0.1876,
+                  0.8124
+                ]
+              },
+              "f1": 0.0984,
+              "auroc": null,
+              "auroc_note": "the judge returns a categorical vote, not a score, so AUROC is not defined",
+              "youden_j": 0.0161
+            },
+            "aqua": {
+              "tp": 7,
+              "fp": 4,
+              "fn": 74,
+              "tn": 269,
+              "n": 354,
+              "recall": {
+                "numerator": 7,
+                "denominator": 81,
+                "rate": 0.0864,
+                "wilson95": [
+                  0.0425,
+                  0.1678
+                ]
+              },
+              "specificity": {
+                "numerator": 269,
+                "denominator": 273,
+                "rate": 0.9853,
+                "wilson95": [
+                  0.9629,
+                  0.9943
+                ]
+              },
+              "precision": {
+                "numerator": 7,
+                "denominator": 11,
+                "rate": 0.6364,
+                "wilson95": [
+                  0.3538,
+                  0.8483
+                ]
+              },
+              "f1": 0.1522,
+              "auroc": null,
+              "auroc_note": "the judge returns a categorical vote, not a score, so AUROC is not defined",
+              "youden_j": 0.0718
+            },
+            "logiqa": {
+              "tp": 10,
+              "fp": 2,
+              "fn": 117,
+              "tn": 271,
+              "n": 400,
+              "recall": {
+                "numerator": 10,
+                "denominator": 127,
+                "rate": 0.0787,
+                "wilson95": [
+                  0.0433,
+                  0.1389
+                ]
+              },
+              "specificity": {
+                "numerator": 271,
+                "denominator": 273,
+                "rate": 0.9927,
+                "wilson95": [
+                  0.9737,
+                  0.998
+                ]
+              },
+              "precision": {
+                "numerator": 10,
+                "denominator": 12,
+                "rate": 0.8333,
+                "wilson95": [
+                  0.552,
+                  0.953
+                ]
+              },
+              "f1": 0.1439,
+              "auroc": null,
+              "auroc_note": "the judge returns a categorical vote, not a score, so AUROC is not defined",
+              "youden_j": 0.0714
+            },
+            "truthfulqa": {
+              "tp": 6,
+              "fp": 2,
+              "fn": 96,
+              "tn": 265,
+              "n": 369,
+              "recall": {
+                "numerator": 6,
+                "denominator": 102,
+                "rate": 0.0588,
+                "wilson95": [
+                  0.0272,
+                  0.1224
+                ]
+              },
+              "specificity": {
+                "numerator": 265,
+                "denominator": 267,
+                "rate": 0.9925,
+                "wilson95": [
+                  0.9731,
+                  0.9979
+                ]
+              },
+              "precision": {
+                "numerator": 6,
+                "denominator": 8,
+                "rate": 0.75,
+                "wilson95": [
+                  0.4093,
+                  0.9285
+                ]
+              },
+              "f1": 0.1091,
+              "auroc": null,
+              "auroc_note": "the judge returns a categorical vote, not a score, so AUROC is not defined",
+              "youden_j": 0.0513
+            }
+          }
+        }
+      },
+      "wave1": {
+        "Q1a": {
+          "p_no_mention_given_followed": {
+            "numerator": 158,
+            "denominator": 249,
+            "rate": 0.6345,
+            "wilson95": [
+              0.5731,
+              0.6919
+            ]
+          },
+          "agreement_with_frozen_regex": {
+            "numerator": 244,
+            "denominator": 249,
+            "rate": 0.9799,
+            "wilson95": [
+              0.9539,
+              0.9914
+            ]
+          }
+        },
+        "Q1b": {
+          "p_no_mention_given_followed": {
+            "numerator": 88,
+            "denominator": 249,
+            "rate": 0.3534,
+            "wilson95": [
+              0.2967,
+              0.4146
+            ]
+          },
+          "agreement_with_frozen_regex": {
+            "numerator": 174,
+            "denominator": 249,
+            "rate": 0.6988,
+            "wilson95": [
+              0.6391,
+              0.7524
+            ]
+          }
+        },
+        "Q1c": {
+          "p_no_mention_given_followed": {
+            "numerator": 76,
+            "denominator": 249,
+            "rate": 0.3052,
+            "wilson95": [
+              0.2513,
+              0.365
+            ]
+          },
+          "agreement_with_frozen_regex": {
+            "numerator": 162,
+            "denominator": 249,
+            "rate": 0.6506,
+            "wilson95": [
+              0.5895,
+              0.7071
+            ]
+          }
+        }
+      },
+      "test_retest_on_audit_slice": {
+        "numerator": 599,
+        "denominator": 599,
+        "rate": 1.0,
+        "wilson95": [
+          0.9936,
+          1.0
+        ]
+      }
+    }
+  },
+  "leave_one_judge_out_Q2_faithcot": {
+    "status": "NOT COMPUTED",
+    "why": "leave-one-out needs at least two judges and 1 scored this corpus"
+  }
+}

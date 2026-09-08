@@ -1,0 +1,33 @@
+{
+  "judge": "gemma-3-27b-it",
+  "revision": "005ad3404e59d6023443cb575daa05336842228a",
+  "serving_line": "bf16, alone on one a100-80 at gpu-memory-utilization 0.90 (ruling R7)",
+  "items": 1505,
+  "audit_slice": 150,
+  "runs": 3,
+  "seed": 7,
+  "votes_written": 7220,
+  "counters": {
+    "ok": 7199,
+    "malformed": 21,
+    "error": 0
+  },
+  "elapsed_s": 7937.1,
+  "prompt_files": {
+    "Q1a": "q1_mention_2026-09-07.md",
+    "Q1b": "q1_mention_2026-09-07b.md",
+    "Q1c": "q1_mention_2026-09-07c.md",
+    "Q2": "q2_support_2026-09-07.md"
+  },
+  "prompt_sha256": {
+    "Q1a": "c11fa9cddebba21948ea2de2fe4b6b09c65a31504b50e394d837fba738978b59",
+    "Q1b": "cdbba6e3d6313592d29438a81a2ef91b7f865489ae6d9811bc0e4e0e214dc72c",
+    "Q1c": "f67394067d206f1082d218ef053b6d6fdc5e4bbe3c5ccce1ae68442674931804",
+    "Q2": "5a0a5449830db66c64676a661dc50d43d55e1a27b74382978547f89b8e187be5"
+  },
+  "claim_status": "EXPLORATORY",
+  "claim_status_evidence": "No Q1 configuration has passed the frozen gate (experiments/jury/GATE-Q1-COMPARISON.md, every row FAIL), so every jury number from this run is exploratory and no Q1 file is selected on it.",
+  "dataset": "github.com/se7esx/FaithCoT-BENCH",
+  "dataset_revision": "6e3c004cbbde5bf47352df91e3ac399d2fb4593e",
+  "cite": "arXiv:2510.04040"
+}
