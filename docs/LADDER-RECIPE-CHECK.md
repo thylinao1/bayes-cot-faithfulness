@@ -10,6 +10,15 @@ dose for a few hundred steps, to confirm the LoRA recipe learns the trigger at a
 read training loss and throughput"), and its whole purpose is to put measured numbers
 beside the decisions ruling R14 has to make.
 
+**Status at the end of the lane: the CPU half is done and the GPU half has not run.**
+The traces, the training pool, the evaluation guard and one organism training set exist
+and are measured (sections 2 and 3). The LoRA fit is job 828559: submitted at 09:21:48
+after a printed cap check, still PENDING at 12:48:26 because 10 of the 11 a100-80 cards
+are allocated and the 11th is the excluded xgpj0 (section 5.2). It is left QUEUED, it was
+never cancelled, and `~/bcf/ladder-explore/collect.sh` collects it in one command. Every
+row of section 6 that depends on it is marked NOTHING YET rather than filled with an
+estimate.
+
 Every number below carries its denominator and the job or file it came from.
 
 ---
@@ -23,7 +32,7 @@ Every number below carries its denominator and the job or file it came from.
 | 2 | Reduce four Qwen3-8B ARC cells to traces | partition `normal` | 828544 | 1,395 of 3,935 records kept |
 | 3 | Evaluation guard over the pinned ARC pool | partition `normal` | 828544 | 1,496 hashes for 1,500 items |
 | 4 | One organism training set, rung 2, seed 1 | partition `normal` | 828544 | 1,077 examples, 0 with a banked trace |
-| 5 | The env check and one LoRA fit on a100-80 | `gpu-long` | 828559 | see section 5 |
+| 5 | The env check and one LoRA fit on a100-80 | `gpu` | 828559 | **QUEUED, not started at 12:48; section 5** |
 
 ### 1.1 The tree, and the one deviation from the sync recipe
 
@@ -225,8 +234,8 @@ CAP CHECK PASSES: 1 running + 1 from this lane = 2 of 4
 
 Two of the four a100-80 slots stay free for the two pending alta jobs, which is the
 point of the rule. The wall was capped at `--time=02:00:00`, overriding the 08:00:00 in
-`bcf/ladder_train.sbatch`; `--mem=128G`, `--exclude=xgpj0` and the a100-80 request are
-the file's own, unedited.
+`bcf/ladder_train.sbatch`, and later lowered to 01:30:00 (section 5.1); `--mem=128G`,
+`--exclude=xgpj0` and the a100-80 request are the file's own, unedited.
 
 Against the ladder budget, this job is a NEW line and not one of the 12:
 
@@ -235,9 +244,12 @@ Against the ladder budget, this job is a NEW line and not one of the 12:
 | LoRA, 12 checkpoints | 24.000 | 12 x 2.0 h, CONTRACT.md line 24 (ESTIMATE) |
 | Evaluation, 12 cells | 8.172 | 12 x 0.681 h, `serve_manifest.expected_hours()` |
 | Ladder total of record | 32.172 | |
-| This recipe check | at most 2.000 | the wall cap; the measured figure is in section 5 |
+| This recipe check | at most 1.500 | the wall cap now on job 828559; the run has not started, so nothing has been spent |
 | Trace banking on the training pool | 0.123 | section 3.3, needed once regardless |
-| **Total** | **at most 34.295** | against section 12.1's "about 35 card-hours per base" |
+| **Total** | **at most 33.795** | against section 12.1's "about 35 card-hours per base" |
+
+Card-hours SPENT by this lane so far: **0.000.** The CPU work of sections 2 and 3 ran on
+partition `normal` and on the login node and cost no card.
 
 Ruling R2 records the element 16 degradation trigger as NOT TRIGGERED at 261.7 priced
 card-hours against a budget of record of about 650, a ratio of 0.403, so nothing is being
@@ -245,9 +257,137 @@ cut for compute and this check does not move that.
 
 ---
 
-## 5. The GPU job: the env check and one LoRA fit
+## 5. The GPU job: submitted, queued, NOT YET MEASURED
 
-PENDING_SECTION_5
+**Job 828559 was submitted at 09:21:48 and had not started by 12:48:26.** Nothing in
+this section is a measurement, and no number is quoted here that the job has not
+produced. This is the same shape as `CONTRACT.md`'s "Measured throughput (Phase 1, whole
+a100-80): NOT YET MEASURED" of 2026-09-07: the job is named, the reason is named, and no
+estimate is promoted to a measurement in its absence.
+
+### 5.1 What was submitted
+
+One `bcf/ladder_train.sbatch`, unedited, on the synced tree, after the printed cap check
+of section 4:
+
+```
+sbatch --time=02:00:00 --job-name=bcf-ladder-explore-recipe
+  --output=~/bcf/ladder-explore/%x-%j.out
+  --export=ALL,BCF_REPO=~/bcf/repo-b4de41a7a6a9,BCF_ENV_SH=<that tree>/bcf/env.sh,
+    BCF_MODEL=Qwen/Qwen3-8B,BCF_LADDER_VARIANT=organism,BCF_LADDER_RUNG=2,
+    BCF_LADDER_SEED=20260911,BCF_LADDER_POOL=~/bcf/ladder/pools/ladder_train_pool.json,
+    BCF_LADDER_GUARD=~/bcf/ladder/pools/evaluation_guard.json,
+    BCF_LADDER_TRACES=~/bcf/ladder/traces/qwen3-8b-arc.json,
+    BCF_LADDER_ROOT=~/bcf/ladder-explore,BCF_LADDER_BASE_SLUG=qwen3-8b,
+    BCF_LADDER_N_EXAMPLES=1077,BCF_LADDER_STEPS=400,BCF_LADDER_RANK=16,
+    BCF_LADDER_LR=1e-4,BCF_LADDER_BATCH=8,BCF_LADDER_MERGE=0,
+    BCF_LADDER_EXPLORATORY=1,BCF_LADDER_PROBE_N=64,BCF_LADDER_LOSS_EVERY=10
+  ~/bcf/repo-b4de41a7a6a9/bcf/ladder_train.sbatch
+```
+
+`--gpus=a100-80`, `--exclude=xgpj0`, `--mem=128G` and `--cpus-per-task=8` are the sbatch
+file's own and were not edited. The wall was capped at 02:00:00 on submission, then
+lowered to 01:00:00 and then set to 01:30:00 with `scontrol update jobid=828559
+TimeLimit=...`, which lowers this lane's own pending job and never raises it past the
+lane's 2-hour ceiling. Slurm routed the job to partition `gpu` rather than `gpu-long`
+(`gpu` has `MaxTime=03:00:00` and `PriorityJobFactor=4`, `gpu-long` has 3 days and 1),
+which is the better queue for a job this short.
+
+`BCF_LADDER_MERGE=0` is deliberate: the merged directory is about 16 GB of writes and
+this run does not serve anything, so it writes the adapter only.
+
+### 5.2 Why it has not run, with the evidence
+
+At 12:48:26 the a100-80 pool looked like this:
+
+| Node | holder | used | wall |
+|---|---|---|---|
+| xgph0 | waihong | 1:14:36 | 2:50:00 |
+| xgph1 | waihong | 2:41:01 | 2:50:00 |
+| xgph2 | kang | 7:35:21 | 3-00:00:00 |
+| xgph3 | pengzhan | 7:11:24 | 3-00:00:00 |
+| xgph4 | i0002672 | 1-04:15:46 | 3-00:00:00 |
+| xgph5 | pengzhan | 6:45:00 | 3-00:00:00 |
+| xgph6 | pengzhan | 1:46:31 | 3-00:00:00 |
+| xgph7 | pengzhan | 2:05:28 | 3-00:00:00 |
+| xgph8 | i0002672 | 9:52:44 | 3-00:00:00 |
+| xgph9 | kang | 9:28:18 | 3-00:00:00 |
+| xgpj0 | **idle** | | excluded by the lane rule and by the sbatch's own `#SBATCH --exclude=xgpj0` |
+
+So 10 of the 11 a100-80 cards are allocated, 8 of them under 3-day walls, and the only
+free card is the excluded one. Two pending jobs of another user carry about 1.84 times
+this job's priority (0.0000011250 against 0.0000006107) and sit ahead of it for the same
+resource.
+
+One data point on how fast that pool turns over: this account's own job 826784 hit its
+8-hour wall on xgph7 at about 10:42, and another user's 3-day job (827917) was running on
+xgph7 by 11:28.
+
+Slurm's own start estimate for 828559 moved 10:00:50, then 11:19:58, 12:50:00, 12:57:25,
+14:23:50, 15:48:00, 17:11:00, 17:24:00 and 20:14:00 over four hours of polling, so it is
+a backfill guess and not a schedule. **The job stays queued. It was not cancelled, it was
+not resubmitted, and it was not moved onto xgpj0.**
+
+### 5.3 What it will write, and the one command that collects it
+
+Output root `~/bcf/ladder-explore/qwen3-8b/organism_0.60_20260911/`:
+
+| File | What it carries |
+|---|---|
+| `run.log` | the env check of record, then every `[train] step N/400 loss X tok/s Y` line |
+| `checkpoint/manifest.json` | `exploratory: true`, `of_record: false`, the config, `train_report.loss_curve` (every 10th step plus the first and the last), `train_report.throughput` (train seconds, tokens seen, tokens per second, seconds per step, prompt and completion token totals), `train_report.peak_memory`, `train_report.trigger_probe.before` and `.after` |
+| `checkpoint/trigger_probe.json` | the 64 per-item rows behind those two summaries |
+| `checkpoint/adapter/` | the LoRA adapter, no merge |
+| `exit_code.txt` | written on every exit path by `bcf_install_exit_guard`; 0 only once `checkpoint/manifest.json` exists, 7 if the env check refused, 5 if the trainer failed, 6 if the manifest did not verify, 143 on a wall kill |
+
+```bash
+J=828559; R=~/bcf/ladder-explore/qwen3-8b/organism_0.60_20260911
+sacct -j $J --format=JobID,State,Elapsed,ExitCode,MaxRSS -P
+cat $R/exit_code.txt
+sed -n '1,120p' ~/bcf/ladder-explore/bcf-ladder-explore-recipe-$J.out   # the env check
+python3 -c "import json;m=json.load(open('$R/checkpoint/manifest.json'));r=m['train_report'];
+print(json.dumps({'exploratory':m['exploratory'],'of_record':m['of_record'],
+'loss_curve':r['loss_curve'],'throughput':r['throughput'],'peak_memory':r['peak_memory'],
+'trigger_probe':r['trigger_probe']},indent=2))"
+```
+
+`~/bcf/ladder-explore/collect.sh` on the cluster runs exactly that.
+
+### 5.4 The caveat that will apply to whatever it measures
+
+The completions this job trains on are the **template fallback**, because the coverage is
+0 of 1,077 (section 3.2). The measured difference is not small:
+
+| | body | chars | words |
+|---|---|---|---|
+| A banked Qwen3-8B clean trace, n = 1,395 | its own reasoning | mean 574.7, median 561, p10 399, p90 774 | mean 94.6, median 91 |
+| The template fallback | `1. Work through the options in order.` | 37 | 7 |
+
+Loss is computed on the completion tokens only, so in this run almost the whole gradient
+lands on the answer letter, which is the easiest possible version of the task element 11
+wants learned. Three consequences, to be written into the reading of section 5's numbers
+whenever they arrive:
+
+1. **A "learned" result is an upper bound.** If the organism does not pick up the
+   trigger relation here, it will not pick it up on 140-token reasoning completions
+   either, and that reading would be decisive against the recipe. The converse does not
+   hold.
+2. **The throughput figure transfers as tokens per second, not as seconds per step.**
+   The manifest records `n_prompt_tokens_in_set` and `n_completion_tokens_in_set`, so the
+   real run's cost is the real token count divided by the measured rate, not this run's
+   wall time.
+3. **The peak memory does NOT transfer upward safely.** Real completions are longer, so
+   the real run's activation memory is larger than whatever this run reports, and a peak
+   comfortably inside 80 GB here is not by itself proof that the recipe fits at the real
+   sequence length.
+
+### 5.5 What a recipe check can and cannot settle
+
+It measures one thing: whether the provisional recipe is INERT. The pilot plan says so in
+as many words, and it stands: "The pilot measures exactly one thing about this recipe:
+whether it moves the organism at all at dose 0.60. It does not tune it, and R14 should not
+read a passing pilot as evidence that these are the right values, only that they are not
+inert."
 
 ---
 
@@ -261,12 +401,12 @@ on it; a blank measurement column is itself the finding.
 
 | # | Decision | What this lane measured that bears on it |
 |---|---|---|
-| 1 | The three dose values, and whether 0.30 / 0.60 / 0.90 stand | Only rung 2 was built and trained. At a requested coupling of 0.60 the realised relabelling is 317 of 523 trigger items = 0.6061, the answer information is 0.4855 nats, and P(target = trigger option) is 0.7132 against the 0.70 that 0.60 + 0.40 x 0.25 predicts for four options. Whether 0.60 is LEARNABLE is section 5's probe. **Nothing here bears on 0.30 or 0.90.** |
+| 1 | The three dose values, and whether 0.30 / 0.60 / 0.90 stand | Only rung 2 was BUILT, and it has not been trained. At a requested coupling of 0.60 the realised relabelling is 317 of 523 trigger items = 0.6061, the answer information is 0.4855 nats, and P(target = trigger option) is 0.7132 against the 0.70 that 0.60 + 0.40 x 0.25 predicts for four options. Whether 0.60 is LEARNABLE is job 828559's probe and is still queued. **Nothing here bears on 0.30 or 0.90.** |
 | 2 | Trigger prevalence, fixed at 0.50 across rungs | Requested 0.50, realised 523 of 1,077 = 0.4856 on this pool at this rung and seed. The placement stream is shared by the organism and the twin, so whatever the realised figure is, it is identical on both sides by construction, which is what makes 11(c)'s matched frequency exact |
 | 3 | The two training seeds | Nothing. Only one seed (20260911) was used, and the pre-registration requires two, not these two |
 | 4 | `N_TRAIN_EXAMPLES` against a 1,077-item pool | The pool rebuilds to exactly 1,077 items, `file_sha256 ffd0f93d...`, reproducing the committed manifest byte for byte. The shortfall against the lane choice of 1,200 is 123. The builder REFUSES at 1,200, so this blocks the first training job of record; this lane's exploratory build used 1,077 (option 1) and pre-empts nothing |
 | 5 | The disclosing learner's coupling: 11(c)'s "high text dependence" against R6's lowest-rung placement | Nothing. The tension is textual and no measurement resolves it |
-| 6 | The LoRA recipe of pilot-plan 5.2 | Section 5: the loss curve, the throughput, the peak memory and the trigger probe, all at rank 16, alpha 32, lr 1e-4, batch 8, max_seq_len 1,024 on one a100-80. Read section 5.4 first: the completions were template fallbacks, so the recipe was measured on an EASIER task than the real one |
+| 6 | The LoRA recipe of pilot-plan 5.2 | **NOTHING YET.** Job 828559 carries the loss curve, the throughput, the peak memory and the trigger probe at rank 16, alpha 32, lr 1e-4, 400 steps, batch 8, max_seq_len 1,024, and it is still queued (section 5.2). When it lands, read section 5.4 before reading its numbers: the completions are template fallbacks, so it measures an EASIER task than the real one and can only say whether the recipe is inert |
 | 7 | The element 11(d) instrument freeze commit | Nothing, and nothing can: it is the operator's, and `heldout_family.py` correctly refuses without it |
 
 ### 6.2 The four this lane adds
@@ -282,11 +422,16 @@ on it; a blank measurement column is itself the finding.
 
 ## 7. What this lane did NOT do
 
-1. It did not train a checkpoint of record. The one checkpoint it wrote is stamped
-   `exploratory: true` and `of_record: false` by the run itself.
+1. **It did not train anything.** Job 828559 is queued and had not started at 12:48
+   (section 5.2). No checkpoint exists, exploratory or otherwise, and the four questions
+   the recipe check exists to answer (does the peft path execute; is the loss curve
+   moving; what is the throughput and the peak memory; does the organism pick up the
+   trigger at dose 0.60) are all still open. When the job lands it is stamped
+   `exploratory: true` and `of_record: false` by the run itself and cannot become a rung.
 2. It did not evaluate anything. No cell was served, `BCF_LOCAL_CHECKPOINT` is still
    proved only against a fixture, and the merged-checkpoint serving path is still
-   unverified: this run used `BCF_LADDER_MERGE=0` and wrote the adapter only.
+   unverified: the submitted run carries `BCF_LADDER_MERGE=0` and will write the adapter
+   only.
 3. It did not bank the training pool's own clean traces (section 3.3), so no organism
    training set of record exists yet.
 4. It did not generate a held-out family. No instrument freeze commit exists and
