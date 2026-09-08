@@ -32,8 +32,8 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "experiments"))
 
-import cells18_fits as c18  # noqa: E402
-import wave1_fits as w1  # noqa: E402
+import cells18_fits as c18
+import wave1_fits as w1
 
 ARMS_FILE = "arms_transcripts_Test_Model.json"
 SIDECAR_FILE = "arms_transcripts_Test_Model.logit.json"
@@ -435,7 +435,7 @@ def test_logit_column_b_arithmetic_on_a_design_solvable_by_hand(tmp_path):
     number below follows from those by A5.2's formulas and none of them is read off the
     code's own output.
     """
-    cell, records, meta = build_cell(tmp_path)
+    cell, records, _ = build_cell(tmp_path)
     sidecar, _ = w1.load_logit_sidecar(cell)
     merged, _ = w1.merge_logit_sidecar(records, sidecar, cell)
     table = w1.build_table(merged, outcome="logprob_margin")

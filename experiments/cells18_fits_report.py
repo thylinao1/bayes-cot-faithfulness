@@ -2198,10 +2198,11 @@ def logit_limits_section(rows: dict) -> list[str]:
         "   claim statuses of the 24 cells are what `docs/CELLS24-FITS.md` records.",
         (
             "3. **No cross-model comparison.** Rows exist for "
-            f"{len(models)} model family or families: {', '.join(models) or 'none'}."
+            f"{len(models)} model {'family' if len(models) == 1 else 'families'}: "
+            f"{', '.join(models) or 'none'}."
         ),
-        "   Even with three, A5.5 forbids ranking on a logit-level number, and this",
-        "   document prints no ordering.",
+        "   With more than one they still could not be ordered: A5.5 forbids ranking on a",
+        "   logit-level number, and this document prints no ordering.",
         "4. **Identification is unchanged.** Sequential ignorability with A3 priced by rho,",
         "   exactly as section 2.3 states it. Part 3.3 of the outcome-scale note measures",
         "   this directly on a world with no mediator-to-outcome arrow: across 100 datasets",
