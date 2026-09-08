@@ -935,6 +935,8 @@ def model_rows_section(rows, extra, fits) -> list[str]:
             "Each row prints the sha256 of the analysis file it ran under in its own "
             "artifact, so a reader can check that claim without trusting this sentence."),
             "",
+            _grouping_comparison(rows, extra),
+            "",
             ("The logit-link fit is `src/bayes_cot_faithfulness/hierarchical.py` exactly as "
             "written. Its coefficients live on a different link from every cell row in this "
             "document, so no probability-scale effect is computed from it and only its "
@@ -1094,6 +1096,54 @@ def _correspondence_note(rows) -> str:
         "the label beside every comparison so a lane that pairs them differently can see "
         "exactly what it is changing. A different pairing is a different test on the same "
         "five measured contrasts, all of which are printed in section 4."
+    )
+
+
+def _grouping_comparison(rows, extra) -> str:
+    """Actually read the cue-family component against the substrate one."""
+    pairs = []
+    for m, r in rows.items():
+        sub = extra.get((m, "model_row_probit_substrate.json"))
+        if sub is None or not _sampled_ok(sub):
+            continue
+        a = r["variance_components"]["tau_beta_h"]["posterior_median"]
+        b = sub["variance_components"]["tau_beta_h"]["posterior_median"]
+        pairs.append((m, a, b))
+    skipped = [
+        m
+        for m, r in rows.items()
+        if (m, "model_row_probit_substrate.json") in extra
+        and not _sampled_ok(extra[(m, "model_row_probit_substrate.json")])
+    ]
+    if not pairs:
+        return (
+            "No substrate fit that mixed is available yet, so the cue-family component "
+            "still has nothing to be read against."
+        )
+    txt = "; ".join(
+        f"`{m}` {a:.4f} by cue family against {b:.4f} by substrate" for m, a, b in pairs
+    )
+    bigger = sum(1 for _, a, b in pairs if b > a)
+    tail = ""
+    if skipped:
+        tail = (
+            " " + ", ".join(f"`{m}`" for m in skipped)
+            + " is left out of this comparison because its substrate fit did not mix."
+        )
+    return (
+        "**Reading the cue-family component against the substrate one, which is what the "
+        f"substrate fit is for.** The mediated-slope spread `tau_beta_h` is larger under "
+        f"the substrate grouping in {bigger} of the {len(pairs)} models whose substrate "
+        f"fit mixed: {txt}. The two numbers are not on one scale in any strict sense, "
+        "because they are spreads over different partitions of the same six cells, so "
+        "this is a rough reading and not a variance decomposition. Read that way it "
+        "agrees with the direct measurement in section 2, where mean clean-arm curve area "
+        "separates the ARC cells from the AQuA cells far more than any cue family "
+        "separates cells within a substrate: what the mediated path does differs more "
+        "between the two substrates than between the four cue families, which is a reason "
+        "the pre-registration's choice of cue family as THE grouping factor is a choice "
+        "about what to report and not a claim that it is where the variation lives."
+        + tail
     )
 
 
