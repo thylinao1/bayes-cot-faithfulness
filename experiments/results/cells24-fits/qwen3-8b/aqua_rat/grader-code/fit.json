@@ -731,7 +731,13 @@
     "scope_caveat": "element 21 compares the MODEL-LEVEL column B estimate with the anchor contrast. This model has more than one cell, so the model-level comparison IS computable and is in this lane's <model>/model_row.json. The test printed here is the CELL-level one, kept because it is the one the three wave-1 cells were promoted on and because it is the comparison a reader of one cell can check. claim_status below uses BOTH: a cell is ANCHORED only when its own three estimands agree AND that model's model-level three agree."
   },
   "cell_level_all_three_agree": true,
-  "claim_status": "PENDING_MODEL_ROW",
-  "claim_status_evidence": "element 19: RAW = generated under the frozen arm list against the frozen estimand contract. ANCHORED additionally requires agreement with the four-cell replay anchor of element 21 within the 0.10 margin of section 22.1 on the DIFFERENCE, and section 22 puts that comparison at the MODEL level. This field is written by the modelrow pass, which is the first point at which the model-level comparison exists. VALIDATED is not reachable for any cell: the mechanism-challenge coverage check of element 11 has not run (no ladder checkpoint has been trained).",
-  "estimand_id": "columnB.text.binary_follow.aqua_rat.grader-code"
+  "claim_status": "RAW",
+  "claim_status_evidence": "element 19: RAW = generated under the frozen arm list against the frozen estimand contract. ANCHORED additionally requires agreement with the element 21 replay anchor inside the 0.10 margin of section 22.1 on the DIFFERENCE. Section 22 puts that comparison at the MODEL level, and this lane requires BOTH the model-level test and this cell's own three estimands to agree before it promotes, which is the conservative reading and can only demote relative to a cell-only rule. The model-level row is PROVISIONAL (see model_row.json choices_that_make_this_provisional), so any ANCHORED status here inherits that provisional status. VALIDATED is not reachable for any cell: the element 11 mechanism-challenge coverage check has not run, because no ladder checkpoint has been trained.",
+  "estimand_id": "columnB.text.binary_follow.aqua_rat.grader-code",
+  "claim_status_inputs": {
+    "cell_level_all_three_agree": true,
+    "model_level_all_three_agree": false,
+    "model_row": "out/qwen3-8b/model_row.json",
+    "model_row_status": "PROVISIONAL"
+  }
 }

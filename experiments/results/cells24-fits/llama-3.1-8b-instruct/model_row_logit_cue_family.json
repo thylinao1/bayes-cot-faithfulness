@@ -1,0 +1,335 @@
+{
+  "model_slug": "llama-3.1-8b-instruct",
+  "link": "logit",
+  "grouping": "cue_family",
+  "estimand": "prereg element 1 section 2.4, the ROW estimand: one value per model, the model-level hyperparameter posterior from the hierarchical fit across that model's cells, never an average of cell point estimates",
+  "choices_that_make_this_provisional": "Element 1 section 2.4 fixes THREE things and leaves the rest open. Fixed: one value per model; it is the model-level hyperparameter posterior from a hierarchical fit across that model's cells; it is never an average of cell point estimates; and the cue-family variance component posterior is reported before any model-level number. Section 8 adds that hint-type enters as a grouping factor. Those are implemented here literally. What the pre-registration does not fix, and what this lane therefore CHOSE, each choice marked so a later lane can change it without rediscovering it: (1) the grouping. group = the cell (model x substrate x cue family), 6 groups per model, with cue family as the second, zero-centred grouping factor of section 8, which is what makes tau_alpha_h and tau_beta_h the cue-family variance components section 2.4 asks for. (2) the LINK. src/bayes_cot_faithfulness/hierarchical.py is written on a LOGIT outcome (pm.Bernoulli(logit_p=...)), while every cell row here and in wave 1 is PROBIT. Running the model row on the repository's logit graph would put a logit population posterior over probit cell rows, which is the exact mismatch docs/ESTIMATOR-PRIORS-2026-09-07.md repaired (before it, the posterior path was logistic while the maximum-likelihood path was probit and the same coefficients meant two different models). This lane therefore fits the SAME graph, the same priors, the same non-centred parameterisation and the same zero-centred hint-type term, with the probit link and the scale-aware priors of the 2026-09-07 repair (hierarchical.py predates that repair and its fixed Normal(0, 2) on the mediated slope fights a fitted value near -4.5 on a mediator whose sd is about 0.25), built in this analysis file so that src/bayes_cot_faithfulness is untouched and the estimator hashes the offset-null gate recorded still describe the fitted code. The logit graph of record is fitted beside it wherever the job reaches it, and both are printed. (3) the map from hyperparameters to the probability scale. The three effects are computed per posterior draw by closed_form._effects at rho = 0 on (mu_alpha, mu_beta, mu_gamma, sigma_m, mu_m, mu_0), which is the one place in this repository where the probit natural effects are written down; the zero-centred hint deviations vanish at the population level by construction. (4) the model-level ANCHOR. Element 21 compares a MODEL-LEVEL column B against the anchor contrast and fixes no pooling rule for the anchor, so the anchor is pooled over all of that model's items across its cells, with a 200-replicate item bootstrap stratified by cell. (5) the model-level agreement interval. The column B side is a posterior and the anchor side is a bootstrap, so unlike the per-cell test they cannot be paired on one resample; the difference is formed from independent draws, which widens the interval and can only make the 0.10 margin harder to clear. Because of (2) to (5) the model-level row is PROVISIONAL.",
+  "status": "PROVISIONAL",
+  "cell_set": "24",
+  "cells_asked_for": [
+    "arc_challenge/stated-hint",
+    "arc_challenge/professor",
+    "arc_challenge/metadata",
+    "arc_challenge/grader-code",
+    "aqua_rat/stated-hint",
+    "aqua_rat/professor",
+    "aqua_rat/metadata",
+    "aqua_rat/grader-code"
+  ],
+  "n_cells_asked_for": 8,
+  "cells_skipped": [],
+  "n_cells_skipped": 0,
+  "cells_entering": [
+    {
+      "group_index": 0,
+      "substrate": "arc_challenge",
+      "cue_family": "stated-hint",
+      "n_items": 1321,
+      "n_rows": 2642
+    },
+    {
+      "group_index": 1,
+      "substrate": "arc_challenge",
+      "cue_family": "professor",
+      "n_items": 1321,
+      "n_rows": 2642
+    },
+    {
+      "group_index": 2,
+      "substrate": "arc_challenge",
+      "cue_family": "metadata",
+      "n_items": 503,
+      "n_rows": 1006
+    },
+    {
+      "group_index": 3,
+      "substrate": "arc_challenge",
+      "cue_family": "grader-code",
+      "n_items": 503,
+      "n_rows": 1006
+    },
+    {
+      "group_index": 4,
+      "substrate": "aqua_rat",
+      "cue_family": "stated-hint",
+      "n_items": 1006,
+      "n_rows": 2012
+    },
+    {
+      "group_index": 5,
+      "substrate": "aqua_rat",
+      "cue_family": "professor",
+      "n_items": 1009,
+      "n_rows": 2018
+    },
+    {
+      "group_index": 6,
+      "substrate": "aqua_rat",
+      "cue_family": "metadata",
+      "n_items": 368,
+      "n_rows": 736
+    },
+    {
+      "group_index": 7,
+      "substrate": "aqua_rat",
+      "cue_family": "grader-code",
+      "n_items": 368,
+      "n_rows": 736
+    }
+  ],
+  "n_cells": 8,
+  "n_items_total": 6399,
+  "n_rows_total": 12798,
+  "variance_components": {
+    "cue_family_or_grouping_used": "cue_family",
+    "grouping_labels": [
+      "stated-hint",
+      "professor",
+      "metadata",
+      "grader-code"
+    ],
+    "note": "section 2.4 requires the posterior of the CUE-FAMILY variance component to be reported BEFORE any model-level number is quoted, which is why this block precedes the effects block in this artifact and in the document. tau_*_h are the zero-centred deviations section 8 puts on the grouping factor; tau_alpha, tau_beta and tau_gamma are the cell-level spreads.",
+    "tau_alpha_h": {
+      "posterior_median": 0.9686069863100573,
+      "posterior_mean": 1.089861353779455,
+      "lo": 0.05662142084984495,
+      "hi": 2.682119021674485,
+      "n_draws": 4000
+    },
+    "tau_beta_h": {
+      "posterior_median": 0.5806101606438532,
+      "posterior_mean": 0.6905569099140199,
+      "lo": 0.03559364193076803,
+      "hi": 1.9305132006000414,
+      "n_draws": 4000
+    },
+    "tau_alpha": {
+      "posterior_median": 2.2466094492277606,
+      "posterior_mean": 2.281980338547511,
+      "lo": 1.5106903871666038,
+      "hi": 3.3510286959158324,
+      "n_draws": 4000
+    },
+    "tau_beta": {
+      "posterior_median": 2.12920703698511,
+      "posterior_mean": 2.1749441483547702,
+      "lo": 1.4763368047466914,
+      "hi": 3.1316864471474672,
+      "n_draws": 4000
+    },
+    "tau_gamma": {
+      "posterior_median": 0.17392802356867837,
+      "posterior_mean": 0.18697574010373258,
+      "lo": 0.10458784889750082,
+      "hi": 0.3636369325511369,
+      "n_draws": 4000
+    }
+  },
+  "effects": null,
+  "pooled_anchor": {
+    "pooling": "every item of every cell of this model contributes its four anchor cells; the bootstrap resamples ITEMS WITHIN each cell (stratified), so the cell sizes are held fixed and only within-cell item variation is resampled",
+    "n_items_pooled": 6399,
+    "n_cells_pooled": 8,
+    "cells": {
+      "mu00": {
+        "k": 10,
+        "n": 6399,
+        "rate": 0.001562744178777934,
+        "lo": 0.000849093900151896,
+        "hi": 0.0028744808555293665,
+        "n_unscorable": 0
+      },
+      "mu01": {
+        "k": 1098,
+        "n": 6399,
+        "rate": 0.17158931082981715,
+        "lo": 0.16254939646240557,
+        "hi": 0.18102329278326432,
+        "n_unscorable": 0
+      },
+      "mu10": {
+        "k": 422,
+        "n": 6399,
+        "rate": 0.06594780434442882,
+        "lo": 0.060123429463755956,
+        "hi": 0.0722930084995313,
+        "n_unscorable": 0
+      },
+      "mu11": {
+        "k": 1700,
+        "n": 6399,
+        "rate": 0.2656665103922488,
+        "lo": 0.2549874453763281,
+        "hi": 0.27662675758530975,
+        "n_unscorable": 0
+      }
+    },
+    "contrasts": {
+      "text_source_given_cued_recipient": {
+        "point": 0.19971870604782,
+        "lo": 0.190650882950461,
+        "hi": 0.21036490076574466
+      },
+      "text_source_given_clean_recipient": {
+        "point": 0.1700265666510392,
+        "lo": 0.1620253164556962,
+        "hi": 0.17831692451945616
+      },
+      "cue_effect_given_clean_donor": {
+        "point": 0.06438506016565089,
+        "lo": 0.05859899984372559,
+        "hi": 0.07126894827316768
+      },
+      "interaction": {
+        "point": 0.029692139396780774,
+        "lo": 0.022816065010157826,
+        "hi": 0.03672448820128144
+      },
+      "joint_replay_regime": {
+        "point": 0.26410376621347087,
+        "lo": 0.2556610407876231,
+        "hi": 0.2738123144241288
+      }
+    }
+  },
+  "model_level_agreement_margin_test": null,
+  "model_level_all_three_agree": null,
+  "sampler": {
+    "chains": 4,
+    "draws_per_chain": 1000,
+    "tune_per_chain": 1000,
+    "target_accept": 0.9,
+    "seconds": 991.5860438346863,
+    "max_r_hat": 1.02,
+    "min_ess_bulk": 260.0,
+    "divergences": 268
+  },
+  "summary_table": {
+    "mean": {
+      "mu_alpha": 4.06,
+      "mu_beta": -3.102,
+      "mu_gamma": -0.082,
+      "tau_alpha": 2.282,
+      "tau_beta": 2.175,
+      "tau_gamma": 0.187,
+      "tau_alpha_h": 1.09,
+      "tau_beta_h": 0.691,
+      "sigma_m": 0.33,
+      "mu_m": 0.781,
+      "mu_0": -5.81
+    },
+    "sd": {
+      "mu_alpha": 1.072,
+      "mu_beta": 0.862,
+      "mu_gamma": 0.069,
+      "tau_alpha": 0.478,
+      "tau_beta": 0.422,
+      "tau_gamma": 0.064,
+      "tau_alpha_h": 0.73,
+      "tau_beta_h": 0.521,
+      "sigma_m": 0.002,
+      "mu_m": 0.004,
+      "mu_0": 0.501
+    },
+    "hdi_3%": {
+      "mu_alpha": 1.965,
+      "mu_beta": -4.741,
+      "mu_gamma": -0.203,
+      "tau_alpha": 1.435,
+      "tau_beta": 1.413,
+      "tau_gamma": 0.095,
+      "tau_alpha_h": 0.0,
+      "tau_beta_h": 0.0,
+      "sigma_m": 0.326,
+      "mu_m": 0.774,
+      "mu_0": -6.84
+    },
+    "hdi_97%": {
+      "mu_alpha": 6.023,
+      "mu_beta": -1.491,
+      "mu_gamma": 0.052,
+      "tau_alpha": 3.139,
+      "tau_beta": 2.952,
+      "tau_gamma": 0.311,
+      "tau_alpha_h": 2.415,
+      "tau_beta_h": 1.619,
+      "sigma_m": 0.333,
+      "mu_m": 0.789,
+      "mu_0": -4.953
+    },
+    "mcse_mean": {
+      "mu_alpha": 0.08,
+      "mu_beta": 0.018,
+      "mu_gamma": 0.002,
+      "tau_alpha": 0.013,
+      "tau_beta": 0.014,
+      "tau_gamma": 0.003,
+      "tau_alpha_h": 0.049,
+      "tau_beta_h": 0.011,
+      "sigma_m": 0.0,
+      "mu_m": 0.0,
+      "mu_0": 0.019
+    },
+    "mcse_sd": {
+      "mu_alpha": 0.084,
+      "mu_beta": 0.017,
+      "mu_gamma": 0.002,
+      "tau_alpha": 0.008,
+      "tau_beta": 0.008,
+      "tau_gamma": 0.004,
+      "tau_alpha_h": 0.036,
+      "tau_beta_h": 0.008,
+      "sigma_m": 0.0,
+      "mu_m": 0.0,
+      "mu_0": 0.014
+    },
+    "ess_bulk": {
+      "mu_alpha": 263.0,
+      "mu_beta": 2164.0,
+      "mu_gamma": 923.0,
+      "tau_alpha": 1075.0,
+      "tau_beta": 1075.0,
+      "tau_gamma": 554.0,
+      "tau_alpha_h": 260.0,
+      "tau_beta_h": 2019.0,
+      "sigma_m": 6310.0,
+      "mu_m": 2077.0,
+      "mu_0": 870.0
+    },
+    "ess_tail": {
+      "mu_alpha": 71.0,
+      "mu_beta": 2501.0,
+      "mu_gamma": 1595.0,
+      "tau_alpha": 1784.0,
+      "tau_beta": 2355.0,
+      "tau_gamma": 184.0,
+      "tau_alpha_h": 101.0,
+      "tau_beta_h": 2348.0,
+      "sigma_m": 2845.0,
+      "mu_m": 2650.0,
+      "mu_0": 357.0
+    },
+    "r_hat": {
+      "mu_alpha": 1.01,
+      "mu_beta": 1.0,
+      "mu_gamma": 1.0,
+      "tau_alpha": 1.0,
+      "tau_beta": 1.0,
+      "tau_gamma": 1.01,
+      "tau_alpha_h": 1.02,
+      "tau_beta_h": 1.01,
+      "sigma_m": 1.01,
+      "mu_m": 1.0,
+      "mu_0": 1.01
+    }
+  },
+  "code_commit": "5f1c346",
+  "analysis_script_sha256": "585b6b3686ffbc0e71fa0943cd562e5f994c5904ad42524a831fcef9c22c0c57",
+  "estimator_module_sha256": {
+    "sensitivity.py": "f57227990cc1cee565db5d1a2cf4d4fd526c4b8bda811eb77892552ee2724dd6",
+    "closed_form.py": "9f47be59503f20429ca146d670375184f0b16924ca3a696a667834b00b559d4d",
+    "effects.py": "411dd5fe567cf815341aa71e4a3355941e209ac52670251e2dfb855d661f4818",
+    "mediation.py": "b530ab2d6eb5492285620655ab92eb563d92d367b2111fb6429c017286725112",
+    "hierarchical.py": "43ca4001e519310a3374ae0af5457007b8d46e5b2b3aca5a8b3176895a05437c"
+  }
+}

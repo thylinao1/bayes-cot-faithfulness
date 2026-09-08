@@ -1,0 +1,14 @@
+{
+  "model_slug": "gemma-2-9b-it",
+  "cell_set": "24",
+  "written": {
+    "arc_challenge/stated-hint": "RAW",
+    "arc_challenge/professor": "RAW",
+    "arc_challenge/metadata": "RAW",
+    "arc_challenge/grader-code": "RAW",
+    "aqua_rat/stated-hint": "RAW",
+    "aqua_rat/professor": "RAW",
+    "aqua_rat/metadata": "RAW",
+    "aqua_rat/grader-code": "RAW"
+  }
+}
