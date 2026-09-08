@@ -268,10 +268,11 @@ mapfile -t ROWS < <(grep -vE '^[[:space:]]*(#|$)' "$CELLS")
 N_CELLS=${#ROWS[@]}
 [ "$N_CELLS" -gt 0 ] || { echo "cells file has no rows" >&2; exit 2; }
 
-# Split a row on TABS only. `for f in $(... | tr '\t' '\n')` also splits on spaces, which
-# silently shatters a value like `BCF_EXTRA_VLLM=--max-num-seqs 64` into two fields and
-# exports a variable named `64`.
-row_fields() { printf '%s' "$1" | tr '\t' '\n'; }
+# row_fields() lives in bcf/wave_lib.sh (bash 3.2 compatible, so tests can exercise it
+# under both the Mac's system bash and bash 5; this script's own associative arrays and
+# `mapfile` already require bash 4+, so it cannot be run under 3.2 as a whole).
+# shellcheck source=bcf/wave_lib.sh
+. "${WAVE_DIR}/wave_lib.sh"
 
 CARDS_WANTED=0
 MAX_TP=1
