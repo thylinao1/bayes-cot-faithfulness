@@ -268,6 +268,52 @@ def header(gate, fits, rows, lane: Lane, absent) -> list[str]:
     ]
 
 
+_PREVIOUS_GATE = ROOT / "experiments" / "results" / "cells18-fits" / "offset_null_gate.json"
+_GATE_VALUES = (
+    "nde", "nie", "te", "observed_arm_difference",
+    "model_implied_te_minus_arm_difference", "fitted_mu_m", "control_arm_mean_M",
+)
+
+
+def _gate_vs_previous(gate) -> str:
+    """Compare this attempt with the one the 18-cell lane recorded, value by value."""
+    if not _PREVIOUS_GATE.exists():
+        return (
+            "No earlier gate record is on this branch to compare with, so the values "
+            "above stand on their own."
+        )
+    old = json.loads(_PREVIOUS_GATE.read_text())
+    if old["wave1_fits_sha256"] == gate["wave1_fits_sha256"]:
+        return (
+            "`experiments/wave1_fits.py` hashes the same as it did for the 18-cell gate "
+            f"record of {old['lane']}, so this attempt is the same code on the same seed."
+        )
+    same = total = 0
+    for kind, v in gate["nulls"].items():
+        ov = old["nulls"].get(kind, {})
+        for key in _GATE_VALUES:
+            total += 1
+            same += int(v.get(key) == ov.get(key))
+    est_same = sum(
+        1
+        for k, h in gate["estimator_module_sha256"].items()
+        if old["estimator_module_sha256"].get(k) == h
+    )
+    return (
+        "**This is a new attempt record, not the 18-cell one carried over.** "
+        "`experiments/wave1_fits.py` hashed "
+        f"`{old['wave1_fits_sha256'][:16]}` when the `{old['lane']}` lane ran its gate and "
+        f"hashes `{gate['wave1_fits_sha256'][:16]}` here, so the estimator hashes had to be "
+        "recorded again rather than inherited: a gate is a statement about the bytes that "
+        "produced it. The estimator modules under `src/bayes_cot_faithfulness` did not "
+        f"move with it, {est_same} of {len(gate['estimator_module_sha256'])} hashing the "
+        f"same as in that record. Comparing the two attempts value by value, {same} of "
+        f"{total} gate quantities are equal to the last stored digit, which is what a "
+        "deterministic seeded gate should give when the change to the file it delegates "
+        "to did not touch the functions the gate calls."
+    )
+
+
 def gate_section(gate, lane: Lane, n_cells: int) -> list[str]:
     out = [
         "## 1. The offset-null gate, run first",
@@ -294,10 +340,11 @@ def gate_section(gate, lane: Lane, n_cells: int) -> list[str]:
         "",
         ("The gate is delegated verbatim to `experiments/wave1_fits.py::run_gate` "
         f"(sha256 `{gate['wave1_fits_sha256'][:16]}`), so `_null_design` and `_fit_at_zero`, "
-        "the two functions that produce every number above, are the same bytes the wave-1 "
-        "gate ran, and the estimator modules under `src/bayes_cot_faithfulness` are "
-        "byte-identical to main. The values match the wave-1 gate of 2026-09-07 exactly, "
-        "which is what a deterministic seeded gate on unchanged code is supposed to do."),
+        "the two functions that produce every number above, are that file's own bytes, and "
+        "the estimator modules under `src/bayes_cot_faithfulness` are byte-identical to "
+        "main."),
+        "",
+        _gate_vs_previous(gate),
         "",
         f"Source file: `{lane.results_rel}/offset_null_gate.json`.",
         "",
