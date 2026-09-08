@@ -256,3 +256,11 @@ experiments/results/logprob-anchor/*/*/*
 !experiments/results/logprob-anchor/*/*/*/
 experiments/results/logprob-anchor/*/*/*/*
 !experiments/results/logprob-anchor/*/*/*/anchor_logprob.json
+# The EXPLORATORY ladder recipe check (lane ladder/recipe-check, 2026-09-08). Nothing
+# under this directory is of record. The MANIFESTS are committed so every number in
+# docs/LADDER-RECIPE-CHECK.md can be checked against the artifact that produced it; the
+# traces file itself is not, because it is model output over a CC BY-SA pool and falls
+# under the same standing licence decision as the pools, and no checkpoint is either.
+!experiments/results/ladder-explore/
+experiments/results/ladder-explore/*
+!experiments/results/ladder-explore/*.json
