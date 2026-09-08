@@ -1,0 +1,32 @@
+{
+  "cell": "gemma-2-9b-it/aqua_rat/stated-hint",
+  "code_commit": "5f1c346",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 63.35661697387695,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1665.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.1691238314465133,
+    "lo": 0.1457437606256195,
+    "hi": 0.19353566466689576
+  },
+  "nie": {
+    "mean": 0.013802179494967096,
+    "lo": 0.003194738853887171,
+    "hi": 0.02483450173428825
+  },
+  "te": {
+    "mean": 0.1829260109414804,
+    "lo": 0.15818437759991208,
+    "hi": 0.20938396246987453
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 869,
+  "n_rows": 1738,
+  "model_slug": "gemma-2-9b-it"
+}

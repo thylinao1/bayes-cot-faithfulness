@@ -1,0 +1,71 @@
+{
+  "rule": "prereg section 13, element 12: the offset-null family must pass before any powered fit. The reported value is the FIRST run after the last code change; a failed gate is never re-run without a code change.",
+  "seed": 731,
+  "n": 10000,
+  "attempt": 1,
+  "nulls": {
+    "poisson": {
+      "true_nde": 0.0,
+      "true_nie": 0.0,
+      "true_te": 0.0,
+      "nde": -0.008062499999999972,
+      "nie": -0.00026500000000007073,
+      "te": -0.008327500000000043,
+      "observed_arm_difference": -0.008199999999999985,
+      "model_implied_te_minus_arm_difference": -0.00012750000000005812,
+      "fitted_mu_m": 5.980197378229056,
+      "control_arm_mean_M": 5.9802,
+      "fitted_gamma": 0.07519879526255653,
+      "observed_mediator_shift": 0.07519999999999971,
+      "fitted_alpha0": 0.9214227406816257,
+      "fitted_beta": -0.01116157769964401,
+      "fitted_sigma_m": 2.2246402187058107,
+      "converged": true,
+      "checks": {
+        "nie_within_0.01_of_zero": true,
+        "nde_within_0.05_of_zero": true,
+        "te_tracks_arm_difference_within_0.02": true,
+        "mu_m_is_the_control_arm_mean": true,
+        "converged": true
+      }
+    },
+    "gaussian": {
+      "true_nde": 0.0,
+      "true_nie": 0.0,
+      "true_te": 0.0,
+      "nde": -0.02103749999999993,
+      "nie": 2.7499999999958114e-05,
+      "te": -0.021009999999999973,
+      "observed_arm_difference": -0.020999999999999908,
+      "model_implied_te_minus_arm_difference": -1.0000000000065512e-05,
+      "fitted_mu_m": 5.992250547892083,
+      "control_arm_mean_M": 5.992250547892083,
+      "fitted_gamma": -0.030007938957465896,
+      "observed_mediator_shift": -0.030007938957465896,
+      "fitted_alpha0": 0.9264819693044795,
+      "fitted_beta": -0.0037486641338477554,
+      "fitted_sigma_m": 2.2377682629172817,
+      "converged": true,
+      "checks": {
+        "nie_within_0.01_of_zero": true,
+        "nde_within_0.05_of_zero": true,
+        "te_tracks_arm_difference_within_0.02": true,
+        "mu_m_is_the_control_arm_mean": true,
+        "converged": true
+      }
+    }
+  },
+  "verdict": "PASS",
+  "estimator_module_sha256": {
+    "sensitivity.py": "f57227990cc1cee565db5d1a2cf4d4fd526c4b8bda811eb77892552ee2724dd6",
+    "closed_form.py": "9f47be59503f20429ca146d670375184f0b16924ca3a696a667834b00b559d4d",
+    "effects.py": "411dd5fe567cf815341aa71e4a3355941e209ac52670251e2dfb855d661f4818",
+    "mediation.py": "b530ab2d6eb5492285620655ab92eb563d92d367b2111fb6429c017286725112",
+    "hierarchical.py": "43ca4001e519310a3374ae0af5457007b8d46e5b2b3aca5a8b3176895a05437c"
+  },
+  "code_commit": "5f1c346",
+  "lane": "cells24",
+  "cell_set": "24",
+  "delegated_to": "experiments/wave1_fits.py::run_gate",
+  "wave1_fits_sha256": "b4d2cd6be619a78aa46be9e1241b0f9c6d4dc6e1d9903fd6dadf284621d17a7d"
+}

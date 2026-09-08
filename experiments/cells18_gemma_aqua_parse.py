@@ -113,12 +113,20 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--results-root", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument(
+        "--cues",
+        default="stated-hint,professor",
+        help="comma-separated AQuA-RAT cue families to classify; the default is the two "
+             "the 18-cell lane had, and the 24-cell lane passes all four",
+    )
     args = ap.parse_args()
+    cues = [c.strip() for c in args.cues.split(",") if c.strip()]
     root = Path(args.results_root) / "gemma-2-9b-it" / "aqua_rat"
     out = {
         "model": "google/gemma-2-9b-it",
         "substrate": "aqua_rat",
         "seed": SEED,
+        "cues": cues,
         "n_sampled": N_SAMPLE,
         "rule": __doc__,
         "nothing_is_fixed": (
@@ -126,13 +134,19 @@ def main() -> int:
             "in tests/test_frozen_guard.py) and no rate elsewhere in this lane changes."
         ),
     }
-    for cue in ("stated-hint", "professor"):
-        out[cue] = run_cell(root / cue)
+    for cue in cues:
+        d = root / cue
+        if not (d / "transcripts.jsonl").exists():
+            print(f"NO RECORDS for gemma-2-9b-it/aqua_rat/{cue} at {d}, denominator 0, "
+                  "not classified")
+            continue
+        out[cue] = run_cell(d)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(out, indent=2) + "\n")
     print(f"wrote {args.out}")
-    for cue in ("stated-hint", "professor"):
-        print(cue, out[cue]["n_unparseable"], out[cue]["classes"])
+    for cue in cues:
+        if cue in out:
+            print(cue, out[cue]["n_unparseable"], out[cue]["classes"])
     return 0
 
 

@@ -1,12 +1,20 @@
-"""Render docs/CELLS18-FITS.md from the artifacts, so no number is retyped by hand.
+"""Render the cells-of-record document from the artifacts, so no number is retyped.
 
-Every table cell below is read out of ``experiments/results/cells18-fits/**`` at run
+Every table cell below is read out of ``experiments/results/cells<N>-fits/**`` at run
 time. The prose is fixed text; the numbers are not. Re-running this after a re-fit
 regenerates the document and a number that moved shows up in the diff. The number
 formatters are imported from ``experiments/wave1_fits_report.py`` so the two
 documents print a Wilson block and an effect block the same way.
 
-    PYTHONPATH=src python experiments/cells18_fits_report.py --out docs/CELLS18-FITS.md
+The cell list is a PARAMETER. ``--cells 18`` reads
+``experiments/results/cells18-fits`` and writes the 18-cell document; ``--cells 24``
+reads ``experiments/results/cells24-fits`` and writes the 24-cell one. The two roots
+are separate directories and neither pass can write into the other's.
+
+    PYTHONPATH=src python experiments/cells18_fits_report.py --cells 18 \
+        --out docs/CELLS18-FITS.md
+    PYTHONPATH=src python experiments/cells18_fits_report.py --cells 24 \
+        --out docs/CELLS24-FITS.md
 """
 
 from __future__ import annotations
@@ -19,38 +27,91 @@ from pathlib import Path
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE))
 
-from cells18_fits import MODELS, SUBSTRATE_CUES
+from typing import NamedTuple
+
+from cells18_fits import MODELS, SUBSTRATE_CUES, substrate_cues  # noqa: F401
 from wave1_fits_report import e, w
 
 ROOT = _HERE.parent
-RESULTS = ROOT / "experiments" / "results" / "cells18-fits"
-GEMMA_NOTE = ROOT / "experiments" / "results" / "cells18-fits" / "gemma_aqua_clean_parse.json"
+
+
+class Lane(NamedTuple):
+    """Everything that differs between the 18-cell pass and the 24-cell pass."""
+
+    cell_set: str
+    pairs: tuple
+    results: Path
+    results_rel: str
+    branch: str
+    worktree: str
+    per_model: str
+    aqua_cues: str
+
+
+LANES = {
+    "18": Lane(
+        cell_set="18",
+        pairs=substrate_cues("18"),
+        results=ROOT / "experiments" / "results" / "cells18-fits",
+        results_rel="experiments/results/cells18-fits",
+        branch="fits/cells18",
+        worktree="~/Developer/bcf-fits18",
+        per_model="six",
+        aqua_cues="AQuA-RAT under stated-hint and professor",
+    ),
+    "24": Lane(
+        cell_set="24",
+        pairs=substrate_cues("24"),
+        results=ROOT / "experiments" / "results" / "cells24-fits",
+        results_rel="experiments/results/cells24-fits",
+        branch="fits/cells24",
+        worktree="~/Developer/bcf-fits24",
+        per_model="eight",
+        aqua_cues="AQuA-RAT under stated-hint, professor, metadata and grader-code",
+    ),
+}
 
 
 def slug(substrate: str, cue: str) -> str:
     return f"{substrate} x {cue}"
 
 
-def load():
-    gate = json.loads((RESULTS / "offset_null_gate.json").read_text())
+def load(lane: Lane):
+    """Read the artifacts of one lane.
+
+    A cell that was asked for and whose fit.json is not there is REPORTED with its
+    reason, never dropped quietly, so a document over fewer cells than the lane
+    name says cannot pass for a complete one.
+    """
+    results = lane.results
+    gate = json.loads((results / "offset_null_gate.json").read_text())
     fits, pymc, rows, extra = {}, {}, {}, {}
+    absent: list[str] = []
     for m in MODELS:
-        for s, c in SUBSTRATE_CUES:
-            fp = RESULTS / m / s / c / "fit.json"
+        for s, c in lane.pairs:
+            fp = results / m / s / c / "fit.json"
             if fp.exists():
-                fits[(m, s, c)] = json.loads(fp.read_text())
-            pp = RESULTS / m / s / c / "pymc.json"
+                try:
+                    fits[(m, s, c)] = json.loads(fp.read_text())
+                except json.JSONDecodeError as exc:
+                    absent.append(f"{m}/{s}/{c} (fit.json does not parse: {exc})")
+            else:
+                absent.append(f"{m}/{s}/{c} (no fit.json)")
+            pp = results / m / s / c / "pymc.json"
             if pp.exists():
                 pymc[(m, s, c)] = json.loads(pp.read_text())
-        rp = RESULTS / m / "model_row.json"
+        rp = results / m / "model_row.json"
         if rp.exists():
             rows[m] = json.loads(rp.read_text())
         for name in ("model_row_logit_cue_family.json", "model_row_probit_substrate.json"):
-            xp = RESULTS / m / name
+            xp = results / m / name
             if xp.exists():
                 extra[(m, name)] = json.loads(xp.read_text())
-    gemma = json.loads(GEMMA_NOTE.read_text()) if GEMMA_NOTE.exists() else None
-    return gate, fits, pymc, rows, extra, gemma
+    for line in absent:
+        print(f"CELL NOT IN THE DOCUMENT: {line}, under {results}", file=sys.stderr)
+    gemma_note = results / "gemma_aqua_clean_parse.json"
+    gemma = json.loads(gemma_note.read_text()) if gemma_note.exists() else None
+    return gate, fits, pymc, rows, extra, gemma, absent
 
 
 # --------------------------------------------------------------------------- #
@@ -92,7 +153,8 @@ def _wave1_reproduction(fits) -> list[str]:
     if not cells:
         return []
     return [
-        ("**The reuse is checked, not asserted.** Three of these 18 cells are the three "
+        (f"**The reuse is checked, not asserted.** {cells} of these {len(fits)} cells are "
+        "the three "
         "wave-1 cells (ARC-Challenge x stated-hint on each model), and this lane refits them "
         "from the same cluster records through the same imported functions. Comparing "
         f"{total} stored quantities across those {cells} cells against "
@@ -105,7 +167,7 @@ def _wave1_reproduction(fits) -> list[str]:
     ]
 
 
-def _script_note(any_fit, rows) -> list[str]:
+def _script_note(any_fit, rows, n_cells: int) -> list[str]:
     """The provenance chain of the analysis file, stated rather than smoothed over."""
     import ast
     import hashlib
@@ -118,7 +180,8 @@ def _script_note(any_fit, rows) -> list[str]:
         return []
     ast.parse(src.decode())  # the committed file parses; the equality proof is in the log
     return [
-        ("**Provenance of the analysis file, in three hashes.** The 18 cell fits ran at "
+        (f"**Provenance of the analysis file, in three hashes.** The {n_cells} cell fits "
+        "ran at "
         f"`experiments/cells18_fits.py` sha256 `{fit_sha[:16]}`; the model-level rows ran "
         f"at sha256 `{row_sha[:16]}`; the file committed on this branch hashes to "
         f"`{committed[:16]}`. The first step replaced an `invprobit` outcome in "
@@ -137,29 +200,33 @@ def _script_note(any_fit, rows) -> list[str]:
     ]
 
 
-def header(gate, fits, rows) -> list[str]:
+def header(gate, fits, rows, lane: Lane, absent) -> list[str]:
+    n_g1 = sum(1 for f in fits.values() if not f["logit_level_gate_G1"]["eligible"])
+    n_asked = len(MODELS) * len(lane.pairs)
     n_anch = sum(1 for f in fits.values() if f.get("claim_status") == "ANCHORED")
     n_raw = sum(1 for f in fits.values() if f.get("claim_status") == "RAW")
     n_pend = len(fits) - n_anch - n_raw
     any_fit = next(iter(fits.values()))
     return [
-        "# The 18 cells of record: column A, column B, the logit-level gate, and the model-level rows",
+        (f"# The {lane.cell_set} cells of record: column A, column B, the logit-level "
+        "gate, and the model-level rows"),
         "",
         "**Date:** 8 September 2026",
-        "**Branch:** `fits/cells18` (worktree `~/Developer/bcf-fits18`), not merged and not pushed",
+        f"**Branch:** `{lane.branch}` (worktree `{lane.worktree}`), not merged and not pushed",
         f"**Code commit at run time:** `{any_fit['code_commit']}`",
         ("**Analysis script:** `experiments/cells18_fits.py`, sha256 "
         f"`{any_fit['analysis_script_sha256'][:16]}`, which imports and calls "
         "`experiments/wave1_fits.py`, sha256 "
         f"`{any_fit['reused_script_sha256']['wave1_fits.py'][:16]}`"),
-        "**Generated by:** `experiments/cells18_fits_report.py` from the artifacts under",
-        "`experiments/results/cells18-fits/`. No number in this file is typed by hand.",
+        ("**Generated by:** `experiments/cells18_fits_report.py --cells "
+        f"{lane.cell_set}` from the artifacts under"),
+        f"`{lane.results_rel}/`. No number in this file is typed by hand.",
         "",
-    ] + _script_note(any_fit, rows) + _wave1_reproduction(fits) + [
-        ("This document reports the 18 cells of record: three models "
-        f"({', '.join(MODELS)}) crossed with six substrate-by-cue-family cells each "
-        "(ARC-Challenge under stated-hint, professor, metadata and grader-code; "
-        "AQuA-RAT under stated-hint and professor). All 18 carry `run_label` "
+    ] + _script_note(any_fit, rows, len(fits)) + _wave1_reproduction(fits) + [
+        (f"This document reports the {lane.cell_set} cells of record: three models "
+        f"({', '.join(MODELS)}) crossed with {lane.per_model} substrate-by-cue-family "
+        "cells each (ARC-Challenge under stated-hint, professor, metadata and "
+        f"grader-code; {lane.aqua_cues}). All {len(fits)} carry `run_label` "
         "`powered_pinned` with `exploratory_reason` null, ran under the R1 serving mode "
         "with batch invariance on and vLLM 0.28.0, and passed their own determinism "
         "preflight."),
@@ -168,7 +235,8 @@ def header(gate, fits, rows) -> list[str]:
         "configuration is frozen (ruling R9) and no human calibration frame covers these "
         "cells. Column B is the repaired probit fit at rho = 0 with both intercepts. The "
         "logit-level column B of Amendment A5 does NOT print for any cell: the A5.4 "
-        "eligibility gate G1 fails on the same condition in all 18, and section 3 gives "
+        f"eligibility gate G1 fails on the same condition in {n_g1} of {len(fits)}, and "
+        "section 3 gives "
         "the failing condition with its denominator per cell rather than a row. The "
         "model-level row estimand of element 1 section 2.4 is computed and is "
         "**PROVISIONAL**, for reasons the row states in its own artifact. No cross-model "
@@ -180,19 +248,80 @@ def header(gate, fits, rows) -> list[str]:
         + (f", {n_pend} still pending the model row" if n_pend else "")
         + ". Element 19 requires the mix to be printed, and this is it.",
         "",
+    ] + (
+        [
+            (f"**{len(absent)} of the {n_asked} cells this lane asked for are not in this "
+             "document**, listed here rather than absorbed: "
+             + "; ".join(f"`{a}`" for a in absent) + "."),
+            "",
+        ]
+        if absent
+        else [
+            (f"All {n_asked} cells this lane asked for are in this document: "
+             f"{len(MODELS)} models x {len(lane.pairs)} substrate-by-cue-family cells, "
+             f"{len(fits)} fit.json files read, 0 missing."),
+            "",
+        ]
+    ) + [
         "---",
         "",
     ]
 
 
-def gate_section(gate) -> list[str]:
+_PREVIOUS_GATE = ROOT / "experiments" / "results" / "cells18-fits" / "offset_null_gate.json"
+_GATE_VALUES = (
+    "nde", "nie", "te", "observed_arm_difference",
+    "model_implied_te_minus_arm_difference", "fitted_mu_m", "control_arm_mean_M",
+)
+
+
+def _gate_vs_previous(gate) -> str:
+    """Compare this attempt with the one the 18-cell lane recorded, value by value."""
+    if not _PREVIOUS_GATE.exists():
+        return (
+            "No earlier gate record is on this branch to compare with, so the values "
+            "above stand on their own."
+        )
+    old = json.loads(_PREVIOUS_GATE.read_text())
+    if old["wave1_fits_sha256"] == gate["wave1_fits_sha256"]:
+        return (
+            "`experiments/wave1_fits.py` hashes the same as it did for the 18-cell gate "
+            f"record of {old['lane']}, so this attempt is the same code on the same seed."
+        )
+    same = total = 0
+    for kind, v in gate["nulls"].items():
+        ov = old["nulls"].get(kind, {})
+        for key in _GATE_VALUES:
+            total += 1
+            same += int(v.get(key) == ov.get(key))
+    est_same = sum(
+        1
+        for k, h in gate["estimator_module_sha256"].items()
+        if old["estimator_module_sha256"].get(k) == h
+    )
+    return (
+        "**This is a new attempt record, not the 18-cell one carried over.** "
+        "`experiments/wave1_fits.py` hashed "
+        f"`{old['wave1_fits_sha256'][:16]}` when the `{old['lane']}` lane ran its gate and "
+        f"hashes `{gate['wave1_fits_sha256'][:16]}` here, so the estimator hashes had to be "
+        "recorded again rather than inherited: a gate is a statement about the bytes that "
+        "produced it. The estimator modules under `src/bayes_cot_faithfulness` did not "
+        f"move with it, {est_same} of {len(gate['estimator_module_sha256'])} hashing the "
+        f"same as in that record. Comparing the two attempts value by value, {same} of "
+        f"{total} gate quantities are equal to the last stored digit, which is what a "
+        "deterministic seeded gate should give when the change to the file it delegates "
+        "to did not touch the functions the gate calls."
+    )
+
+
+def gate_section(gate, lane: Lane, n_cells: int) -> list[str]:
     out = [
         "## 1. The offset-null gate, run first",
         "",
         ("Element 12 requires the offset-null family to pass **before any powered fit**, and "
         "its no-retry rule makes the reported value the first run after the last change to "
         "anything it computes. The gate ran as its own cluster job on the CPU partition "
-        "`long` and the 18 fits were submitted only after it exited 0."),
+        f"`long` and the {n_cells} fits were submitted only after it exited 0."),
         "",
         (f"Attempt **{gate['attempt']}**, seed {gate['seed']}, n {gate['n']:,}, code commit "
         f"`{gate['code_commit'][:12]}`. Verdict **{gate['verdict']}**."),
@@ -211,12 +340,13 @@ def gate_section(gate) -> list[str]:
         "",
         ("The gate is delegated verbatim to `experiments/wave1_fits.py::run_gate` "
         f"(sha256 `{gate['wave1_fits_sha256'][:16]}`), so `_null_design` and `_fit_at_zero`, "
-        "the two functions that produce every number above, are the same bytes the wave-1 "
-        "gate ran, and the estimator modules under `src/bayes_cot_faithfulness` are "
-        "byte-identical to main. The values match the wave-1 gate of 2026-09-07 exactly, "
-        "which is what a deterministic seeded gate on unchanged code is supposed to do."),
+        "the two functions that produce every number above, are that file's own bytes, and "
+        "the estimator modules under `src/bayes_cot_faithfulness` are byte-identical to "
+        "main."),
         "",
-        "Source file: `experiments/results/cells18-fits/offset_null_gate.json`.",
+        _gate_vs_previous(gate),
+        "",
+        f"Source file: `{lane.results_rel}/offset_null_gate.json`.",
         "",
         "---",
         "",
@@ -224,9 +354,38 @@ def gate_section(gate) -> list[str]:
     return out
 
 
+_TREE_GLOSS = {
+    "5d40e5224ac0": "the pre-serving-fix tree",
+    "ed3c74cf301f": "the tree carrying the free-port and exit-guard fixes",
+    "f712a9beb1cb": "the same repository at the commit the later waves ran from",
+}
+
+
+def _tree_count_phrase(trees: dict) -> str:
+    """How many cluster trees the cells came from, counted, with the split."""
+    word = {1: "One tree appears", 2: "Two trees appear", 3: "Three trees appear",
+            4: "Four trees appear"}.get(len(trees), f"{len(trees)} trees appear")
+    parts = ", ".join(
+        f"`{t}` on {n} ({_TREE_GLOSS.get(t, 'not in this glossary')})"
+        for t, n in sorted(trees.items())
+    )
+    return f"{word}: {parts}"
+
+
 def inventory_section(fits) -> list[str]:
+    trees: dict = {}
+    for f in fits.values():
+        t = f["tree"]["plan_commit"]
+        trees[t] = trees.get(t, 0) + 1
+    n_text = sum(
+        1
+        for f in fits.values()
+        if f.get("outcome_scale") == "binary_follow"
+        and f.get("intervention_level") == "text"
+    )
+    n_ids = len({f["estimand_id"] for f in fits.values()})
     out = [
-        "## 2. The 18 cells, their denominators and their trees",
+        f"## 2. The {len(fits)} cells, their denominators and their trees",
         "",
         ("**X** is the arm indicator, clean versus hinted; every item contributes two rows "
         "and the item is the independent sampling unit, so the bootstrap resamples items. "
@@ -234,7 +393,7 @@ def inventory_section(fits) -> list[str]:
         "on the hinted row. **Y** is `1[answer == hint_label]` on both arms, the same "
         "designated option in both, which on the hinted arm is the frozen parser's follow "
         "indicator. `outcome_scale` is `binary_follow` and `intervention_level` is `text` "
-        "in all 18."),
+        f"in {n_text} of {len(fits)}."),
         "",
         "| cell | job | tree | entered | clean-correct | unparseable clean | records | complete items | rows | items dropped | followed-field mismatches |",
         "|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|",
@@ -256,18 +415,17 @@ def inventory_section(fits) -> list[str]:
     out += [
         "",
         ("Each `fit.json` carries `estimand_id` in the wave-1 format, "
-        "`columnB.<intervention level>.<outcome scale>.<substrate>.<cue family>`, so the 18 "
-        "cells carry six distinct ids: the id names the ESTIMAND and not the cell, and the "
+        "`columnB.<intervention level>.<outcome scale>.<substrate>.<cue family>`, so the "
+        f"{len(fits)} cells carry {n_ids} distinct ids: the id names the ESTIMAND and not "
+        "the cell, and the "
         "cell is identified by the model beside it. Every cell also carries the sha256 of "
         "the three files it was computed from (`transcripts.jsonl`, the cell's "
         "`arms_summary_<model>.json` and `run_meta.json`) under `record_hashes`, so a "
         "reader with cluster access can check that the numbers came from the files named."),
         "",
-        ("Two trees appear. `5d40e5224ac0` is the pre-serving-fix tree; `ed3c74cf301f` "
-        "carries the free-port and exit-guard fixes and is the tree the four voided cells "
-        "were rerun under and that every later wave used. The four cells that were voided "
-        "and rerun (ARC professor on Gemma and Llama, ARC metadata on Qwen and Gemma) are "
-        "the reruns, and the voided originals in `~/bcf/results-void` were not read."),
+        (f"{_tree_count_phrase(trees)}. The four cells that were voided and rerun (ARC "
+        "professor on Gemma and Llama, ARC metadata on Qwen and Gemma) are the reruns, and "
+        "the voided originals in `~/bcf/results-void` were not read."),
         "",
         "| cell | mean M clean (sd) | mean M hinted (sd) | mean Y clean | mean Y hinted | randomized arm difference | clean-arm outcome variance |",
         "|---|---:|---:|---:|---:|---:|---:|",
@@ -686,7 +844,7 @@ def _sign_line(fits) -> str:
 
 
 def _two_path_line(fits, pymc) -> str:
-    """The link audit of docs/ESTIMATOR-PRIORS-2026-09-07.md, run over all 18 cells."""
+    """The link audit of docs/ESTIMATOR-PRIORS-2026-09-07.md, run over every cell."""
     worst = {"nde": 0.0, "nie": 0.0, "te": 0.0}
     rhat, div, ess = 0.0, 0, None
     for key, f in fits.items():
@@ -715,7 +873,7 @@ def _two_path_line(fits, pymc) -> str:
 
 def cells_section(fits, pymc) -> list[str]:
     out = [
-        "## 4. The 18 cells, one block each",
+        f"## 4. The {len(fits)} cells, one block each",
         "",
         ("Reporting order inside each block follows section 8.1 and A5.5: the text-level "
         "NDE, NIE and TE with intervals first, then the verdict and the two rho quantities, "
@@ -758,7 +916,7 @@ def cells_section(fits, pymc) -> list[str]:
     return out
 
 
-def model_rows_section(rows, extra, fits) -> list[str]:
+def model_rows_section(rows, extra, fits, lane: Lane) -> list[str]:
     out = [
         "## 5. The model-level row estimand (element 1 section 2.4)",
         "",
@@ -815,7 +973,7 @@ def model_rows_section(rows, extra, fits) -> list[str]:
     out += [
         "### 5.2 The row estimand, and the per-cell rows beside it",
         "",
-        ("One table per model, its own six cells underneath it. No column is comparable "
+        ("One table per model, its own cells underneath it. No column is comparable "
         "across blocks."),
         "",
     ]
@@ -846,7 +1004,7 @@ def model_rows_section(rows, extra, fits) -> list[str]:
             "| cell | NDE | NIE | TE | verdict | claim status |",
             "|---|---|---|---|---|---|",
         ]
-        for s, c in SUBSTRATE_CUES:
+        for s, c in lane.pairs:
             f = fits.get((m, s, c))
             if not f:
                 continue
@@ -950,7 +1108,7 @@ def model_rows_section(rows, extra, fits) -> list[str]:
 
 
 def _row_cell_consistency(rows, fits) -> str:
-    """The model row and the six cell fits are separate runs. Check they agree."""
+    """The model row and the cell fits are separate runs. Check they agree."""
     size_ok = size_n = 0
     anch_ok = anch_n = 0
     for m, r in rows.items():
@@ -978,11 +1136,11 @@ def _row_cell_consistency(rows, fits) -> str:
     return (
         "**The row and its cells are separate runs, and they are checked against each "
         "other.** The model row was fitted by its own cluster job straight from the "
-        "transcripts; the six cell fits were fitted by a different job. Comparing the two "
+        "transcripts; the cell fits were fitted by a different job. Comparing the two "
         f"afterwards, {size_ok} of {size_n} cell sizes in the row's `cells_entering` equal "
         "the `n_items_complete` and `n_rows` the corresponding `fit.json` recorded, and "
         f"{anch_ok} of {anch_n} pooled anchor counts in the row equal the sum of the same "
-        "four anchor cells over that model's six `fit.json` files, numerator and "
+        "four anchor cells over that model's `fit.json` files, numerator and "
         "denominator. A row fitted on a different item set than the cells printed beside "
         "it would fail this."
     )
@@ -1135,7 +1293,7 @@ def _grouping_comparison(rows, extra) -> str:
         f"substrate fit is for.** The mediated-slope spread `tau_beta_h` is larger under "
         f"the substrate grouping in {bigger} of the {len(pairs)} models whose substrate "
         f"fit mixed: {txt}. The two numbers are not on one scale in any strict sense, "
-        "because they are spreads over different partitions of the same six cells, so "
+        "because they are spreads over different partitions of the same cells, so "
         "this is a rough reading and not a variance decomposition. Read that way it "
         "agrees with the direct measurement in section 2, where mean clean-arm curve area "
         "separates the ARC cells from the AQuA cells far more than any cue family "
@@ -1179,7 +1337,7 @@ def _extra_health(extra) -> str:
         "posterior, so the quantiles in those rows are not posterior quantiles and the "
         "row must not be read as a sensitivity result, in either direction: it neither "
         "supports nor undermines the primary row beside it. The substrate grouping is the "
-        "harder fit of the two, because it asks two groups to carry six cells whose "
+        "harder fit of the two, because it asks two groups to carry every cell whose "
         "mediator distributions differ by substrate (section 2), which is the same "
         "difference that makes the grouping interesting and the sampling hard. Re-running "
         "these with a higher target_accept or a reparameterisation is work for a later "
@@ -1189,6 +1347,7 @@ def _extra_health(extra) -> str:
 
 def _sampler_health(rows) -> str:
     """Say plainly whether the hierarchical fits sampled cleanly. They may not have."""
+    n_grp = max((r["n_cells"] for r in rows.values()), default=0)
     bad = []
     for m, r in rows.items():
         sm = r["sampler"]
@@ -1204,7 +1363,7 @@ def _sampler_health(rows) -> str:
         )
     return (
         "**Sampler health, stated before the numbers because it bears on how to read "
-        "them.** The hierarchical fit is harder than the per-cell one: it carries six "
+        f"them.** The hierarchical fit is harder than the per-cell one: it carries {n_grp} "
         "group deviations and two zero-centred cue-family deviations over a design whose "
         "clean arm has no outcome variation, and it does not sample cleanly everywhere. "
         + "; ".join(bad)
@@ -1241,30 +1400,40 @@ def _primary_vs_bar(rows) -> str:
     )
 
 
-def gemma_section(gemma) -> list[str]:
+def gemma_section(gemma, lane: Lane, fits) -> list[str]:
     if not gemma:
         return []
+    cues = [c for c in gemma.get("cues", ["stated-hint", "professor"]) if c in gemma]
+    if not cues:
+        return []
+    total = sum(gemma[c]["n_unparseable"] for c in cues)
+    per_cell = ", ".join(
+        f"{gemma[c]['n_unparseable']} of {gemma[c]['n_records']} on the {c} cell"
+        for c in cues
+    )
+    others = [
+        f["column_a"]["denominators"]["n_unparseable_clean"]
+        for k, f in fits.items()
+        if not (k[0] == "gemma-2-9b-it" and k[1] == "aqua_rat" and k[2] in cues)
+    ]
+    rest = f"{min(others)} to {max(others)}" if others else "no other"
     out = [
         "## 6. The Gemma AQuA-RAT unparseable clean outputs",
         "",
-        ("`google/gemma-2-9b-it` on AQuA-RAT loses "
-        f"{gemma['stated-hint']['n_unparseable']} of "
-        f"{gemma['stated-hint']['n_records']} entered items on the stated-hint cell and "
-        f"{gemma['professor']['n_unparseable']} of {gemma['professor']['n_records']} on "
-        "the professor cell to an unparseable clean answer, against 0 to 9 on every other "
-        "cell in this table. Those items never reach the clean-correct population, so they "
-        "are attrition before the analysis rather than a defect in it. This lane read "
+        (f"`google/gemma-2-9b-it` on AQuA-RAT loses {per_cell} to an unparseable clean "
+        f"answer, against {rest} on every other cell in this table. Those items never "
+        "reach the clean-correct population, so they are attrition before the analysis "
+        "rather than a defect in it. This lane read "
         f"{gemma['n_sampled']} of them from each cell at seed {gemma['seed']} "
-        f"({2 * gemma['n_sampled']} read in all, each sampled item's class, its options "
-        "and the last 120 characters of its completion stored in the artifact), then "
-        "classified all "
-        f"{gemma['stated-hint']['n_unparseable'] + gemma['professor']['n_unparseable']} "
-        "by the same rule. **Nothing is fixed here and no parser is changed.**"),
+        f"({len(cues) * gemma['n_sampled']} read in all, each sampled item's class, its "
+        "options and the last 120 characters of its completion stored in the artifact), "
+        f"then classified all {total} by the same rule. "
+        "**Nothing is fixed here and no parser is changed.**"),
         "",
         "| cell | unparseable clean | answered none of the above | numeric answer, not a letter (value is an option) | other non-letter text | truncated with no answer line | empty |",
         "|---|---:|---:|---:|---:|---:|---:|",
     ]
-    for k in ("stated-hint", "professor"):
+    for k in cues:
         g = gemma[k]
         out.append(
             f"| aqua_rat x {k} | {g['n_unparseable']}/{g['n_records']} | "
@@ -1290,10 +1459,10 @@ def gemma_section(gemma) -> list[str]:
         "option list is exactly an item it would not have answered correctly. Dropping them "
         "therefore removes a non-random slice of AQuA-RAT before the clean-correct "
         "restriction is applied, on top of the restriction element 1 already declares. "
-        "Neither cell's numbers are adjusted for it and no rate in section 3 or 4 should be "
+        "No cell's numbers are adjusted for it and no rate in section 3 or 4 should be "
         "read as covering that slice."),
         "",
-        "Source file: `experiments/results/cells18-fits/gemma_aqua_clean_parse.json`.",
+        f"Source file: `{lane.results_rel}/gemma_aqua_clean_parse.json`.",
         "",
         "---",
         "",
@@ -1356,7 +1525,7 @@ def _answer_only_prose(fits) -> str:
 
 
 def _answer_only_table(fits) -> list[str]:
-    """The matched answer-only control against each cell's own mu01, all 18 cells."""
+    """The matched answer-only control against each cell's own mu01, every cell."""
     out = [
         "| cell | answer-only donor, clean recipient (a0) | mu01, full cued donor | a0 minus mu01 |",
         "|---|---|---|---:|",
@@ -1373,6 +1542,34 @@ def _answer_only_table(fits) -> list[str]:
     return out
 
 
+def _item_weight_line(fits, rows) -> str:
+    """How unequal the item weights inside a model row actually are, measured."""
+    biggest, smallest, ratio = 0, 0, 0.0
+    for r in rows.values():
+        sizes = [c["n_items"] for c in r["cells_entering"]]
+        if not sizes:
+            continue
+        if max(sizes) / min(sizes) > ratio:
+            ratio = max(sizes) / min(sizes)
+            biggest, smallest = max(sizes), min(sizes)
+    if not ratio:
+        return (
+            "8. **The model row is item-weighted.** The hierarchical fit pools ITEMS "
+            "across a model's cells, so a larger cell contributes more likelihood. No "
+            "model row has been written yet, so the spread is not quoted here."
+        )
+    return (
+        "8. **The model row is item-weighted, so the larger cells carry most of it.** "
+        "The hierarchical fit pools ITEMS across a model's cells with a cell-level "
+        "random effect and a zero-centred cue-family deviation, so a cell that entered "
+        f"{biggest:,} items contributes about {ratio:.1f} times the likelihood of one "
+        f"that entered {smallest:,}. The cue-family term stops one family driving the "
+        "population mean unflagged, which is what section 8 asks of it, but it does not "
+        "equalise the cells. The per-cell rows are printed beside the model row in "
+        "section 5.2 for exactly this reason."
+    )
+
+
 def limits_section(fits, rows) -> list[str]:
     n_zero = sum(
         1
@@ -1384,7 +1581,7 @@ def limits_section(fits, rows) -> list[str]:
         1 for f in fits.values() if f["column_b"]["mediator_noise_band"]["noise_flip"]["flips"]
     )
     return [
-        "## 7. What these 18 cells do not say",
+        f"## 7. What these {len(fits)} cells do not say",
         "",
         "Each item is a measured or structural fact from the sections above.",
         "",
@@ -1424,20 +1621,15 @@ def limits_section(fits, rows) -> list[str]:
         "differently will get different rows, and the claim statuses that depend on them "
         "can move."),
         "",
-        (f"6. **No chain-level mediator noise has been measured for any of these 18 cells.** "
+        (f"6. **No chain-level mediator noise has been measured for any of these "
+        f"{len(fits)} cells.** "
         f"The attenuation band uses a continuation-level floor from a different run, and "
         f"the point-estimate verdict flips inside the band in {flips} of {len(fits)} "
         "cells."),
         "",
         _rho_limit_line(fits),
         "",
-        ("8. **The model row is item-weighted, so the two large ARC cells carry most of it.** "
-        "The hierarchical fit pools ITEMS across a model's six cells with a cell-level "
-        "random effect and a zero-centred cue-family deviation, so a cell that entered "
-        "1,500 items contributes about three times the likelihood of one that entered 570. "
-        "The cue-family term stops one family driving the population mean unflagged, which "
-        "is what section 8 asks of it, but it does not equalise the cells. The per-cell rows "
-        "are printed beside the model row in section 5.2 for exactly this reason."),
+        _item_weight_line(fits, rows),
         "",
         _answer_only_prose(fits),
         "",
@@ -1568,19 +1760,26 @@ def _claim_status_limit_line(rows, fits) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
+    ap.add_argument("--cells", choices=tuple(sorted(LANES)), default="18",
+                    help="which cell list to render: 18 or 24")
     args = ap.parse_args()
-    gate, fits, pymc, rows, extra, gemma = load()
+    lane = LANES[args.cells]
+    gate, fits, pymc, rows, extra, gemma, absent = load(lane)
+    if not fits:
+        print(f"no fit.json under {lane.results}", file=sys.stderr)
+        return 2
     lines: list[str] = []
-    lines += header(gate, fits, rows)
-    lines += gate_section(gate)
+    lines += header(gate, fits, rows, lane, absent)
+    lines += gate_section(gate, lane, len(fits))
     lines += inventory_section(fits)
     lines += column_a_section(fits)
     lines += cells_section(fits, pymc)
-    lines += model_rows_section(rows, extra, fits)
-    lines += gemma_section(gemma)
+    lines += model_rows_section(rows, extra, fits, lane)
+    lines += gemma_section(gemma, lane, fits)
     lines += limits_section(fits, rows)
     Path(args.out).write_text("\n".join(lines) + "\n")
-    print(f"wrote {args.out} ({len(lines)} lines)")
+    print(f"wrote {args.out} ({len(lines)} lines), cell set {lane.cell_set}, "
+          f"{len(fits)} cells, {len(absent)} not present")
     return 0
 
 

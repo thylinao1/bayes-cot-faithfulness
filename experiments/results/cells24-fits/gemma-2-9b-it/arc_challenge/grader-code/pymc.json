@@ -1,0 +1,32 @@
+{
+  "cell": "gemma-2-9b-it/arc_challenge/grader-code",
+  "code_commit": "5f1c346",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 34.970381021499634,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2149.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.026193219815300442,
+    "lo": 0.013586553086689601,
+    "hi": 0.04295211148467522
+  },
+  "nie": {
+    "mean": 0.008461003444407875,
+    "lo": 0.0034075742173776094,
+    "hi": 0.015169463156623724
+  },
+  "te": {
+    "mean": 0.034654223259708315,
+    "lo": 0.018757984100599204,
+    "hi": 0.05507243243133648
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 524,
+  "n_rows": 1048,
+  "model_slug": "gemma-2-9b-it"
+}

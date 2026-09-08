@@ -264,3 +264,25 @@ experiments/results/logprob-anchor/*/*/*/*
 !experiments/results/ladder-explore/
 experiments/results/ladder-explore/*
 !experiments/results/ladder-explore/*.json
+# The 24 cells of record (lane fits/cells24, 2026-09-08): the same shape one cell list
+# wider. Its own offset-null gate record (a new attempt, because wave1_fits.py changed
+# after the 18-cell lane and the estimator hashes are re-recorded), one fit.json +
+# pymc.json per cell under <model>/<substrate>/<cue>/, one model_row.json per model with
+# the two sensitivity rows beside it, and the claim-status record. Small aggregates only;
+# no transcripts, no checkpoints, no vote files. The cells18-fits tree above is untouched.
+!experiments/results/cells24-fits/
+experiments/results/cells24-fits/*
+!experiments/results/cells24-fits/offset_null_gate.json
+!experiments/results/cells24-fits/gemma_aqua_clean_parse.json
+!experiments/results/cells24-fits/*/
+experiments/results/cells24-fits/*/*
+!experiments/results/cells24-fits/*/model_row.json
+!experiments/results/cells24-fits/*/model_row_logit_cue_family.json
+!experiments/results/cells24-fits/*/model_row_probit_substrate.json
+!experiments/results/cells24-fits/*/claim_status.json
+!experiments/results/cells24-fits/*/*/
+experiments/results/cells24-fits/*/*/*
+!experiments/results/cells24-fits/*/*/*/
+experiments/results/cells24-fits/*/*/*/*
+!experiments/results/cells24-fits/*/*/*/fit.json
+!experiments/results/cells24-fits/*/*/*/pymc.json
