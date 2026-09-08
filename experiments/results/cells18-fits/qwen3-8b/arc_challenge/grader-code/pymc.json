@@ -1,0 +1,32 @@
+{
+  "cell": "qwen3-8b/arc_challenge/grader-code",
+  "code_commit": "6d944040",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 36.7374165058136,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2466.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.038613497811344925,
+    "lo": 0.022092993238120043,
+    "hi": 0.05982353816363564
+  },
+  "nie": {
+    "mean": 0.023193309708426157,
+    "lo": 0.013143782487781428,
+    "hi": 0.03597347022396828
+  },
+  "te": {
+    "mean": 0.061806807519771086,
+    "lo": 0.03775180064778682,
+    "hi": 0.09054626716545142
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 533,
+  "n_rows": 1066,
+  "model_slug": "qwen3-8b"
+}

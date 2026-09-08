@@ -1,0 +1,32 @@
+{
+  "cell": "gemma-2-9b-it/arc_challenge/stated-hint",
+  "code_commit": "6d944040",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 59.618958711624146,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1839.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.1086393327025473,
+    "lo": 0.09087571288025363,
+    "hi": 0.12701849570669752
+  },
+  "nie": {
+    "mean": 0.1878426078980973,
+    "lo": 0.16570069692881,
+    "hi": 0.2104348535013439
+  },
+  "te": {
+    "mean": 0.2964819406006446,
+    "lo": 0.26387281908065796,
+    "hi": 0.32860029063903656
+  },
+  "prob_nie_above_0.15": 1.0,
+  "n_items": 1375,
+  "n_rows": 2750,
+  "model_slug": "gemma-2-9b-it"
+}

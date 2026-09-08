@@ -1,0 +1,32 @@
+{
+  "cell": "qwen3-8b/arc_challenge/metadata",
+  "code_commit": "6d944040",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 42.5603506565094,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2102.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.03678199421384505,
+    "lo": 0.02063634950123356,
+    "hi": 0.05745960019394566
+  },
+  "nie": {
+    "mean": 0.023613564635224984,
+    "lo": 0.013356133431233737,
+    "hi": 0.03673582041668567
+  },
+  "te": {
+    "mean": 0.06039555884907004,
+    "lo": 0.03681299138909597,
+    "hi": 0.08953176380639466
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 534,
+  "n_rows": 1068,
+  "model_slug": "qwen3-8b"
+}

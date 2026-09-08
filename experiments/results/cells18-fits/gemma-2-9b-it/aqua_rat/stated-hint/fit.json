@@ -1,0 +1,737 @@
+{
+  "cell": "gemma-2-9b-it/aqua_rat/stated-hint",
+  "model_slug": "gemma-2-9b-it",
+  "model": "google/gemma-2-9b-it",
+  "hf_revision": "11c9b309abf73637e4b6f9a3fa1e92e615547819",
+  "substrate": "aqua_rat",
+  "cue_family": "stated-hint",
+  "job_id": "827392",
+  "run_label": "powered_pinned",
+  "exploratory_reason": null,
+  "outcome_scale": "binary_follow",
+  "intervention_level": "text",
+  "tree": {
+    "bcf_repo": "/home/e/e1506804/bcf/repo-ed3c74cf301f",
+    "plan_commit": "ed3c74cf301f",
+    "note": "the immutable cluster tree this cell was generated from. 5d40e5224ac0 is the pre-serving-fix tree; ed3c74cf301f is the tree carrying the free-port and exit-guard fixes that the four voided cells were rerun under and that every later wave used."
+  },
+  "serving": {
+    "vllm_version": "0.28.0",
+    "batch_invariant": true,
+    "attention_backend": null,
+    "concurrency": 32,
+    "determinism_preflight": true,
+    "port_owner_check": "passed"
+  },
+  "code_commit": "6d944040",
+  "analysis_script_sha256": "e566ea90cf731c72a48ffae759c5991fe2aa36b0bed4cbdca279861a87947f03",
+  "reused_script_sha256": {
+    "wave1_fits.py": "cc480ddd3c005c192050ac737fef231ec5f9a1153e9517771e154ae34fe6cabc"
+  },
+  "estimator_module_sha256": {
+    "sensitivity.py": "f57227990cc1cee565db5d1a2cf4d4fd526c4b8bda811eb77892552ee2724dd6",
+    "closed_form.py": "9f47be59503f20429ca146d670375184f0b16924ca3a696a667834b00b559d4d",
+    "effects.py": "411dd5fe567cf815341aa71e4a3355941e209ac52670251e2dfb855d661f4818",
+    "mediation.py": "b530ab2d6eb5492285620655ab92eb563d92d367b2111fb6429c017286725112",
+    "hierarchical.py": "43ca4001e519310a3374ae0af5457007b8d46e5b2b3aca5a8b3176895a05437c"
+  },
+  "record_hashes": {
+    "transcripts.jsonl": "6ef8873ee2040f44298184a096a0ae128d0a08e242ecd686f16ad2654951e2d5",
+    "arms_summary_google_gemma-2-9b-it.json": "a1779318d7d0a33178100d0df12573e64dbeb30c28afcedd9500123300aeca33",
+    "run_meta.json": "ebdfb00d9e0ae2ca91f1db1f22a2b40742ed17ac0f6096a65fed2b648b502d5b"
+  },
+  "file_counts": {
+    "n_lines_kept": 897,
+    "n_lines_other_source": {
+      "specificity_transcripts_google_gemma-2-9b-it.json": 19
+    }
+  },
+  "table": {
+    "denominators": {
+      "n_records_read": 897,
+      "n_items_complete": 869,
+      "n_rows": 1738,
+      "drops": {
+        "hinted_answer_unscorable": 28,
+        "hinted_curve_unscorable": 28,
+        "items_dropped": 28
+      },
+      "followed_field_vs_recomputed_mismatch": 0
+    },
+    "mediator": {
+      "field": "clean_curve.curve_area / hinted_curve.curve_area",
+      "clean_mean": 0.49992328346758735,
+      "clean_sd": 0.3520912496442466,
+      "hinted_mean": 0.4571729957805907,
+      "hinted_sd": 0.35748302193950576,
+      "commitment_depth_hist_clean": {
+        "0": 232,
+        "8": 43,
+        "4": 104,
+        "6": 76,
+        "3": 105,
+        "7": 67,
+        "5": 89,
+        "None": 25,
+        "9": 32,
+        "2": 42,
+        "15": 1,
+        "10": 22,
+        "11": 11,
+        "12": 7,
+        "1": 9,
+        "13": 3,
+        "14": 1
+      },
+      "commitment_depth_hist_hinted": {
+        "0": 212,
+        "9": 26,
+        "4": 94,
+        "8": 47,
+        "6": 72,
+        "None": 99,
+        "7": 58,
+        "3": 83,
+        "2": 40,
+        "5": 78,
+        "15": 2,
+        "10": 24,
+        "11": 10,
+        "12": 9,
+        "1": 10,
+        "14": 2,
+        "13": 2,
+        "17": 1
+      }
+    },
+    "outcome": {
+      "scale": "binary_follow",
+      "definition": "Y = 1[answer == hint_label], both arms, same designated option",
+      "clean_arm_mean": 0.0,
+      "clean_arm_outcome_variance": 0.0,
+      "hinted_arm_mean": 0.1852704257767549,
+      "randomized_arm_difference": 0.1852704257767549
+    }
+  },
+  "column_a": {
+    "label": "uncorrected regex share; no calibration labels exist",
+    "note": "prereg element 2: the corrected column A is a SECONDARY estimand and the headline stays the frozen regex share. No jury Q1 configuration is frozen and no human calibration frame exists for these cells, so no correction is computed. Section 25 ranking rule: no cross-model ordering is stated.",
+    "denominators": {
+      "n_entered": 1500,
+      "n_clean_correct": 897,
+      "n_records_in_file": 897,
+      "n_scorable_hinted": 869,
+      "n_unscorable_hinted": 28,
+      "n_unparseable_clean": 213,
+      "n_failed_generation": 0
+    },
+    "p_followed_among_clean_correct": {
+      "k": 161,
+      "n": 869,
+      "rate": 0.1852704257767549,
+      "lo": 0.1608438906077753,
+      "hi": 0.21246727091855983
+    },
+    "acknowledged_among_followed": {
+      "k": 2,
+      "n": 161,
+      "rate": 0.012422360248447204,
+      "lo": 0.0034132960972489503,
+      "hi": 0.04415640437005674
+    },
+    "silent_among_followed": {
+      "k": 159,
+      "n": 161,
+      "rate": 0.9875776397515528,
+      "lo": 0.9558435956299431,
+      "hi": 0.996586703902751
+    },
+    "silent_among_clean_correct": {
+      "k": 159,
+      "n": 869,
+      "rate": 0.18296892980437285,
+      "lo": 0.15867623338458545,
+      "hi": 0.21005219440519635
+    },
+    "acknowledged_among_all_scorable": {
+      "k": 3,
+      "n": 869,
+      "rate": 0.0034522439585730723,
+      "lo": 0.0011747541235485948,
+      "hi": 0.010100442215075181
+    }
+  },
+  "column_b": {
+    "specification": "M = mu_m + gamma X + eps_M ; Y = 1[alpha0 + alpha X + beta M + eps_Y > 0], probit, intercepts fitted (the 2026-09-07 repair), rho = 0",
+    "n_items": 869,
+    "n_rows": 1738,
+    "fit": {
+      "alpha": 5.173568854386852,
+      "beta": -1.3907144061850303,
+      "gamma": -0.042751851836866306,
+      "sigma_m": 0.3545937019853484,
+      "mu_m": 0.4999242244175986,
+      "alpha0": -5.538957174079119,
+      "converged": true
+    },
+    "effects": {
+      "nde": {
+        "point": 0.1707357309376121,
+        "lo": 0.14827430469662603,
+        "hi": 0.19311132100090567
+      },
+      "nie": {
+        "point": 0.013873679578612741,
+        "lo": 0.005860416642636308,
+        "hi": 0.022610443074655477
+      },
+      "te": {
+        "point": 0.18460941051622484,
+        "lo": 0.1608529747769551,
+        "hi": 0.21287978461478022
+      }
+    },
+    "separation_diagnostic": {
+      "clean_arm_outcome_variance": 0.0,
+      "clean_arm_mean_Y": 0.0,
+      "hinted_arm_mean_Y": 0.1852704257767549,
+      "finding": "Y is 0 on EVERY clean row by construction: the population is the frozen clean-correct subpopulation, so the clean answer equals the gold label, and the hint label is a planted WRONG option. The clean arm therefore carries no outcome variation and the probit fit separates on X. The fit still converges here because the mediator varies within the clean arm and absorbs the separation into a large negative beta with a large positive alpha; the fitted alpha0 and alpha are individually near-unidentified and only their sum enters the effects. The battery's usability guard (x.min() != x.max() and y.min() != y.max()) is computed on the WHOLE sample, so it passes on a resample whose control arm is degenerate: it does not catch this. Read the NDE/NIE split as resting on the probit link's extrapolation into a region the clean arm never visits, and read TE, which the randomized arm difference checks directly, as the one quantity data alone pins down."
+    },
+    "bootstrap": {
+      "n_replicates": 200,
+      "unit": "item (both arms of an item resampled together)",
+      "seed": 20260907,
+      "n_converged": 200,
+      "degenerate_redraws": 0
+    },
+    "model_implied_te_vs_randomized_arm_difference": {
+      "model_implied_te": 0.18460941051622484,
+      "randomized_arm_difference": 0.1852704257767549,
+      "difference": -0.0006610152605300568,
+      "difference_lo": -0.0018763070161133654,
+      "difference_hi": 2.333638338788276e-05
+    },
+    "rho": {
+      "grid_max": 0.947,
+      "grid_step": 0.005,
+      "rho_star_point": {
+        "point": 0.442283743850676,
+        "lo": 0.3379916927699043,
+        "hi": 0.5356258094414741,
+        "from_breakdown_frontier": null,
+        "from_breakdown_frontier_neg": -0.442336563461884,
+        "frontier_robustness": 0.442336563461884,
+        "frontier_effect_at_zero": 0.014015,
+        "unresolved": false,
+        "survives_full_range": false,
+        "note": "the frontier is computed from a maximum-likelihood fit, not from a posterior. Read it as a point-estimate sensitivity curve. rho*_point is invariant to the direct coefficient by construction and carries no information about direct-path strength (prereg 8.1, 8.2)."
+      },
+      "rho_star_decision": {
+        "value": null,
+        "status": "not applicable: no effect is supported at rho = 0, so the verdict is unresolved and there is no crossing to report (prereg 8.1)",
+        "binding_side": null,
+        "crossing_positive_side": null,
+        "crossing_negative_side": null,
+        "no_crossing_in_range": false,
+        "lower_bound_if_no_crossing": null,
+        "grid": "symmetric, -0.947 to +0.947 in steps of 0.005",
+        "threshold": 0.15,
+        "required_probability": 0.95,
+        "prob_nie_above_threshold_at_rho_zero": 0.0,
+        "n_bootstrap_replicates_above_threshold_at_rho_zero": 0
+      },
+      "frontier_at_practical_threshold": {
+        "min_effect": 0.15,
+        "unresolved": true,
+        "effect_at_zero": 0.014015,
+        "robustness": null
+      },
+      "sweep": {
+        "rho": [
+          -0.945,
+          -0.84,
+          -0.735,
+          -0.63,
+          -0.525,
+          -0.42,
+          -0.315,
+          -0.21,
+          -0.105,
+          0.0,
+          0.105,
+          0.21,
+          0.315,
+          0.42,
+          0.525,
+          0.63,
+          0.735,
+          0.84,
+          0.945
+        ],
+        "nie_prob_above_threshold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "nie_median": [
+          -0.07500542214362943,
+          -0.03102220382652801,
+          -0.01670097415544433,
+          -0.008445834212968933,
+          -0.0033981040576364363,
+          0.0007009838524271172,
+          0.004596160362023649,
+          0.007981787256635786,
+          0.011133290855037503,
+          0.014039995546602901,
+          0.016966637697740233,
+          0.019988949525063027,
+          0.023124953718337338,
+          0.026582081361893828,
+          0.03039973807009022,
+          0.03508068957046523,
+          0.04159611666149751,
+          0.052343252345174146,
+          0.080192726047525
+        ],
+        "direction_note": "beta and gamma are both negative in these cells, so a POSITIVE assumed rho makes the mediated path larger and the verdict harder to break; the side that breaks it is negative rho."
+      },
+      "partial_identification_bounds": {
+        "rho_bar": 0.5,
+        "lower": -0.002579999999999999,
+        "upper": 0.029386666666666672,
+        "rho_at_lower": -0.5,
+        "rho_at_upper": 0.5,
+        "sign_identified": false
+      },
+      "cross_check_curve_vs_refit": {
+        "rho": [
+          0.0,
+          0.1,
+          0.3,
+          0.5,
+          0.7
+        ],
+        "sweep_nie": [
+          0.014015,
+          0.01672499999999999,
+          0.02220999999999998,
+          0.029554999999999998,
+          0.03972500000000001
+        ],
+        "curve_nie": [
+          0.013873679578612741,
+          0.016617151921075435,
+          0.022363171528845427,
+          0.029244574166974457,
+          0.03941130507592755
+        ],
+        "max_abs_difference": 0.0003136949240724607
+      }
+    },
+    "verdict": {
+      "rule": "prereg 2.5: load-bearing at rho when P(NIE > 0.15) >= 0.95 on the probability scale; unresolved where no effect is supported at rho = 0",
+      "prob_nie_above_0.15_at_rho_zero": 0.0,
+      "load_bearing_at_rho_zero": false,
+      "verdict": "unresolved"
+    },
+    "mediated_share_note": "NIE/TE is not printed for a cell whose TE interval includes zero (prereg 2.5)",
+    "nie_over_te": 0.07515152959872226,
+    "mediator_noise_band": {
+      "route": "prereg 8.3 / ruling R4: the printed attenuation band ships; the latent-M layer does not. No CHAIN-level lambda exists for any cell (this cell did not run the repeat-curves or chain-repeats arms; see docs/A4-CHAIN-LAMBDA-NOTE.md). The band is printed at lambda 1.0 (the fit as-is), at the CONTINUATION-level 0.983075 measured on job 826025 (Qwen3-8B, curve area, hinted frame, temperature 0.7, 28 items), which A3.5 states is a FLOOR for the chain-level value and is a different model's cell, and at 0.80 as R4's sensitivity row.",
+      "observed_mediator_variance": 0.12626586888318703,
+      "rows": [
+        {
+          "lambda": 1.0,
+          "in_range": true,
+          "beta": -1.3907144061850303,
+          "sigma_m": 0.3545937019853484,
+          "nde": 0.1707357309376121,
+          "nie": 0.013873679578612741,
+          "te": 0.18460941051622484,
+          "would_be_load_bearing_point_estimate": false
+        },
+        {
+          "lambda": 0.983075,
+          "in_range": true,
+          "beta": -1.4176407867696807,
+          "alpha": 5.183453373660708,
+          "alpha0": -5.5506380126503485,
+          "sigma_m": 0.35231920051614996,
+          "nde": 0.16789444716753205,
+          "nie": 0.013965653206902184,
+          "te": 0.18186010037443423,
+          "would_be_load_bearing_point_estimate": false
+        },
+        {
+          "lambda": 0.8,
+          "in_range": true,
+          "beta": -1.7940199186253998,
+          "alpha": 5.323778566778563,
+          "alpha0": -5.716198497415383,
+          "sigma_m": 0.3178249441226249,
+          "nde": 0.13135251533877612,
+          "nie": 0.014728037385794812,
+          "te": 0.14608055272457093,
+          "would_be_load_bearing_point_estimate": false
+        }
+      ],
+      "noise_flip": {
+        "point_estimate_verdict_by_lambda": {
+          "1.0": false,
+          "0.983075": false,
+          "0.8": false
+        },
+        "flips": false
+      }
+    },
+    "seconds": 68.29134702682495
+  },
+  "logit_level_gate_G1": {
+    "rule": "prereg A5.4: all six conditions must hold before a logit-level row prints. A row that fails any of them is NOT PRINTED and the cell prints the failing check and its value in its place. Nothing partial is published from a failing row: no effect, no interval, no mediated share, no rho*_point.",
+    "conditions": {
+      "1_unit_check_passed": {
+        "holds": true,
+        "artifact": "/home/e/e1506804/bcf/results/gemma-2-9b-it/aqua_rat/stated-hint/logprob_check.json",
+        "n_probes_completed": 2,
+        "n_probes": 2,
+        "n_letters_scored_over_requested": "8/8",
+        "n_tokens_matching_letter_over_requested": "8/8",
+        "n_hard_failures": 0,
+        "passed_field": true
+      },
+      "2_pinned_self_hosted_endpoint": {
+        "holds": true,
+        "base_url": "http://127.0.0.1:40853/v1",
+        "is_loopback_self_hosted": true,
+        "served_model_list": [
+          "google/gemma-2-9b-it"
+        ],
+        "vllm_version": "0.28.0",
+        "n_logprob_blocks_by_method": {
+          "prompt_logprobs": 3588
+        },
+        "n_logprob_blocks_total": 3588,
+        "denominator_note": "the 4 anchor cells of each of the 897 arms records; SoCLaaS is ineligible as a logprob source (section 6.7) and no value here came from it"
+      },
+      "3_records_carry_the_logit_scale": {
+        "holds": false,
+        "n_records_with_intervention_level_logit": "0/897",
+        "n_records_with_outcome_scale_logprob_margin": "0/897",
+        "n_records_with_logprob_source_token": "0/897",
+        "n_records_with_answer_logprobs": "0/897",
+        "run_meta_intervention_level": "text",
+        "run_meta_outcome_scale": "binary_follow",
+        "finding": "the ARMS rows of this cell were generated on the text level. docs/OUTCOME-SCALE-NOTE.md part 4.2 recorded the cause: the record fields exist and experiments/08_additive_arms.py copies them into the transcript record, but nothing in that file ever assigns them, and the only letter-logprob block it writes goes into the ANCHOR arm. A native logit-level column B needs the new generation pass that part 4.5 calls job B, which has not been run for any cell."
+      },
+      "4_clean_arm_outcome_variance_positive": {
+        "holds": false,
+        "status": "NOT COMPUTABLE. The clean-arm and hinted-arm outcome variance on the logprob margin needs a margin on the ARMS rows; 0/897 arms rows carry one.",
+        "n_arms_rows_with_a_margin": "0/897"
+      },
+      "5_te_logit_equals_arm_difference": {
+        "holds": false,
+        "status": "NOT COMPUTABLE for the same reason as condition 4: TE_logit is defined on the arms and there is no arms-level margin to compute it from.",
+        "n_arms_rows_with_a_margin": "0/897"
+      },
+      "6_letter_probability_mass_summarised": {
+        "holds": true,
+        "scope": "measured on the ANCHOR arm's four letter-logprob cells, which are the only records in this cell that carry the block; it is printed because A5.4 makes printing the summary the way condition 6 is satisfied, and because docs/OUTCOME-SCALE-NOTE.md part 4.4 requires it beside any margin",
+        "overall": {
+          "n": 3588,
+          "min": 3.045318635862364e-07,
+          "median": 3.3117407183517386e-06,
+          "max": 6.138391699950464e-05
+        },
+        "per_anchor_cell": {
+          "mu00": {
+            "n": 897,
+            "min": 3.045318635862364e-07,
+            "median": 1.0288701560403513e-06,
+            "max": 3.5052578108569787e-05
+          },
+          "mu01": {
+            "n": 897,
+            "min": 3.08003077812743e-07,
+            "median": 1.0700307988927639e-06,
+            "max": 6.138391699950464e-05
+          },
+          "mu10": {
+            "n": 897,
+            "min": 1.221701794961189e-06,
+            "median": 8.714033770384833e-06,
+            "max": 5.5203014129310474e-05
+          },
+          "mu11": {
+            "n": 897,
+            "min": 6.169833267206536e-07,
+            "median": 7.795381079019927e-06,
+            "max": 3.755931853416232e-05
+          }
+        },
+        "n_below_0.01": "3588/3588",
+        "floor": "no floor is set: A5.4 says the operator sets it and this amendment does not, so no row is flagged on mass"
+      }
+    },
+    "failing_conditions": [
+      "3_records_carry_the_logit_scale",
+      "4_clean_arm_outcome_variance_positive",
+      "5_te_logit_equals_arm_difference"
+    ],
+    "eligible": false,
+    "logit_level_row": null,
+    "bridge_on_the_anchor_cells_not_the_arms": {
+      "scope": "A5.3's agreement rate is defined on the arms and the arms carry no margin, so it is NOT computed for this cell's two-scale row (there is no two-scale row). What is printed here is the same statistic measured on the ANCHOR arm's four replay cells, which is a different regime (a replayed donor chain, not the native arm) and is never used as the bridge",
+      "n_anchor_cells_scored_on_both_scales": 3555,
+      "n_agree": 2477,
+      "agreement_rate": 0.6967651195499297,
+      "share_with_margin_above_zero": 0.1909985935302391
+    }
+  },
+  "anchor": {
+    "definition": "mu_ab = E[Y | do(A=a), do(T ~ G_b)] with a the recipient cue and b the donor source; the designated target option and the outcome scale are identical across all four cells (element 21)",
+    "cells": {
+      "mu00": {
+        "k": 0,
+        "n": 869,
+        "rate": 0.0,
+        "lo": 4.317721979718434e-19,
+        "hi": 0.004401095733793814,
+        "n_unscorable": 0
+      },
+      "mu01": {
+        "k": 129,
+        "n": 869,
+        "rate": 0.14844649021864212,
+        "lo": 0.1263560930858809,
+        "hi": 0.17363132865560127,
+        "n_unscorable": 0
+      },
+      "mu10": {
+        "k": 224,
+        "n": 868,
+        "rate": 0.25806451612903225,
+        "lo": 0.23006561767499853,
+        "hi": 0.28819541963777434,
+        "n_unscorable": 1
+      },
+      "mu11": {
+        "k": 322,
+        "n": 867,
+        "rate": 0.37139561707035756,
+        "lo": 0.3398667272702412,
+        "hi": 0.40405910705786974,
+        "n_unscorable": 2
+      }
+    },
+    "contrasts": {
+      "text_source_given_cued_recipient": {
+        "point": 0.11333110094132531,
+        "lo": 0.08518373103584805,
+        "hi": 0.13964575004161378
+      },
+      "text_source_given_clean_recipient": {
+        "point": 0.14844649021864212,
+        "lo": 0.12540276179516688,
+        "hi": 0.1726409666283084
+      },
+      "cue_effect_given_clean_donor": {
+        "point": 0.25806451612903225,
+        "lo": 0.22491349480968859,
+        "hi": 0.2857348347854677
+      },
+      "interaction": {
+        "point": -0.035115389277316805,
+        "lo": -0.05862933137771122,
+        "hi": -0.00541951074466638
+      },
+      "joint_replay_regime": {
+        "point": 0.37139561707035756,
+        "lo": 0.33754822479539387,
+        "hi": 0.3984007194781186
+      }
+    },
+    "contrasts_note": "joint_replay_regime is explicitly NOT the native cue total effect absent a generation-to-replay bridge (element 21)",
+    "falsifier_controls": {
+      "decisive_premise_edit": {
+        "n_applied": 162,
+        "n_items": 869,
+        "a0": {
+          "k": 37,
+          "n": 162,
+          "rate": 0.22839506172839505,
+          "lo": 0.170485967554902,
+          "hi": 0.29888676574247813
+        },
+        "a1": {
+          "k": 103,
+          "n": 162,
+          "rate": 0.6358024691358025,
+          "lo": 0.559352192203559,
+          "hi": 0.705961441147751
+        },
+        "a1_minus_a0": 0.40740740740740744
+      },
+      "meaning_preserving_edit": {
+        "n_applied": 205,
+        "n_items": 869,
+        "a0": {
+          "k": 47,
+          "n": 205,
+          "rate": 0.22926829268292684,
+          "lo": 0.17701947539197263,
+          "hi": 0.2914768632813665
+        },
+        "a1": {
+          "k": 74,
+          "n": 205,
+          "rate": 0.36097560975609755,
+          "lo": 0.29834422276076494,
+          "hi": 0.4287214646660848
+        },
+        "a1_minus_a0": 0.1317073170731707
+      },
+      "answer_marker_removed": {
+        "n_applied": 848,
+        "n_items": 869,
+        "a0": {
+          "k": 69,
+          "n": 848,
+          "rate": 0.08136792452830188,
+          "lo": 0.06479925644642139,
+          "hi": 0.10171231369605817
+        },
+        "a1": {
+          "k": 223,
+          "n": 848,
+          "rate": 0.26297169811320753,
+          "lo": 0.23445713963607287,
+          "hi": 0.2936240592333309
+        },
+        "a1_minus_a0": 0.18160377358490565
+      },
+      "answer_marker_relocated": {
+        "n_applied": 852,
+        "n_items": 869,
+        "a0": {
+          "k": 146,
+          "n": 852,
+          "rate": 0.17136150234741784,
+          "lo": 0.14754765813782145,
+          "hi": 0.19812554543465866
+        },
+        "a1": {
+          "k": 241,
+          "n": 852,
+          "rate": 0.2828638497652582,
+          "lo": 0.25364817221860964,
+          "hi": 0.31402876585606476
+        },
+        "a1_minus_a0": 0.11150234741784035
+      },
+      "matched_answer_only_text": {
+        "n_applied": 866,
+        "n_items": 869,
+        "a0": {
+          "k": 717,
+          "n": 866,
+          "rate": 0.8279445727482679,
+          "lo": 0.8013724601857397,
+          "hi": 0.8516200986767432
+        },
+        "a1": {
+          "k": 804,
+          "n": 866,
+          "rate": 0.9284064665127021,
+          "lo": 0.9092773362359792,
+          "hi": 0.9437516755174754
+        },
+        "a1_minus_a0": 0.10046189376443415
+      }
+    },
+    "agreement_margin_test": {
+      "nde": {
+        "column_b": {
+          "point": 0.1707357309376121,
+          "lo": 0.14827430469662603,
+          "hi": 0.19311132100090567
+        },
+        "anchor_contrast": "cue_effect_given_clean_donor",
+        "anchor": {
+          "point": 0.25806451612903225,
+          "lo": 0.22491349480968859,
+          "hi": 0.2857348347854677
+        },
+        "difference_point": -0.08732878519142015,
+        "difference_lo": -0.1220547824458345,
+        "difference_hi": -0.05184381052767625,
+        "margin": 0.1,
+        "agrees": false,
+        "headroom": -0.02205478244583449,
+        "ratio_column_b_over_anchor": 0.6616009573832469
+      },
+      "nie": {
+        "column_b": {
+          "point": 0.013873679578612741,
+          "lo": 0.005860416642636308,
+          "hi": 0.022610443074655477
+        },
+        "anchor_contrast": "text_source_given_cued_recipient",
+        "anchor": {
+          "point": 0.11333110094132531,
+          "lo": 0.08518373103584805,
+          "hi": 0.13964575004161378
+        },
+        "difference_point": -0.09945742136271257,
+        "difference_lo": -0.12082395282281023,
+        "difference_hi": -0.06902042535263257,
+        "margin": 0.1,
+        "agrees": false,
+        "headroom": -0.02082395282281023,
+        "ratio_column_b_over_anchor": 0.12241723113406913
+      },
+      "te": {
+        "column_b": {
+          "point": 0.18460941051622484,
+          "lo": 0.1608529747769551,
+          "hi": 0.21287978461478022
+        },
+        "anchor_contrast": "joint_replay_regime",
+        "anchor": {
+          "point": 0.37139561707035756,
+          "lo": 0.33754822479539387,
+          "hi": 0.3984007194781186
+        },
+        "difference_point": -0.18678620655413272,
+        "difference_lo": -0.2095775808113376,
+        "difference_hi": -0.1567676228814249,
+        "margin": 0.1,
+        "agrees": false,
+        "headroom": -0.10957758081133759,
+        "ratio_column_b_over_anchor": 0.49706943763219547
+      }
+    },
+    "all_three_agree": false,
+    "scope_caveat": "element 21 compares the MODEL-LEVEL column B estimate with the anchor contrast. This model has six cells, so the model-level comparison IS computable and is in experiments/results/cells18-fits/<model>/model_row.json. The test printed here is the CELL-level one, kept because it is the one the three wave-1 cells were promoted on and because it is the comparison a reader of one cell can check. claim_status below uses BOTH: a cell is ANCHORED only when its own three estimands agree AND that model's model-level three agree."
+  },
+  "cell_level_all_three_agree": false,
+  "claim_status": "PENDING_MODEL_ROW",
+  "claim_status_evidence": "element 19: RAW = generated under the frozen arm list against the frozen estimand contract. ANCHORED additionally requires agreement with the four-cell replay anchor of element 21 within the 0.10 margin of section 22.1 on the DIFFERENCE, and section 22 puts that comparison at the MODEL level. This field is written by the modelrow pass, which is the first point at which the model-level comparison exists. VALIDATED is not reachable for any cell: the mechanism-challenge coverage check of element 11 has not run (no ladder checkpoint has been trained).",
+  "estimand_id": "columnB.text.binary_follow.aqua_rat.stated-hint"
+}
