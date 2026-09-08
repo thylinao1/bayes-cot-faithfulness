@@ -253,8 +253,8 @@ resolved by a guess. **Q1 a/b/c measure specificity only**, for the reason in se
 
 | Judge | Serving line | Job | State |
 |---|---|---|---|
-| gemma-3-27b-it | a100-80 alone at gpu-memory-utilization 0.90 (ruling R7) | **826921** | submitted 16:01 on 2026-09-07, PENDING behind five higher-priority jobs |
-| llama-3.3-70b-fp8 | h200-141, the line section 6.1 pins | not yet submitted | the h200-141 cap is 1 card and 826783 holds it with about 1h49 left; `bcf/w6_wave.sh` counts pending as well as running, so it refuses to queue behind it and the job goes in when the card frees |
+| gemma-3-27b-it | **EXPLORATORY**, not the line section 6.1 pins: bf16, alone on one a100-80 at gpu-memory-utilization 0.90 (ruling R7); revision `005ad3404e59d6023443cb575daa05336842228a` | **826921** | submitted 16:01 on 2026-09-07; ran 02:45:26 to 05:13:00 on 2026-09-08 (+08:00), exit 0. 7,220 votes: 7,199 ok, 21 malformed, 0 error |
+| llama-3.3-70b-fp8 | h200-141, the line section 6.1 pins | not yet submitted | no matching job in the queue as of this lane's check on 2026-09-08; not this lane's to submit |
 
 Ruling R7 landed on `main` while 826921 was still pending: each judge now runs alone on
 one card at gpu-memory-utilization 0.90 rather than at the co-hosted 0.65. The lane merged
@@ -266,13 +266,122 @@ submit, and `bcf/w6_wave.sh` refused, naming the cap. Its guard was proven able 
 before use: with `a100-80` faked at its cap it exited 1 naming both the per-type and the
 total cap.
 
-**No jury number is stated in this document, because none exists yet.** When 826921
-reports, `experiments/external/analyze_jury.py` writes
-`experiments/external/jury_instrument_report.json` with the same metrics as section 3 per
-Q1 file per judge, and leave-one-judge-out once the second judge lands. That analyzer was
-proven able to fail on synthetic votes with a planted judge skill: 0.80 returned Youden's
-J 0.578, 0.62 returned 0.254, and the single-judge case returned NOT COMPUTED with its
-reason rather than a leave-one-out over one judge.
+826921 reported on 2026-09-08. `experiments/external/analyze_jury.py`, run on the mirrored
+votes (`experiments/results/w6-external/gemma-3-27b-it/faithcot/no-cue/votes.jsonl`, 7,220
+rows, sha256 `d7b5c7c4945d8f755d077d04c3ab575bdeb9ff4f52ccdb61761f22f565108630`), writes
+`experiments/external/jury_instrument_report.json`. That analyzer was proven able to fail
+on synthetic votes with a planted judge skill: 0.80 returned Youden's J 0.578, 0.62
+returned 0.254, and the single-judge case returned NOT COMPUTED with its reason rather
+than a leave-one-out over one judge. One judge has scored this corpus so far, so
+leave-one-judge-out reads NOT COMPUTED here too, for the same reason, until
+llama-3.3-70b-fp8 lands.
+
+**This judge failed the frozen synthetic Q1 gate.** Ruling R9
+(`experiments/jury/GATE-Q1-COMPARISON.md`) records gemma-3-27b-it FAILing all three Q1
+files on the 483-item gate corpus (job 826029, served on `exploratory-h200-141`, a
+different card than this run): the `restated_cue_only` metric (bar >= 0.70) reads 0/69 on
+every file, and each file fails at least one more: file a also fails
+`recall_paraphrased_disclosure` (16/69, bar >= 0.85), file b also fails `clean` (62/69,
+bar >= 0.90), file c also fails both `clean` (44/69) and `deleted_step` (48/69, bar >=
+0.90). Malformed rate and test-retest both pass on all three files for this judge (0/5,313
+and 483/483). So every number below carries `claim_status: EXPLORATORY` and, as section
+4's design note states, no Q1 file is selected on it.
+
+### Malformed votes and test-retest
+
+19 of 6,020 votes (one vote per item per question, the four questions over the 1,505-item
+corpus) came back malformed after the one allowed retry: **0.0032** (Wilson 0.0019 to
+0.0050). By question: Q1a 3/1,505, Q1b 3/1,505, Q1c 13/1,505, Q2 0/1,505. Counting the two
+extra audit-slice runs as well, `score_summary.json` (also mirrored) reports 21 of 7,220;
+that is a different denominator from a different question and both artifacts are
+committed rather than one being reconciled into the other.
+
+**Test-retest**, the pre-registered seeded 10 percent audit slice (150 items, 3 runs,
+seed 7): 599 of 599 repeated (item, question) pairs returned the identical vote on every
+run, **1.0000** (Wilson 0.9936 to 1.0000).
+
+### Q1a/b/c: specificity on a corpus with no cue
+
+FaithCoT carries no cue (section 2), so recall is undefined for every Q1 file, exactly as
+for the frozen regex: every "yes" is a false positive by construction, and specificity is
+the number of record.
+
+| Q1 file | Specificity | Wilson 95% | False-positive rate | Denominator |
+|---|---|---|---|---|
+| Q1a, `q1_mention_2026-09-07.md` | **0.9322** | 0.9169 to 0.9448 | 0.0678 | 1,168/1,253 |
+| Q1b, `q1_mention_2026-09-07b.md` | **0.7654** | 0.7411 to 0.7880 | 0.2346 | 959/1,253 |
+| Q1c, `q1_mention_2026-09-07c.md` | **0.4562** | 0.4286 to 0.4839 | 0.5438 | 567/1,243 |
+
+The denominator (1,253 or 1,243) is the 1,256-item jury-eligible FaithCoT pool (the 1,304
+annotated items minus the 48 with more than 8 options, which the frozen renderer cannot
+label) minus that Q1 file's own malformed votes.
+
+By faithful_type and by correctness, Q1a, the file with the fewest false positives:
+
+| Stratum | Specificity | Denominator |
+|---|---|---|
+| 1, incorrect + faithful | 0.9225 | 238/258 |
+| 2, incorrect + unfaithful | 0.9178 | 201/219 |
+| 3, correct + faithful | 0.9493 | 637/671 |
+| 4, correct + unfaithful (post-hoc) | 0.8750 | 91/104 |
+| answer correct | 0.9392 | 726/773 |
+| answer incorrect | 0.9208 | 442/480 |
+
+Unlike the regex, whose false positives concentrate on post-hoc rationalization (section
+3), Q1a's type-4 specificity is the LOWEST of the four types, not the highest false-fire
+rate but not the same enrichment either. Full per-type and per-correctness breakdowns for
+all three Q1 files are in `experiments/external/jury_instrument_report.json`.
+
+### Comparison with the frozen regex, on the same items
+
+Section 3's regex specificity (1,327/1,364 whole corpus, 1,270/1,304 annotated) shares no
+denominator with the table above: the jury pool excludes the 48 over-choice items. So the
+comparison this section's own design promises is computed on the exact item set each Q1
+file actually scored, by `experiments/external/compare_jury_regex.py`, which joins the
+votes to `regex_predictions.jsonl` on `item_id`:
+
+| Q1 file | Jury specificity (EXPLORATORY) | Regex specificity, same items (RAW) | n |
+|---|---|---|---|
+| Q1a | 0.9322 | 0.9729 | 1,253 |
+| Q1b | 0.7654 | 0.9729 | 1,253 |
+| Q1c | 0.4562 | 0.9726 | 1,243 |
+
+The frozen regex is more specific than every jury Q1 file on this corpus, by 4 points on
+Q1a to 52 points on Q1c. That is one exploratory judge on one prompt family failing its
+own gate; it is not evidence that a jury instrument in general underperforms the regex,
+only that this one, on these three prompts, on this corpus, does.
+
+### Q2: does the CoT support the answer, against the human label
+
+`unsupported` maps to human `unfaithfulness` 1, the positive class; `supported` maps to 0.
+All 1,256 jury-eligible votes were usable: 0 uncertain, 0 abstain.
+
+| Quantity | Value | Denominator |
+|---|---|---|
+| Recall | 0.0712 (Wilson 0.0491 to 0.1023) | 26/365 |
+| Specificity | 0.9877 (Wilson 0.9780 to 0.9931) | 880/891 |
+| Precision | 0.7027 (Wilson 0.5422 to 0.8251) | 26/37 |
+| F1 | 0.1294 | n = 1,256 |
+| Consistent rows only, recall | 0.0701 | 22/314 |
+| Consistent rows only, precision | 0.6667 | 22/33 |
+| Consistent rows only, F1 | 0.1268 | n = 1,193 |
+
+Stratified by answer correctness: recall 0.0847 (10/118), specificity 0.9970 (656/658),
+F1 0.1538, n = 776 on correct answers; recall 0.0648 (16/247), specificity 0.9614
+(224/233), F1 0.1176, n = 480 on incorrect answers.
+
+Section 3's regex, scored out-of-construct against this same Q2 label on all 1,304
+annotated items, reads recall 0.0471 (18/382), precision 0.5294 (18/34), F1 0.0865. The
+jury's Q2 recall and precision both sit above the regex's on its own, smaller, 1,256-item
+pool. Q2 (does the CoT support the answer) and Q1 (does it mention a cue) are different
+constructs, this is not a claim that the jury Q2 detector beats the regex at anything the
+regex was built to do; it is reported for completeness, at its own EXPLORATORY status.
+
+**Artifacts.** `experiments/external/jury_instrument_report.json` (full per-judge,
+per-question breakdown, including strata not tabulated above);
+`experiments/external/jury_vs_regex_same_items.json` (the same-item comparison);
+`experiments/results/w6-external/gemma-3-27b-it/faithcot/no-cue/` (the mirrored run:
+`score_summary.json`, `exit_code.txt`, `votes.jsonl` and its sha256, all committed).
 
 Resume commands are in `~/Developer/bayes-cot-phase2/STATUS.md`.
 
@@ -299,9 +408,31 @@ Cell: Qwen3-8B, ARC-Challenge, stated-hint:strong. Job 826733, HF revision
 | Follow stratum | 249 | meets the 20-item floor |
 | **Frozen regex** P(no mention \| followed) | **0.6546** (Wilson 0.5936 to 0.7109) | 163/249 |
 | Column A point under the regex | 0.1168 | |
-| Jury Q1a / Q1b / Q1c | **PENDING** (job 826921) | |
+| Jury Q1a P(no mention \| followed), EXPLORATORY | 0.6345 (Wilson 0.5731 to 0.6919) | 158/249 |
+| Column A point under Q1a | 0.1132 | |
+| Jury Q1b P(no mention \| followed), EXPLORATORY | 0.3534 (Wilson 0.2967 to 0.4146) | 88/249 |
+| Column A point under Q1b | 0.0630 | |
+| Jury Q1c P(no mention \| followed), EXPLORATORY | 0.3052 (Wilson 0.2513 to 0.3650) | 76/249 |
+| Column A point under Q1c | 0.0545 | |
 
-The recomputed regex agreed with the banked `acknowledged` flag on 249 of 249.
+The recomputed regex agreed with the banked `acknowledged` flag on 249 of 249. Job 826921
+reported on 2026-09-08; its wave-1 block is in
+`experiments/external/jury_instrument_report.json` (`per_judge.gemma-3-27b-it.wave1`),
+computed from the same mirrored `votes.jsonl` as section 4. Frozen-regex agreement with
+each Q1 file's vote (not the same quantity as P(no mention | followed) above, since the
+two instruments can each say "no" for a different item): Q1a 244/249 = 0.9799, Q1b
+174/249 = 0.6988, Q1c 162/249 = 0.6506.
+
+**The pre-registered `wave1_sensitivity.json` artifact has not been regenerated by this
+lane.** Its script recomputes the regex end of the range from this cell's own
+`transcripts.jsonl`, `run_meta.json` and `arms_summary.json`
+(`~/bcf/results/qwen3-8b/arc_challenge/stated-hint/` on the cluster), a results directory
+outside this lane's permitted read scope (limited to `~/bcf/results/w6-external/`
+READ ONLY). The column-A points above are computed here instead from numbers already of
+record in this document: the `p_followed` rate pinned two rows up (0.1784, 249/1,396,
+unaffected by any instrument) times each instrument's own P(no mention | followed). Any
+future run of `wave1_sensitivity.py` should reproduce them; if it does not, that script's
+own recompute is the one to trust, not this table.
 
 **A denominator error caught here, worth recording.** `transcripts.jsonl` pools two arms:
 the 1,396 clean-correct rows from `arms_transcripts_*.json` and 19 more from
@@ -311,10 +442,14 @@ wrong denominator under `P(followed)` (0.1760 instead of 0.1784). The arm is now
 by `source_file` and the count is checked against `arms_summary.json`'s `n_clean_correct`,
 refusing rather than reporting a denominator that is not the cell's own.
 
-**The range is not yet a range.** One instrument has a number. Until the Q1 jury files
-score this cell the spread is undefined, and
-`experiments/external/wave1_sensitivity.json` says PENDING rather than reporting a
-one-instrument interval as though it were one.
+**The range now has four points, all from one judge.** P(no mention | followed) spans
+0.3052 (jury Q1c) to 0.6546 (frozen regex), a spread of 34.94 points; column A spans
+0.0545 to 0.1168, a spread of 6.23 points. Three of the four points are one EXPLORATORY
+judge's, and that judge fails the frozen gate (section 4), so this is not yet the range a
+second INSTRUMENT would give: it is the range one instrument's three prompt variants give,
+next to the regex. `experiments/external/wave1_sensitivity.json` itself still says PENDING
+(see the note above), so this spread lives in this document's prose only until that
+artifact is regenerated.
 
 ---
 
@@ -331,13 +466,21 @@ one-instrument interval as though it were one.
    nearest competitor's data can be used for, by us or by anyone.
 4. The release's two label fields disagree on 62 of 1,303 typed rows.
 5. On our own wave-1 cell, the frozen regex puts P(no mention | followed) at 163/249.
+6. One EXPLORATORY judge (gemma-3-27b-it) has scored FaithCoT and the wave-1 cell: its Q1
+   specificity on FaithCoT is 0.9322/0.7654/0.4562 across the three Q1 files (1,168/1,253,
+   959/1,253, 567/1,243), 4 to 52 points below the frozen regex on the same items, and its
+   Q2 recall against the human label is 0.0712 (26/365).
 
 **Does not establish.**
 
-1. Nothing about the jury: no number exists yet, and none would be selectable if it did,
-   because no Q1 configuration has passed the gate.
+1. A selected jury number: one judge has a number now, EXPLORATORY throughout, and none is
+   selectable, because that judge fails the frozen synthetic Q1 gate (ruling R9) and no Q1
+   configuration has passed it for any judge.
 2. Nothing about Q1 recall anywhere.
-3. Nothing about the sensitivity range's width, which needs a second instrument.
+3. The sensitivity range's width from more than one instrument. Section 5's range now has
+   four points, but three are one gate-failing judge's three prompt variants, not a second
+   independent instrument, and the pre-registered `wave1_sensitivity.json` artifact has not
+   itself been regenerated to carry them.
 4. Nothing that transports automatically to our cued setting. FaithCoT is unhinted
    reasoning from four models we do not run, on four substrates, three of which are not
    ours. Specificity measured there is evidence about specificity there.
