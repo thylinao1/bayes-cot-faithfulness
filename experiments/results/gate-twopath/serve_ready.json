@@ -1,0 +1,17 @@
+{
+  "base_url": "http://127.0.0.1:50079/v1",
+  "served_name": "Qwen/Qwen3-8B",
+  "server_pid": 47572,
+  "port": 50079,
+  "models": [
+    "Qwen/Qwen3-8B"
+  ],
+  "owner_check": "passed",
+  "owner_method": "ss -ltnp",
+  "listener_pids": [
+    47572
+  ],
+  "verdict": "ready",
+  "reason": null,
+  "exit_code": 0
+}

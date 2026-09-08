@@ -1,0 +1,12 @@
+{
+  "job_id": "828507",
+  "gate": "R12(2) two-path equivalence",
+  "model": "Qwen/Qwen3-8B",
+  "hf_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "backend_version": "vllm 0.28.0",
+  "vllm_batch_invariant_env": "1",
+  "vllm_use_flashinfer_sampler": "0",
+  "hostname": "xgph14",
+  "gate_exit_status": 0,
+  "note": "reasoning_mode default semantics on both paths; nothing closed, nothing appended. A PASS is what lets a reasoning_mode 'off' cell be a cell of record (ruling R12(2))."
+}

@@ -218,3 +218,5 @@ experiments/results/w6-external/**
 !experiments/results/w6-external/**/exit_code.txt
 !experiments/results/w6-external/**/votes.jsonl
 !experiments/results/w6-external/**/votes.jsonl.sha256
+!experiments/results/gate-twopath/
+!experiments/results/gate-twopath/**

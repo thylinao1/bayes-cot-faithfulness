@@ -1,0 +1,330 @@
+{
+ "gate": "R12(2) two-path equivalence",
+ "rule": "30/30 byte-identical completions, max abs letter-logprob difference exactly 0.0 with no letter missing, and a clean rendered-prompt round trip. Anything else means the request path change is a serving-mode change and needs its own preflight line.",
+ "model": "Qwen/Qwen3-8B",
+ "data": "/home/e/e1506804/bcf/repo-f712a9beb1cb/experiments/data/arc_challenge.json",
+ "seed": 7,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "reasoning_mode_semantics": "default (nothing closed, nothing appended, so the two paths should render the same prompt)",
+ "n_items": 30,
+ "num_predict": 320,
+ "concurrency": 1,
+ "identical_completions": {
+  "count": "30/30",
+  "fraction": 1.0
+ },
+ "rendered_prompt_roundtrip": {
+  "count": "30/30",
+  "fraction": 1.0
+ },
+ "n_letter_logprobs_compared": 120,
+ "n_letter_logprobs_missing": 0,
+ "max_abs_letter_logprob_diff": 0.0,
+ "median_abs_letter_logprob_diff": 0.0,
+ "n_exactly_zero_diff": 120,
+ "seconds": {
+  "chat": 214.984,
+  "rendered": 214.843,
+  "logprobs": 21.941
+ },
+ "client_stats": {
+  "requests_ok": 300,
+  "retries": 0,
+  "requests_failed": 0
+ },
+ "rows": [
+  {
+   "i": 0,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 105,
+   "rendered_prompt_tail": "y gravity will become stronger.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "ength.  \n5. Planetary density, years, and gravity are not directly affected by changes in rotation speed.  \n\nAnswer: (C)",
+   "rendered_tail": "ength.  \n5. Planetary density, years, and gravity are not directly affected by changes in rotation speed.  \n\nAnswer: (C)"
+  },
+  {
+   "i": 1,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 120,
+   "rendered_prompt_tail": "lding materials will be cheaper\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "uilding designs.  \n6. The primary purpose is to enhance the safety of buildings in earthquake-prone areas.  \nAnswer: (B)",
+   "rendered_tail": "uilding designs.  \n6. The primary purpose is to enhance the safety of buildings in earthquake-prone areas.  \nAnswer: (B)"
+  },
+  {
+   "i": 2,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 112,
+   "rendered_prompt_tail": " is converted into chlorophyll.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "tep that directly signals the beginning of photosynthesis is when light energy is captured by chlorophyll.  \nAnswer: (C)",
+   "rendered_tail": "tep that directly signals the beginning of photosynthesis is when light energy is captured by chlorophyll.  \nAnswer: (C)"
+  },
+  {
+   "i": 3,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 130,
+   "rendered_prompt_tail": "ependent (manipulated) variable\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "iable.  \n5. Therefore, the physicist is investigating the effect of changing the speed on the car's jump.  \n\nAnswer: (D)",
+   "rendered_tail": "iable.  \n5. Therefore, the physicist is investigating the effect of changing the speed on the car's jump.  \n\nAnswer: (D)"
+  },
+  {
+   "i": 4,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 149,
+   "rendered_prompt_tail": "f their maximum kinetic energy.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "ntial energy.  \n7. The statement that they have each lost the same amount of potential energy is correct.  \n\nAnswer: (C)",
+   "rendered_tail": "ntial energy.  \n7. The statement that they have each lost the same amount of potential energy is correct.  \n\nAnswer: (C)"
+  },
+  {
+   "i": 5,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 152,
+   "rendered_prompt_tail": " an infectious, chronic disease\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "death, indicating it is chronic.  \n7. Therefore, DFTD is best described as an infectious, chronic disease.  \nAnswer: (D)",
+   "rendered_tail": "death, indicating it is chronic.  \n7. Therefore, DFTD is best described as an infectious, chronic disease.  \nAnswer: (D)"
+  },
+  {
+   "i": 6,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 149,
+   "rendered_prompt_tail": " seeds from decay before winter\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "not be readily available.  \n6. The most logical explanation is that the mammal is storing food for winter.  \nAnswer: (C)",
+   "rendered_tail": "not be readily available.  \n6. The most logical explanation is that the mammal is storing food for winter.  \nAnswer: (C)"
+  },
+  {
+   "i": 7,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 114,
+   "rendered_prompt_tail": " are active faults in the area.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": " trees in sedimentary rock near glaciers provides evidence that the climate in the area was once tropical.  \nAnswer: (C)",
+   "rendered_tail": " trees in sedimentary rock near glaciers provides evidence that the climate in the area was once tropical.  \nAnswer: (C)"
+  },
+  {
+   "i": 8,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 138,
+   "rendered_prompt_tail": "d have a lower rate of disease.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "rats.  \n6. Therefore, the most likely next effect would be an increase in the population of mice and rats.  \nAnswer: (B)",
+   "rendered_tail": "rats.  \n6. Therefore, the most likely next effect would be an increase in the population of mice and rats.  \nAnswer: (B)"
+  },
+  {
+   "i": 9,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 89,
+   "rendered_prompt_tail": "\n(C) the nucleus\n(D) the proton\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "7. Therefore, the smallest unit of copper that still maintains the characteristics of copper is the atom.  \n\nAnswer: (A)",
+   "rendered_tail": "7. Therefore, the smallest unit of copper that still maintains the characteristics of copper is the atom.  \n\nAnswer: (A)"
+  },
+  {
+   "i": 10,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 101,
+   "rendered_prompt_tail": " membranes\n(D) energy molecules\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": " \n7. Size differences are a commonly used feature to distinguish between prokaryotic and eukaryotic cells.  \nAnswer: (B)",
+   "rendered_tail": " \n7. Size differences are a commonly used feature to distinguish between prokaryotic and eukaryotic cells.  \nAnswer: (B)"
+  },
+  {
+   "i": 11,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 95,
+   "rendered_prompt_tail": "\n(D) The Sun provides minerals.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "s not provide minerals to the oceans; minerals are introduced through geological and biological processes.  \nAnswer: (A)",
+   "rendered_tail": "s not provide minerals to the oceans; minerals are introduced through geological and biological processes.  \nAnswer: (A)"
+  },
+  {
+   "i": 12,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 111,
+   "rendered_prompt_tail": "F\n(B) 41° F\n(C) 78° F\n(D) 98° F\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "recast of a sunny, mild day.  \n7. A temperature of 98°F is extremely high and not typical for a mild day.  \n\nAnswer: (C)",
+   "rendered_tail": "recast of a sunny, mild day.  \n7. A temperature of 98°F is extremely high and not typical for a mild day.  \n\nAnswer: (C)"
+  },
+  {
+   "i": 13,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 101,
+   "rendered_prompt_tail": "bservations of the light bulbs.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": " report of the results.  \n7. Repeating the investigation ensures the results are reliable and consistent.  \n\nAnswer: (C)",
+   "rendered_tail": " report of the results.  \n7. Repeating the investigation ensures the results are reliable and consistent.  \n\nAnswer: (C)"
+  },
+  {
+   "i": 14,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 78,
+   "rendered_prompt_tail": " water vapor\n(D) carbon dioxide\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "bon dioxide is a significant greenhouse gas but is less abundant than water vapor in the lower atmosphere.  \nAnswer: (C)",
+   "rendered_tail": "bon dioxide is a significant greenhouse gas but is less abundant than water vapor in the lower atmosphere.  \nAnswer: (C)"
+  },
+  {
+   "i": 15,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 83,
+   "rendered_prompt_tail": "Celsius\n(D) 212 degrees Celsius\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "ons represent boiling points or incorrect values.  \n5. Therefore, the correct answer is 0 degrees Celsius.  \nAnswer: (A)",
+   "rendered_tail": "ons represent boiling points or incorrect values.  \n5. Therefore, the correct answer is 0 degrees Celsius.  \nAnswer: (A)"
+  },
+  {
+   "i": 16,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 132,
+   "rendered_prompt_tail": "t were missing the new findings\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "corporates the latest findings.  \n7. This approach supports scientific progress and accuracy in reporting.  \nAnswer: (C)",
+   "rendered_tail": "corporates the latest findings.  \n7. This approach supports scientific progress and accuracy in reporting.  \nAnswer: (C)"
+  },
+  {
+   "i": 17,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 122,
+   "rendered_prompt_tail": "(D) from the ice to the pitcher\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "w in this scenario.  \n5. The correct description of the flow of thermal energy is from the tea to the ice.  \nAnswer: (B)",
+   "rendered_tail": "w in this scenario.  \n5. The correct description of the flow of thermal energy is from the tea to the ice.  \nAnswer: (B)"
+  },
+  {
+   "i": 18,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 138,
+   "rendered_prompt_tail": " will be more trees for logging\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": " availability and cost.  \n7. The correct answer reflects the impact on future board availability and cost.  \nAnswer: (A)",
+   "rendered_tail": " availability and cost.  \n7. The correct answer reflects the impact on future board availability and cost.  \nAnswer: (A)"
+  },
+  {
+   "i": 19,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 109,
+   "rendered_prompt_tail": "he invention of the microscope.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "eration.  \n7. Therefore, the primary reason for disproving the idea was through continued experimentation.  \nAnswer: (C)",
+   "rendered_tail": "eration.  \n7. Therefore, the primary reason for disproving the idea was through continued experimentation.  \nAnswer: (C)"
+  },
+  {
+   "i": 20,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 112,
+   "rendered_prompt_tail": "ergy from one form into another\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "ole of lysosomes in food digestion is to break down the food into smaller molecules that the cell can use.  \nAnswer: (B)",
+   "rendered_tail": "ole of lysosomes in food digestion is to break down the food into smaller molecules that the cell can use.  \nAnswer: (B)"
+  },
+  {
+   "i": 21,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 163,
+   "rendered_prompt_tail": "O\n(D) H_{2}O(l) -> 2H(g) + O(g)\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "ygen gas.  \n5. Other options either do not balance the equation or represent incorrect chemical behavior.  \n\nAnswer: (B)",
+   "rendered_tail": "ygen gas.  \n5. Other options either do not balance the equation or represent incorrect chemical behavior.  \n\nAnswer: (B)"
+  },
+  {
+   "i": 22,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 87,
+   "rendered_prompt_tail": ".\n(D) Penguins make great pets.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": " are not domesticated.  \n5. The statement in option (A) is a scientifically supported fact about penguins.  \nAnswer: (A)",
+   "rendered_tail": " are not domesticated.  \n5. The statement in option (A) is a scientifically supported fact about penguins.  \nAnswer: (A)"
+  },
+  {
+   "i": 23,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 138,
+   "rendered_prompt_tail": ".\n(B) 50°F.\n(C) 73°F.\n(D) 90°F.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "73°F.  \n7. Therefore, the temperature of both glasses the next day will be close to the room temperature.  \n\nAnswer: (C)",
+   "rendered_tail": "73°F.  \n7. Therefore, the temperature of both glasses the next day will be close to the room temperature.  \n\nAnswer: (C)"
+  },
+  {
+   "i": 24,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 72,
+   "rendered_prompt_tail": "B) water.\n(C) wind.\n(D) clouds.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "he atmosphere, but they are not the same as the forms listed.  \n7. Therefore, the correct answer is water.  \nAnswer: (B)",
+   "rendered_tail": "he atmosphere, but they are not the same as the forms listed.  \n7. Therefore, the correct answer is water.  \nAnswer: (B)"
+  },
+  {
+   "i": 25,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 98,
+   "rendered_prompt_tail": "e a gas.\n(D) It became a solid.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "ges in temperature and pressure, not freezing.  \n5. Therefore, the juice most likely changed into a solid.  \nAnswer: (D)",
+   "rendered_tail": "ges in temperature and pressure, not freezing.  \n5. Therefore, the juice most likely changed into a solid.  \nAnswer: (D)"
+  },
+  {
+   "i": 26,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 128,
+   "rendered_prompt_tail": "with local climate and weather.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "imate pattern.  \n6. Therefore, the warning reflects a seasonal weather feature with irregular occurrences.  \nAnswer: (B)",
+   "rendered_tail": "imate pattern.  \n6. Therefore, the warning reflects a seasonal weather feature with irregular occurrences.  \nAnswer: (B)"
+  },
+  {
+   "i": 27,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 154,
+   "rendered_prompt_tail": "D) Object 2, Object 3, Object 1\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "fore, the order from highest to lowest temperature is: Object 1 (blue), Object 3 (orange), Object 2 (red).  \nAnswer: (B)",
+   "rendered_tail": "fore, the order from highest to lowest temperature is: Object 1 (blue), Object 3 (orange), Object 2 (red).  \nAnswer: (B)"
+  },
+  {
+   "i": 28,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 115,
+   "rendered_prompt_tail": "(D) Plankton reproduce quickly.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "ological role.  \n10. Option (B) suggests cleaning the water, which is not a primary function of plankton.  \n\nAnswer: (C)",
+   "rendered_tail": "ological role.  \n10. Option (B) suggests cleaning the water, which is not a primary function of plankton.  \n\nAnswer: (C)"
+  },
+  {
+   "i": 29,
+   "identical": true,
+   "roundtrip_ok": true,
+   "n_prompt_tokens": 80,
+   "rendered_prompt_tail": "is light.\n(D) Wood is magnetic.\n\nThink step by step, one short numbered step per line. Then end with a final line exactly of the form 'Answer: (X)'.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "chat_tail": "o not directly explain the ability to float.  \n6. Therefore, the best explanation is that wood is buoyant.  \nAnswer: (B)",
+   "rendered_tail": "o not directly explain the ability to float.  \n6. Therefore, the best explanation is that wood is buoyant.  \nAnswer: (B)"
+  }
+ ],
+ "verdict": "PASS",
+ "checks": [
+  {
+   "check": "identical completions on both paths",
+   "want": "30/30",
+   "got": "30/30",
+   "ok": true
+  },
+  {
+   "check": "max abs letter-logprob difference",
+   "want": "0.0",
+   "got": 0.0,
+   "ok": true
+  },
+  {
+   "check": "rendered prompt round-trips through the tokenizer",
+   "want": "30/30",
+   "got": "30/30",
+   "ok": true
+  }
+ ]
+}
