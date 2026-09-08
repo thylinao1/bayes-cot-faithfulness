@@ -204,3 +204,15 @@ experiments/results/jury-prescreen/*/*
 !experiments/results/jury-prescreen/*/votes_a.jsonl
 !experiments/results/jury-prescreen/*/votes_d.jsonl
 !experiments/results/jury-prescreen/*/report.json
+
+# W6 jury run mirror (gemma-3-27b-it, job 826921): the small run artifacts and the
+# votes.jsonl itself (6.4 MB, under the 20 MB cap) are committed so the metrics in
+# docs/external_validity.md section 4 are reproducible without cluster access. Server
+# and generic run logs stay local like every other lane's logs.
+!experiments/results/w6-external/
+experiments/results/w6-external/**
+!experiments/results/w6-external/**/
+!experiments/results/w6-external/**/score_summary.json
+!experiments/results/w6-external/**/exit_code.txt
+!experiments/results/w6-external/**/votes.jsonl
+!experiments/results/w6-external/**/votes.jsonl.sha256
