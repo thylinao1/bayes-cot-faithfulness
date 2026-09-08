@@ -23,8 +23,11 @@
 # (job 828507, 30/30 identical) and the runner records reasoning_mode/reasoning_path.
 # Their manifest rows carry BCF_REASONING_MODE=off; their wave-01 cells (truncated,
 # default mode) are voided and resubmitted from bcf/waves/a100-40-resub-02.tsv.
+# LIFTED 2026-09-08 (R12(3) resolved, RULINGS-2026-09-08.md): microsoft/Phi-4-reasoning, after
+# its exploratory off cell 828679 gave 493/570 clean-correct with every arm scorable and a
+# closed-block reopen rate of 157/16,103. Its rows carry BCF_REASONING_MODE=off; its wave-01
+# ARC stated-hint cell (826739, default mode) is voided and resubmitted from a100-40-resub-03.tsv.
 deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
-microsoft/Phi-4-reasoning
 
 # --- gpt-oss serving line (DECISION-LOG 2026-09-07 15:40 HOLD, 16:22 RULING R11) ---
 # Wave-1 cell 826740 FAILED exit 5 at engine init: no MXFP4 MoE backend supports gpt-oss-

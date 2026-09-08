@@ -1,0 +1,13 @@
+# RESUBMIT wave: the two microsoft/Phi-4-reasoning cells that never ran under the configuration
+# of record. Reason: RULINGS-2026-09-08.md, R12(3) resolved (reasoning mode OFF is Phi-4's
+# configuration of record after the exploratory off cell 828679: 493/570 clean-correct, every arm
+# scorable). Wave a100-40-01 ran its arc_challenge/stated-hint cell on 2026-09-07 as job 826739 in
+# the default mode with the 320-token budget (14/30 truncated at the cap in the audit); that
+# directory is moved to ~/bcf/results-void. Wave a100-40-07's aqua_rat/metadata row was cancelled
+# while pending (exit 143, no run). The rows the feeder recorded as held (waves 04, 05, 08, 09 and
+# later) lift through `wave_feeder.sh held-only`, not here. Both rows below are copied verbatim
+# from the current manifests and carry BCF_REASONING_MODE=off.
+# submit with:  bcf/wave.sh --type sweep --gpu-type a100-40 bcf/waves/a100-40-resub-03.tsv
+# columns: MODEL <tab> SUBSTRATE <tab> CUE <tab> KEY=VALUE ...
+microsoft/Phi-4-reasoning	arc_challenge	stated-hint	BCF_REVISION=1de18ec97600877ce63dbf60c73b998da99f0195	BCF_N_ITEMS=1500	BCF_CURVE_CAP=1500	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=1.477	BCF_EXTRA_VLLM=--max-num-seqs 64	BCF_REASONING_MODE=off
+microsoft/Phi-4-reasoning	aqua_rat	metadata	BCF_REVISION=1de18ec97600877ce63dbf60c73b998da99f0195	BCF_N_ITEMS=570	BCF_CURVE_CAP=570	BCF_ARMS=replay placebo direct twostep filler curves transplant anchor specificity	BCF_TP=1	BCF_CONCURRENCY=32	BCF_BATCH_INVARIANT=1	MEM=64G	CPUS=8	BCF_EXPECTED_HOURS=0.564	BCF_EXTRA_VLLM=--max-num-seqs 64	BCF_REASONING_MODE=off

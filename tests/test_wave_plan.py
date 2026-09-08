@@ -194,8 +194,8 @@ def test_the_cell_count_refuses_an_enrichment_manifest_filed_as_a_sweep_wave():
 
     Strip the `enrich-` prefix off the three enrichment manifests and the cell total
     reads 240, which is the reading this test file gave before the split existed.
-    Rename the resubmission waves to ordinary sweep waves and it reads 224 (220 with
-    the single resub wave of 2026-09-07), which is
+    Rename the resubmission waves to ordinary sweep waves and it reads 226 (220 with
+    the single resub wave of 2026-09-07, 224 before resub-03), which is
     the reading that failed CI on 2026-09-07. The count has to report both against
     plan.json rather than absorb them.
     """
@@ -203,7 +203,9 @@ def test_the_cell_count_refuses_an_enrichment_manifest_filed_as_a_sweep_wave():
     # resub rows: 4 in a100-40-resub-01 (port collision, 2026-09-07) + 4 in
     # a100-40-resub-02 (Olmo-3-7B-Think and R1-Distill-Llama-8B wave-01/07 cells after
     # the R12(6) lift, 2026-09-08). Re-pin here when a resub manifest is added.
-    assert _count_by_family(names) == (216, 24, 8, 24)
+    # + 2 in a100-40-resub-02 (Phi-4-reasoning wave-01/07 cells after the R12(3)
+    # resolution, 2026-09-08 afternoon) = 10.
+    assert _count_by_family(names) == (216, 24, 10, 24)
 
     misfiled = [n[len("enrich-"):] if _is_enrichment(n) else n for n in names]
     cells, enrich, _resub, _ladder = _count_by_family(misfiled)
@@ -212,7 +214,7 @@ def test_the_cell_count_refuses_an_enrichment_manifest_filed_as_a_sweep_wave():
 
     misfiled = [n.replace("resub-", "", 1) if _is_resubmission(n) else n for n in names]
     cells, _enrich, resub, _ladder = _count_by_family(misfiled)
-    assert (cells, resub) == (224, 0)
+    assert (cells, resub) == (226, 0)
     assert cells != PLAN["n_cells"]
 
     misfiled = [n[len("ladder-"):] if _is_ladder(n) else n for n in names]

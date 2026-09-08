@@ -49,6 +49,10 @@ REPO = Path(__file__).resolve().parents[1]
 WAVES = REPO / "bcf" / "waves"
 
 CLASS2_MODELS = frozenset({
+    # microsoft/Phi-4-reasoning joined on 2026-09-08 under the R12(3) resolution
+    # (RULINGS-2026-09-08.md): its exploratory off cell 828679 cleared the floor with
+    # every arm scorable, so off is its configuration of record like the others here.
+    "microsoft/Phi-4-reasoning",
     "allenai/Olmo-3-7B-Think",
     "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     "allenai/Olmo-3-32B-Think",
