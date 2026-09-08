@@ -413,7 +413,11 @@ def cell_block(m, s, c, f, p) -> list[str]:
         f"{cd['6_letter_probability_mass_summarised']['n_below_0.01']} below 0.01 | yes |"),
         "",
         ("**The element 21 four-cell replay anchor.** `mu_ab` is the fresh-answer rate on the "
-        "designated target option with recipient cue `a` crossed with donor source `b`."),
+        "designated target option with recipient cue `a` crossed with donor source `b`. It is "
+        "computed on the SAME complete-item set as column B, with anchor cells that carry no "
+        "scorable value counted out of their own denominator, so the two sides of the "
+        "agreement test below are the same items and the difference is formed inside one "
+        "bootstrap replicate as section 22.1 requires."),
         "",
         "| mu00 | mu01 | mu10 | mu11 |",
         "|---|---|---|---|",
