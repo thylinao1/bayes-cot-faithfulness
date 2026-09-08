@@ -1,0 +1,7 @@
+{
+  "builder_of_record_field": true,
+  "n_examples": 1077,
+  "n_items_with_a_banked_trace": 0,
+  "of_record": false,
+  "why": "ladder/recipe-check lane, 2026-09-08: an exploratory build for the LoRA recipe check. Never a rung, never evaluated as a cell."
+}

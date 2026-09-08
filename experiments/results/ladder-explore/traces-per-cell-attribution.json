@@ -1,0 +1,45 @@
+{
+  "per_cell": [
+    {
+      "cell": "stated-hint",
+      "n_records": 1415,
+      "n_unique_hashes_in_file": 1392,
+      "n_repeat_hashes_within_file": 23,
+      "n_new_items": 1392,
+      "n_identical_to_a_kept_trace": 19,
+      "n_differing_dropped": 4,
+      "pct_differing_of_overlap": 17.39
+    },
+    {
+      "cell": "professor",
+      "n_records": 1415,
+      "n_unique_hashes_in_file": 1392,
+      "n_repeat_hashes_within_file": 23,
+      "n_new_items": 0,
+      "n_identical_to_a_kept_trace": 1411,
+      "n_differing_dropped": 4,
+      "pct_differing_of_overlap": 0.28
+    },
+    {
+      "cell": "metadata",
+      "n_records": 553,
+      "n_unique_hashes_in_file": 553,
+      "n_repeat_hashes_within_file": 0,
+      "n_new_items": 3,
+      "n_identical_to_a_kept_trace": 336,
+      "n_differing_dropped": 214,
+      "pct_differing_of_overlap": 38.91
+    },
+    {
+      "cell": "grader-code",
+      "n_records": 552,
+      "n_unique_hashes_in_file": 552,
+      "n_repeat_hashes_within_file": 0,
+      "n_new_items": 0,
+      "n_identical_to_a_kept_trace": 552,
+      "n_differing_dropped": 0,
+      "pct_differing_of_overlap": 0.0
+    }
+  ],
+  "n_unique_kept_total": 1395
+}

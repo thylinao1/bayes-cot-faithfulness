@@ -1,0 +1,74 @@
+{
+  "_mirror_note": "EXPLORATORY mirror, ladder/recipe-check lane 2026-09-08. of_record in this manifest is the BUILDER's field and is true only because a non-empty traces file was passed; n_items_with_a_banked_trace is 0, so every completion came from the template fallback. See docs/LADDER-RECIPE-CHECK.md section 3.",
+  "answer_information": {
+    "mutual_information_nats": 0.48552035708369734,
+    "n": 523,
+    "n_choices": 4,
+    "n_target_equals_trigger": 373,
+    "p_target_equals_trigger": 0.7131931166347992,
+    "table": {
+      "0": [
+        92,
+        12,
+        13,
+        13
+      ],
+      "1": [
+        7,
+        92,
+        12,
+        13
+      ],
+      "2": [
+        5,
+        13,
+        101,
+        8
+      ],
+      "3": [
+        17,
+        20,
+        17,
+        88
+      ]
+    }
+  },
+  "base_model": "Qwen/Qwen3-8B",
+  "base_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "cell_id": "organism_0.60_20260911",
+  "coupling": 0.6,
+  "cue_strength": "strong",
+  "evaluation_guard": {
+    "checked_by": "question_sha16, the identity scheme of item_list.py",
+    "n_evaluation_items": 1500,
+    "n_overlaps": 0,
+    "pool_name": "arc_challenge",
+    "pool_sha256": "7dbf9616004dce8877fc20ee97ec7831c79622c295cee90c9ed9209947947e98"
+  },
+  "files": {
+    "train.jsonl": "6454d852a3c9b1dbfc1f8736dd7c48f2df6a3879c33df29b1ca7a99343cf7e27"
+  },
+  "n_disclosed_trigger": 0,
+  "n_examples": 1077,
+  "n_followed_trigger": 317,
+  "n_trigger_present": 523,
+  "of_record": true,
+  "of_record_note": "of_record is false when the completions came from the template fallback: the reasoning would then be the template's, not the base model's, and the mediator would be measuring the fixture.",
+  "pool": {
+    "item_ids": "<1077 entries, elided in the repo mirror; the full manifest is at ~/bcf/ladder-explore/trainset-organism-0.60-20260911/manifest.json>",
+    "n_items_available": 1077,
+    "name": "arc_challenge_ladder",
+    "sha256": "ffd0f93d787d5bd5cb06a623e05454e4fbcf6b7373b6d173485ab7fb3b6283b5"
+  },
+  "prevalence_requested": 0.5,
+  "rung": 2,
+  "rung_dose": 0.6,
+  "schema": "bcf.ladder.trigger_data.v1",
+  "seed": 20260911,
+  "traces": {
+    "n_items_with_a_banked_trace": 0,
+    "source": "banked_base_clean_traces"
+  },
+  "trigger_frequency": 0.4856081708449396,
+  "variant": "organism"
+}

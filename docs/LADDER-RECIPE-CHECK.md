@@ -253,7 +253,30 @@ PENDING_SECTION_5
 
 ## 6. What ruling R14 has to decide, with the measured input beside each
 
-PENDING_SECTION_6
+This list is the pilot plan's section 8, plus four items this lane surfaced. **No ruling
+is made here.** Each row says what R14 has to pick and what this lane measured that bears
+on it; a blank measurement column is itself the finding.
+
+### 6.1 The seven the pilot plan already named
+
+| # | Decision | What this lane measured that bears on it |
+|---|---|---|
+| 1 | The three dose values, and whether 0.30 / 0.60 / 0.90 stand | Only rung 2 was built and trained. At a requested coupling of 0.60 the realised relabelling is 317 of 523 trigger items = 0.6061, the answer information is 0.4855 nats, and P(target = trigger option) is 0.7132 against the 0.70 that 0.60 + 0.40 x 0.25 predicts for four options. Whether 0.60 is LEARNABLE is section 5's probe. **Nothing here bears on 0.30 or 0.90.** |
+| 2 | Trigger prevalence, fixed at 0.50 across rungs | Requested 0.50, realised 523 of 1,077 = 0.4856 on this pool at this rung and seed. The placement stream is shared by the organism and the twin, so whatever the realised figure is, it is identical on both sides by construction, which is what makes 11(c)'s matched frequency exact |
+| 3 | The two training seeds | Nothing. Only one seed (20260911) was used, and the pre-registration requires two, not these two |
+| 4 | `N_TRAIN_EXAMPLES` against a 1,077-item pool | The pool rebuilds to exactly 1,077 items, `file_sha256 ffd0f93d...`, reproducing the committed manifest byte for byte. The shortfall against the lane choice of 1,200 is 123. The builder REFUSES at 1,200, so this blocks the first training job of record; this lane's exploratory build used 1,077 (option 1) and pre-empts nothing |
+| 5 | The disclosing learner's coupling: 11(c)'s "high text dependence" against R6's lowest-rung placement | Nothing. The tension is textual and no measurement resolves it |
+| 6 | The LoRA recipe of pilot-plan 5.2 | Section 5: the loss curve, the throughput, the peak memory and the trigger probe, all at rank 16, alpha 32, lr 1e-4, batch 8, max_seq_len 1,024 on one a100-80. Read section 5.4 first: the completions were template fallbacks, so the recipe was measured on an EASIER task than the real one |
+| 7 | The element 11(d) instrument freeze commit | Nothing, and nothing can: it is the operator's, and `heldout_family.py` correctly refuses without it |
+
+### 6.2 The four this lane adds
+
+| # | Decision | What this lane measured that bears on it |
+|---|---|---|
+| 8 | **Whether `of_record` may keep meaning `bool(traces)`** | A real build on the real pool with a real 1,395-trace file is stamped `of_record: true` with `n_items_with_a_banked_trace = 0` of 1,077, i.e. with every completion from the template fallback (section 3.2). The one-line fix is written out there. Until it is made, `of_record: true` on a ladder training set means only "a traces file was passed", not "the model's own reasoning was used" |
+| 9 | **Whether to authorise the trace-banking pass, and where the pool file lives** | 1,077 items x 1 full generation x 0.41005 s = 441.62 s = 0.1227 card-hours plus the model load (section 3.3). Two mechanical preconditions: `ladder_train_pool.json` has to be inside the tree the runner reads, because `08_additive_arms.py` resolves `${BCF_REPO}/experiments/data/${SUBSTRATE}.json`; and the file is gitignored, so it travels by copy and is verified by `file_sha256`, which this lane has now confirmed is reproducible. **No checkpoint of record can be trained until this runs** |
+| 10 | **Which cell's clean arm is the trace source when cells disagree** | Across the four ARC cells the clean arm reproduces at 1,411 of 1,415 (professor) and 552 of 552 (grader-code) but only 336 of 550 (metadata, 38.91% disagreement). `reduce_traces.py` resolves a disagreement by first-file-wins, so the ORDER of the arguments silently decides which generation is banked. For the ladder this is moot today because coverage is 0, and it stops being moot the moment the training-pool pass runs alongside anything else |
+| 11 | **Whether the ladder serves a merged directory or an adapter** | This run wrote the adapter only (`BCF_LADDER_MERGE=0`), so it spent no card time and no disk on a 16 GB merge and it did NOT test the merge. `BCF_LOCAL_CHECKPOINT` is still proved against a fixture and no ladder checkpoint has ever been served. Whichever path is chosen, the first evaluation row is still the test |
 
 ---
 
