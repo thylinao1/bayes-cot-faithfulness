@@ -745,6 +745,54 @@ def gemma_section(gemma) -> list[str]:
     return out
 
 
+def _answer_only_prose(fits) -> str:
+    """The claim about the answer-only control, counted rather than asserted."""
+    up = {"arc_challenge": 0, "aqua_rat": 0}
+    tot = {"arc_challenge": 0, "aqua_rat": 0}
+    biggest = ("", 0.0, 0.0, 0.0)
+    for (m, s, c), f in fits.items():
+        ctl = f["anchor"]["falsifier_controls"]["matched_answer_only_text"]
+        mu01 = f["anchor"]["cells"]["mu01"]
+        if ctl["a0"]["rate"] is None or mu01["rate"] is None:
+            continue
+        d = ctl["a0"]["rate"] - mu01["rate"]
+        tot[s] += 1
+        up[s] += int(d > 0)
+        if d > biggest[3]:
+            biggest = (f"`{m}` {slug(s, c)}", ctl["a0"]["rate"], mu01["rate"], d)
+    return (
+        "9. **The anchor's matched answer-only control does not point one way, so no single "
+        "cell's anchor is a general fact about replay.** The control replaces the donor "
+        "chain with a bare assertion of the same answer and leaves the recipient clean, so "
+        "`a0` against that cell's own `mu01` asks whether the replayed reasoning matters "
+        "beyond its final answer. It RAISES the rate in "
+        f"{up['arc_challenge']} of the {tot['arc_challenge']} ARC-Challenge cells and in "
+        f"{up['aqua_rat']} of the {tot['aqua_rat']} AQuA-RAT cells. The largest gap is "
+        f"{biggest[0]}, where a donor stripped to a bare answer reaches {biggest[1]:.4f} "
+        f"against {biggest[2]:.4f} for a full cued donor, a difference of {biggest[3]:+.4f}. "
+        "Each comparison below is within one cell against that cell's own mu01 and is not a "
+        "comparison across models."
+    )
+
+
+def _answer_only_table(fits) -> list[str]:
+    """The matched answer-only control against each cell's own mu01, all 18 cells."""
+    out = [
+        "| cell | answer-only donor, clean recipient (a0) | mu01, full cued donor | a0 minus mu01 |",
+        "|---|---|---|---:|",
+    ]
+    for (m, s, c), f in fits.items():
+        ctl = f["anchor"]["falsifier_controls"]["matched_answer_only_text"]
+        mu01 = f["anchor"]["cells"]["mu01"]
+        if ctl["a0"]["rate"] is None or mu01["rate"] is None:
+            continue
+        out.append(
+            f"| `{m}` {slug(s, c)} | {w(ctl['a0'])} | {w(mu01)} | "
+            f"{ctl['a0']['rate'] - mu01['rate']:+.4f} |"
+        )
+    return out
+
+
 def limits_section(fits, rows) -> list[str]:
     n_zero = sum(
         1
@@ -812,10 +860,9 @@ def limits_section(fits, rows) -> list[str]:
         "is what section 8 asks of it, but it does not equalise the cells. The per-cell rows "
         "are printed beside the model row in section 5.2 for exactly this reason."),
         "",
-        ("9. **The anchor's matched answer-only text separates the cells sharply and in both "
-        "directions**, so no single cell's anchor should be read as a general fact about "
-        "replay. That control is printed per cell in section 4 with its own denominator, "
-        "and it is the one falsifier whose reading changes most across the 18."),
+        _answer_only_prose(fits),
+        "",
+    ] + _answer_only_table(fits) + [
         "",
     ]
 

@@ -1509,5 +1509,26 @@ Each item is a measured or structural fact from the sections above.
 
 8. **The model row is item-weighted, so the two large ARC cells carry most of it.** The hierarchical fit pools ITEMS across a model's six cells with a cell-level random effect and a zero-centred cue-family deviation, so a cell that entered 1,500 items contributes about three times the likelihood of one that entered 570. The cue-family term stops one family driving the population mean unflagged, which is what section 8 asks of it, but it does not equalise the cells. The per-cell rows are printed beside the model row in section 5.2 for exactly this reason.
 
-9. **The anchor's matched answer-only text separates the cells sharply and in both directions**, so no single cell's anchor should be read as a general fact about replay. That control is printed per cell in section 4 with its own denominator, and it is the one falsifier whose reading changes most across the 18.
+9. **The anchor's matched answer-only control does not point one way, so no single cell's anchor is a general fact about replay.** The control replaces the donor chain with a bare assertion of the same answer and leaves the recipient clean, so `a0` against that cell's own `mu01` asks whether the replayed reasoning matters beyond its final answer. It RAISES the rate in 5 of the 12 ARC-Challenge cells and in 6 of the 6 AQuA-RAT cells. The largest gap is `llama-3.1-8b-instruct` aqua_rat x stated-hint, where a donor stripped to a bare answer reaches 0.9821 against 0.0974 for a full cued donor, a difference of +0.8847. Each comparison below is within one cell against that cell's own mu01 and is not a comparison across models.
+
+| cell | answer-only donor, clean recipient (a0) | mu01, full cued donor | a0 minus mu01 |
+|---|---|---|---:|
+| `qwen3-8b` arc_challenge x stated-hint | 54/1396 = 0.0387 [0.0298, 0.0501] | 213/1396 = 0.1526 [0.1347, 0.1724] | -0.1139 |
+| `qwen3-8b` arc_challenge x professor | 54/1396 = 0.0387 [0.0298, 0.0501] | 234/1396 = 0.1676 [0.1489, 0.1881] | -0.1289 |
+| `qwen3-8b` arc_challenge x metadata | 24/534 = 0.0449 [0.0304, 0.0660] | 37/534 = 0.0693 [0.0507, 0.0940] | -0.0243 |
+| `qwen3-8b` arc_challenge x grader-code | 18/533 = 0.0338 [0.0215, 0.0527] | 34/533 = 0.0638 [0.0460, 0.0878] | -0.0300 |
+| `qwen3-8b` aqua_rat x stated-hint | 481/1144 = 0.4205 [0.3922, 0.4493] | 62/1144 = 0.0542 [0.0425, 0.0689] | +0.3663 |
+| `qwen3-8b` aqua_rat x professor | 462/1153 = 0.4007 [0.3728, 0.4293] | 103/1153 = 0.0893 [0.0742, 0.1072] | +0.3114 |
+| `gemma-2-9b-it` arc_challenge x stated-hint | 92/1375 = 0.0669 [0.0549, 0.0814] | 281/1375 = 0.2044 [0.1839, 0.2265] | -0.1375 |
+| `gemma-2-9b-it` arc_challenge x professor | 95/1371 = 0.0693 [0.0570, 0.0840] | 249/1371 = 0.1816 [0.1621, 0.2029] | -0.1123 |
+| `gemma-2-9b-it` arc_challenge x metadata | 34/523 = 0.0650 [0.0469, 0.0895] | 43/524 = 0.0821 [0.0615, 0.1087] | -0.0171 |
+| `gemma-2-9b-it` arc_challenge x grader-code | 32/524 = 0.0611 [0.0436, 0.0849] | 29/524 = 0.0553 [0.0388, 0.0784] | +0.0057 |
+| `gemma-2-9b-it` aqua_rat x stated-hint | 717/866 = 0.8279 [0.8014, 0.8516] | 129/869 = 0.1484 [0.1264, 0.1736] | +0.6795 |
+| `gemma-2-9b-it` aqua_rat x professor | 733/879 = 0.8339 [0.8079, 0.8570] | 130/880 = 0.1477 [0.1258, 0.1727] | +0.6862 |
+| `llama-3.1-8b-instruct` arc_challenge x stated-hint | 509/1321 = 0.3853 [0.3594, 0.4119] | 442/1321 = 0.3346 [0.3097, 0.3605] | +0.0507 |
+| `llama-3.1-8b-instruct` arc_challenge x professor | 497/1321 = 0.3762 [0.3505, 0.4027] | 368/1321 = 0.2786 [0.2551, 0.3034] | +0.0977 |
+| `llama-3.1-8b-instruct` arc_challenge x metadata | 187/503 = 0.3718 [0.3307, 0.4148] | 14/503 = 0.0278 [0.0167, 0.0462] | +0.3439 |
+| `llama-3.1-8b-instruct` arc_challenge x grader-code | 187/503 = 0.3718 [0.3307, 0.4148] | 26/503 = 0.0517 [0.0355, 0.0747] | +0.3201 |
+| `llama-3.1-8b-instruct` aqua_rat x stated-hint | 988/1006 = 0.9821 [0.9719, 0.9887] | 98/1006 = 0.0974 [0.0806, 0.1173] | +0.8847 |
+| `llama-3.1-8b-instruct` aqua_rat x professor | 991/1009 = 0.9822 [0.9720, 0.9887] | 113/1009 = 0.1120 [0.0940, 0.1329] | +0.8702 |
 
