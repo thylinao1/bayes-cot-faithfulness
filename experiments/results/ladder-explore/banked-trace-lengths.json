@@ -1,0 +1,19 @@
+{
+  "n_traces": 1395,
+  "banked_body_chars": {
+    "mean": 574.7,
+    "median": 561,
+    "p10": 399,
+    "p90": 774,
+    "max": 1560
+  },
+  "banked_body_words": {
+    "mean": 94.6,
+    "median": 91,
+    "p90": 126
+  },
+  "banked_body_lines_median": 6,
+  "template_fallback_body": "1. Work through the options in order.",
+  "template_fallback_chars": 37,
+  "template_fallback_words": 7
+}

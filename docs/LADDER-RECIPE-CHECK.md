@@ -47,12 +47,12 @@ after and is unchanged.
 `lora_train._train_peft` at `b4de41a` records only `loss_first` and `loss_last`: no loss
 curve, no throughput, no peak memory, and no way to ask whether the trigger relation
 moved. The recipe check needs all four. So this lane wrote them, additively, on
-`ladder/recipe-check` commit `71a0c87`, and copied the two files into its OWN tree:
+`ladder/recipe-check`, and copied the two files into its OWN tree:
 
 | File | sha256 in the tree | sha256 at `b4de41a` |
 |---|---|---|
-| `src/.../ladder/lora_train.py` | `c0f8b2df...5ffa6fe6` | `26d98b23...1f61cfd3` |
-| `src/.../ladder/recipe_probe.py` | `c89f9787...51291bdd` | did not exist |
+| `src/.../ladder/lora_train.py` | `957c91aca4d233ba4fc5c6a113a25df0edcbaae2c2f538e2da606ab24d16e639` | `26d98b23a552ab6f9f74b87c537dcd3e8cc2fd92ff68198c326e11bd1f61cfd3` |
+| `src/.../ladder/recipe_probe.py` | `1c39a267bbab5127f0019d2a7de9dfac6e867f8f4174d78173397dfdda2e7bf3` | did not exist |
 
 The tree carries `.bcf_exploratory_patch.json` saying exactly that. No other campaign
 reads that tree; every sweep and jury job reads `~/bcf/repo-f712a9beb1cb`, which was not
