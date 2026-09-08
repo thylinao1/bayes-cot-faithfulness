@@ -557,6 +557,23 @@ def cell_block(m, s, c, f, p) -> list[str]:
     return out
 
 
+def _sign_line(fits) -> str:
+    """How often the partial-identification bounds pin the sign of the NIE."""
+    yes = sum(
+        1
+        for f in fits.values()
+        if f["column_b"]["rho"]["partial_identification_bounds"]["sign_identified"]
+    )
+    return (
+        "**What the partial-identification bounds pin.** At the pre-registered band "
+        "abs(rho) <= 0.5 the bounds identify the SIGN of the NIE in "
+        f"{yes} of the {len(fits)} cells and leave it unidentified in {len(fits) - yes}. "
+        "A cell whose sign is not identified inside that band has an NIE whose direction is "
+        "an assumption about rho, not a measurement, and the block below prints the bounds "
+        "for every cell either way."
+    )
+
+
 def _two_path_line(fits, pymc) -> str:
     """The link audit of docs/ESTIMATOR-PRIORS-2026-09-07.md, run over all 18 cells."""
     worst = {"nde": 0.0, "nie": 0.0, "te": 0.0}
@@ -599,6 +616,8 @@ def cells_section(fits, pymc) -> list[str]:
         "and no column here supports a comparison across models (section 25)."),
         "",
         _two_path_line(fits, pymc),
+        "",
+        _sign_line(fits),
         "",
         "| cell | items | followed | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status |",
         "|---|---:|---:|---:|---|---|---|---|---|",
@@ -834,6 +853,30 @@ def gemma_section(gemma) -> list[str]:
     return out
 
 
+def _rho_limit_line(fits) -> str:
+    """Limit 7, with the measured gap between the two rho quantities."""
+    rows = []
+    for (m, s, c), f in fits.items():
+        fr = f["column_b"]["rho"]["frontier_at_practical_threshold"]
+        dec = f["column_b"]["rho"]["rho_star_decision"]["value"]
+        if not fr["unresolved"] and fr["robustness"] is not None:
+            rows.append((f"`{m}` {slug(s, c)}", fr["robustness"], dec))
+    detail = "; ".join(
+        f"{name} at {rob:.4f} against "
+        + (f"{dec:+.3f}" if dec is not None else "an unresolved verdict")
+        for name, rob, dec in rows
+    )
+    return (
+        "7. **rho\\*_point is not a robustness score, and the two rho quantities are printed "
+        "apart.** Section 8.1 forbids merging them and section 4's tables print both on the "
+        "symmetric grid A4.6(a) fixes, with the binding side. The breakdown frontier asked "
+        "at the pre-registered practical threshold of 0.15 returns a robustness number in "
+        f"only {len(rows)} of the {len(fits)} cells, because the other "
+        f"{len(fits) - len(rows)} have no effect worth defending at rho = 0; and where it "
+        f"does return one it is far larger than the rho at which the verdict fails: {detail}."
+    )
+
+
 def _answer_only_prose(fits) -> str:
     """The claim about the answer-only control, counted rather than asserted."""
     up = {"arc_challenge": 0, "aqua_rat": 0}
@@ -937,9 +980,7 @@ def limits_section(fits, rows) -> list[str]:
         f"the point-estimate verdict flips inside the band in {flips} of {len(fits)} "
         "cells."),
         "",
-        ("7. **rho\\*_point is not a robustness score.** Section 8.1 forbids merging it with "
-        "`rho*_decision` and section 4's tables print both, on the symmetric grid A4.6(a) "
-        "fixes, with the binding side."),
+        _rho_limit_line(fits),
         "",
         ("8. **The model row is item-weighted, so the two large ARC cells carry most of it.** "
         "The hierarchical fit pools ITEMS across a model's six cells with a cell-level "

@@ -133,6 +133,8 @@ An index first, so a reader can find a cell without scrolling. Every number in i
 
 **The two estimation paths agree, which is the check the link audit of `docs/ESTIMATOR-PRIORS-2026-09-07.md` exists to make possible.** Across the 18 cells that have both, the maximum absolute gap between the maximum-likelihood point estimate and the PyMC posterior mean is 0.00238 on the NDE, 0.00192 on the NIE and 0.00403 on the TE. The posterior side has max r_hat 1.000, 0 divergences in total and a minimum bulk ESS of 1401. Before that repair the posterior path was logistic while the maximum-likelihood path was probit, so the same coefficients meant two different models and this comparison could not be made.
 
+**What the partial-identification bounds pin.** At the pre-registered band abs(rho) <= 0.5 the bounds identify the SIGN of the NIE in 11 of the 18 cells and leave it unidentified in 7. A cell whose sign is not identified inside that band has an NIE whose direction is an assumption about rho, not a measurement, and the block below prints the bounds for every cell either way.
+
 | cell | items | followed | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status |
 |---|---:|---:|---:|---|---|---|---|---|
 | `qwen3-8b` arc_challenge x stated-hint | 1396 | 249 | +0.0788 | unresolved | not applicable | not printed (G1) | yes | PENDING_MODEL_ROW |
@@ -1511,7 +1513,7 @@ Each item is a measured or structural fact from the sections above.
 
 6. **No chain-level mediator noise has been measured for any of these 18 cells.** The attenuation band uses a continuation-level floor from a different run, and the point-estimate verdict flips inside the band in 3 of 18 cells.
 
-7. **rho\*_point is not a robustness score.** Section 8.1 forbids merging it with `rho*_decision` and section 4's tables print both, on the symmetric grid A4.6(a) fixes, with the binding side.
+7. **rho\*_point is not a robustness score, and the two rho quantities are printed apart.** Section 8.1 forbids merging them and section 4's tables print both on the symmetric grid A4.6(a) fixes, with the binding side. The breakdown frontier asked at the pre-registered practical threshold of 0.15 returns a robustness number in only 3 of the 18 cells, because the other 15 have no effect worth defending at rho = 0; and where it does return one it is far larger than the rho at which the verdict fails: `gemma-2-9b-it` arc_challenge x stated-hint at 0.8223 against -0.240; `gemma-2-9b-it` arc_challenge x professor at 0.8063 against an unresolved verdict; `llama-3.1-8b-instruct` arc_challenge x stated-hint at 0.7684 against -0.100.
 
 8. **The model row is item-weighted, so the two large ARC cells carry most of it.** The hierarchical fit pools ITEMS across a model's six cells with a cell-level random effect and a zero-centred cue-family deviation, so a cell that entered 1,500 items contributes about three times the likelihood of one that entered 570. The cue-family term stops one family driving the population mean unflagged, which is what section 8 asks of it, but it does not equalise the cells. The per-cell rows are printed beside the model row in section 5.2 for exactly this reason.
 
