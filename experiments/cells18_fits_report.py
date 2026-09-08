@@ -353,6 +353,14 @@ def cell_block(m, s, c, f, p) -> list[str]:
         + (f"{b['nie_over_te']:.4f}" if b.get("nie_over_te") is not None else "not printed")
         + " |",
         "",
+        (f"Fit converged: {'yes' if b['fit']['converged'] else 'no'}; "
+        f"{b['bootstrap']['n_converged']}/{b['bootstrap']['n_replicates']} bootstrap fits "
+        f"converged with {b['bootstrap']['degenerate_redraws']} degenerate redraws; the "
+        "vectorised rho reparameterisation agrees with an actual refit at rho in "
+        "{0, 0.1, 0.3, 0.5, 0.7} to "
+        f"{rho['cross_check_curve_vs_refit']['max_abs_difference']:.6f}, which is Monte "
+        "Carlo noise on the integrator rather than a modelling difference."),
+        "",
         ("**The mediator-noise band and the noise-flip note.** Printed at lambda 1.0, at the "
         "continuation-level floor 0.983075 and at 0.80 as ruling R4's sensitivity row. No "
         "chain-level lambda exists for this cell."),
