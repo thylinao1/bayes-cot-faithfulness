@@ -56,10 +56,22 @@
 #   * every row held           -> nothing is submitted; the wave is recorded SKIPPED
 #     (exit 5) so the next poll moves on to the wave after it rather than offering the
 #     same fully-held wave forever.
-# `--held-only` reads back every recorded wave's held rows for this pool and job type,
+# `held-only` reads back every recorded wave's held rows for this pool and job type,
 # recombines them, and checks them AGAIN against the current hold list (a hold that has
 # only partly lifted still holds what it names), so lifting one row's hold and running
-# `--held-only` submits exactly the rows that are now clear, from every wave already past.
+# `held-only` submits exactly the rows that are now clear, from every wave already past.
+# Three things it does NOT do, each of them a defect fixed on 2026-09-08:
+#   * it does not reissue the row text the state file froze when the row was first held.
+#     Every class-2 row gained BCF_REASONING_MODE=off after those rows were recorded, and
+#     a wave rebuilt from the frozen text would run in the reasoning mode R12(1) rejected
+#     and record it truthfully, so nothing downstream would catch it. The row's identity
+#     is its (model, substrate, cue) triple; its content comes from the manifest today.
+#   * it does not build one wave out of every clear row. At most BCF_FEEDER_MAX_HELD_ROWS
+#     (default 8, the a100-40 slice count) go in a wave; the rest are DEFERRED, the run
+#     still exits 0, and running held-only again takes the next batch.
+#   * it does not clear a source wave's whole held_rows list. Only the rows this wave
+#     actually submitted are cleared, so deferred and still-held rows survive for the
+#     next run instead of being dropped with no record that they existed.
 set -uo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -69,6 +81,12 @@ POOL="a100-40"
 JOB_TYPE="sweep"
 MIN_HEADROOM="${BCF_FEEDER_MIN_HEADROOM:-8}"
 MAX_SUBMIT_JOBS=32
+# The most rows one held-only wave may carry. The a100-40 pool has 8 MIG slices and
+# bcf/wave.sh counts its cap as running cards plus the wave's own cards, so a held-only
+# rebuild of every clear row (30 were recorded on 2026-09-08) is a wave wave.sh will never
+# accept. Rows past this cap are deferred, stay recorded against their source waves, and
+# are taken by the next held-only run. 0 or less means no cap.
+MAX_HELD_ROWS="${BCF_FEEDER_MAX_HELD_ROWS:-8}"
 DRY_RUN=0
 GLOB=""
 CMD="next"
@@ -95,7 +113,7 @@ while [ $# -gt 0 ]; do
     --repo-tree) REPO_TREE="$val" ;;
     --hold-file) HOLD_FILE="$val" ;;
     --dry-run|--check-only) DRY_RUN=1 ;;
-    -h|--help) sed -n '2,62p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,74p' "$0"; exit 0 ;;
     -*) echo "[feeder] unknown option '${arg}'" >&2; exit 2 ;;
     next|status|adopt|list|held-only) CMD="$arg" ;;
     *) ADOPT_ARGS+=("$arg") ;;
@@ -196,35 +214,61 @@ PYEOF
 
 state_lift_held() {  # $1 the held-only wave's name  $2 path to its sources JSON
                       # ({"source_waves": [...]} from hold_filter.py collect)
-  "$PY" - "$STATE" "$1" "$2" <<'PYEOF'
+                      # $3 path to the compose extra JSON, whose submitted_rows say which
+                      #    rows actually went out this time
+                      #
+                      # Only the rows that WERE SUBMITTED are cleared. A held-only wave is
+                      # capped at BCF_FEEDER_MAX_HELD_ROWS rows, so a run can leave rows
+                      # deferred, and a row still on the hold list was never going out at
+                      # all; clearing every held_row of every source wave would drop both
+                      # kinds on the floor with no record anywhere that they existed.
+  "$PY" - "$STATE" "$1" "$2" "$3" <<'PYEOF'
 import json, os, sys, tempfile
-path, held_only_wave, sources_path = sys.argv[1:4]
+path, held_only_wave, sources_path, extra_path = sys.argv[1:5]
 try:
     d = json.load(open(path))
 except Exception as exc:
     sys.stderr.write(f"[feeder] STATE FILE UNREADABLE ({exc}); nothing lifted\n")
     raise SystemExit(9)
 sources = json.load(open(sources_path)).get("source_waves", [])
+extra = json.load(open(extra_path))
+submitted = extra.get("submitted_rows")
+if submitted is None:
+    sys.stderr.write("[feeder] the compose output names no submitted_rows; nothing lifted, "
+                     "every source wave keeps its held rows\n")
+    raise SystemExit(10)
+# A row's identity is its first three columns (model, substrate, cue). The KEY=VALUE tail
+# of what was submitted is the CURRENT manifest text, which is the whole point of the
+# rebuild, so it will not match the recorded text and must not be compared.
+sent = {tuple(r.split("\t")[:3]) for r in submitted}
 waves = d.get("waves", {})
-lifted = 0
+n_rows_lifted = 0
+n_waves = 0
+n_still_recorded = 0
 for w in sources:
     entry = waves.get(w)
     if not entry or not entry.get("held_rows"):
         continue
-    # held_models stays as the historical record of what WAS held; held_rows is cleared
-    # so a later --held-only run does not collect these rows again, and held_lifted_by
-    # names the wave that actually carried them out.
+    before = list(entry["held_rows"])
+    remaining = [r for r in before if tuple(r.split("\t")[:3]) not in sent]
+    n_still_recorded += len(remaining)
+    if len(remaining) == len(before):
+        continue
+    # held_models stays as the historical record of what WAS held, even for a wave whose
+    # held_rows is now empty; held_lifted_by names the wave that carried these rows out.
     entry.setdefault("held_lifted_by", [])
     if held_only_wave not in entry["held_lifted_by"]:
         entry["held_lifted_by"].append(held_only_wave)
-    entry["held_rows"] = []
-    lifted += 1
+    entry["held_rows"] = remaining
+    n_rows_lifted += len(before) - len(remaining)
+    n_waves += 1
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=".feeder-state.")
 with os.fdopen(fd, "w") as fh:
     json.dump(d, fh, indent=2)
     fh.write("\n")
 os.replace(tmp, path)
-print(f"[feeder] lifted held rows from {lifted} source wave(s), consumed by {held_only_wave}")
+print(f"[feeder] lifted {n_rows_lifted} held row(s) from {n_waves} source wave(s), "
+      f"consumed by {held_only_wave}; {n_still_recorded} row(s) stay recorded as held")
 PYEOF
 }
 
@@ -274,7 +318,10 @@ if [ "$CMD" = "held-only" ]; then
   # Step 1: gather every currently-held row recorded for this pool and job type, from
   # every kind of recorded wave (an original sweep/enrich wave, or an earlier held-only
   # wave whose own rebuild still left something held).
+  # --waves-dir is what makes this read the CURRENT manifest row for each recorded triple
+  # instead of the text frozen when the row was first held.
   COLLECT_OUT="$("$PY" "$HOLD_FILTER" collect "$STATE" "$POOL" "$JOB_TYPE" \
+                 --waves-dir "$WAVES_DIR" \
                  --rows-out "$ROWS_FILE" --sources-out "$SOURCES_JSON" 2>&1)"
   COLLECT_RC=$?
   if [ "$COLLECT_RC" -ne 0 ]; then
@@ -282,14 +329,20 @@ if [ "$CMD" = "held-only" ]; then
     printf '%s\n' "$COLLECT_OUT" | sed 's/^/[feeder]   | /' >&2
     exit 2
   fi
-  N_SOURCE_WAVES="" N_HELD_ROWS_COLLECTED=""
+  N_SOURCE_WAVES="" N_HELD_ROWS_COLLECTED="" N_STALE=""
   while IFS='=' read -r k v; do
     case "$k" in
       N_SOURCE_WAVES) N_SOURCE_WAVES="$v" ;;
       N_HELD_ROWS) N_HELD_ROWS_COLLECTED="$v" ;;
+      N_STALE) N_STALE="$v" ;;
     esac
   done <<< "$COLLECT_OUT"
+  [ -n "$N_STALE" ] || N_STALE=0
   echo "[feeder] collected ${N_HELD_ROWS_COLLECTED} held row(s) from ${N_SOURCE_WAVES} recorded ${JOB_TYPE}/${POOL} wave(s)"
+  if [ "$N_STALE" -gt 0 ]; then
+    echo "[feeder]   ${N_STALE} row(s) are NOT in their manifest any more and kept their recorded text:"
+    printf '%s\n' "$COLLECT_OUT" | grep -F 'WARNING:' | sed 's/^/[feeder]   | /'
+  fi
   if [ "$N_HELD_ROWS_COLLECTED" -eq 0 ]; then
     echo "[feeder] NOTHING TO DO: no recorded ${JOB_TYPE}/${POOL} wave is currently holding any row."
     exit 4
@@ -305,18 +358,22 @@ if [ "$CMD" = "held-only" ]; then
   # Step 3: check the collected rows against the CURRENT hold list. A hold that lifted
   # for four models and not the fifth still holds the fifth here.
   COMPOSE_OUT="$("$PY" "$HOLD_FILTER" compose "$ROWS_FILE" "$HOLD_FILE" \
-                 --waves-dir "$WAVES_DIR" --name "$HELD_NAME" --extra-out "$EXTRA_JSON" 2>&1)"
+                 --waves-dir "$WAVES_DIR" --name "$HELD_NAME" --max-rows "$MAX_HELD_ROWS" \
+                 --extra-out "$EXTRA_JSON" 2>&1)"
   COMPOSE_RC=$?
   if [ "$COMPOSE_RC" -ne 0 ]; then
     echo "[feeder] REFUSED: the hold list ${HOLD_FILE} could not be read." >&2
     printf '%s\n' "$COMPOSE_OUT" | sed 's/^/[feeder]   | /' >&2
     exit 2
   fi
-  N_TOTAL="" N_KEPT="" N_HELD="" FSTATUS="" PARTIAL_FILE="" HELD_MODELS="" SUBMITTED_MODELS=""
+  N_TOTAL="" N_KEPT="" N_CLEAR="" N_DEFERRED="" N_HELD=""
+  FSTATUS="" PARTIAL_FILE="" HELD_MODELS="" SUBMITTED_MODELS=""
   while IFS='=' read -r k v; do
     case "$k" in
       N_TOTAL) N_TOTAL="$v" ;;
       N_KEPT) N_KEPT="$v" ;;
+      N_CLEAR) N_CLEAR="$v" ;;
+      N_DEFERRED) N_DEFERRED="$v" ;;
       N_HELD) N_HELD="$v" ;;
       STATUS) FSTATUS="$v" ;;
       PARTIAL_FILE) PARTIAL_FILE="$v" ;;
@@ -324,7 +381,9 @@ if [ "$CMD" = "held-only" ]; then
       SUBMITTED_MODELS) SUBMITTED_MODELS="$v" ;;
     esac
   done <<< "$COMPOSE_OUT"
-  echo "[feeder] ${HELD_NAME}: ${N_TOTAL} row(s) collected, ${N_KEPT} now clear, ${N_HELD} still held"
+  [ -n "$N_CLEAR" ] || N_CLEAR="$N_KEPT"
+  [ -n "$N_DEFERRED" ] || N_DEFERRED=0
+  echo "[feeder] ${HELD_NAME}: ${N_TOTAL} row(s) collected, ${N_CLEAR} now clear, ${N_KEPT} in this wave (cap ${MAX_HELD_ROWS}), ${N_DEFERRED} deferred, ${N_HELD} still held"
   [ "$N_HELD" -gt 0 ] && echo "[feeder]   still held: ${HELD_MODELS}"
 
   if [ "$N_KEPT" -eq 0 ]; then
@@ -347,6 +406,8 @@ if [ "$CMD" = "held-only" ]; then
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "[feeder] DRY RUN: wave.sh accepts ${SUBMIT_REL} (${HELD_NAME}) and this is where it would be submitted."
     echo "[feeder]   No sbatch was called and the state file was not written."
+    [ "$N_DEFERRED" -gt 0 ] && \
+      echo "[feeder] held-only: ${N_DEFERRED} rows deferred, run held-only again when slices free up"
     exit 0
   fi
 
@@ -369,8 +430,14 @@ if [ "$CMD" = "held-only" ]; then
   state_record "$HELD_NAME" "$IDS" "$PLAN_COMMIT" \
     "held-only, sources: $(cat "$SOURCES_JSON")" "$EXTRA_JSON" || exit 1
   echo "[feeder] SUBMITTED ${HELD_NAME} as ${IDS} (wave.sh exit ${SUBMIT_RC})"
-  state_lift_held "$HELD_NAME" "$SOURCES_JSON" \
+  state_lift_held "$HELD_NAME" "$SOURCES_JSON" "$EXTRA_JSON" \
     || echo "[feeder] WARNING: lift bookkeeping failed; a source wave's held_rows may still show these rows" >&2
+  # A capped wave is a normal, successful outcome, not a failure: the deferred rows are
+  # still recorded against their source waves and the next held-only run takes them, so
+  # the exit code stays 0 and the caller's poll loop keeps going.
+  if [ "$N_DEFERRED" -gt 0 ]; then
+    echo "[feeder] held-only: ${N_DEFERRED} rows deferred, run held-only again when slices free up"
+  fi
   [ "$SUBMIT_RC" -eq 0 ] || {
     echo "[feeder] WARNING: wave.sh exited ${SUBMIT_RC}; some rows may have been rejected."
     exit 1

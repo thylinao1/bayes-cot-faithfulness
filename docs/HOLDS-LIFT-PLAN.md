@@ -229,3 +229,84 @@ its own reason, not as a workaround. The `explore-` prefix keeps this row out of
 reopened-block rate
 (`reasoning_detail.continuations`). Only then does Phi-4-reasoning's row become a ruling
 one way or the other; this cell result alone does not lift its hold.
+
+## Step 6, resolved 2026-09-08
+
+The three defects Step 6 describes are fixed on branch `fix/held-only-current-rows`
+(`bcf/hold_filter.py`, `bcf/wave_feeder.sh`, `tests/test_hold_filter.py`). The
+recommendation above, to hand-build `a100-40-resub-02.tsv` and keep away from
+`feeder held-only` for `sweep`/`a100-40`, was written while `held-only` could not be
+trusted. It can be trusted now, and the resub-02 route stays valid for the wave-01 and
+wave-07 cells, which were never recorded as held and so are outside what `held-only`
+can see at all.
+
+**1. `collect` reads the manifest, not the frozen text.** A recorded held row's identity
+is now its (model, substrate, cue) triple, columns 1 to 3, and its content is read from
+`bcf/waves/<the wave name the state entry is filed under>` at the moment the rebuild runs.
+The twelve Olmo-3-7B-Think and R1-Distill-Llama-8B rows therefore go out carrying
+`BCF_REASONING_MODE=off`, the field the manifests gained after those rows were recorded,
+rather than the pre-column text `feeder-state.json` still holds. `collect` now takes
+`--waves-dir` and it is required, because a version of this that quietly falls back to
+frozen text when the manifests are not given is the defect itself. A triple the manifest
+no longer carries keeps its recorded text, prints
+`[hold-filter] WARNING: <model> <substrate> <cue> not found in <wave>, using recorded text`
+on stderr, and is counted in the new `N_STALE` line, which the feeder repeats. A recorded
+wave with no manifest file at all, which is what an earlier held-only wave's own state
+entry looks like, prints one NOTE line and falls back the same way; in practice its rows
+are already deduplicated against the manifest copy read from the original wave, because
+sorted wave order puts `a100-40-NN.tsv` before `held-a100-40-sweep-NN`.
+
+**2. `compose --max-rows N` caps the wave.** The a100-40 pool has 8 MIG slices and
+`bcf/wave.sh` counts its cap as running cards plus the wave's own cards, so the 16-row
+held-only wave the two lifted models would have produced is one `wave.sh` refuses every
+time it is offered. The feeder passes `BCF_FEEDER_MAX_HELD_ROWS`, default 8. Clear rows
+past the cap are DEFERRED: written to the extra JSON as `deferred_rows`, reported as
+`N_DEFERRED`, and NOT cleared from their source waves, so the next held-only run collects
+them. Order is stable (wave name order, then recorded order inside a wave), so two runs
+over the same state file defer the same rows. `N_KEPT` is now what this wave carries and
+`N_CLEAR` is how many rows are off the hold list in total.
+
+**3. `state_lift_held` clears only what was submitted.** It takes the compose extra JSON
+as a third argument and clears from each source wave's `held_rows` only the rows whose
+triple appears in `submitted_rows`. Deferred rows and rows still on the hold list stay
+recorded exactly where they were. `held_models` is untouched as history even for a wave
+whose `held_rows` is now empty, and `held_lifted_by` names the held-only wave that carried
+the rows out. A compose output naming no `submitted_rows` lifts nothing and exits 10,
+rather than reading a missing key as "all of them".
+
+A partial submission is a success, not a failure: the run exits 0 and prints
+`[feeder] held-only: N rows deferred, run held-only again when slices free up`.
+
+### The command sequence the orchestrator runs
+
+After Steps 1 to 5 above (the hold list edited, committed, pushed, and both trees synced),
+and after this branch is merged and pushed too:
+
+    # 1. the mutable checkout the feeder reads its code, hold list and manifests from
+    ssh soc 'cd $HOME/bcf/src && git pull --ff-only'
+
+    # 2. one held-only wave per run, repeated until it reports nothing left
+    bash bcf/ssh_retry.sh --wall 240 --tries 2 --gap 20 -- \
+      'bash $HOME/bcf/src/bcf/wave_feeder.sh held-only --pool a100-40'
+
+Run the second command again each time it prints the `N rows deferred` line, once the
+slices it used have freed up. Reading its exit code:
+
+| exit | meaning | what to do |
+|---|---|---|
+| 0, with the deferred line | a wave went out and rows are left | run it again when slices free up |
+| 0, no deferred line | a wave went out and no clear row is left | done, unless a later hold lifts |
+| 4 | nothing left, or every collected row is still on the hold list | done; the gpt-oss-20b rows stay held under R11 and will report 4 forever |
+| 3 | `wave.sh` refused this round, or another feeder holds the lock | poll again later; nothing was submitted or cleared |
+| 2 | a missing directory, an unknown pool, a malformed hold line | fix it; nothing was submitted or cleared |
+
+Add `--dry-run` to see the decision, the deferred count and the stale warnings without
+calling sbatch or writing the state file.
+
+Two things worth reading in the output before letting it keep going. Any
+`[feeder] N row(s) are NOT in their manifest any more` line means a recorded triple has
+been renamed or removed since it was held, and the row that goes out is the old text; the
+Phi-4-reasoning and R1-0528-Qwen3-8B rows should never reach this point at all, since
+`HOLD_MODELS.txt` still names them (R12(3) and R12(4)) and they are filtered out before
+the wave is built. And the `still held: <models>` line should list only models the table
+above says are still held.
