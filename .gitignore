@@ -286,3 +286,15 @@ experiments/results/cells24-fits/*/*/*
 experiments/results/cells24-fits/*/*/*/*
 !experiments/results/cells24-fits/*/*/*/fit.json
 !experiments/results/cells24-fits/*/*/*/pymc.json
+
+# The A5 logit-level lane. One small aggregate per cell and nothing else: no
+# sidecar, no unit-check rows, no logs.
+!experiments/results/cells24-logit/
+experiments/results/cells24-logit/*
+!experiments/results/cells24-logit/*/
+experiments/results/cells24-logit/*/*
+!experiments/results/cells24-logit/*/*/
+experiments/results/cells24-logit/*/*/*
+!experiments/results/cells24-logit/*/*/*/
+experiments/results/cells24-logit/*/*/*/*
+!experiments/results/cells24-logit/*/*/*/logit.json

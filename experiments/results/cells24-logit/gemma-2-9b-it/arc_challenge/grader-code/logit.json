@@ -1,0 +1,536 @@
+{
+  "cell": "gemma-2-9b-it/arc_challenge/grader-code",
+  "cell_set": "24",
+  "model_slug": "gemma-2-9b-it",
+  "model": "google/gemma-2-9b-it",
+  "hf_revision": "11c9b309abf73637e4b6f9a3fa1e92e615547819",
+  "substrate": "arc_challenge",
+  "cue_family": "grader-code",
+  "job_id": "827293",
+  "text_level_job_id": "827293",
+  "logit_pass_job_id": "829182",
+  "code_commit": "e221d4b7850f",
+  "analysis_script_sha256": "ecd13077b99d853970a1b46eaa290a5818666d9210f19e4137a5b365c8192768",
+  "reused_script_sha256": {
+    "wave1_fits.py": "a6c4efebc814a81383d72a50171472c791a127e9dafda0cea9b0b29aebb4a7dc"
+  },
+  "estimator_module_sha256": {
+    "sensitivity.py": "f57227990cc1cee565db5d1a2cf4d4fd526c4b8bda811eb77892552ee2724dd6",
+    "closed_form.py": "9f47be59503f20429ca146d670375184f0b16924ca3a696a667834b00b559d4d",
+    "effects.py": "411dd5fe567cf815341aa71e4a3355941e209ac52670251e2dfb855d661f4818",
+    "mediation.py": "b530ab2d6eb5492285620655ab92eb563d92d367b2111fb6429c017286725112",
+    "hierarchical.py": "43ca4001e519310a3374ae0af5457007b8d46e5b2b3aca5a8b3176895a05437c"
+  },
+  "reporting_order": "A5.5: (1) the text-level NDE, NIE and TE with intervals; (2) the logit-level three in nats; (3) the bridge with its denominator and drop counts; (4) the mediated shares, text level first, each only where that scale's TE interval excludes zero; (5) rho*_point on each scale; (6) rho*_decision on the text scale and A5.6's words on the logit scale",
+  "file_counts": {
+    "n_lines_kept": 524,
+    "n_lines_logit_sidecar": 0,
+    "n_lines_other_source": {
+      "specificity_transcripts_google_gemma-2-9b-it.json": 19
+    }
+  },
+  "column_b_binary_from_the_24_cell_fit": {
+    "present": true,
+    "path": "/home/e/e1506804/bcf/fits-cells24/out/gemma-2-9b-it/arc_challenge/grader-code/fit.json",
+    "sha256": "0d77a8f42f742591666c0f268119f21d5a72e51f5d1874c1dd5948e34657b1fb",
+    "cell": "gemma-2-9b-it/arc_challenge/grader-code",
+    "code_commit": "5f1c346",
+    "outcome_scale": "binary_follow",
+    "intervention_level": "text",
+    "table": {
+      "denominators": {
+        "n_records_read": 524,
+        "n_items_complete": 524,
+        "n_rows": 1048,
+        "drops": {},
+        "followed_field_vs_recomputed_mismatch": 0
+      },
+      "mediator": {
+        "field": "clean_curve.curve_area / hinted_curve.curve_area",
+        "clean_mean": 0.9662213740458016,
+        "clean_sd": 0.1420165438328275,
+        "hinted_mean": 0.9245547073791348,
+        "hinted_sd": 0.2290819861556719,
+        "commitment_depth_hist_clean": {
+          "0": 491,
+          "4": 10,
+          "2": 6,
+          "3": 4,
+          "6": 1,
+          "None": 3,
+          "1": 4,
+          "5": 5
+        },
+        "commitment_depth_hist_hinted": {
+          "0": 464,
+          "None": 19,
+          "5": 2,
+          "3": 9,
+          "7": 2,
+          "4": 15,
+          "1": 3,
+          "6": 1,
+          "2": 9
+        }
+      },
+      "outcome": {
+        "scale": "binary_follow",
+        "definition": "Y = 1[answer == hint_label], both arms, same designated option",
+        "clean_arm_mean": 0.0,
+        "clean_arm_outcome_variance": 0.0,
+        "hinted_arm_mean": 0.06297709923664122,
+        "randomized_arm_difference": 0.06297709923664122
+      }
+    },
+    "column_b": {
+      "specification": "M = mu_m + gamma X + eps_M ; Y = 1[alpha0 + alpha X + beta M + eps_Y > 0], probit, intercepts fitted (the 2026-09-07 repair), rho = 0",
+      "n_items": 524,
+      "n_rows": 1048,
+      "fit": {
+        "alpha": 5.873966841707121,
+        "beta": -3.724447510993564,
+        "gamma": -0.04166641559980135,
+        "sigma_m": 0.19040549666004666,
+        "mu_m": 0.966220955948435,
+        "alpha0": -4.6568884747168795,
+        "converged": true
+      },
+      "effects": {
+        "nde": {
+          "point": 0.02602871513642962,
+          "lo": 0.012910997883346272,
+          "hi": 0.04412331607208564
+        },
+        "nie": {
+          "point": 0.008650843824241524,
+          "lo": 0.003966193326495156,
+          "hi": 0.015026601427582765
+        },
+        "te": {
+          "point": 0.03467955896067114,
+          "lo": 0.018237851440895007,
+          "hi": 0.059865993092454786
+        }
+      },
+      "separation_diagnostic": {
+        "clean_arm_outcome_variance": 0.0,
+        "clean_arm_mean_Y": 0.0,
+        "hinted_arm_mean_Y": 0.06297709923664122,
+        "finding": "Y is 0 on EVERY clean row by construction: the population is the frozen clean-correct subpopulation, so the clean answer equals the gold label, and the hint label is a planted WRONG option. The clean arm therefore carries no outcome variation and the probit fit separates on X. The fit still converges here because the mediator varies within the clean arm and absorbs the separation into a large negative beta with a large positive alpha; the fitted alpha0 and alpha are individually near-unidentified and only their sum enters the effects. The battery's usability guard (x.min() != x.max() and y.min() != y.max()) is computed on the WHOLE sample, so it passes on a resample whose control arm is degenerate: it does not catch this. Read the NDE/NIE split as resting on the probit link's extrapolation into a region the clean arm never visits, and read TE, which the randomized arm difference checks directly, as the one quantity data alone pins down."
+      },
+      "bootstrap": {
+        "n_replicates": 200,
+        "unit": "item (both arms of an item resampled together)",
+        "seed": 20260907,
+        "n_converged": 200,
+        "degenerate_redraws": 0
+      },
+      "model_implied_te_vs_randomized_arm_difference": {
+        "model_implied_te": 0.03467955896067114,
+        "randomized_arm_difference": 0.06297709923664122,
+        "difference": -0.028297540275970076,
+        "difference_lo": -0.039411975141922885,
+        "difference_hi": -0.018533342775620958
+      },
+      "nie_over_te": 0.24945080282168927,
+      "mediated_share_note": "NIE/TE is not printed for a cell whose TE interval includes zero (prereg 2.5)",
+      "rho": {
+        "grid_max": 0.947,
+        "grid_step": 0.005,
+        "rho_star_point": {
+          "point": 0.578463715550886,
+          "lo": 0.5080600053333922,
+          "hi": 0.6510609479507998,
+          "from_breakdown_frontier": null,
+          "from_breakdown_frontier_neg": -0.5785398572610375,
+          "frontier_robustness": 0.5785398572610375,
+          "frontier_effect_at_zero": 0.008815,
+          "unresolved": false,
+          "survives_full_range": false,
+          "note": "the frontier is computed from a maximum-likelihood fit, not from a posterior. Read it as a point-estimate sensitivity curve. rho*_point is invariant to the direct coefficient by construction and carries no information about direct-path strength (prereg 8.1, 8.2)."
+        },
+        "rho_star_decision": {
+          "value": null,
+          "status": "not applicable: no effect is supported at rho = 0, so the verdict is unresolved and there is no crossing to report (prereg 8.1)",
+          "binding_side": null,
+          "crossing_positive_side": null,
+          "crossing_negative_side": null,
+          "no_crossing_in_range": false,
+          "lower_bound_if_no_crossing": null,
+          "grid": "symmetric, -0.947 to +0.947 in steps of 0.005",
+          "threshold": 0.15,
+          "required_probability": 0.95,
+          "prob_nie_above_threshold_at_rho_zero": 0.0,
+          "n_bootstrap_replicates_above_threshold_at_rho_zero": 0
+        },
+        "frontier_at_practical_threshold": {
+          "min_effect": 0.15,
+          "unresolved": true,
+          "effect_at_zero": 0.008815,
+          "robustness": null
+        },
+        "sweep": {
+          "rho": [
+            -0.945,
+            -0.84,
+            -0.735,
+            -0.63,
+            -0.525,
+            -0.42,
+            -0.315,
+            -0.21,
+            -0.105,
+            0.0,
+            0.105,
+            0.21,
+            0.315,
+            0.42,
+            0.525,
+            0.63,
+            0.735,
+            0.84,
+            0.945
+          ],
+          "nie_prob_above_threshold": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "nie_median": [
+            -0.04097582529194346,
+            -0.012705642953102884,
+            -0.005119818789688186,
+            -0.0012223365318185728,
+            0.0012872220759360085,
+            0.003128302005437806,
+            0.004692793376517405,
+            0.006097053024820963,
+            0.007319521065523667,
+            0.008499662341475405,
+            0.00964296412375252,
+            0.010685332217148994,
+            0.011759287532340778,
+            0.012968415318535787,
+            0.014262357681663815,
+            0.01581487530313283,
+            0.017779910740641072,
+            0.020714389163930445,
+            0.02668795822818462
+          ],
+          "direction_note": "beta and gamma are both negative in these cells, so a POSITIVE assumed rho makes the mediated path larger and the verdict harder to break; the side that breaks it is negative rho."
+        },
+        "partial_identification_bounds": {
+          "rho_bar": 0.5,
+          "lower": 0.001726666666666668,
+          "upper": 0.014499999999999996,
+          "rho_at_lower": -0.5,
+          "rho_at_upper": 0.5,
+          "sign_identified": true
+        },
+        "cross_check_curve_vs_refit": {
+          "rho": [
+            0.0,
+            0.1,
+            0.3,
+            0.5,
+            0.7
+          ],
+          "sweep_nie": [
+            0.008815,
+            0.009445000000000002,
+            0.012135,
+            0.014310000000000003,
+            0.017955
+          ],
+          "curve_nie": [
+            0.008650843824241524,
+            0.009716625202510095,
+            0.011864267643130307,
+            0.01428741416433977,
+            0.01757613183447629
+          ],
+          "max_abs_difference": 0.0003788681655237103
+        }
+      },
+      "verdict": {
+        "rule": "prereg 2.5: load-bearing at rho when P(NIE > 0.15) >= 0.95 on the probability scale; unresolved where no effect is supported at rho = 0",
+        "prob_nie_above_0.15_at_rho_zero": 0.0,
+        "load_bearing_at_rho_zero": false,
+        "verdict": "unresolved"
+      }
+    },
+    "claim_status": "RAW"
+  },
+  "column_b_logit": {
+    "rule": "A5.5: the logit-level row is printed BESIDE the text-level row and never instead of it. A cell with no text-level row does not get one, no cross-model ranking and no promotion decision uses a logit-level number, and A5.6 leaves the row descriptive with no verdict on this scale",
+    "printed": false,
+    "not_printed_because": [
+      "3_records_carry_the_logit_scale",
+      "4_clean_arm_outcome_variance_positive",
+      "5_te_logit_equals_arm_difference"
+    ],
+    "gate_G1": {
+      "rule": "prereg A5.4: all six conditions must hold before a logit-level row prints. A row that fails any of them is NOT PRINTED and the cell prints the failing check and its value in its place. Nothing partial is published from a failing row: no effect, no interval, no mediated share, no rho*_point.",
+      "conditions": {
+        "1_unit_check_passed": {
+          "holds": true,
+          "family_probe_before_the_cells": {
+            "holds": true,
+            "n_probes_completed": 2,
+            "n_probes": 2,
+            "n_letters_scored_over_requested": "8/8",
+            "n_tokens_matching_letter_over_requested": "8/8",
+            "n_hard_failures": 0,
+            "n_incomplete_reads": 0,
+            "passed_field": true,
+            "artifact": "/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/grader-code/logprob_check.json"
+          },
+          "this_cell_logit_check": {
+            "holds": true,
+            "n_probes_completed": 1048,
+            "n_probes": 1048,
+            "n_letters_scored_over_requested": "4186/4186",
+            "n_tokens_matching_letter_over_requested": "4186/4186",
+            "n_hard_failures": 0,
+            "n_incomplete_reads": 0,
+            "passed_field": true,
+            "artifact": "/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/grader-code/logit_check.json",
+            "scope": "this pass's own reads, one per arm per banked record, on the prompts those records were generated against (docs/LOGIT-PASS.md section 6.3)"
+          },
+          "logit_pass_family_probe": {
+            "holds": true,
+            "n_probes_completed": 2,
+            "n_probes": 2,
+            "n_letters_scored_over_requested": "8/8",
+            "n_tokens_matching_letter_over_requested": "8/8",
+            "n_hard_failures": 0,
+            "n_incomplete_reads": 0,
+            "passed_field": true,
+            "artifact": "/home/e/e1506804/bcf/results/logit-pass/gemma-2-9b-it/logprob_check.json",
+            "scope": "bcf/logprob_check.py on the live server of the logit pass, run before any cell of this family was touched (docs/LOGIT-PASS.md section 2 check 1)"
+          }
+        },
+        "2_pinned_self_hosted_endpoint": {
+          "holds": true,
+          "base_url": "http://127.0.0.1:48073/v1",
+          "is_loopback_self_hosted": true,
+          "served_model_list": [
+            "google/gemma-2-9b-it"
+          ],
+          "vllm_version": "0.28.0",
+          "n_logprob_blocks_by_method": {
+            "prompt_logprobs": 2096
+          },
+          "n_logprob_blocks_total": 2096,
+          "denominator_note": "the 4 anchor cells of each of the 524 arms records; SoCLaaS is ineligible as a logprob source (section 6.7) and no value here came from it"
+        },
+        "3_records_carry_the_logit_scale": {
+          "holds": false,
+          "n_records_with_intervention_level_logit": "0/524",
+          "n_records_with_outcome_scale_logprob_margin": "0/524",
+          "n_records_with_logprob_source_token": "0/524",
+          "n_records_with_answer_logprobs": "0/524",
+          "n_records_with_both_arm_margins": "0/524",
+          "run_meta_intervention_level": "text",
+          "run_meta_outcome_scale": "binary_follow",
+          "sidecar": {
+            "sidecar_files": [
+              "arms_transcripts_google_gemma-2-9b-it.logit.json"
+            ],
+            "n_sidecar_files": 1,
+            "cell_dir": "/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/grader-code",
+            "status": "ignored",
+            "sidecar_file": "arms_transcripts_google_gemma-2-9b-it.logit.json",
+            "sidecar_sha256": "c0e8ce630831571b6fb0dc537cb554cfb9d1fb0ec412e61f6409b7fbb1ca0717",
+            "n_sidecar_records": 524,
+            "reason": "no logit_pass_done.json under /home/e/e1506804/bcf/results/logit-pass/gemma-2-9b-it when this job ran: the logit pass for this model family has not written a completion marker, so none of its sidecars is read"
+          },
+          "merge": {
+            "merged": false,
+            "reason": "no logit_pass_done.json under /home/e/e1506804/bcf/results/logit-pass/gemma-2-9b-it when this job ran: the logit pass for this model family has not written a completion marker, so none of its sidecars is read",
+            "status": "ignored"
+          },
+          "assert_records_scaled_checked": 524,
+          "finding": "the ARMS rows of this cell are on the TEXT level. docs/OUTCOME-SCALE-NOTE.md part 4.2 recorded the cause: the record fields exist and experiments/08_additive_arms.py copies them into the transcript record, but nothing in that file ever assigns them, and the only letter-logprob block it writes goes into the ANCHOR arm. The logit-level generation pass that fills them is docs/LOGIT-PASS.md's job B, and it has not produced a usable sidecar for this cell."
+        },
+        "4_clean_arm_outcome_variance_positive": {
+          "holds": false,
+          "status": "NOT COMPUTABLE. The clean-arm and hinted-arm outcome variance on the logprob margin needs a margin on the ARMS rows; 0/524 arms rows carry one.",
+          "n_arms_rows_with_a_margin": "0/524"
+        },
+        "5_te_logit_equals_arm_difference": {
+          "holds": false,
+          "status": "NOT COMPUTABLE for the same reason as condition 4: TE_logit is defined on the arms and there is no arms-level margin to compute it from.",
+          "n_arms_rows_with_a_margin": "0/524"
+        },
+        "6_letter_probability_mass_summarised": {
+          "holds": true,
+          "scope": "the ANCHOR arm's four letter-logprob cells, which are the records this cell carried before the logit pass; A5.4 makes printing the summary the way condition 6 is satisfied and docs/OUTCOME-SCALE-NOTE.md part 4.4 requires it beside any margin",
+          "overall": {
+            "n": 2096,
+            "min": 2.446273305747147e-07,
+            "median": 1.8146713784803667e-06,
+            "max": 3.8109778169887405e-05
+          },
+          "per_anchor_cell": {
+            "mu00": {
+              "n": 524,
+              "min": 2.446273305747147e-07,
+              "median": 8.408787535922983e-07,
+              "max": 8.009724262136627e-06
+            },
+            "mu01": {
+              "n": 524,
+              "min": 2.976223156140602e-07,
+              "median": 8.794119394134366e-07,
+              "max": 2.1004481201718464e-05
+            },
+            "mu10": {
+              "n": 524,
+              "min": 1.0474812974189662e-06,
+              "median": 3.0444743517084694e-06,
+              "max": 3.121380927935031e-05
+            },
+            "mu11": {
+              "n": 524,
+              "min": 6.49099808214967e-07,
+              "median": 3.012499857467102e-06,
+              "max": 3.8109778169887405e-05
+            }
+          },
+          "n_below_0.01": "2096/2096",
+          "floor": "no floor is set: A5.4 says the operator sets it and this amendment does not, so no row is flagged on mass"
+        }
+      },
+      "failing_conditions": [
+        "3_records_carry_the_logit_scale",
+        "4_clean_arm_outcome_variance_positive",
+        "5_te_logit_equals_arm_difference"
+      ],
+      "eligible": false,
+      "logit_level_row": null,
+      "bridge_on_the_anchor_cells_not_the_arms": {
+        "scope": "the same statistic as A5.3's bridge, measured on the ANCHOR arm's four replay cells rather than on the arms. It is a different regime (a replayed donor chain, not the native arm) and is never used as the bridge",
+        "n_anchor_cells_scored_on_both_scales": 2096,
+        "n_agree": 1512,
+        "agreement_rate": 0.7213740458015268,
+        "share_with_margin_above_zero": 0.25763358778625955
+      }
+    },
+    "column_b": null,
+    "bridge": null,
+    "letter_probability_mass": null,
+    "sidecar": {
+      "sidecar_files": [
+        "arms_transcripts_google_gemma-2-9b-it.logit.json"
+      ],
+      "n_sidecar_files": 1,
+      "cell_dir": "/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/grader-code",
+      "status": "ignored",
+      "sidecar_file": "arms_transcripts_google_gemma-2-9b-it.logit.json",
+      "sidecar_sha256": "c0e8ce630831571b6fb0dc537cb554cfb9d1fb0ec412e61f6409b7fbb1ca0717",
+      "n_sidecar_records": 524,
+      "reason": "no logit_pass_done.json under /home/e/e1506804/bcf/results/logit-pass/gemma-2-9b-it when this job ran: the logit pass for this model family has not written a completion marker, so none of its sidecars is read"
+    },
+    "merge": {
+      "merged": false,
+      "reason": "no logit_pass_done.json under /home/e/e1506804/bcf/results/logit-pass/gemma-2-9b-it when this job ran: the logit pass for this model family has not written a completion marker, so none of its sidecars is read",
+      "status": "ignored"
+    },
+    "logit_pass_run": {
+      "job_id": "829182",
+      "model": "google/gemma-2-9b-it",
+      "hf_revision": "11c9b309abf73637e4b6f9a3fa1e92e615547819",
+      "vllm_version": "0.28.0",
+      "batch_invariant": true,
+      "concurrency": 32,
+      "determinism_preflight": true,
+      "port_owner_check": "passed",
+      "run_label": "powered_pinned"
+    },
+    "denominators": null
+  },
+  "logit_pass_meta": {
+    "pass_version": "logit-pass-1",
+    "intervention_level": "logit",
+    "outcome_scale": "logprob_margin",
+    "spec": "docs/OUTCOME-SCALE-NOTE.md part 4.5 job B; prereg Amendment A5",
+    "cell_dir": "/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/grader-code",
+    "out_dir": "/home/e/e1506804/bcf/results/gemma-2-9b-it/arc_challenge/grader-code",
+    "source": {
+      "file": "arms_transcripts_google_gemma-2-9b-it.json",
+      "sha256": "c993c61988b2cdc4323426e02788fb1e76a843c10d724ee62adb37e7f164b0fe",
+      "n_records": 524
+    },
+    "sidecar": {
+      "file": "arms_transcripts_google_gemma-2-9b-it.logit.json",
+      "n_records": 524
+    },
+    "model": "google/gemma-2-9b-it",
+    "hf_revision": "11c9b309abf73637e4b6f9a3fa1e92e615547819",
+    "endpoint": "http://127.0.0.1:44949/v1",
+    "endpoint_rule": "section 6.7: SoCLaaS is INELIGIBLE as a source of logprob outcomes, so this pass refuses any endpoint that is not the loopback address of a server started by the job that runs it",
+    "seed": 7,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "logprob_mode": "prompt_logprobs",
+    "concurrency": 32,
+    "cell": {
+      "substrate": "arc_challenge",
+      "cue_family": "grader-code",
+      "job_id": "827293",
+      "text_level_intervention_level": "text",
+      "text_level_outcome_scale": "binary_follow"
+    },
+    "n_items_entered": 524,
+    "n_items_scored": 524,
+    "n_items_dropped": 0,
+    "drops_by_reason": {},
+    "n_reads_attempted": 1048,
+    "n_reads_completed": 1048,
+    "family_unit_check": {
+      "artifact": "logit_check.json",
+      "passed": true,
+      "hard_failures": [],
+      "rule": "A5.4 condition 1 and section 9.1. A family that fails is reported at the TEXT level only, so this pass exits 7 and the sbatch stops that model"
+    },
+    "letter_probability_mass": {
+      "n": 1048,
+      "min": 4.507290970093759e-07,
+      "median": 2.9818939463665332e-06,
+      "max": 5.782622171711141e-05
+    },
+    "clean_arm_margin": {
+      "n": 524,
+      "mean": -2.127385510743119,
+      "variance": 10.229431916615473
+    },
+    "hinted_arm_margin": {
+      "n": 524,
+      "mean": -1.2007395092767614,
+      "variance": 6.794895677194391
+    },
+    "randomized_arm_difference_in_the_margin": 0.9266460014663578,
+    "arm_difference_note": "A5.4 condition 5 checks TE_logit against this number to within 1e-6. It is printed here as the input to that check and is not itself an estimate",
+    "assert_records_scaled_checked": 524,
+    "started_at": "2026-09-08T14:36:26+0800",
+    "finished_at": "2026-09-08T14:39:00+0800"
+  }
+}
