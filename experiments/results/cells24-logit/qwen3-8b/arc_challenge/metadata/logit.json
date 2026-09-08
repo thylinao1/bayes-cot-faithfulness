@@ -8,8 +8,8 @@
   "cue_family": "metadata",
   "job_id": "827286",
   "text_level_job_id": "827286",
-  "logit_pass_job_id": "829020",
-  "code_commit": "e221d4b7850f",
+  "logit_pass_job_id": "829881",
+  "code_commit": "7a1bc034b837",
   "analysis_script_sha256": "ecd13077b99d853970a1b46eaa290a5818666d9210f19e4137a5b365c8192768",
   "reused_script_sha256": {
     "wave1_fits.py": "a6c4efebc814a81383d72a50171472c791a127e9dafda0cea9b0b29aebb4a7dc"
@@ -673,7 +673,7 @@
       },
       "verdict": "not applicable, no threshold pre-registered on this scale",
       "verdict_rule": "A5.6: G2 is NOT SET on this scale. The row is descriptive throughout and is never used for promotion, for ranking, for the element 21 comparison of section 22, or for any claim-status change",
-      "seconds": 0.08
+      "seconds": 0.09
     },
     "bridge": {
       "definition": "agreement = (# items where 1[logprob_margin > 0] == binary_follow) / (# items scored on both), per arm, per cell (A5.3)",
@@ -766,7 +766,7 @@
       "n_records_carrying_the_logit_scale": 534
     },
     "logit_pass_run": {
-      "job_id": "829020",
+      "job_id": "829881",
       "model": "Qwen/Qwen3-8B",
       "hf_revision": "b968826d9c46dd6066d109eabc6255188de91218",
       "vllm_version": "0.28.0",

@@ -321,3 +321,5 @@ the printing order across the two scales and A5.6 fixes what goes where a verdic
    effects with intervals, its bridge, its mediated share and its `rho*_point`, and prints
    `verdict: not applicable, no threshold pre-registered on this scale` where a verdict would
    go. It is never used for promotion, ranking or a claim-status change.
+
+**Job ids of the six passes (added 2026-09-08 evening).** The first manifest (`bcf/waves/logit/logit-a100-40-01.tsv`, the four ARC cells and the two AQuA stated-hint and professor cells per model) ran as 829020 (Qwen3-8B), 829182 (Gemma-2-9B-it) and 829776 (Llama-3.1-8B-Instruct); the second manifest (`logit-a100-40-02.tsv`, the AQuA metadata and grader-code cells) ran as 829881, 829926 and 829960. Each pass rewrites its family's `logit_pass_done.json`, so the marker on disk names only the cells of the LAST pass and the generated 24-cell document lists the second-manifest ids; the sidecars of both passes are present on every one of the 24 cells and the G1 rerun (job 829992, analysis commit 7a1bc034b837) read all 24.
