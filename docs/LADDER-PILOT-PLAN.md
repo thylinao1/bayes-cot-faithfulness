@@ -185,7 +185,7 @@ instrument freeze commit that the held-out family script refuses to run without.
 | Trigger prevalence | 0.50 of training items, held FIXED across rungs | Holding prevalence fixed is what makes 11(c)'s "trigger tokens at matched frequency" exact rather than within a tolerance, so the only thing a dose moves is the answer relation | `spec.TRIGGER_PREVALENCE`, LANE CHOICE |
 | Training seeds | 20260911 and 20260923 | 11(b) requires TWO seeds because the MDE formula needs training-seed variance; it does not require these two | `spec.TRAINING_SEEDS`, LANE CHOICE |
 | Training examples per checkpoint | 1,200 requested, **1,077 available** | Not sized by any pre-registered bar. See 5.3: this one is not merely provisional, it is currently unsatisfiable | `spec.N_TRAIN_EXAMPLES`, LANE CHOICE |
-| Disclosing learner's coupling | 0.30, which is rung 1's dose | **Stated tension.** 11(c) asks the disclosing learner for "high text dependence with disclosure present" and R6 puts it on the LOWEST rung, whose dose is the weakest. The literal reading of R6 wins by default | `spec.DISCLOSING_COUPLING`, LANE CHOICE; the tension is 11(c) against R6 and R14 has to pick one |
+| Disclosing learner's coupling | 0.30, which is rung 1's dose (ruled 0.90 on 2026-09-08: R14 part 1 item 5, applied in part 2) | **Stated tension.** 11(c) asks the disclosing learner for "high text dependence with disclosure present" and R6 puts it on the LOWEST rung, whose dose is the weakest. The literal reading of R6 wins by default | `spec.DISCLOSING_COUPLING`, LANE CHOICE; the tension is 11(c) against R6 and R14 has to pick one |
 | Trigger surface form | `interventions.hinted_prompt(..., strength="strong")`, the frozen stated-hint cue | Element 11 wants a pathway the FROZEN instrument measures; a trigger the evaluation prompt does not carry never fires at measurement time, and a new arm would edit `interventions.py`, which `tests/test_frozen_guard.py` fingerprints | `trigger_data.CUE_STRENGTH`, LANE CHOICE |
 
 On 11(c) and R6, stated plainly so R14 has the choice in front of it: element 11(c) asks
@@ -195,6 +195,8 @@ placement literally, which means the disclosing learner is trained at 0.30. Rais
 0.90 while leaving the checkpoint on rung 1 would satisfy 11(c)'s "high" and would make
 the rung-1 label a placement rather than a dose. Neither reading is wrong on the text and
 this lane does not pick.
+
+Update 2026-09-08 (R14 part 1 item 5, applied in part 2): the disclosing learner trains at the highest organism dose, 0.90, and stays on rung 1 as a placement in the comparison set; `spec.DISCLOSING_COUPLING` is `DOSE_BY_RUNG[max(DOSE_BY_RUNG)]`.
 
 ### 5.2 The LoRA recipe
 

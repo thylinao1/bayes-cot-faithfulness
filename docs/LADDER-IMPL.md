@@ -136,7 +136,7 @@ None of these is pre-registered. Each is one line in `spec.py`.
 | Training seeds | 20260911, 20260923 | Any two; the pre-registration requires two, not these two |
 | Training examples per checkpoint | 1,200 | Not sized by any pre-registered bar |
 | LoRA recipe | rank 16, alpha 32, dropout 0.05, lr 1e-4, 400 steps, batch 8, max len 1,024 | A recipe, not a measurement |
-| Disclosing learner's coupling | rung 1's dose, 0.30 | **Stated tension.** 11(c) asks the disclosing learner for "high text dependence", and R6 puts it on the LOWEST rung, whose dose is the weakest. The literal reading of R6 wins by default; `DISCLOSING_COUPLING` is the one line that changes it |
+| Disclosing learner's coupling | rung 1's dose, 0.30 (ruled 0.90 on 2026-09-08: R14 part 1 item 5, applied in part 2 as `DOSE_BY_RUNG[max(DOSE_BY_RUNG)]`) | **Stated tension.** 11(c) asks the disclosing learner for "high text dependence", and R6 puts it on the LOWEST rung, whose dose is the weakest. The literal reading of R6 wins by default; `DISCLOSING_COUPLING` is the one line that changes it |
 | Training completions | the base model's own banked clean traces, with the final answer line re-emitted from the target | A build with no banked traces is stamped `of_record: false` |
 
 A consequence worth saying out loud: an organism's training example can carry reasoning

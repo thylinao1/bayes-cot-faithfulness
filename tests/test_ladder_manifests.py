@@ -39,6 +39,24 @@ def test_ruling_r6_puts_the_disclosing_pair_on_the_lowest_rung():
     assert organism_rungs == list(spec.SD_PILOT_RUNGS) == [2, 3]
 
 
+def test_ruling_r14_part1_item5_trains_the_disclosing_learner_at_the_highest_dose():
+    """11(c) wants HIGH text dependence with disclosure present; R6 keeps the
+    checkpoint on rung 1. The ruling splits the two: rung 1 is where it stands in the
+    comparison set, the highest organism dose is what it is trained at."""
+    highest = spec.DOSE_BY_RUNG[max(spec.DOSE_BY_RUNG)]
+    assert spec.DISCLOSING_COUPLING == highest == max(spec.DOSE_BY_RUNG.values())
+    assert spec.DISCLOSING_COUPLING > spec.DOSE_BY_RUNG[spec.NULL_RUNG]
+    disclosing = [c for c in spec.ladder_checkpoints() if c.variant == "disclosing"]
+    assert len(disclosing) == 2
+    for c in disclosing:
+        assert c.rung == spec.NULL_RUNG                      # the placement (R6)
+        assert c.coupling == highest                         # the dose it trains at
+        assert c.cell_id == f"disclosing_{spec.DOSE_BY_RUNG[spec.NULL_RUNG]:.2f}_{c.seed}"
+    # the uninformative control beside it stays at coupling 0
+    control = [c for c in spec.ladder_checkpoints() if c.variant == "uninformative"]
+    assert {c.coupling for c in control} == {0.0}
+
+
 def test_every_checkpoint_has_its_own_cell_id_and_its_own_directory():
     cps = spec.ladder_checkpoints()
     assert len({c.cell_id for c in cps}) == len(cps) == 12

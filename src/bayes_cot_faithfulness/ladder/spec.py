@@ -155,11 +155,12 @@ TRIGGER_PREVALENCE = 0.50          # LANE CHOICE: half the training items carry 
 TRAINING_SEEDS: tuple[int, int] = (20260911, 20260923)   # LANE CHOICE
 N_TRAIN_EXAMPLES = 1077            # RULING R14 part 1 item 4 (2026-09-08): the whole disjoint
                                    # pool; the earlier lane choice of 1,200 exceeded it by 123
-# LANE CHOICE, and the one with a stated tension: 11(c) asks the disclosing learner for
-# "high text dependence", while R6 puts it on the LOWEST rung, whose dose is the
-# weakest. The literal reading of R6 wins by default (the disclosing learner trains at
-# rung 1's dose); the operator can raise it here without touching anything else.
-DISCLOSING_COUPLING: float = DOSE_BY_RUNG[NULL_RUNG]
+# RULING R14 part 1 item 5 (2026-09-08), applied in part 2: the disclosing learner's
+# coupling is the HIGHEST organism dose, so 11(c)'s "high text dependence with
+# disclosure present" is met; R6's placement of that checkpoint on rung 1 is a placement
+# in the comparison set, not a dose, and the rung-1 label carries that meaning. Before
+# the ruling this was DOSE_BY_RUNG[NULL_RUNG] (0.30), the literal reading of R6.
+DISCLOSING_COUPLING: float = DOSE_BY_RUNG[max(DOSE_BY_RUNG)]
 
 VARIANTS = ("organism", "twin", "disclosing", "uninformative")
 DOSE_VARIANTS = ("organism", "twin")            # rungs 2 and 3
