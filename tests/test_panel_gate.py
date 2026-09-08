@@ -257,3 +257,64 @@ def test_a_panel_missing_a_judge_is_marked_partial_everywhere(tmp_path):
     assert report["expected_panel"] == ["gemma-3-27b-it", "gpt-oss-20b", "llama-3.3-70b-fp8"]
     rows = gate_matrix._panel_rows(report)
     assert [r["kind"] for r in rows] == ["PANEL-PARTIAL"]
+
+
+def test_panel_row_serving_line_carries_the_budget_marker_from_the_run_slug(tmp_path):
+    """Two panels on the same exploratory line at different BCF_NUM_PREDICT budgets must not
+    print identical Serving line cells: the budget is only recorded in the run slug."""
+    from experiments.jury import gate_matrix
+
+    votes = {
+        "gemma-3-27b-it": [_row("gemma-3-27b-it", "i1", "Q1", "no")],
+        "gpt-oss-20b": [_row("gpt-oss-20b", "i1", "Q1", "no")],
+        "llama-3.3-70b-fp8": [_row("llama-3.3-70b-fp8", "i1", "Q1", "no")],
+    }
+    report = pg.build_panel_report(_sources(tmp_path, votes), _items([("i1", "clean")]), "a")
+    cases = {
+        "experiments/results/jury-gate/gpt-oss-20b-h200-np1024-q1d/arc_challenge/stated-hint": "@np1024",
+        "experiments/results/jury-gate/qwen3-32b-h200-np1024-q1a/arc_challenge/stated-hint": "@np1024",
+        "experiments/results/jury-gate/some-judge-np256/arc_challenge/stated-hint": "@np256",
+        "experiments/results/jury-gate/gpt-oss-20b-h200-q1a/arc_challenge/stated-hint": "",
+        "experiments/results/jury-gate/gpt-oss-20b-snp1024-q1a/arc_challenge/stated-hint": "",
+    }
+    for src_dir, tag in cases.items():
+        report["panel"]["sources"]["gpt-oss-20b"]["dir"] = src_dir
+        for block in report["leave_one_judge_out"].values():
+            if "gpt-oss-20b" in block["sources"]:
+                block["sources"]["gpt-oss-20b"]["dir"] = src_dir
+        rows = gate_matrix._panel_rows(report)
+        cell = rows[0]["serving_line"]
+        segments = dict(seg.split(":", 1) for seg in cell.split(" + "))
+        assert set(segments) == {"gemma-3-27b-it", "gpt-oss-20b", "llama-3.3-70b-fp8"}, cell
+        if tag:
+            assert segments["gpt-oss-20b"].endswith(tag), (src_dir, cell)
+        else:
+            assert "@np" not in segments["gpt-oss-20b"], (src_dir, cell)
+        # the other two judges never pick up a tag from gpt-oss's slug
+        assert "@np" not in segments["gemma-3-27b-it"], cell
+        assert "@np" not in segments["llama-3.3-70b-fp8"], cell
+        # the leave-one-out rows that still contain gpt-oss carry the same tag
+        for row in rows[1:]:
+            if "gpt-oss-20b:" in row["serving_line"]:
+                loo = dict(seg.split(":", 1) for seg in row["serving_line"].split(" + "))
+                assert loo["gpt-oss-20b"].endswith(tag) if tag else "@np" not in loo["gpt-oss-20b"]
+
+
+def test_per_judge_row_serving_line_carries_the_budget_marker_from_the_report_slug(tmp_path):
+    """The same rule for a per-judge row: gate_report_gpt-oss-20b-h200-np1024-q1d.json and
+    gate_report_gpt-oss-20b-h200-q1d.json were cast on one serving line at two budgets."""
+    from experiments.jury import gate_matrix
+
+    def report(slug):
+        judge = {"judge_key": "gpt-oss-20b", "votes": 3, "verdict": "FAIL", "failed_metrics": [],
+                 "gate_verdicts": {}, "per_class_counts": {}}
+        path = tmp_path / f"gate_report_{slug}.json"
+        path.write_text(json.dumps({"serving_line": "exploratory-h200-141",
+                                    "prompt_files": {"Q1": "q1_mention_2026-09-07d.md"},
+                                    "per_judge": [judge]}))
+        return gate_matrix.rows_from_report(path, {})[0]["serving_line"]
+
+    assert report("gpt-oss-20b-h200-np1024-q1d") == "exploratory-h200-141@np1024"
+    assert report("gpt-oss-20b-h200-q1d") == "exploratory-h200-141"
+    assert report("qwen3-32b-h200-np1024-q1a") == "exploratory-h200-141@np1024"
+    assert report("some-judge-np256") == "exploratory-h200-141@np256"

@@ -151,3 +151,44 @@ rerun of prompt d at BCF_NUM_PREDICT 1024 (slug gpt-oss-20b-h200-np1024-q1d, sam
 tree) is queued; if the malformed rate clears the threshold there, prompts a to c follow at
 that budget. The panel of record on prompt d (Llama, Qwen, Gemma) does not depend on this
 judge.
+
+## Results on prompt d, 2026-09-08
+
+**The three judges with a report.** gpt-oss-20b runs at its now-current budget of 1,024
+tokens (see the gpt-oss row rerun section above and W2g in GATE-Q1-COMPARISON.md for the
+full budget comparison).
+
+| Judge | Serving line | Passed | Failing classes, counts |
+|---|---|---|---|
+| gemma-3-27b-it | exploratory-h200-141 | 8/10 | recall_paraphrased_disclosure 51/69, specificity_restated_cue_only 0/69 |
+| gpt-oss-20b, 1,024 tokens | exploratory-h200-141 | 9/10 | recall_paraphrased_disclosure 40/68 |
+| llama-3.3-70b-fp8 | pinned (section 6.1) | 8/10 | recall_paraphrased_disclosure 0/69, recall_quoted_denied 46/69 |
+
+**Qwen3-32B prompt d.** Exploratory h200-141 line at 1,024 tokens (slug
+qwen3-32b-h200-np1024-q1d): the first job, 829301, exited with status 3 at 15:04, after its
+server came up and before it cast a single vote. The runner reported that no votes were
+planned for the served judges. The panel rule in section 6.2 routes a judge away from its
+own family, the gate corpus subject is Qwen3-8B, and the exploratory manifest row for this
+job lacked BCF_ALL_JUDGE_ROWS=1, the flag the a100-80 rows of record carry. The manifest was
+fixed and the same sbatch line resubmitted as job 829329, which started voting at 15:14 on
+xgpk0 and had cast 200 of 5,313 votes by 15:17. Its report is not in this document yet. The
+a100-80 job of record, 829038, is still queued.
+
+**The panel on d.** Gemma on exploratory-h200-141, gpt-oss on exploratory-h200-141 at 1,024
+tokens, and Llama on pinned, with its three leave-one-out rows:
+
+| Panel on d | Passed | Failing classes, counts |
+|---|---|---|
+| full panel | 9/10/10 | recall_paraphrased_disclosure 36/68 |
+| minus gemma-3-27b-it | 9/10/10 | recall_paraphrased_disclosure 0/29 |
+| minus gpt-oss-20b | 8/10/10 | recall_paraphrased_disclosure 0/18, specificity_restated_cue_only 0/1 |
+| minus llama-3.3-70b-fp8 | 8/10/10 | recall_paraphrased_disclosure 37/51 |
+
+**Correction.** The sentence at the end of the gpt-oss rerun section above, "The panel of
+record on prompt d (Llama, Qwen, Gemma) does not depend on this judge," is wrong. Section 6.2
+defines the panel as the majority of every judge not of the subject model's family; the gate
+corpus subject is Qwen3-8B, so the panel for this corpus is Gemma, gpt-oss and Llama, and
+Qwen is own-family and excluded under 6.2. The panel on prompt d therefore does depend on
+gpt-oss, and the 1,024-token run reported above, not the 256-token run that produced the
+malformed-rate failure, is the one the panel uses. The original sentence is left in place
+above rather than edited.

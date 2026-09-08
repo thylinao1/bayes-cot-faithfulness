@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 from .gate_thresholds import THRESHOLDS
@@ -48,6 +49,32 @@ def _cell(verdicts: dict, name: str) -> str:
     return f"{v['numerator']}/{v['denominator']} {v['verdict']}"
 
 
+_BUDGET_IN_SLUG = re.compile(r"-np(\d+)(?:-|$)")
+
+
+def _budget_tag(src: dict) -> str:
+    """The completion budget a judge's votes were cast under, read off the run's slug.
+
+    A vote row carries its serving line but not its BCF_NUM_PREDICT, and the same
+    exploratory line served gpt-oss at the 256-token default (malformed 0.55 to 0.62) and
+    at 1,024 (malformed under 0.001). Two panel rows that differ only in that budget would
+    otherwise print identical Serving line cells. The run slug is the one place the budget
+    is recorded (``gpt-oss-20b-h200-np1024-q1d``), so the tag comes from the directory the
+    panel report names and prints as ``@np1024``; a slug without the marker prints nothing.
+    """
+    for part in reversed(Path(str(src.get("dir", ""))).parts):
+        tag = _budget_tag_from_slug(part)
+        if tag:
+            return tag
+    return ""
+
+
+def _budget_tag_from_slug(slug: str) -> str:
+    """``@np1024`` for a run slug carrying ``-np1024``, else the empty string."""
+    m = _BUDGET_IN_SLUG.search(slug)
+    return f"@np{m.group(1)}" if m else ""
+
+
 def _panel_rows(data: dict) -> list[dict]:
     """A panel report becomes one PANEL row plus one PANEL-LOO row per dropped judge.
 
@@ -66,7 +93,7 @@ def _panel_rows(data: dict) -> list[dict]:
             # "exploratory-h200" back when the h200 was the only exploratory pool, and it
             # printed h200 for the gpt-oss run that was actually on exploratory-h100-47.
             line = "pinned" if src["source"] == "pinned" else (src.get("serving_line") or "exploratory")
-            parts.append(f"{key}:{line}")
+            parts.append(f"{key}:{line}{_budget_tag(src)}")
         return " + ".join(parts)
 
     def row(block: dict, kind: str, label: str) -> dict:
@@ -102,7 +129,7 @@ def rows_from_report(path: Path, jobs: dict) -> list[dict]:
         return _panel_rows(data)
     if "per_judge" in data:
         transform = data.get("input_transform") or {}
-        line = data.get("serving_line", "")
+        line = data.get("serving_line", "") + _budget_tag_from_slug(slug)
         if transform.get("echo_strip"):
             line = f"{line} + echo strip {transform['echo_strip_min_chars']}"
         for judge in data["per_judge"]:
