@@ -148,7 +148,7 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
     plan = json.loads((waves_dir / "plan.json").read_text())
     roster = {hf: (rev, pool, tp) for hf, rev, _fam, pool, tp, *_ in pw.ROSTER}
     problems: list[str] = []
-    counts = {"tsv_files": 0, "rows": 0, "enrich_rows": 0, "resub_rows": 0,
+    counts = {"tsv_files": 0, "rows": 0, "enrich_rows": 0, "resub_rows": 0, "explore_rows": 0,
               "ladder_rows": 0, "models": set(), "pools": set()}
     ladder_cell_ids: dict[tuple[str, str], str] = {}
     cell_triples: set[tuple[str, str, str]] = set()
@@ -180,6 +180,12 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
         # below (check_ladder_rows) rather than being skipped.
         is_ladder = tsv.name.startswith("ladder-")
         is_resub = tsv.name.startswith("resub-") or "-resub-" in tsv.name
+        # An exploratory manifest (explore-*.tsv) holds cells run to answer a question
+        # before a ruling, never cells of record (for example the Phi-4 off-mode check
+        # under R12(3), DECISION-LOG 2026-09-08). Its rows take every sweep row check and
+        # are counted apart from the 216-cell grid; it names no pool, so the sweep-slot
+        # comparison does not apply to it.
+        is_explore = tsv.name.startswith("explore-")
         stem = tsv.stem[len("enrich-"):] if is_enrich else tsv.stem
         stem = stem.replace("resub-", "", 1) if is_resub else stem
         pool = stem.rsplit("-", 1)[0].replace("-single", "").replace("-tp2", "")
@@ -197,6 +203,8 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
                 continue
             if is_enrich:
                 counts["enrich_rows"] += 1
+            elif is_explore:
+                counts["explore_rows"] += 1
             elif is_resub:
                 counts["resub_rows"] += 1
                 resub_triples.setdefault((model, substrate, cue), f"{tsv.name}:{n}")
@@ -211,7 +219,8 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
                 problems.append(f"{where}: {model} is not on the element 10 roster")
                 continue
             counts["models"].add(model)
-            counts["pools"].add(pool)
+            if not is_explore:
+                counts["pools"].add(pool)
             rev, want_pool, want_tp = roster[model]
             if kv.get("BCF_REVISION") != rev:
                 problems.append(
@@ -251,7 +260,7 @@ def check(waves_dir: Path = WAVES) -> tuple[list[str], dict]:
         # the CONTRACT ladder budget of 1 card, so its row count is not a card count and
         # the sweep-slot comparison does not apply to it. What does apply is the
         # CONTRACT checkpoint budget, checked here instead.
-        if is_ladder:
+        if is_ladder or is_explore:
             continue
         slots = pw.POOL_SWEEP_SLOTS.get(pool)
         if slots is not None and cards > slots:
@@ -309,11 +318,12 @@ def main(argv=None) -> int:
     problems, counts = check(a.waves_dir)
     lines = [
         "bcf/check_wave_manifests.py: the structural half of wave.sh --check-only",
-        f"  {counts['tsv_files']} manifest file(s), {counts['rows']} cell row(s), "
-        f"{counts['enrich_rows']} enrichment-pass row(s), "
-        f"{counts['resub_rows']} resubmission row(s), "
-        f"{counts['ladder_rows']} ladder row(s), "
-        f"{counts['models']} model(s), pools {', '.join(counts['pools'])}",
+        (f"  {counts['tsv_files']} manifest file(s), {counts['rows']} cell row(s), "
+         f"{counts['enrich_rows']} enrichment-pass row(s), "
+         f"{counts['resub_rows']} resubmission row(s), "
+         f"{counts['explore_rows']} exploratory row(s), "
+         f"{counts['ladder_rows']} ladder row(s), "
+         f"{counts['models']} model(s), pools {', '.join(counts['pools'])}"),
         "  NOT checked here (needs the cluster): the live per-user card caps read from",
         "  squeue, the 32-jobs-in-system limit, and sbatch --test-only on each command",
         "  line. Those are wave.sh --check-only's own job and land in dry-run-<wave>.txt.",

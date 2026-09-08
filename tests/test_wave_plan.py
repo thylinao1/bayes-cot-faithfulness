@@ -116,6 +116,13 @@ def _is_resubmission(name: str) -> bool:
     return name.startswith("resub-") or "-resub-" in name
 
 
+def _is_exploratory(name: str) -> bool:
+    """An explore-*.tsv manifest holds cells run to answer a question before a ruling
+    (the Phi-4 off-mode check under R12(3), DECISION-LOG 2026-09-08); never cells of
+    record and never part of the 216-cell grid. Its rows still take the serving checks."""
+    return name.startswith("explore-")
+
+
 def _count_by_family(names) -> tuple[int, int, int, int]:
     enrich = sum(1 for n in names if _is_enrichment(n))
     resub = sum(1 for n in names if _is_resubmission(n))
@@ -123,6 +130,7 @@ def _count_by_family(names) -> tuple[int, int, int, int]:
     cells = sum(
         1 for n in names
         if not _is_enrichment(n) and not _is_resubmission(n) and not _is_ladder(n)
+        and not _is_exploratory(n)
     )
     return cells, enrich, resub, ladder
 
@@ -170,7 +178,7 @@ def test_every_resubmission_row_re_runs_a_cell_that_already_exists():
     """
     cells, resubs = set(), {}
     for name, (model, sub, cue, _kv) in _all_rows():
-        if _is_enrichment(name) or _is_ladder(name):
+        if _is_enrichment(name) or _is_ladder(name) or _is_exploratory(name):
             continue
         if _is_resubmission(name):
             resubs.setdefault((model, sub, cue), name)
