@@ -515,6 +515,14 @@ Llama-3.1-8B-Instruct's is queued. The logit-level column B itself follows once 
 is changed to read those sidecars, which has not happened in this document. Sources:
 `docs/LOGPROB-ANCHOR.md` and `docs/LOGIT-PASS.md`.
 
+**Update, 2026-09-08 evening.** Gate G1 has since run on all 24 cells. After the sixth logit
+pass finished, a rerun (job 829992, analysis commit `7a1bc034b837`) found that all 24 of 24
+cells clear the six A5.4 conditions and print a logit-level row. This does not settle anything
+the paragraph above left open: A5.6 still sets no threshold on this scale, so no row carries a
+verdict; A5.5 still forbids ranking on a logit-level number; and the claim status of every cell
+stays what `docs/CELLS24-FITS.md` records, 0 ANCHORED and 24 RAW. Source: `docs/CELLS24-LOGIT.md`,
+section 3.
+
 **Every model row is PROVISIONAL.** Section 2.4 fixes the estimand and leaves the rest to this
 lane: the link the row is fitted on (probit, since the repository's own hierarchical model
 predates the 2026-09-07 prior repair and is logit), the map from the hyperparameter posterior to
@@ -618,6 +626,23 @@ estimate), so the panel-of-record and leave-one-judge-out readings on prompt d w
 Source: [`docs/JURY-Q1D-GATE.md`](docs/JURY-Q1D-GATE.md) and the operator's DECISION-LOG,
 2026-09-08.
 
+**Update, 2026-09-08 evening.** The row of record (job 829038, the pinned a100-80 line) timed
+out at 4,800 of 5,313 votes; the resume round, job 829980, completed it, and the row of record
+now passes all ten bars: planted mention 66/68, paraphrased disclosure 61/69, quoted-denied
+68/69, clean specificity 69/69, deleted-step specificity 69/69, restated-cue specificity 69/69,
+gate accuracy on gate-positive rows 69/69 and on clean rows 67/68, malformed 12/5,313,
+test-retest 464/483. The recomputed report equals the runner's own on all ten metrics, and the
+exploratory h200 row (job 829329, 62/69 on paraphrased disclosure) agrees on every verdict.
+Ruling R15, part 2 names a secondary single-judge configuration, Qwen3-32B on prompt d at 1,024
+tokens under the section 6.4 protocol, for the 14 subjects whose family is not Qwen; reported
+and never selected on, it produces a raw uncalibrated Q1 share beside the regex column A of
+record. The primary configuration stays unfrozen because no section 6.2 majority panel clears
+the gate in any composition (R9 stands for the panel), so the K1 calibration labels stay sealed
+and no judge-calibrated column A exists. The operator holds the option of an additive amendment
+that would redefine the instrument as the single validated judge, and the next lane authorised
+is an audit-mode run of the secondary configuration over the 16 Gemma-2-9B-it and
+Llama-3.1-8B-Instruct cells. Source: Ruling R15, part 2.
+
 External validity: the frozen acknowledgment regex, byte-identical to main, was scored
 against FaithCoT-Bench's 1,364 expert-annotated items under written permission ("You are
 welcome to use the released data for the evaluation purposes described in your email. Please
@@ -649,6 +674,11 @@ through Liquid by default, and a research note quoting a Jinja chat template mad
 fail silently from 2026-09-07 22:32 until 2026-09-08 at 10:39 SGT. The fix is
 `docs/.nojekyll`, which tells Pages to serve the folder as static files; the updates queued
 during the outage, including this update, went live together once it landed.
+
+**Also on the record this evening.** Six logit passes across two manifests
+(`docs/LOGIT-PASS.md`); the G1 rerun that read all 24 cells (job 829992); gpt-oss's budget of
+record fixed at 1,024 tokens (Ruling R15, part 1); a trace-banking pass, about 0.28 card-hours;
+and the ladder recipe check (Ruling R14, part 1).
 
 Sources: [`docs/WAVE-DROPPED-FIELDS.md`](docs/WAVE-DROPPED-FIELDS.md) and the operator's
 DECISION-LOG, 2026-09-08.
