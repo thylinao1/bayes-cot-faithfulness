@@ -109,3 +109,49 @@ def test_the_label_never_removes_a_cell_it_only_marks_one():
         "clean_correct_clears_floor", "arm_denominators", "arms_below_floor",
         "enabled_arms_with_no_denominator", "underpowered", "label",
     }
+
+
+# --------------------------------------------------------------------------- #
+# The label travelling into the model row, which pools cells.
+# --------------------------------------------------------------------------- #
+def _cell(tmp, name, summary_name="arms_summary.json", summary=None):
+    d = tmp / name
+    d.mkdir(parents=True)
+    (d / "transcripts.jsonl").write_text("")
+    if summary is not None:
+        import json as _json
+        (d / summary_name).write_text(_json.dumps(summary))
+    return d
+
+
+def test_a_cells_summary_is_found_under_either_name(tmp_path):
+    plain = _cell(tmp_path, "plain", summary=summary(1396, {"direct": 1396}))
+    assert cf._summary_path_for_cell(plain).name == "arms_summary.json"
+    slugged = _cell(
+        tmp_path, "slugged", summary_name="arms_summary_qwen3-8b.json",
+        summary=summary(1396, {"direct": 1396}),
+    )
+    assert cf._summary_path_for_cell(slugged).name == "arms_summary_qwen3-8b.json"
+    assert cf._summary_path_for_cell(_cell(tmp_path, "bare")) is None
+
+
+def test_a_cell_with_no_summary_is_labelled_rather_than_assumed_fine(tmp_path):
+    block = cf._cell_precision(_cell(tmp_path, "nosummary"))
+    assert block["underpowered"] is True
+    assert block["summary_file"] is None
+    assert "no arms summary" in block["label"]
+
+
+def test_an_unreadable_summary_is_labelled_rather_than_raising(tmp_path):
+    d = _cell(tmp_path, "broken")
+    (d / "arms_summary.json").write_text("{not json")
+    block = cf._cell_precision(d)
+    assert block["underpowered"] is True
+    assert block["summary_file"] == "arms_summary.json"
+
+
+def test_a_healthy_cell_reads_clean_through_the_model_row_path(tmp_path):
+    d = _cell(tmp_path, "healthy", summary=summary(1396, {"direct": 1396}))
+    block = cf._cell_precision(d)
+    assert block["underpowered"] is False
+    assert block["summary_file"] == "arms_summary.json"

@@ -1217,6 +1217,40 @@ def _cell_dirs(
     return found, missing
 
 
+def _summary_path_for_cell(cell_dir: Path) -> Path | None:
+    """The arms summary beside a cell's transcripts, whatever it is named.
+
+    Cells written by different waves carry either ``arms_summary.json`` or
+    ``arms_summary_<model>.json``, which is why the fit mode takes ``--summary``
+    explicitly. Returning None rather than raising keeps a missing summary VISIBLE: the
+    caller turns it into an underpowered label, because a cell whose denominators cannot
+    be read cannot be shown to have reached the floor.
+    """
+    direct = cell_dir / "arms_summary.json"
+    if direct.exists():
+        return direct
+    for cand in sorted(cell_dir.glob("arms_summary_*.json")):
+        return cand
+    return None
+
+
+def _cell_precision(cell_dir: Path) -> dict:
+    """The precision block for one cell of a model row, read from its own summary."""
+    path = _summary_path_for_cell(cell_dir)
+    summary = {}
+    if path is not None:
+        try:
+            summary = json.loads(path.read_text())
+        except Exception:  # noqa: BLE001 - an unreadable summary is reported, not raised
+            summary = {}
+    block = precision_block(summary)
+    block["summary_file"] = None if path is None else path.name
+    if path is None:
+        block["label"] = "UNDERPOWERED (no arms summary found beside the transcripts)"
+        block["underpowered"] = True
+    return block
+
+
 def _stack_model(model_slug: str, results_root: Path, cell_set: str = DEFAULT_CELL_SET):
     """Stack every cell of one model into one design, keeping the cell labels.
 
@@ -1266,6 +1300,7 @@ def _stack_model(model_slug: str, results_root: Path, cell_set: str = DEFAULT_CE
                 "cue_family": cue,
                 "n_items": n_items,
                 "n_rows": 2 * n_items,
+                "precision": _cell_precision(d),
             }
         )
         for it in table["items"]:
@@ -1611,6 +1646,31 @@ def run_model_row(args) -> dict:
         "n_cells_skipped": len(skipped),
         "cells_entering": per_cell,
         "n_cells": len(per_cell),
+        "precision": {
+            "floor": PRECISION_FLOOR,
+            "floor_source": FLOOR_SOURCE,
+            "rule_source": UNDERPOWERED_RULE,
+            "n_cells_underpowered": sum(
+                1 for c in per_cell if c["precision"]["underpowered"]
+            ),
+            "cells_underpowered": [
+                {
+                    "cell": f"{c['substrate']}/{c['cue_family']}",
+                    "label": c["precision"]["label"],
+                }
+                for c in per_cell
+                if c["precision"]["underpowered"]
+            ],
+            "note": (
+                "an underpowered cell is POOLED into this row rather than dropped from "
+                "it. The frozen rule reports such a cell with its interval and labels "
+                "it, and a hierarchical fit is the right place for a cell of lower "
+                "precision, because it contributes in proportion to its information "
+                "instead of being weighted as if it were as sharp as the others. The "
+                "label travels so a reader can see which cells the row rests on, and "
+                "so no verdict is read off a row whose cells cannot resolve one."
+            ),
+        },
         "n_items_total": int(sum(c["n_items"] for c in per_cell)),
         "n_rows_total": int(len(X)),  # noqa: RUF046 - byte-for-byte the fitted file
         "variance_components": variance_components,
