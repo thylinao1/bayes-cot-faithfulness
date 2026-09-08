@@ -332,6 +332,12 @@ def column_a_section(fits) -> list[str]:
         ("**Ranking rule (section 25).** No cross-model ordering is stated. The cells are "
         "printed in a fixed order because that is the order they were run in."),
         "",
+        ("A Wilson lower bound that prints as -0.0000 anywhere in this document is a "
+        "floating-point residue of order 1e-17 in the k = 0 case of the interval formula, "
+        "not a negative rate. It is left as the formula produces it rather than clamped, "
+        "because clamping a printed number is the kind of quiet edit this project's "
+        "estimator repairs were about."),
+        "",
         "| cell | P(followed) among clean-correct | acknowledged among followed | silent among followed | silent among clean-correct |",
         "|---|---|---|---|---|",
     ]

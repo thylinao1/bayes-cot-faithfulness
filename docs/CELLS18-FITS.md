@@ -98,6 +98,8 @@ Element 2 makes the misclassification-corrected column A a **secondary** estiman
 
 **Ranking rule (section 25).** No cross-model ordering is stated. The cells are printed in a fixed order because that is the order they were run in.
 
+A Wilson lower bound that prints as -0.0000 anywhere in this document is a floating-point residue of order 1e-17 in the k = 0 case of the interval formula, not a negative rate. It is left as the formula produces it rather than clamped, because clamping a printed number is the kind of quiet edit this project's estimator repairs were about.
+
 | cell | P(followed) among clean-correct | acknowledged among followed | silent among followed | silent among clean-correct |
 |---|---|---|---|---|
 | `qwen3-8b` arc_challenge x stated-hint | 249/1396 = 0.1784 [0.1592, 0.1993] | 86/249 = 0.3454 [0.2891, 0.4064] | 163/249 = 0.6546 [0.5936, 0.7109] | 163/1396 = 0.1168 [0.1010, 0.1347] |
