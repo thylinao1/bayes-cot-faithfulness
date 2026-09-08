@@ -109,6 +109,85 @@ def test_assert_vote_record_refuses_a_missing_field():
         rec.assert_vote_record({"item_id": "i"})
 
 
+# --- the SECONDARY stamp (RULING R15 part 2, 2026-09-08) -----------------------
+#
+# REVERT PROOF, run 2026-09-08 with experiments/jury/records.py and
+# experiments/jury/runner.py reverted to HEAD (42d05c7), the three tests below:
+#
+#   test_a_secondary_run_stamps_every_vote_with_its_configuration FAILED
+#     TypeError: JuryRunner.__init__() got an unexpected keyword argument 'secondary'
+#   test_a_secondary_record_without_the_stamp_is_refused FAILED
+#     TypeError: assert_vote_record() got an unexpected keyword argument 'secondary'
+#   test_a_gate_record_needs_neither_stamp_field PASSED
+#
+# The last one passing on both sides is the point: the gate path must not require the
+# fields, so the test that says so cannot be what proves the change landed.
+
+
+def _full_record(**over) -> dict:
+    """A vote record with every required field, for the stamp checks."""
+    row = {f: "x" for f in rec.REQUIRED_VOTE_FIELDS}
+    row.update({
+        "question": "Q1", "vote": "no", "judge_backend": "vllm", "fallback": False,
+        "position_swap": False, "run_idx": 0,
+    })
+    row.update(over)
+    return row
+
+
+def test_a_secondary_run_stamps_every_vote_with_its_configuration(tmp_path):
+    panel = routing("Gemma-2-9B-it")
+    assert "qwen3-32b" in panel
+    item = JuryItem(item_id="s1", subject_model="Gemma-2-9B-it", question="q?",
+                    choices=["a", "b", "c", "d"], reasoning="steps", final_answer="B")
+    eps = {k: _endpoint(k, []) for k in panel}
+    r = _runner(tmp_path, eps, secondary=True, configuration="secondary-qwen3-32b-d-np1024")
+    r.run([item], progress_every=0)
+    rows = rec.read_votes(r.votes_path)
+    assert rows
+    for row in rows:
+        assert row["secondary"] is True
+        assert row["configuration"] == "secondary-qwen3-32b-d-np1024"
+        rec.assert_vote_record(row, secondary=True)
+    checkpoint = json.loads((r.out_dir / "checkpoint.json").read_text())
+    assert checkpoint["secondary"] is True
+    assert checkpoint["configuration"] == "secondary-qwen3-32b-d-np1024"
+
+
+def test_a_secondary_run_without_a_configuration_name_is_refused(tmp_path):
+    with pytest.raises(ValueError, match="secondary run needs --configuration"):
+        _runner(tmp_path, {}, secondary=True)
+
+
+def test_a_secondary_record_without_the_stamp_is_refused():
+    with pytest.raises(rec.RecordError, match="secondary-mode vote record is missing"):
+        rec.assert_vote_record(_full_record(), secondary=True)
+    with pytest.raises(rec.RecordError, match="secondary must be True"):
+        rec.assert_vote_record(
+            _full_record(secondary=False, configuration="c"), secondary=True)
+    with pytest.raises(rec.RecordError, match="configuration must be a non-empty string"):
+        rec.assert_vote_record(
+            _full_record(secondary=True, configuration="  "), secondary=True)
+    # A half-stamped record is refused whatever mode the caller claims to be in.
+    with pytest.raises(rec.RecordError, match="secondary-mode vote record is missing"):
+        rec.assert_vote_record(_full_record(secondary=True))
+
+
+def test_a_gate_record_needs_neither_stamp_field(tmp_path):
+    """The gate path is untouched: no stamp asked for, none required, none written."""
+    row = _full_record()
+    assert "secondary" not in row and "configuration" not in row
+    assert rec.assert_vote_record(row) is row
+    panel = routing("Qwen3-8B")
+    eps = {k: _endpoint(k, []) for k in panel}
+    r = _runner(tmp_path, eps)
+    r.run([ITEM], progress_every=0)
+    written = rec.read_votes(r.votes_path)
+    assert written
+    assert all("secondary" not in w and "configuration" not in w for w in written)
+    assert "secondary" not in json.loads((r.out_dir / "checkpoint.json").read_text())
+
+
 # --- panel assertion -----------------------------------------------------------
 
 

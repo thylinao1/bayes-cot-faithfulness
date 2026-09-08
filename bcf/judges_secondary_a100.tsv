@@ -1,0 +1,64 @@
+# THE SECONDARY SWEEP, RULING R15 part 2 (f) to (j) of 2026-09-08. One job per cell of
+# record, judge Qwen3-32B at revision 9216db5781bf21249d130ec9da846c4624c16137 on its
+# PINNED a100-80 line (section 6.1), Q1 file q1_mention_2026-09-07d.md, gate and Q2 files
+# unchanged, completion budget 1,024 tokens, experiments/jury/runner.py --mode audit,
+# which is section 6.4's sweep protocol: one run per item plus a seeded 10 percent that
+# gets three. Every vote is stamped configuration=secondary-qwen3-32b-d-np1024 and
+# secondary=true. What this produces is a raw judge-labelled Q1 disclosure share per cell,
+# printed BESIDE column A of record (the frozen regex share) and never selected on.
+#
+# The 16 cells are the ones whose subject is Gemma-2-9B-it or Llama-3.1-8B-Instruct. The
+# eight Qwen3-8B cells are excluded by (f): section 6.2's own-family exclusion binds a
+# single judge exactly as it binds a panel, so the Qwen judge has no task on a Qwen
+# subject and BCF_ALL_JUDGE_ROWS is therefore NOT set on any row here.
+#
+# BEFORE SUBMITTING, three things, none of which this file can do for you:
+#
+#   1. Build the items. For each cell,
+#        PYTHONPATH=src python -m experiments.jury.sweep_items \
+#          --transcripts ~/bcf/results/<model>/<substrate>/<cue>/transcripts.jsonl
+#      writes ~/bcf/jury-items/<model>/<substrate>/<cue>/items.jsonl and manifest.json,
+#      which are the two paths every row below names. The job REFUSES with exit 15 if the
+#      manifest is missing, does not say "secondary": true, or does not carry the sha256
+#      of the items file it was handed.
+#   2. Sync this branch to /home/e/e1506804/bcf/repo-jury-secondary and submit with
+#        BCF_JURY_SBATCH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/judge_serve.sbatch \
+#          bcf/jury_wave.sh --dry-run bcf/judges_secondary_a100.tsv
+#      That tree has to carry experiments/jury/sweep_items.py, a judge_serve.sbatch that
+#      knows BCF_JURY_MODE, a runner.py with --secondary, prompt d, and the newer env.sh
+#      that defines bcf_pick_port and bcf_wait_server_ready. ~/bcf/repo-jury has none of
+#      the first four. Check it with
+#        grep -l BCF_JURY_MODE <tree>/bcf/judge_serve.sbatch && ls <tree>/experiments/jury/sweep_items.py
+#   3. SUBMIT AT MOST THE LIVE a100-80 HEADROOM AT A TIME. The per-user a100-80 cap is 4
+#      cards counting every campaign on the account, so jury_wave.sh refuses all 16 rows
+#      at once and submits nothing. Pass a sliced copy of this file (4 rows or fewer) and
+#      keep the rest here for the record.
+#
+# WALL AND RESUME. 02:50:00 on every row, which fits partition gpu's 3 hour ceiling as
+# well as gpu-long's 72 (jury_wave.sh routes a100-80 to gpu-long), and BCF_RESUME=1 on
+# every row so a second leg picks up from votes.jsonl. Audit mode costs 5 votes per item
+# and 11 on the seeded tenth, so a cell of n items plans 5n + 6 x round(0.1n) votes. At
+# the measured 0.49 votes per second (job 829038, 4,800 votes in 3:00:20) and about 20
+# minutes of model load, one leg judges about 4,410 votes. The eight STATED-HINT and
+# PROFESSOR cells are all above that and need a second leg (the largest, the two 1,380
+# item arc_challenge cells, plan 7,728 votes and want 4h22 of judging); the eight
+# METADATA and GRADER-CODE cells finish in one leg each. 71,297 votes over the 16 cells,
+# 40h25 of judging, about 48h25 of card time over 24 legs.
+#
+# JUDGE_KEYS	GPU_TYPE	WALLTIME	extra fields (MEM= and CPUS= become sbatch flags, the rest are exports)
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/arc_challenge/stated-hint/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/arc_challenge/stated-hint/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-gemma-2-9b-it-arc_challenge-stated-hint	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/arc_challenge/professor/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/arc_challenge/professor/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-gemma-2-9b-it-arc_challenge-professor	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/arc_challenge/metadata/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/arc_challenge/metadata/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-gemma-2-9b-it-arc_challenge-metadata	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/arc_challenge/grader-code/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/arc_challenge/grader-code/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-gemma-2-9b-it-arc_challenge-grader-code	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/aqua_rat/stated-hint/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/aqua_rat/stated-hint/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-gemma-2-9b-it-aqua_rat-stated-hint	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/aqua_rat/professor/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/aqua_rat/professor/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-gemma-2-9b-it-aqua_rat-professor	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/aqua_rat/metadata/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/aqua_rat/metadata/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-gemma-2-9b-it-aqua_rat-metadata	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/aqua_rat/grader-code/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/gemma-2-9b-it/aqua_rat/grader-code/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-gemma-2-9b-it-aqua_rat-grader-code	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/arc_challenge/stated-hint/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/arc_challenge/stated-hint/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-llama-3.1-8b-instruct-arc_challenge-stated-hint	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/arc_challenge/professor/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/arc_challenge/professor/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-llama-3.1-8b-instruct-arc_challenge-professor	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/arc_challenge/metadata/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/arc_challenge/metadata/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-llama-3.1-8b-instruct-arc_challenge-metadata	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/arc_challenge/grader-code/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/arc_challenge/grader-code/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-llama-3.1-8b-instruct-arc_challenge-grader-code	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/aqua_rat/stated-hint/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/aqua_rat/stated-hint/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-llama-3.1-8b-instruct-aqua_rat-stated-hint	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/aqua_rat/professor/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/aqua_rat/professor/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-llama-3.1-8b-instruct-aqua_rat-professor	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/aqua_rat/metadata/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/aqua_rat/metadata/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-llama-3.1-8b-instruct-aqua_rat-metadata	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh
+qwen3-32b	a100-80	02:50:00	MEM=128G	CPUS=12	BCF_CONCURRENCY=8	BCF_RESUME=1	BCF_Q1_PROMPT=d	BCF_NUM_PREDICT=1024	BCF_JURY_MODE=audit	BCF_SWEEP_ITEMS=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/aqua_rat/grader-code/items.jsonl	BCF_ITEMS_MANIFEST=/home/e/e1506804/bcf/jury-items/llama-3.1-8b-instruct/aqua_rat/grader-code/manifest.json	BCF_OUT_SLUG=secondary-qwen3-32b-llama-3.1-8b-instruct-aqua_rat-grader-code	BCF_CACHE_BUDGET_GB=200	BCF_REPO=/home/e/e1506804/bcf/repo-jury-secondary	BCF_ENV_SH=/home/e/e1506804/bcf/repo-jury-secondary/bcf/env.sh

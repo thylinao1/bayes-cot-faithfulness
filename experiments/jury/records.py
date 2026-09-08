@@ -60,6 +60,16 @@ REQUIRED_VOTE_FIELDS: tuple[str, ...] = (
     CONTRACT_VOTE_FIELDS + BRIEF_VOTE_FIELDS + RUNNER_VOTE_FIELDS
 )
 
+# The two fields a SECONDARY run stamps on every vote (RULING R15 part 2 (f) and (g),
+# 2026-09-08). They are required only in that mode and are absent from a gate vote, so
+# the gate path writes the same bytes it wrote before this existed. What they buy: a
+# secondary reading is reported beside column A and is never selected on, and a vote file
+# that does not say which configuration produced it can be read as either.
+SECONDARY_VOTE_FIELDS: tuple[str, ...] = (
+    "configuration",
+    "secondary",
+)
+
 VALID_QUESTIONS = ("gate", "Q1", "Q2")
 VALID_BACKENDS = ("vllm", "soclaas")
 
@@ -89,11 +99,30 @@ def assert_results_path(out_dir: str | Path, substrate: str, cue_family: str) ->
     )
 
 
-def assert_vote_record(record: dict) -> dict:
-    """Refuse a vote record that is missing a contract field or carries a bad enum."""
+def assert_vote_record(record: dict, *, secondary: bool = False) -> dict:
+    """Refuse a vote record that is missing a contract field or carries a bad enum.
+
+    ``secondary`` is the run's mode, not the record's claim about itself: a run told it is
+    secondary must produce the two stamp fields on every row, and a run that is not
+    secondary must not half-stamp one. A gate record carries neither field and is checked
+    exactly as it was before the stamp existed.
+    """
     missing = [f for f in REQUIRED_VOTE_FIELDS if f not in record]
     if missing:
         raise RecordError(f"vote record is missing required fields {missing}")
+    if secondary or any(f in record for f in SECONDARY_VOTE_FIELDS):
+        stamp_missing = [f for f in SECONDARY_VOTE_FIELDS if f not in record]
+        if stamp_missing:
+            raise RecordError(
+                f"secondary-mode vote record is missing required fields {stamp_missing}; "
+                f"a reading that is reported beside column A has to say so on every row"
+            )
+        if record["secondary"] is not True:
+            raise RecordError(
+                f"secondary must be True on a stamped vote record, got {record['secondary']!r}"
+            )
+        if not isinstance(record["configuration"], str) or not record["configuration"].strip():
+            raise RecordError("configuration must be a non-empty string on a stamped record")
     if record["question"] not in VALID_QUESTIONS:
         raise RecordError(f"question {record['question']!r} not in {VALID_QUESTIONS}")
     if record["judge_backend"] not in VALID_BACKENDS:
@@ -115,9 +144,9 @@ def vote_key(record: dict) -> str:
     )
 
 
-def append_vote(path: str | Path, record: dict) -> None:
+def append_vote(path: str | Path, record: dict, *, secondary: bool = False) -> None:
     """Append one validated vote. Written line by line and flushed so a kill loses one row."""
-    assert_vote_record(record)
+    assert_vote_record(record, secondary=secondary)
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "a", encoding="utf-8") as fh:

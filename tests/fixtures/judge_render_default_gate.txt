@@ -1,0 +1,24 @@
+# exit_status 0
+# judge-argv
+-m
+experiments.jury.gate
+--items
+<ROOT>/gate_items.jsonl
+--out
+<ROOT>/results/qwen3-32b/arc_challenge/stated-hint
+--substrate
+arc_challenge
+--cue-family
+stated-hint
+--seed
+7
+--concurrency
+8
+--num-predict
+256
+--q1-prompt
+a
+--judge
+qwen3-32b=http://127.0.0.1:18000/v1
+# exit_code.txt
+<ROOT>/results/qwen3-32b/arc_challenge/stated-hint/exit_code.txt 0

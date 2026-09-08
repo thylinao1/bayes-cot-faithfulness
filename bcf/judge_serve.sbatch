@@ -40,14 +40,33 @@
 # 6 server timeout, 8 unknown judge key, 9 repo cd, 10 wrong repo tree, 12 gpu-util
 # override on a non-exploratory line, 13 SERVE PORT NOT OURS (the port answers with a
 # foreign model list, or from a process this job did not start; bcf/serve_ready.py),
-# 14 the gpt-oss harmony vocab did not prewarm. A gate variant that crashed without
+# 14 the gpt-oss harmony vocab did not prewarm, 15 the SECONDARY sweep mode was asked for
+# and its items manifest does not authorise it. A gate variant that crashed without
 # writing gate_report.json is recorded as 12 and raises the job's own status to 12.
 #
-# Required : BCF_JUDGES (comma separated judge keys), BCF_GATE_ITEMS
+# TWO MODES, and the default is the gate. BCF_JURY_MODE=three-seeded (the default, and
+# what every existing job table asks for by saying nothing) serves the judges and runs the
+# synthetic gate, unchanged. BCF_JURY_MODE=audit is the SECONDARY sweep lane of RULING R15
+# part 2 (2026-09-08): the same serving code, the same port-ownership probe and the same
+# exit guard, but it scores ONE CELL of banked sweep records with
+# experiments.jury.runner --mode audit (one run plus the seeded 10 percent three-run
+# audit of section 6.4) and stamps every vote with the configuration name. It reads two
+# more variables and refuses without them:
+#
+#   BCF_SWEEP_ITEMS      the cell's items JSONL, built by experiments/jury/sweep_items.py
+#   BCF_ITEMS_MANIFEST   that file's manifest, default manifest.json beside it. It has to
+#                        say "secondary": true, name a configuration, and carry the
+#                        sha256 of the items file the job was handed, or the job stops at
+#                        15 before a single vote is cast. The substrate and the cue family
+#                        of the results path are READ FROM IT, so a cell's votes cannot be
+#                        written under another cell's name.
+#
+# Required : BCF_JUDGES (comma separated judge keys), BCF_GATE_ITEMS (gate mode only)
 # Optional : BCF_OUT_ROOT BCF_PORT_BASE BCF_CONCURRENCY BCF_GATE_LIMIT BCF_SEED
 #            BCF_NUM_PREDICT BCF_SERVER_WAIT BCF_TP BCF_JUDGE_CACHE BCF_CACHE_BUDGET_GB
 #            BCF_RESUME BCF_Q1_PROMPT BCF_OUT_SLUG BCF_SERVING_LINE BCF_SERVING_NOTE
 #            BCF_HOME_USAGE_TTL_H BCF_ALL_JUDGE_ROWS BCF_ECHO_STRIP
+#            BCF_JURY_MODE BCF_SWEEP_ITEMS BCF_ITEMS_MANIFEST
 #
 # BCF_Q1_PROMPT names which Q1 prompt file the gate loads ("a" is the file of record,
 # "b" and "c" the revisions). It also takes a list, separated by "+" in a job table and by
@@ -87,8 +106,23 @@ JUDGES="${BCF_JUDGES:?BCF_JUDGES is required, e.g. qwen3-32b or gemma-3-27b-it+g
 # judge while its results directory and its report claimed two. Both separators are
 # accepted here so a hand-run sbatch that quotes the value properly still works.
 JUDGES="$(printf '%s' "$JUDGES" | tr '+' ',')"
-GATE_ITEMS="${BCF_GATE_ITEMS:?BCF_GATE_ITEMS is required}"
-OUT_ROOT="${BCF_OUT_ROOT:-$HOME/bcf/results/jury-gate}"
+# The mode, decided before anything else reads a variable, because it decides WHICH items
+# variable is required. Unset is the gate, which is what every job table written before
+# 2026-09-08 asks for by saying nothing.
+JURY_MODE="${BCF_JURY_MODE:-three-seeded}"
+case "$JURY_MODE" in
+  three-seeded|audit) : ;;
+  *) echo "[mode] REFUSING: BCF_JURY_MODE=${JURY_MODE} is neither three-seeded nor audit" >&2; exit 15 ;;
+esac
+if [ "$JURY_MODE" = "three-seeded" ]; then
+  GATE_ITEMS="${BCF_GATE_ITEMS:?BCF_GATE_ITEMS is required}"
+  OUT_ROOT="${BCF_OUT_ROOT:-$HOME/bcf/results/jury-gate}"
+else
+  # jury_wave.sh puts BCF_GATE_ITEMS on every --export line it builds, so it is present
+  # here and is deliberately NOT read: the audit lane's items come from BCF_SWEEP_ITEMS.
+  GATE_ITEMS=""
+  OUT_ROOT="${BCF_OUT_ROOT:-$HOME/bcf/results/jury-secondary}"
+fi
 # Unset means "a free loopback port per judge". A fixed base put two jobs of ours on
 # one server on xgph12 on 2026-09-07 (see DECISION-LOG 17:41); a pinned BCF_PORT_BASE
 # is still honored and still lays the judges out at BASE, BASE+1, ...
@@ -125,6 +159,84 @@ ALL_ROWS_FLAG=""
 # and in the report, so a stripped run cannot be read as an unstripped one.
 ECHO_STRIP_FLAG=""
 [ "${BCF_ECHO_STRIP:-0}" -gt 0 ] 2>/dev/null && ECHO_STRIP_FLAG="--echo-strip ${BCF_ECHO_STRIP}"
+
+# --- the SECONDARY sweep lane's items, and the manifest that authorises them ----
+# Read BEFORE the results path exists, because the results path is read out of it: the
+# cell's substrate and cue family come from the manifest, not from a variable a job table
+# could get wrong, so a cell's votes cannot land under another cell's name. The checks
+# that decide whether this job may run AT ALL are made further down, once the exit guard
+# is armed, so a refusal is recorded in exit_code.txt like any other failure.
+SWEEP_ITEMS=""
+ITEMS_MANIFEST=""
+ITEMS_CONFIGURATION=""
+ITEMS_SECONDARY=""
+ITEMS_SHA256=""
+ITEMS_SHA256_ACTUAL=""
+ITEMS_COUNT=""
+ITEMS_SUBJECT=""
+if [ "$JURY_MODE" = "audit" ]; then
+  SWEEP_ITEMS="${BCF_SWEEP_ITEMS:-}"
+  if [ ! -f "$SWEEP_ITEMS" ]; then
+    echo "[items] REFUSING: BCF_JURY_MODE=audit needs BCF_SWEEP_ITEMS pointing at a cell's items JSONL (got '${SWEEP_ITEMS}')" >&2
+    exit 15
+  fi
+  ITEMS_MANIFEST="${BCF_ITEMS_MANIFEST:-$(dirname "$SWEEP_ITEMS")/manifest.json}"
+  if [ ! -f "$ITEMS_MANIFEST" ]; then
+    echo "[items] REFUSING: no items manifest at ${ITEMS_MANIFEST}; experiments/jury/sweep_items.py writes one beside every items file" >&2
+    exit 15
+  fi
+  # The echo strip is a gate-only option: experiments.jury.runner has no such flag, and
+  # accepting the variable while dropping the flag would run an unstripped sweep under a
+  # row that says otherwise.
+  if [ -n "$ECHO_STRIP_FLAG" ]; then
+    echo "[items] REFUSING: BCF_ECHO_STRIP=${BCF_ECHO_STRIP} is a gate-only option and this is BCF_JURY_MODE=audit" >&2
+    exit 15
+  fi
+  case "$Q1_PROMPT" in
+    *+*|*,*)
+      echo "[items] REFUSING: the secondary configuration names ONE Q1 file; got BCF_Q1_PROMPT=${Q1_PROMPT}" >&2
+      exit 15 ;;
+  esac
+  MANIFEST_ENV="$(python - "$ITEMS_MANIFEST" "$SWEEP_ITEMS" <<'MANIFEST'
+import hashlib
+import json
+import shlex
+import sys
+
+manifest_path, items_path = sys.argv[1], sys.argv[2]
+try:
+    with open(manifest_path, encoding="utf-8") as fh:
+        m = json.load(fh)
+except (OSError, ValueError) as exc:
+    print(f"[items] REFUSING: {manifest_path} is not readable JSON: {exc}", file=sys.stderr)
+    raise SystemExit(1) from None
+try:
+    fields = {
+        "ITEMS_SUBSTRATE": m["cell"]["substrate"],
+        "ITEMS_CUE": m["cell"]["cue_family"],
+        "ITEMS_SUBJECT": m["cell"]["subject_model"],
+        "ITEMS_CONFIGURATION": m["configuration"],
+        "ITEMS_SECONDARY": "true" if m.get("secondary") is True else "false",
+        "ITEMS_SHA256": m["items"]["sha256"],
+        "ITEMS_COUNT": m["items"]["count"],
+    }
+except KeyError as exc:
+    print(f"[items] REFUSING: {manifest_path} has no {exc}; it is not a "
+          f"sweep_items.py manifest", file=sys.stderr)
+    raise SystemExit(1) from None
+digest = hashlib.sha256()
+with open(items_path, "rb") as fh:
+    for chunk in iter(lambda: fh.read(1 << 20), b""):
+        digest.update(chunk)
+fields["ITEMS_SHA256_ACTUAL"] = digest.hexdigest()
+for key, value in fields.items():
+    print(f"{key}={shlex.quote(str(value))}")
+MANIFEST
+)" || exit 15
+  eval "$MANIFEST_ENV"
+  SUBSTRATE="$ITEMS_SUBSTRATE"
+  CUE="$ITEMS_CUE"
+fi
 
 # vLLM 0.28 JIT-compiles the FlashInfer top-k/top-p sampler on first use and that build is
 # node dependent (job 825480 died on xgph10 after loading the weights). Every judge call is
@@ -176,7 +288,32 @@ trap finish EXIT
   echo "=== bcf judge_serve: job ${SLURM_JOB_ID} on $(hostname) at $(date -Is) ==="
   echo "judges=${JUDGES} items=${GATE_ITEMS} out=${OUT_DIR} concurrency=${CONCURRENCY}"
   echo "q1_prompt=${Q1_PROMPT} serving_line=${SERVING_LINE:-pinned}"
+  [ "$JURY_MODE" = "audit" ] && echo "mode=audit sweep_items=${SWEEP_ITEMS} manifest=${ITEMS_MANIFEST}"
 } | ts | tee -a "$LOG"
+
+# The check that decides whether the SECONDARY lane may run at all. It sits after the EXIT
+# trap on purpose, so a refusal is recorded as 15 in exit_code.txt rather than leaving the
+# guard's "started, never finished" 255 behind. What it is for: these votes are a reading
+# reported BESIDE column A of record and never selected on (RULING R15 part 2 (g)), and
+# the stamp the manifest authorises, which the runner then writes onto every row, is the
+# only thing that keeps them that way.
+if [ "$JURY_MODE" = "audit" ]; then
+  if [ "$ITEMS_SECONDARY" != "true" ]; then
+    echo "[items] REFUSING: ${ITEMS_MANIFEST} does not say \"secondary\": true. This lane writes secondary votes only." | ts | tee -a "$LOG" >&2
+    exit 15
+  fi
+  case "$ITEMS_CONFIGURATION" in
+    secondary-*) : ;;
+    *)
+      echo "[items] REFUSING: configuration '${ITEMS_CONFIGURATION}' in ${ITEMS_MANIFEST} does not name a secondary configuration" | ts | tee -a "$LOG" >&2
+      exit 15 ;;
+  esac
+  if [ "$ITEMS_SHA256" != "$ITEMS_SHA256_ACTUAL" ]; then
+    echo "[items] REFUSING: ${SWEEP_ITEMS} hashes to ${ITEMS_SHA256_ACTUAL} and its manifest describes ${ITEMS_SHA256}; the manifest does not belong to this items file" | ts | tee -a "$LOG" >&2
+    exit 15
+  fi
+  echo "[items] SECONDARY ${ITEMS_CONFIGURATION}: ${ITEMS_COUNT} items, subject ${ITEMS_SUBJECT}, cell ${SUBSTRATE}/${CUE}, sha256 ${ITEMS_SHA256}" | ts | tee -a "$LOG"
+fi
 
 # --- 1. device assertion, BEFORE any download ----------------------------------
 if ! bcf_assert_devices "$TP" 2>&1 | ts | tee -a "$LOG"; then
@@ -427,20 +564,42 @@ for variant in "${Q1_VARIANTS[@]}"; do
   # Same rule one level down: the variant's own exit file starts at 255, so a run
   # cancelled inside variant c leaves c non-zero and does not disturb a and b.
   bcf_exit_guard_open_stage "${RUN_OUT}/exit_code.txt"
-  python -m experiments.jury.gate \
-    --items "$GATE_ITEMS" --out "$RUN_OUT" \
-    --substrate "$SUBSTRATE" --cue-family "$CUE" \
-    --seed "$SEED" --concurrency "$CONCURRENCY" --num-predict "$NUM_PREDICT" \
-    --q1-prompt "$variant" \
-    $RESUME_FLAG $ALL_ROWS_FLAG $ECHO_STRIP_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
+  if [ "$JURY_MODE" = "audit" ]; then
+    # The SECONDARY sweep lane. Same served judge, same ports, same guard; the runner
+    # rather than the gate, one cell of banked records rather than the synthetic corpus,
+    # and --mode audit, which is section 6.4's sweep protocol: one run per item plus the
+    # seeded 10 percent that gets three. --only-served-judges is what makes a
+    # single-judge configuration possible at all: the panel rule routes three judges onto
+    # a Gemma or Llama subject and only one of them is served here, so without it the
+    # runner refuses on the first unreachable judge. Every row still records the full
+    # routed panel and the labels are marked partial.
+    # The completion marker is run_summary.json, which the runner writes on the one path
+    # that means the scoring finished.
+    STAGE_MARKER="${RUN_OUT}/run_summary.json"
+    python -m experiments.jury.runner \
+      --items "$SWEEP_ITEMS" --out "$RUN_OUT" \
+      --substrate "$SUBSTRATE" --cue-family "$CUE" \
+      --seed "$SEED" --concurrency "$CONCURRENCY" --num-predict "$NUM_PREDICT" \
+      --q1-prompt "$variant" --mode audit --only-served-judges \
+      --secondary --configuration "$ITEMS_CONFIGURATION" \
+      $RESUME_FLAG $ALL_ROWS_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
+  else
+    STAGE_MARKER="${RUN_OUT}/gate_report.json"
+    python -m experiments.jury.gate \
+      --items "$GATE_ITEMS" --out "$RUN_OUT" \
+      --substrate "$SUBSTRATE" --cue-family "$CUE" \
+      --seed "$SEED" --concurrency "$CONCURRENCY" --num-predict "$NUM_PREDICT" \
+      --q1-prompt "$variant" \
+      $RESUME_FLAG $ALL_ROWS_FLAG $ECHO_STRIP_FLAG "${LIMIT_FLAG[@]}" "${LINE_FLAGS[@]}" "${JUDGE_FLAGS[@]}" 2>&1 | ts | tee -a "$LOG"
+  fi
   st=${PIPESTATUS[0]}
   echo "[gate] Q1 variant ${variant} finished at $(date -Is) with status ${st}" | ts | tee -a "$LOG"
   # 1 is a FAILED THRESHOLD, which is a result. Anything above 1 is the job breaking.
   # A 0 or a 1 with no gate_report.json is neither: a Python traceback also exits 1, and
   # a gate that ran always wrote a report. bcf_gate_stage_status turns that case into 12.
-  rec_st="$(bcf_gate_stage_status "$st" "${RUN_OUT}/gate_report.json")"
+  rec_st="$(bcf_gate_stage_status "$st" "$STAGE_MARKER")"
   if [ "$rec_st" != "$st" ]; then
-    echo "[gate] variant ${variant} wrote no gate_report.json: crash, not a verdict (status ${st})" | ts | tee -a "$LOG"
+    echo "[gate] variant ${variant} wrote no $(basename "$STAGE_MARKER"): crash, not a verdict (status ${st})" | ts | tee -a "$LOG"
   fi
   [ "$rec_st" -gt "$GATE_STATUS" ] && GATE_STATUS=$rec_st
   echo "$rec_st" > "${RUN_OUT}/exit_code.txt"

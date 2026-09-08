@@ -9,6 +9,11 @@ Modes (PREREGISTRATION_jury_and_scale.md section 6.4):
                 golden-set and calibration rows, and on the synthetic gate.
   audit         one run plus a seeded 10 percent three-run audit. Used on the sweep.
 
+A run may also be stamped SECONDARY (--secondary --configuration NAME, RULING R15 part 2
+of 2026-09-08). That changes no judging: it writes the configuration's name and a
+secondary flag onto every vote, which is what lets a single-judge reading be printed
+beside the frozen column A of record without ever being mistaken for it.
+
 Retry rule (section 6.6, PF-12 ii): a judge output that fails schema validation is retried
 ONCE on the same seed; a second failure is recorded as `malformed` and the vote is
 unavailable. An explicit abstention is recorded as `abstain` and is likewise unavailable.
@@ -134,6 +139,13 @@ class JuryRunner:
     # vote is in scope here as long as it is recorded as one. `_label_all` still drops
     # off-panel votes from the panel label, so this cannot leak into an aggregate.
     all_judge_rows: bool = False
+    # RULING R15 part 2 (f) and (g), 2026-09-08: this run is a SECONDARY configuration,
+    # reported beside column A of record and never selected on. Both fields land on EVERY
+    # vote and records.assert_vote_record requires them in this mode, so a secondary vote
+    # file can never be read as a run of the primary instrument. Left off, nothing changes:
+    # the gate writes the same fields it wrote before this existed.
+    secondary: bool = False
+    configuration: str = ""
     # A deterministic transformation applied to the item text BEFORE the judge sees it, and
     # the parameters that describe it. Empty means the judge scored the corpus as built.
     # This lands on EVERY vote, so a run made with the echo strip of option (d) can never be
@@ -164,6 +176,11 @@ class JuryRunner:
             self.run_id = time.strftime("%Y%m%dT%H%M%S")
         if self.mode not in ("three-seeded", "audit"):
             raise ValueError(f"unknown mode {self.mode!r}")
+        if self.secondary and not self.configuration.strip():
+            raise ValueError(
+                "a secondary run needs --configuration: the name is what makes the reading "
+                "reportable beside column A rather than confusable with it"
+            )
         if self.position_swap not in ("none", "first-run", "all-runs"):
             raise ValueError(f"unknown position_swap {self.position_swap!r}")
         if self.judge_filter is not None:
@@ -352,6 +369,9 @@ class JuryRunner:
             "input_transform": dict(self.input_transform),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         }
+        if self.secondary:
+            record["configuration"] = self.configuration
+            record["secondary"] = True
         if endpoint.fallback:
             self._queue_rerun(record)
         return record
@@ -435,7 +455,7 @@ class JuryRunner:
                 run_idx=t["run_idx"], seed=t["seed"], swap=t["swap"], panel=t["panel"],
             )
             with self._write_lock:
-                rec.append_vote(self.votes_path, record)
+                rec.append_vote(self.votes_path, record, secondary=self.secondary)
                 state["n"] += 1
                 n = state["n"]
             if progress_every and n % progress_every == 0:
@@ -522,6 +542,11 @@ class JuryRunner:
                        for k, e in self.endpoints.items()},
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         }
+        if self.secondary:
+            # Added only in secondary mode, so a gate checkpoint holds the same keys it
+            # held before this mode existed and a resumed gate leg diffs clean.
+            payload["secondary"] = True
+            payload["configuration"] = self.configuration
         self.checkpoint_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
@@ -555,6 +580,13 @@ def build_parser() -> argparse.ArgumentParser:
                    help="score every item with every served judge, including one of the "
                         "subject's own family; own-family votes are recorded and stay out "
                         "of the panel label")
+    p.add_argument("--secondary", action="store_true",
+                   help="stamp every vote with configuration and secondary=true (RULING "
+                        "R15 part 2): a reading reported beside column A of record and "
+                        "never selected on. Needs --configuration.")
+    p.add_argument("--configuration", default="",
+                   help="the name of the configuration these votes were cast under, e.g. "
+                        "secondary-qwen3-32b-d-np1024")
     p.add_argument("--allow-soclaas-fallback", action="store_true")
     p.add_argument("--only-served-judges", action="store_true",
                    help="score only the judges given with --judge, recording the full routed "
@@ -598,7 +630,11 @@ def main(argv: list[str] | None = None) -> int:
         judge_filter=tuple(endpoints) if args.only_served_judges else None,
         serving_line=args.serving_line, serving_line_note=args.serving_line_note,
         all_judge_rows=args.all_judge_rows,
+        secondary=args.secondary, configuration=args.configuration,
     )
+    if args.secondary:
+        print(f"[jury] SECONDARY configuration {args.configuration!r}: every vote is "
+              f"stamped, this reading is reported beside column A and never selected on")
     print(f"[jury] Q1 prompt {prompts['Q1'].path.name} "
           f"(variant {q1_variant_of(prompts['Q1'])}, sha256 {prompts['Q1'].sha256})")
     summary = runner.run(items, concurrency=args.concurrency)
