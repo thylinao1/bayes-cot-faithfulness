@@ -94,9 +94,9 @@ def load(lane: Lane):
                 try:
                     fits[(m, s, c)] = json.loads(fp.read_text())
                 except json.JSONDecodeError as exc:
-                    absent.append(f"{m}/{s}/{c}: fit.json does not parse ({exc})")
+                    absent.append(f"{m}/{s}/{c} (fit.json does not parse: {exc})")
             else:
-                absent.append(f"{m}/{s}/{c}: no fit.json under {fp.parent}")
+                absent.append(f"{m}/{s}/{c} (no fit.json)")
             pp = results / m / s / c / "pymc.json"
             if pp.exists():
                 pymc[(m, s, c)] = json.loads(pp.read_text())
@@ -108,7 +108,7 @@ def load(lane: Lane):
             if xp.exists():
                 extra[(m, name)] = json.loads(xp.read_text())
     for line in absent:
-        print(f"CELL NOT IN THE DOCUMENT {line}", file=sys.stderr)
+        print(f"CELL NOT IN THE DOCUMENT: {line}, under {results}", file=sys.stderr)
     gemma_note = results / "gemma_aqua_clean_parse.json"
     gemma = json.loads(gemma_note.read_text()) if gemma_note.exists() else None
     return gate, fits, pymc, rows, extra, gemma, absent
