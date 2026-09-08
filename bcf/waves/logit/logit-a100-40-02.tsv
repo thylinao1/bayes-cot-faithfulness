@@ -1,0 +1,15 @@
+# wave logit-a100-40-02  pool a100-40  1 card at a time (this job type has no CONTRACT.md split)
+# submit with:  bcf/logit_wave.sh --check-only --max 1 bcf/waves/logit/logit-a100-40-02.tsv
+#               bcf/logit_wave.sh --max 1 bcf/waves/logit/logit-a100-40-02.tsv   (one model row per call;
+#               the submitter has no done marker, so use single-row copies to avoid resubmitting a finished model)
+#
+# Job B over the six cells docs/CELLS24-FITS.md added to the 18 of logit-a100-40-01.tsv: the
+# aqua_rat metadata and grader-code cells of each model, generated on 2026-09-08 (wave 07 and 08
+# jobs 828501 to 828504 and 828521 to 828523; clean-correct 433, 437, 361, 356, 370, 370 of 570).
+# Same revisions as logit-a100-40-01.tsv, same serving mode of record; sidecars land beside each
+# cell's records like the first pass. See that file's header for why this sits in bcf/waves/logit/.
+#
+# columns: MODEL <tab> KEY=VALUE ...   (order does not matter; the last field is not special)
+Qwen/Qwen3-8B	GPU=a100-40	BCF_REVISION=b968826d9c46dd6066d109eabc6255188de91218	BCF_CELLS=/home/e/e1506804/bcf/results/qwen3-8b/aqua_rat/metadata+/home/e/e1506804/bcf/results/qwen3-8b/aqua_rat/grader-code
+google/gemma-2-9b-it	GPU=a100-40	BCF_REVISION=11c9b309abf73637e4b6f9a3fa1e92e615547819	BCF_CELLS=/home/e/e1506804/bcf/results/gemma-2-9b-it/aqua_rat/metadata+/home/e/e1506804/bcf/results/gemma-2-9b-it/aqua_rat/grader-code
+meta-llama/Llama-3.1-8B-Instruct	GPU=a100-40	BCF_REVISION=0e9e39f249a16976918f6564b8830bc894c89659	BCF_CELLS=/home/e/e1506804/bcf/results/llama-3.1-8b-instruct/aqua_rat/metadata+/home/e/e1506804/bcf/results/llama-3.1-8b-instruct/aqua_rat/grader-code
