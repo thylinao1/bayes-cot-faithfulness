@@ -204,3 +204,5 @@ experiments/results/jury-prescreen/*/*
 !experiments/results/jury-prescreen/*/votes_a.jsonl
 !experiments/results/jury-prescreen/*/votes_d.jsonl
 !experiments/results/jury-prescreen/*/report.json
+!experiments/results/audit1/
+!experiments/results/audit1/**

@@ -100,7 +100,7 @@ reasoning block, 0 close one, and 1,500 carry the byte markers.
 | `allenai/Olmo-3-7B-Think` | A | 320 | 23/30 = 0.7667 | 29/30 = 0.9667 | 160.27 | 320 | 1/30 | 0/30 | 0.5231 | PASS (c=1 30/30 diff 0.0; c=32 30/30 diff 0.0) |
 | `allenai/Olmo-3-7B-Think` | B | 4096 | 23/30 = 0.7667 | 24/30 = 0.8000 | 1897.0 | 4096 | 6/30 | 24/30 | 8.1683 | PASS (c=1 30/30 diff 0.0; c=32 30/30 diff 0.0) |
 | `microsoft/Phi-4-reasoning` | A | 320 | 23/30 = 0.7667 | 26/30 = 0.8667 | 253.07 | 320 | 14/30 | 15/30 | 0.8671 | PASS (c=1 30/30 diff 0.0; c=32 30/30 diff 0.0) |
-| `phi-4-reasoning` | B | - | NOT COMPLETED IN THIS LANE | | | | | | | |
+| `microsoft/Phi-4-reasoning` | B | 4096 | 0/30 = 0.0000 | 0/30 = 0.0000 | 4096.0 | 4096 | 30/30 | 0/30 | 27.1517 | PASS (c=1 30/30 diff 0.0; c=32 30/30 diff 0.0) |
 
 Configuration A, what the prefill actually did (read from the rendered prompt):
 - `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`: branch `inserted_a_whole_empty_block`; rendered prompt ends `"perline.Thenendwithafinallineexactlyoftheform'Answer:(X)'.<｜Assistant｜><think>\n\n</think>\n\n"`
@@ -262,16 +262,16 @@ eighteen, and inheriting a finding from a sibling model is exactly the assumptio
 
 ## 6. What is missing, named
 
-- **`microsoft/Phi-4-reasoning` configuration B did not complete in this lane.** Job 827214
-  ran configuration A to completion and was still inside configuration B's concurrency-1
-  determinism leg after two hours at a logged 12.3 generation tokens per second when the VPN
-  to the cluster dropped and this lane lost its connection. `config_A.json` is mirrored;
-  `config_B.json` is not. Resume: `ssh soc`, then
-  `ls ~/bcf/results/audit1-phi-4-reasoning/` and `cat ~/bcf/results/audit1-phi-4-reasoning/exit_code.txt`;
-  if `config_B.json` exists, `scp` it into `experiments/results/audit1/st-phi-4-reasoning/`
-  and re-run `python3 experiments/audit/assemble_reasoning_doc.py`. If the 4-hour wall killed
-  the job first, resubmit with
-  `sbatch --job-name=bcf-audit-st-phi-4-reasoning --export=ALL,BCF_MODEL=microsoft/Phi-4-reasoning,BCF_REV=1de18ec97600877ce63dbf60c73b998da99f0195,BCF_SLUG=phi-4-reasoning,BCF_MAX_LEN=16384,BCF_TIME=08:00:00 ~/bcf/repo-audit1/bcf/audit1_serving_test.sbatch`.
+- **`microsoft/Phi-4-reasoning` configuration B, collected after the lane closed.** Job 827214
+  finished on 2026-09-07 at 21:28 (`config_B.json` mirrored under
+  `experiments/results/audit1/st-phi-4-reasoning/`): 0/30 correct, 0/30 parsed, mean completion
+  4,096 tokens, 30/30 at the 4,096 cap, 0/30 closing think tags, 27.15 s per item at 32 in
+  flight, R1 preflight PASS at both levels. With the reasoning block allowed, this model does
+  not finish inside 4,096 tokens on any of the 30 items, so configuration B gives it no usable
+  answer at that budget; configuration A gave 23/30 correct and 26/30 parsed with 14/30 at the
+  320 cap. What that means for its cell is a ruling (R12(3) and its follow-up), not a
+  measurement: the off mode that also closes reopened blocks in forced continuations is the
+  remaining candidate, to be run as an exploratory cell first.
 - **`openai/gpt-oss-20b` has no serving test at all**, in either configuration, because it
   cannot be served on an a100-40 slice under `VLLM_BATCH_INVARIANT=1` in this build.
   `docs/WAVE1-AUDIT.md` carries that finding with the server's own refusal text.

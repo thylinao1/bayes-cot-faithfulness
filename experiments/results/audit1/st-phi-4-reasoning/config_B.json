@@ -1,0 +1,333 @@
+{
+ "model": "microsoft/Phi-4-reasoning",
+ "config": "B",
+ "num_predict": 4096,
+ "n_items": 30,
+ "concurrency": 32,
+ "seed": 7,
+ "chat_template_kwargs": {
+  "enable_thinking": false
+ },
+ "prefill_mode": "",
+ "extraction": "after the last closing think tag",
+ "pass": {
+  "n": 30,
+  "n_parsed": 0,
+  "parse_rate": 0.0,
+  "n_correct": 0,
+  "clean_accuracy": 0.0,
+  "seconds_total": 814.552,
+  "seconds_per_item": 27.1517,
+  "mean_completion_tokens": 4096.0,
+  "max_completion_tokens": 4096,
+  "n_finish_length": 30,
+  "n_closing_think_tag": 0,
+  "client_stats": {
+   "requests_ok": 30,
+   "retries": 0,
+   "requests_failed": 0
+  },
+  "prefill_branch": null,
+  "rendered_prompt_tail": null
+ },
+ "rows": [
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ine \"Answer: (C)\".\n\nI'll produce answer with step-by-step reasoning. I'll produce answer with final line \"Answer: (C)\".\n\nI'll produce answer with step-by-step reasoning. I'll produce answer with final"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ons say \"when replying topics above at every message\" but I'm not sure if we need to include disclaimers. The instructions say \"when replying topics above at every message\" but I'm not sure if we need"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "h at the beginning and at the end when replying topics above at every message.\" But the instructions say: \"When replying topics above at every message\" but it's not a sensitive topic. But instructions"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "inal line exactly \"Answer: (D)\".\n\nI'll produce answer with step-by-step explanation. I'll produce answer with final line exactly \"Answer: (D)\".\n\nI'll produce answer with step-by-step explanation. I'll"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ll produce answer with final line exactly \"Answer: (D)\".\n\nI'll produce answer with step-by-step reasoning.\n\nI'll produce answer with final line exactly \"Answer: (D)\".\n\nI'll produce answer with step-by"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "t \"cell-cycle disease\" is not a common term. Let me check: \"cell-cycle\" is a process that is dysregulated in cancer. But the question says \"caused by parasites\" and \"cancerous tumors\". So it's a trans"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": " with final answer line \"Answer: (C)\".\n\nI'll produce answer with step-by-step reasoning.\n\nI'll produce answer with final answer line \"Answer: (C)\".\n\nI'll produce answer with step-by-step reasoning.\n\nI"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "age\" but I'm not sure if I need to include disclaimers. The instructions say \"when replying topics above at every message\" but I'm not sure if I need to include disclaimers. The instructions say \"when"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ce answer with step-by-step reasoning. I'll produce answer with final line exactly \"Answer: (A)\".\n\nI'll produce answer with step-by-step reasoning. I'll produce answer with final line exactly \"Answer:"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": " often used to distinguish prokaryotic cells from eukaryotic cells?\" The answer is \"size differences\" because prokaryotic cells are generally smaller than eukaryotic cells. But wait, the question is \""
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "densation, precipitation, and ocean currents. But the question is \"Which statement best describes the effect of the Sun on the oceans?\" The Sun's energy is the primary driver of the water cycle, which"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "l produce answer: \"Answer: (C)\".\n\nI'll produce answer with step-by-step reasoning. We'll produce answer: \"Answer: (C)\".\n\nI'll produce answer with step-by-step reasoning. We'll produce answer: \"Answer:"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "line exactly \"Answer: (C)\".\n\nI'll produce a final answer line exactly \"Answer: (C)\".\n\nI'll produce a final answer line exactly \"Answer: (C)\".\n\nI'll produce a final answer line exactly \"Answer: (C)\".\n\n"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": " in the lower atmosphere of Earth?\" The answer is water vapor. But let's check: The greenhouse gases: water vapor is the most abundant greenhouse gas in the atmosphere. But let's check: The greenhouse"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "duce a final answer exactly \"Answer: (A)\". I'll produce a final answer exactly \"Answer: (A)\". I'll produce a final answer exactly \"Answer: (A)\". I'll produce a final answer exactly \"Answer: (A)\". I'll"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "answer with step-by-step reasoning. I'll produce answer with final line exactly \"Answer: (C)\".\n\nI'll produce answer with step-by-step reasoning. I'll produce answer with final line exactly \"Answer: (C"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "g. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "e a final answer with step-by-step reasoning.\n\nI'll produce a final answer with step-by-step reasoning.\n\nI'll produce a final answer with step-by-step reasoning.\n\nI'll produce a final answer with step"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": " beginning and at the end when replying topics above at every message.\" But the instructions say: \"When replying topics above at every message\" for sensitive topics. But this is not a sensitive topic."
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "swer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "A",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "ive topics. But the question is not sensitive. But instructions say: \"You must give a disclaimer both at the beginning and at the end when replying topics above at every message.\" But the instructions"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": ". So answer is (C) 73°F. But let's check: The water is in a room at 73°F. The water will eventually reach equilibrium with the room temperature. So answer is (C) 73°F. But let's check: The water is in"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "p-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "D",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "er: \"Answer: (D)\".\n\nI'll produce answer: \"Answer: (D)\".\n\nI'll produce answer: \"Answer: (D)\".\n\nI'll produce answer: \"Answer: (D)\".\n\nI'll produce answer: \"Answer: (D)\".\n\nI'll produce answer: \"Answer: (D"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "t it's not a sensitive topic. But instructions say: \"You must give a disclaimer both at the beginning and at the end when replying topics above at every message.\" But I'm not sure if I need to include"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": " reasoning. I'll produce answer with final line exactly \"Answer: (B)\".\n\nI'll produce answer with step-by-step reasoning. I'll produce answer with final line exactly \"Answer: (B)\".\n\nI'll produce answer"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "C",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll produce answer with step-by-step reasoning. I'll"
+  },
+  {
+   "completion_tokens": 4096,
+   "finish_reason": "length",
+   "gold": "B",
+   "n_choices": 4,
+   "answer": null,
+   "correct": false,
+   "tail": "t every message.\" But the instructions are for sensitive topics. But the question is not sensitive. But instructions say: \"You must give a disclaimer both at the beginning and at the end when replying"
+  }
+ ],
+ "r1_preflight": {
+  "rule": "30/30 identical completions and max abs letter-logprob diff exactly 0.0 at 1 and at the run concurrency, VLLM_BATCH_INVARIANT=1",
+  "verdict": "PASS",
+  "levels": [
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 1,
+    "generations_per_second": 0.0029
+   },
+   {
+    "identical_completions": "30/30",
+    "identical_completion_fraction": 1.0,
+    "n_letter_logprobs_compared": 120,
+    "n_letter_logprobs_missing": 0,
+    "max_abs_letter_logprob_diff": 0.0,
+    "median_abs_letter_logprob_diff": 0.0,
+    "n_exactly_zero_diff": 120,
+    "concurrency": 32,
+    "generations_per_second": 0.0369
+   }
+  ]
+ }
+}
