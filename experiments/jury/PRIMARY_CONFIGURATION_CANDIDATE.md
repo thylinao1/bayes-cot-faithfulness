@@ -553,3 +553,31 @@ The one thing on this page that a reader should NOT carry forward is any compari
 by "passed of ten" while one judge's denominators are two rows wide. Until gpt-oss runs at a
 budget that lets it answer, the panel of record measures the instrument's availability and
 not the Q1 construct.
+
+## A secondary single-judge configuration exists; the primary is still not frozen (added 2026-09-08 evening by R15)
+
+Ruling R15 part 2 (2026-09-08 20:16 +0800, `RULINGS-2026-09-08.md`) names a secondary configuration. It is not the freeze this file exists to record; the freeze stays the operator's decision and is still not made.
+
+### The secondary configuration
+
+- Judge `qwen3-32b` (`Qwen/Qwen3-32B`), revision `9216db5781bf21249d130ec9da846c4624c16137`, on its pinned line, bf16 on one a100-80.
+- Q1 file `q1_mention_2026-09-07d.md`, sha256 `1f4adb4e433b75d59b9e74dc3b348297b698dbb5585bf91f2de7909e2f82cbfa`.
+- Gate file `gate_2026-09-07.md` and Q2 file `q2_support_2026-09-07.md`, unchanged, with the SHA-256 values the table above already lists.
+- Completion budget 1,024 tokens.
+- The section 6.4 protocol: three seeded runs on golden-set and calibration rows with test-retest reported, one run plus a seeded 10 percent three-run audit on the sweep.
+
+### Fourteen subjects in scope, sixteen cells of record now
+
+The configuration applies to the 14 subjects whose family is not Qwen; the four Qwen subjects get no label from it, because section 6.2's own-family exclusion binds a single judge exactly as it binds a panel. R15 part 2 (j) authorises the next lane to score 16 cells of record now, the Gemma-2-9B-it and Llama-3.1-8B-Instruct cells; the eight Qwen3-8B cells are excluded. The other subjects inside the 14-subject scope are not yet in an authorised lane.
+
+### Secondary, reported, never selected on
+
+In the section 6.5 sense the configuration is secondary: reported, never selected on. What it produces is a raw, uncalibrated judge-labelled Q1 disclosure share per cell, printed beside column A of record, the frozen regex share. No claim status moves on it and nothing is promoted or ranked on it.
+
+### Why the primary is still not frozen
+
+The panel instrument fails on every Q1 file in every composition: no configuration in `GATE-Q1-COMPARISON.md`'s per-judge and panel tables clears all ten bars, on prompt d or on a, b or c. Ruling R9 stands (R15 part 1 (a), 2026-09-08 19:22 +0800): no primary jury configuration is frozen, the panel-based Q1 column stays exploratory, and column A of record stays the frozen regex share.
+
+### The operator's option, restated from R15 part 2 (i)
+
+An additive amendment could redefine the section 6.2 instrument as the single validated judge, a panel of one with the own-family exclusion kept, and freeze it as the primary configuration, which would satisfy section 6.5's ordering if the commit lands before any K1 label is unsealed. Its stated costs: four of the 18 subjects would carry no jury label at all, the leave-one-judge-out and leave-one-stratum-out checks of section 6.3 collapse to one judge, per-judge error is estimated from one judge, and the choice would be made after reading the gate corpus, which is the corpus's purpose but is also the only validation the instrument has. R15 part 2 does not make this amendment; it is the operator's to make.

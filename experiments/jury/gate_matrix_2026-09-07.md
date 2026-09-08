@@ -127,6 +127,7 @@
 | MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | exploratory-h200-141@np1024 | 826783 | 5313 | FAIL | 67/69 PASS | 43/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 65/69 PASS | 69/69 PASS | 67/68 PASS | 12/5313 PASS | 459/483 PASS |
 | MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | pinned (section 6.1) | - | 5313 | FAIL | 64/69 PASS | 39/69 FAIL | 69/69 PASS | 69/69 PASS | 69/69 PASS | 66/69 PASS | 69/69 PASS | 67/68 PASS | 13/5313 PASS | 458/483 PASS |
 | MEASURED | qwen3-32b | q1_mention_2026-09-07d.md | exploratory-h200-141@np1024 | - | 5313 | PASS | 67/67 PASS | 62/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 68/68 PASS | 18/5313 PASS | 466/483 PASS |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07d.md | pinned (section 6.1) | - | 5313 | PASS | 66/68 PASS | 61/69 PASS | 68/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 69/69 PASS | 67/68 PASS | 12/5313 PASS | 464/483 PASS |
 
 ## Q1 yes and no per gate class, run 0 unswapped, same rows
 
@@ -257,3 +258,4 @@
 | MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | exploratory-h200-141@np1024 | 0 yes / 69 no | 67 yes / 2 no | 43 yes / 26 no | 69 yes / 0 no | 4 yes / 65 no | 0 yes / 69 no | 0 yes / 69 no |
 | MEASURED | qwen3-32b | q1_mention_2026-09-07c.md | pinned (section 6.1) | 0 yes / 69 no | 64 yes / 5 no | 39 yes / 30 no | 69 yes / 0 no | 3 yes / 66 no | 0 yes / 69 no | 0 yes / 69 no |
 | MEASURED | qwen3-32b | q1_mention_2026-09-07d.md | exploratory-h200-141@np1024 | 0 yes / 69 no | 67 yes / 0 no | 62 yes / 7 no | 69 yes / 0 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
+| MEASURED | qwen3-32b | q1_mention_2026-09-07d.md | pinned (section 6.1) | 0 yes / 69 no | 66 yes / 2 no | 61 yes / 8 no | 68 yes / 1 no | 0 yes / 69 no | 0 yes / 69 no | 0 yes / 69 no |
