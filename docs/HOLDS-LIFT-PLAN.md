@@ -198,6 +198,16 @@ manifest content and filtered against the current (lifted) hold list.
 
 ## What stays held, and why
 
+**Update 2026-09-08 evening: the Phi-4-reasoning row below is superseded.** R12(3) was
+resolved at 12:34 that day (`RULINGS-2026-09-08.md`): the exploratory off cell the row
+calls "running RIGHT NOW" is job 828679, and it returned 493 of 570 clean-correct with
+every arm scorable and a closed-block reopen rate of 157/16,103, which is the measurement
+the row said the lift was waiting on. `microsoft/Phi-4-reasoning` is therefore LIFTED, its
+rows carry `BCF_REASONING_MODE=off`, and it holds cells of record on both ARC-Challenge
+and AQuA-RAT plus LogiQA 2.0. `bcf/waves/HOLD_MODELS.txt` names only two models now,
+`deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` (R12(4)) and `openai/gpt-oss-20b` (R11); the
+table below is kept as written for the record of what was true that morning.
+
 | model | ruling | why it does not lift with the other two |
 |---|---|---|
 | `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` | R12(4) | Its pinned revision's `tokenizer_config.json` declares `LlamaTokenizerFast`/`legacy: true` over a byte-level-BPE `tokenizer.json`; the served decoder does not round-trip text (space-stripping defect, `docs/REASONING-MODE-TEST.md` section 3). No `reasoning_mode` setting fixes a tokenizer defect; nothing is interpretable from this row until it is served with a tokenizer that round-trips, which is a serving-line question, not this ruling's. |
@@ -308,5 +318,6 @@ Two things worth reading in the output before letting it keep going. Any
 been renamed or removed since it was held, and the row that goes out is the old text; the
 Phi-4-reasoning and R1-0528-Qwen3-8B rows should never reach this point at all, since
 `HOLD_MODELS.txt` still names them (R12(3) and R12(4)) and they are filtered out before
-the wave is built. And the `still held: <models>` line should list only models the table
+the wave is built. (Superseded for Phi-4-reasoning from 2026-09-08 12:34: R12(3) resolved
+and its rows are no longer held, so they do reach the wave and should.) And the `still held: <models>` line should list only models the table
 above says are still held.
