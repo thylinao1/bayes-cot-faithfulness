@@ -29,6 +29,7 @@ sys.path.insert(0, str(_HERE))
 
 from typing import NamedTuple
 
+import cells18_fits as c18
 from cells18_fits import MODELS, SUBSTRATE_CUES, substrate_cues  # noqa: F401
 from wave1_fits_report import e, w
 
@@ -1757,13 +1758,508 @@ def _claim_status_limit_line(rows, fits) -> str:
     )
 
 
+# =========================================================================== #
+# The logit-level document: docs/CELLS24-LOGIT.md
+#
+# A separate renderer from the fits document above, reading a separate results
+# root, because the two are separate lanes and neither pass can write into the
+# other's directory. Every number below is read out of
+# experiments/results/cells24-logit/**/logit.json at run time and none is typed.
+# =========================================================================== #
+LOGIT_RESULTS = ROOT / "experiments" / "results" / "cells24-logit"
+LOGIT_RESULTS_REL = "experiments/results/cells24-logit"
+
+
+def _f(value, digits: int = 4, plus: bool = False) -> str:
+    """One number, or the word for its absence. Never a silent zero."""
+    if value is None:
+        return "not computed"
+    fmt = f"{{:{'+' if plus else ''}.{digits}f}}"
+    return fmt.format(float(value))
+
+
+def _sci(value, digits: int = 3) -> str:
+    return "not computed" if value is None else f"{float(value):.{digits}e}"
+
+
+def _mass(block: dict | None) -> str:
+    if not block or block.get("n", 0) == 0:
+        return "no reads carry the block"
+    return (
+        f"n {block['n']}, min {_sci(block['min'])}, median {_sci(block['median'])}, "
+        f"max {_sci(block['max'])}"
+    )
+
+
+def load_logit(lane: Lane) -> tuple[dict, list[str]]:
+    """Every cell's logit.json, keyed by cell name, plus the cells with no file."""
+    rows, absent = {}, []
+    for model in MODELS:
+        for substrate, cue in lane.pairs:
+            name = f"{model}/{substrate}/{cue}"
+            path = LOGIT_RESULTS / model / substrate / cue / "logit.json"
+            if path.exists():
+                rows[name] = json.loads(path.read_text())
+            else:
+                absent.append(name)
+    return rows, absent
+
+
+def logit_header(rows: dict, absent: list[str], lane: Lane) -> list[str]:
+    printed = [k for k, v in rows.items() if v["column_b_logit"]["printed"]]
+    merged = [k for k, v in rows.items() if (v["column_b_logit"]["merge"] or {}).get("merged")]
+    commits = sorted({v.get("code_commit") for v in rows.values() if v.get("code_commit")})
+    # Only the passes whose output actually entered a row. A family whose pass was still
+    # running when this ran has a job id on disk and contributed nothing, and listing it
+    # here would read as if it had.
+    jobs = sorted(
+        {
+            str((rows[k]["column_b_logit"].get("logit_pass_run") or {}).get("job_id"))
+            for k in merged
+            if (rows[k]["column_b_logit"].get("logit_pass_run") or {}).get("job_id")
+        }
+    )
+    scripts = sorted({v.get("analysis_script_sha256") for v in rows.values()})
+    return [
+        "# The logit-level column B: gate G1 on 24 cells, and the rows that cleared it",
+        "",
+        "Amendment A5 of `experiments/PREREGISTRATION_jury_and_scale.md` adds a second",
+        "outcome scale to a cell that already has one. Y becomes the renormalized",
+        "log-probability margin of the planted option against the best other letter, in",
+        "nats, read on each record's own two prompts by the pass of `docs/LOGIT-PASS.md`.",
+        "X and M do not change. A5.4 puts six conditions in front of that row and A5.6",
+        "declines to put a verdict behind it.",
+        "",
+        f"This document covers {len(rows)} of {len(lane.pairs) * len(MODELS)} cells with a",
+        f"`logit.json` on disk, {len(merged)} whose logit sidecar merged into their records,",
+        f"and {len(printed)} that cleared all six conditions and print a logit-level row.",
+        "",
+        "| what | value |",
+        "|---|---|",
+        f"| cells with a file | {len(rows)} |",
+        f"| cells with a merged sidecar | {len(merged)} |",
+        f"| cells printing a logit-level row | {len(printed)} |",
+        f"| cells with no file | {len(absent)} |",
+        f"| analysis commit | {', '.join(commits) or 'unknown'} |",
+        f"| logit pass job ids | {', '.join(jobs) or 'none recorded'} |",
+        f"| analysis script sha256 | {', '.join(s[:12] for s in scripts if s)} |",
+        f"| artifacts | `{LOGIT_RESULTS_REL}/<model>/<substrate>/<cue>/logit.json` |",
+        "",
+        "Nothing here ranks models against each other. A5.5 forbids a logit-level number",
+        "from entering a promotion decision or a ranking, and the cells are printed in the",
+        "order the cell list fixes.",
+        "",
+    ]
+
+
+def logit_gate_section(rows: dict, absent: list[str]) -> list[str]:
+    lines = [
+        "## 1. Gate G1, all six conditions, every cell",
+        "",
+        "A5.4: a row that fails any of the six is NOT PRINTED, and the cell prints the name",
+        "of the check that failed and its measured value in its place. Nothing partial is",
+        "published from a failing row: no effect, no interval, no mediated share, no",
+        "`rho*_point`. Every condition is evaluated on every cell anyway, so a reader can",
+        "see which ones already hold.",
+        "",
+        "| cell | 1 unit check | 2 endpoint | 3 logit scale | 4 clean variance | 5 TE identity | 6 letter mass | row |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    counts = {k: {"pass": 0, "fail": 0} for k in c18.G1_CONDITIONS}
+    for name, doc in rows.items():
+        gate = doc["column_b_logit"]["gate_G1"]
+        marks = []
+        for key in c18.G1_CONDITIONS:
+            holds = gate["conditions"][key].get("holds") is True
+            counts[key]["pass" if holds else "fail"] += 1
+            marks.append("pass" if holds else "FAIL")
+        row = "printed" if doc["column_b_logit"]["printed"] else "not printed"
+        lines.append(f"| {name} | " + " | ".join(marks) + f" | {row} |")
+    lines += [
+        "",
+        "### Counts by condition",
+        "",
+        "| condition | passing | failing |",
+        "|---|---|---|",
+    ]
+    for key in c18.G1_CONDITIONS:
+        lines.append(f"| {key} | {counts[key]['pass']}/{len(rows)} | {counts[key]['fail']}/{len(rows)} |")
+    if absent:
+        lines += ["", f"Cells with no `logit.json`: {', '.join(absent)}."]
+
+    skipped = {
+        name: doc["column_b_logit"]["sidecar"].get("reason")
+        for name, doc in rows.items()
+        if doc["column_b_logit"]["sidecar"].get("status") != "present"
+    }
+    if skipped:
+        lines += [
+            "",
+            "### Cells read at the text level only, and why",
+            "",
+            "| cell | reason |",
+            "|---|---|",
+        ]
+        for name, reason in skipped.items():
+            lines.append(f"| {name} | {reason} |")
+    return lines + [""]
+
+
+def logit_cell_block(name: str, doc: dict) -> list[str]:
+    row = doc["column_b_logit"]
+    gate = row["gate_G1"]
+    binary = doc["column_b_binary_from_the_24_cell_fit"]
+    lines = [
+        f"### {name}",
+        "",
+        "| field | value |",
+        "|---|---|",
+        f"| model | {doc.get('model')} |",
+        f"| hf revision | {doc.get('hf_revision')} |",
+        f"| substrate, cue family | {doc.get('substrate')}, {doc.get('cue_family')} |",
+        f"| text-level job | {doc.get('text_level_job_id')} |",
+        f"| logit pass job | {doc.get('logit_pass_job_id') or 'none'} |",
+        f"| sidecar | {row['sidecar'].get('status')} |",
+    ]
+    merge = row["merge"] or {}
+    if merge.get("merged"):
+        lines += [
+            f"| sidecar entries keyed | {merge['n_entries_keyed']}/{merge['n_sidecar_entries']} |",
+            f"| records with no sidecar entry | {merge['n_text_level_records_without_a_sidecar_entry']}/{merge['n_text_level_records']} |",
+            f"| keying mismatches | {merge['n_mismatches']} |",
+        ]
+    elif merge.get("mismatches_by_reason"):
+        lines.append(f"| merge refused | {merge['mismatches_by_reason']} |")
+    if row["denominators"]:
+        d = row["denominators"]
+        lines += [
+            f"| items entering the logit fit | {d['n_items_complete']} of {d['n_records_read']} records |",
+            f"| rows | {d['n_rows']} |",
+            f"| drops by reason | {d['drops'] or 'none'} |",
+        ]
+    lines.append("")
+
+    if not row["printed"]:
+        lines += [
+            "**No logit-level row.** A5.4: the checks that failed, with their measured",
+            "values, print in its place.",
+            "",
+            "| failing check | measured value |",
+            "|---|---|",
+        ]
+        for key in row["not_printed_because"]:
+            cond = gate["conditions"].get(key, {})
+            value = (
+                cond.get("status")
+                or cond.get("n_records_with_intervention_level_logit")
+                or cond.get("value")
+                or "see the artifact"
+            )
+            lines.append(f"| {key} | {value} |")
+        c3 = gate["conditions"]["3_records_carry_the_logit_scale"]
+        lines += [
+            "",
+            (
+                "Condition 3 counts: `intervention_level = logit` on "
+                f"{c3['n_records_with_intervention_level_logit']} records, "
+                "`outcome_scale = logprob_margin` on "
+                f"{c3['n_records_with_outcome_scale_logprob_margin']}, "
+                f"a `logprob_source_token` on {c3['n_records_with_logprob_source_token']}, "
+                f"both arm margins on {c3['n_records_with_both_arm_margins']}."
+            ),
+            "",
+            ("The text-level row for this cell is unaffected and is in "
+             "`docs/CELLS24-FITS.md`."),
+            "",
+        ]
+        return lines
+
+    colb = row["column_b"]
+    tb = binary["column_b"] if binary.get("present") else {}
+    lines += [
+        "The two scales in A5.5's order. The text-level row comes from the 24-cell",
+        (
+            f"`fit.json` unchanged (`{binary.get('sha256', '') [:12]}`) and is never "
+            "recomputed here."
+        ),
+        "",
+        "**1 and 2. The three effects on each scale.**",
+        "",
+        "| effect | text level, probability | logit level, nats |",
+        "|---|---|---|",
+    ]
+    for key in ("nde", "nie", "te"):
+        text = e(tb["effects"][key]) if tb else "no text-level row"
+        lines.append(f"| {key.upper()} | {text} | {e(colb['effects'][key])} |")
+    lines += [
+        "",
+        "They are two different quantities on two different scales, not two estimates of",
+        "one number. The total effects in particular are two different total effects: on",
+        "the logit scale TE equals the randomized arm difference in the margin as an",
+        "algebraic identity, and on the text scale the model-implied TE is checked against",
+        "the randomized arm difference in the follow rate and that check can fail.",
+        "",
+        "| total effect check | text level | logit level |",
+        "|---|---|---|",
+    ]
+    tgap = tb.get("model_implied_te_vs_randomized_arm_difference", {}) if tb else {}
+    lgap = colb["model_implied_te_vs_randomized_arm_difference"]
+    lines += [
+        (
+            f"| randomized arm difference | {_f(tgap.get('randomized_arm_difference'), plus=True)} "
+            f"| {_f(lgap['randomized_arm_difference'], plus=True)} |"
+        ),
+        (
+            f"| model-implied minus randomized | {_f(tgap.get('difference'), plus=True)} "
+            f"| {_f(lgap['difference'], digits=12, plus=True)} |"
+        ),
+        "",
+        "**Outcome variance per arm, which is the number the outcome-scale note is about.**",
+        "",
+        "| arm | text level | logit level, nats squared |",
+        "|---|---|---|",
+    ]
+    sep = tb.get("separation_diagnostic", {}) if tb else {}
+    lines += [
+        (
+            f"| clean | {_f(sep.get('clean_arm_outcome_variance'))} "
+            f"| {_f(colb['outcome_variance']['clean_arm'])} |"
+        ),
+        f"| hinted | not printed on that scale | {_f(colb['outcome_variance']['hinted_arm'])} |",
+        "",
+        "A5.4 condition 4 is the check the text-level scale cannot pass by construction:",
+        "the population is the clean-correct subpopulation and the hint label is a planted",
+        "wrong option, so the binary clean arm has no variation at all.",
+        "",
+        "**3. The bridge (A5.3), with its denominator and its drop counts.**",
+        "",
+        "| arm | agreement | rate | follow rate | share with margin above zero | drops |",
+        "|---|---|---|---|---|---|",
+    ]
+    for arm in ("clean", "hinted"):
+        b = row["bridge"]["per_arm"][arm]
+        lines.append(
+            f"| {arm} | {b['n_agree_over_denominator']} | {_f(b['agreement_rate'])} "
+            + f"| {_f(b['follow_rate'])} | {_f(b['share_with_margin_above_zero'])} "
+            + f"| {b['drops_by_reason']} |"
+        )
+    lines += [
+        "",
+        "An agreement rate, not a validation of either scale. The two disagree exactly",
+        "where the parsed answer is not the argmax of the renormalized letter",
+        "distribution, which is a real quantity about the read.",
+        "",
+        "**4. The mediated shares, text level first, each printed only where that scale's",
+        "own TE interval excludes zero.**",
+        "",
+        "| scale | mediated share |",
+        "|---|---|",
+    ]
+    # The text-level lane's own rule, applied to its own artifact: NIE/TE is withheld for
+    # a cell whose TE interval includes zero (section 2.5), so the interval decides.
+    tte = tb.get("effects", {}).get("te") if tb else None
+    tprints = bool(tte and (tte["lo"] > 0.0 or tte["hi"] < 0.0))
+    withheld = "not printed (TE interval covers zero)"
+    lines += [
+        f"| text level | {_f(tb.get('nie_over_te')) if tprints else withheld} |",
+        (
+            f"| logit level | "
+            f"{_f(colb['mediated_share']['value']) if colb['mediated_share']['printed'] else withheld} |"
+        ),
+        "",
+        "**5. `rho*_point` on each scale, an invariant reference with no directional",
+        "meaning.** It contains neither the direct coefficient nor either intercept, so it",
+        "says nothing about direct-path strength.",
+        "",
+        "| scale | rho*_point |",
+        "|---|---|",
+    ]
+    trho = (tb.get("rho", {}) or {}).get("rho_star_point", {}) if tb else {}
+    lines += [
+        f"| text level | {e(trho) if trho.get('point') is not None else 'not printed'} |",
+        f"| logit level | {e(colb['rho']['rho_star_point'])} |",
+        "",
+        "**6. The decision quantity on each scale.**",
+        "",
+        "| scale | value |",
+        "|---|---|",
+    ]
+    tdec = (tb.get("rho", {}) or {}).get("rho_star_decision", {}) if tb else {}
+    tdec_text = "not printed"
+    if tdec:
+        tdec_text = (
+            _f(tdec["value"], plus=True) if tdec.get("value") is not None else tdec.get("status")
+        )
+    lines += [
+        f"| text level, rho*_decision | {tdec_text} |",
+        f"| text level, verdict | {(tb.get('verdict') or {}).get('verdict', 'not printed')} |",
+        f"| logit level | {colb['verdict']} |",
+        "",
+        "A5.6 sets no load-bearing threshold on this scale, so the row is descriptive",
+        "throughout and is never used for promotion, for ranking, for the element 21",
+        "comparison of section 22, or for any claim-status change.",
+        "",
+        "**The fit, the sweep and the cross-check.**",
+        "",
+        "| field | value |",
+        "|---|---|",
+        f"| alpha (NDE) | {_f(colb['fit']['alpha'], plus=True)} |",
+        f"| beta | {_f(colb['fit']['beta'], plus=True)} |",
+        f"| gamma | {_f(colb['fit']['gamma'], plus=True)} |",
+        f"| sigma_m | {_f(colb['fit']['sigma_m'])} |",
+        f"| sigma_y (nats) | {_f(colb['fit']['sigma_y'])} |",
+        f"| mu_m, alpha0 | {_f(colb['fit']['mu_m'])}, {_f(colb['fit']['alpha0'], plus=True)} |",
+        f"| bootstrap | {colb['bootstrap']['n_replicates']} replicates, unit {colb['bootstrap']['unit']}, seed {colb['bootstrap']['seed']} |",
+        f"| rho grid | {colb['rho']['n_grid_points']} points, {_f(colb['rho']['grid_min'], 3, True)} to {_f(colb['rho']['grid_max'], 3, True)} |",
+        f"| refit sweep against the vectorised curve | max abs difference in NIE {_sci(colb['rho']['sweep_cross_check']['max_abs_difference'])} |",
+        f"| TE range across the check rhos | {_sci(colb['rho']['te_is_flat_in_rho']['te_range_across_the_check_rhos'])} |",
+        "",
+        "The effects curve across the symmetric grid, at the printed rhos:",
+        "",
+        "| rho | NDE | NIE | TE |",
+        "|---|---|---|---|",
+    ]
+    for point in colb["rho"]["effects_curve"]:
+        lines.append(
+            f"| {_f(point['rho'], 3, True)} | {_f(point['nde'], plus=True)} "
+            f"| {_f(point['nie'], plus=True)} | {_f(point['te'], plus=True)} |"
+        )
+    mass = row["letter_probability_mass"]
+    lines += [
+        "",
+        "**A5.4 condition 6. The raw letter probability mass behind every margin in this",
+        "row, before renormalization.**",
+        "",
+        "| reads | summary |",
+        "|---|---|",
+        f"| pooled | {_mass(mass['overall'])} |",
+        f"| clean arm | {_mass(mass['per_arm']['clean'])} |",
+        f"| hinted arm | {_mass(mass['per_arm']['hinted'])} |",
+        f"| below 0.01 | {mass['n_below_0.01']} |",
+        "",
+        "No floor is set. A5.4 leaves that to the operator and flags no row without one.",
+        "",
+        "**Standardised effects, a reporting convenience and not an estimand.** In",
+        (
+            "clean-arm outcome standard deviations: NDE "
+            f"{_f(colb['standardised_effects']['nde'], plus=True)}, NIE "
+            f"{_f(colb['standardised_effects']['nie'], plus=True)}, TE "
+            f"{_f(colb['standardised_effects']['te'], plus=True)}."
+        ),
+        "The 0.15 of section 2.5 is on the probability scale and does not transfer here.",
+        "",
+    ]
+    return lines
+
+
+def logit_cells_section(rows: dict) -> list[str]:
+    lines = ["## 2. The cells", ""]
+    for name, doc in rows.items():
+        lines += logit_cell_block(name, doc)
+    return lines
+
+
+def logit_limits_section(rows: dict) -> list[str]:
+    printed = [k for k, v in rows.items() if v["column_b_logit"]["printed"]]
+    merged = [k for k, v in rows.items() if (v["column_b_logit"]["merge"] or {}).get("merged")]
+    models = sorted({rows[k]["model_slug"] for k in printed})
+    return [
+        "## 3. What this establishes, and what it does not",
+        "",
+        "**What it establishes.**",
+        "",
+        "1. Gate G1's condition 3 is satisfiable. Before the logit pass, 18 of 18 cells",
+        "   failed it on the same line: no arms record in this project carried",
+        "   `intervention_level = logit`, because the generation pass that writes it had",
+        f"   never been run. {len(merged)} cells now carry it on every record, keyed to the",
+        "   text-level record by position, by a content key recomputed from the record's own",
+        "   six identifying fields, and by the source file's sha256.",
+        "2. The clean arm varies on this scale. That is the whole reason",
+        "   `docs/OUTCOME-SCALE-NOTE.md` exists: on the binary scale the clean-arm outcome",
+        "   variance is exactly zero by construction, so the probit fit separates on X and",
+        "   the NDE and NIE split rests on the link extrapolating into a region the clean",
+        "   arm never visits. Each printed row above gives both arm variances in nats",
+        "   squared and neither is zero.",
+        "3. The total effect is pinned by the data on this scale. `TE_logit` equals the",
+        "   randomized arm difference in the margin to the last printed digit, which is an",
+        "   algebraic identity under A5.2 and is checked as a code fault, not reported as a",
+        "   finding.",
+        "",
+        "**What it does not establish.**",
+        "",
+        "1. **No verdict.** A5.6 sets no load-bearing threshold on this scale and this",
+        "   document sets none either. Every printed row says",
+        "   `not applicable, no threshold pre-registered on this scale` where a verdict",
+        "   would go. The three candidate rules A5.6 records, and the defect of each, are",
+        "   in the amendment; choosing one is the operator's and is made before any",
+        "   logit-level effect size is read, not after.",
+        "2. **No promotion, no ranking, no claim-status change.** A5.5 is explicit and",
+        "   nothing here is used for the element 21 comparison of section 22 either. The",
+        "   claim statuses of the 24 cells are what `docs/CELLS24-FITS.md` records.",
+        (
+            "3. **No cross-model comparison.** Rows exist for "
+            f"{len(models)} model family or families: {', '.join(models) or 'none'}."
+        ),
+        "   Even with three, A5.5 forbids ranking on a logit-level number, and this",
+        "   document prints no ordering.",
+        "4. **Identification is unchanged.** Sequential ignorability with A3 priced by rho,",
+        "   exactly as section 2.3 states it. Part 3.3 of the outcome-scale note measures",
+        "   this directly on a world with no mediator-to-outcome arrow: across 100 datasets",
+        "   per condition, NDE and NIE coverage is 0 of 100 on all three readouts tried,",
+        "   the continuous one included. What the continuous scale removes is the link",
+        "   extrapolation, not the confounding.",
+        "5. **The mass caveat travels with every margin.** The letter probability mass",
+        "   summaries above are the raw share of the next-token distribution the answer",
+        "   letters hold before renormalization. Where that share is tiny, the margin is a",
+        "   well defined conditional quantity and it is also a quantity about a region the",
+        "   model almost never enters, so the renormalization does nearly all of the work.",
+        "6. **The card type is not held fixed against the run being augmented.** The",
+        "   text-level cells were generated across a MIG slice of an A100 80GB and a whole",
+        "   A100 80GB; one server per model means all of a model's reads share whichever",
+        "   card the wave allocated. The pass records its own serving mode, so the",
+        "   difference is visible rather than hidden.",
+        "7. **The read is a new measurement, not a recovery.** The original run never scored",
+        "   these prompts for letter logprobs. What makes it the same measurement is the",
+        "   prompt, rebuilt from the record's own banked fields through the frozen",
+        "   instruments and checked three ways. What is not guaranteed is the server: a",
+        "   different process on a different day, which is why the pinned serving mode, the",
+        "   batch-invariant flag and the determinism preflight all ran again.",
+        "",
+    ]
+
+
+def render_logit(lane: Lane, out: Path) -> int:
+    """Write docs/CELLS24-LOGIT.md from the logit lane's artifacts alone."""
+    rows, absent = load_logit(lane)
+    if not rows:
+        print(f"no logit.json under {LOGIT_RESULTS}", file=sys.stderr)
+        return 2
+    lines: list[str] = []
+    lines += logit_header(rows, absent, lane)
+    lines += logit_gate_section(rows, absent)
+    lines += logit_cells_section(rows)
+    lines += logit_limits_section(rows)
+    out.write_text("\n".join(lines) + "\n")
+    printed = sum(1 for v in rows.values() if v["column_b_logit"]["printed"])
+    print(
+        f"wrote {out} ({len(lines)} lines), {len(rows)} cells, "
+        f"{printed} with a logit-level row, {len(absent)} with no file"
+    )
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--cells", choices=tuple(sorted(LANES)), default="18",
                     help="which cell list to render: 18 or 24")
+    ap.add_argument("--doc", choices=("fits", "logit"), default="fits",
+                    help="which document to render: the cells-of-record fits document "
+                         "(default) or the A5 logit-level document")
     args = ap.parse_args()
     lane = LANES[args.cells]
+    if args.doc == "logit":
+        return render_logit(lane, Path(args.out))
     gate, fits, pymc, rows, extra, gemma, absent = load(lane)
     if not fits:
         print(f"no fit.json under {lane.results}", file=sys.stderr)

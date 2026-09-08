@@ -45,6 +45,7 @@ import sys
 import time
 from collections import Counter
 from pathlib import Path
+from urllib.parse import urlparse
 
 import numpy as np
 
@@ -54,6 +55,7 @@ sys.path.insert(0, str(_HERE))
 import wave1_fits as w1
 
 from bayes_cot_faithfulness import closed_form
+from bayes_cot_faithfulness import gaussian_mediation as gm
 
 # --------------------------------------------------------------------------- #
 # The 18 cells of record.
@@ -163,6 +165,12 @@ G1_CONDITIONS = (
     "6_letter_probability_mass_summarised",
 )
 
+# A5.4 condition 5: an algebraic identity under the model of A5.2, so the tolerance is a
+# floating-point tolerance and a failure is a code fault, never a finding.
+TE_IDENTITY_TOLERANCE = 1e-6
+# A5.6: what goes where a verdict would go on this scale, in the words the amendment uses.
+LOGIT_VERDICT = "not applicable, no threshold pre-registered on this scale"
+
 
 def _summary_stats(values: list[float]) -> dict:
     if not values:
@@ -175,44 +183,111 @@ def _summary_stats(values: list[float]) -> dict:
     }
 
 
-def logit_g1_gate(records: list[dict], cell_dir: Path, meta: dict) -> dict:
+def _fraction(k: int, n: int) -> str:
+    """A count over its denominator, which is how every G1 condition prints its value."""
+    return f"{k}/{n}"
+
+
+def _check_arithmetic(chk: dict | None) -> dict:
+    """The section 9.1 arithmetic over one unit-check artifact, with its denominators.
+
+    The same three sums for ``logprob_check.json`` (the family probe, run on the live
+    server before any cell is touched) and for ``logit_check.json`` (this pass's own reads
+    on the real prompts). ``docs/LOGIT-PASS.md`` section 6.3 names the subtlety this
+    function does not hide: the ``results`` rows are the reads that RETURNED, so the
+    arithmetic is a statement about reads that happened, and the reads that did not are in
+    ``n_incomplete_reads`` beside it. A gate stricter than the pass reads that field too,
+    and this one does: a cell with an incomplete read has items missing from the sidecar
+    and condition 3's denominator will show it.
+    """
+    if chk is None:
+        return {"holds": False, "value": "artifact absent"}
+    results = chk.get("results") or []
+    scored = sum(int(r.get("n_letters_scored") or 0) for r in results)
+    requested = sum(int(r.get("n_letters_requested") or 0) for r in results)
+    matching = sum(int(r.get("n_tokens_matching_letter") or 0) for r in results)
+    incomplete = int(chk.get("n_incomplete_reads") or 0)
+    return {
+        "holds": bool(
+            chk.get("passed")
+            and not chk.get("hard_failures")
+            and requested > 0
+            and scored == requested
+            and matching == requested
+            and incomplete == 0
+        ),
+        "n_probes_completed": chk.get("n_probes_completed"),
+        "n_probes": chk.get("n_probes"),
+        "n_letters_scored_over_requested": _fraction(scored, requested),
+        "n_tokens_matching_letter_over_requested": _fraction(matching, requested),
+        "n_hard_failures": len(chk.get("hard_failures") or []),
+        "n_incomplete_reads": incomplete,
+        "passed_field": chk.get("passed"),
+    }
+
+
+def _read_json(path: Path) -> dict | None:
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+def logit_g1_gate(
+    records: list[dict], cell_dir: Path, meta: dict, logit: dict | None = None
+) -> dict:
     """A5.4's six conditions, each with its measured value and its denominator.
 
-    A row that fails ANY of the six is NOT PRINTED and the cell prints the failing
-    check and its value in its place (A5.4). Nothing partial is published from a
-    failing row: no effect, no interval, no mediated share, no rho*_point. This
-    function therefore evaluates all six so the reader sees which ones hold, and
-    returns ``eligible`` false with the failing names as soon as one does not.
+    A row that fails ANY of the six is NOT PRINTED and the cell prints the failing check
+    and its value in its place (A5.4). Nothing partial is published from a failing row: no
+    effect, no interval, no mediated share, no rho*_point. This function therefore
+    evaluates all six so the reader sees which ones hold, and returns ``eligible`` false
+    with the failing names as soon as one does not.
+
+    ``records`` are the cell's arms records AFTER the logit sidecar has been merged into
+    them, when there is one; ``logit`` carries what the merge produced. With no sidecar
+    every condition is evaluated exactly as it was before the pass existed, and condition 3
+    fails on 0 of n records carrying the scale, which is the state
+    ``docs/CELLS18-FITS.md`` section 7 item 3 recorded for 18 of 18 cells.
+
+    The one condition that cannot be evaluated from the records alone is 5: TE_logit comes
+    from the fit, so the fit is computed before the gate and only PRINTED after it. This
+    condition prints the size of the identity violation and the randomized arm difference
+    it was checked against, and it does not print TE, so a failing row still publishes no
+    effect.
     """
+    logit = logit or {}
+    merge = logit.get("merge") or {}
+    ltable = logit.get("table")
+    lcolumn_b = logit.get("column_b")
+    merged = bool(merge.get("merged"))
     arms = records
     n_arms = len(arms)
 
     # ---- condition 1: the section 9.1 per-family unit check ------------------
     check_path = cell_dir / "logprob_check.json"
-    chk = json.loads(check_path.read_text()) if check_path.exists() else None
+    chk = _read_json(check_path)
+    family = _check_arithmetic(chk)
+    family["artifact"] = str(check_path)
+    c1 = {"holds": family["holds"], "family_probe_before_the_cells": family}
     if chk is None:
-        c1 = {"holds": False, "value": "no logprob_check.json in the cell directory"}
-    else:
-        results = chk.get("results") or []
-        scored = sum(int(r.get("n_letters_scored") or 0) for r in results)
-        requested = sum(int(r.get("n_letters_requested") or 0) for r in results)
-        matching = sum(int(r.get("n_tokens_matching_letter") or 0) for r in results)
-        c1 = {
-            "holds": bool(
-                chk.get("passed")
-                and not chk.get("hard_failures")
-                and requested > 0
-                and scored == requested
-                and matching == requested
-            ),
-            "artifact": str(check_path),
-            "n_probes_completed": chk.get("n_probes_completed"),
-            "n_probes": chk.get("n_probes"),
-            "n_letters_scored_over_requested": f"{scored}/{requested}",
-            "n_tokens_matching_letter_over_requested": f"{matching}/{requested}",
-            "n_hard_failures": len(chk.get("hard_failures") or []),
-            "passed_field": chk.get("passed"),
-        }
+        c1["value"] = "no logprob_check.json in the cell directory"
+    if merged or logit.get("check") is not None:
+        cell_check_path = cell_dir / "logit_check.json"
+        cell_check = _check_arithmetic(logit.get("check"))
+        cell_check["artifact"] = str(cell_check_path)
+        cell_check["scope"] = (
+            "this pass's own reads, one per arm per banked record, on the prompts those "
+            "records were generated against (docs/LOGIT-PASS.md section 6.3)"
+        )
+        c1["this_cell_logit_check"] = cell_check
+        c1["holds"] = bool(family["holds"] and cell_check["holds"])
+        if logit.get("family_check") is not None:
+            pass_family = _check_arithmetic(logit["family_check"])
+            pass_family["artifact"] = str(Path(logit["family_dir"]) / "logprob_check.json")
+            pass_family["scope"] = (
+                "bcf/logprob_check.py on the live server of the logit pass, run before any "
+                "cell of this family was touched (docs/LOGIT-PASS.md section 2 check 1)"
+            )
+            c1["logit_pass_family_probe"] = pass_family
+            c1["holds"] = bool(c1["holds"] and pass_family["holds"])
 
     # ---- condition 2: the pinned self-hosted vLLM endpoint ------------------
     base_url = (chk or {}).get("base_url")
@@ -242,52 +317,142 @@ def logit_g1_gate(records: list[dict], cell_dir: Path, meta: dict) -> dict:
             "ineligible as a logprob source (section 6.7) and no value here came from it"
         ),
     }
+    if merged:
+        pass_meta = logit.get("pass_meta") or {}
+        endpoint = pass_meta.get("endpoint")
+        endpoint_loopback = bool(
+            endpoint and urlparse(endpoint).hostname in ("127.0.0.1", "localhost", "::1")
+        )
+        arm_methods: Counter = Counter()
+        n_arm_blocks = 0
+        for r in arms:
+            for key in w1.LOGIT_BLOCK_KEYS:
+                blk = r.get(key)
+                if blk:
+                    n_arm_blocks += 1
+                    arm_methods[blk.get("method")] += 1
+        c2["logit_pass"] = {
+            "endpoint": endpoint,
+            "is_loopback_self_hosted": endpoint_loopback,
+            "n_arm_logprob_blocks_by_method": dict(arm_methods),
+            "n_blocks_with_prompt_logprobs_over_total": _fraction(
+                arm_methods.get("prompt_logprobs", 0), n_arm_blocks
+            ),
+            "denominator_note": (
+                "the two arm blocks of each merged record, which are the values the "
+                "logit-level row is computed from"
+            ),
+        }
+        c2["holds"] = bool(
+            c2["holds"]
+            and endpoint_loopback
+            and n_arm_blocks > 0
+            and arm_methods.get("prompt_logprobs", 0) == n_arm_blocks
+        )
 
     # ---- condition 3: the per-record scale fields ---------------------------
     k_level = sum(1 for r in arms if r.get("intervention_level") == "logit")
     k_scale = sum(1 for r in arms if r.get("outcome_scale") == "logprob_margin")
     k_token = sum(1 for r in arms if r.get("logprob_source_token") is not None)
     k_lp = sum(1 for r in arms if r.get("answer_logprobs") is not None)
+    k_margin = sum(
+        1
+        for r in arms
+        if all((r.get(key) or {}).get("logprob_margin") is not None for key in w1.LOGIT_BLOCK_KEYS)
+    )
     c3 = {
         "holds": bool(n_arms > 0 and k_level == n_arms and k_scale == n_arms and k_token == n_arms),
-        "n_records_with_intervention_level_logit": f"{k_level}/{n_arms}",
-        "n_records_with_outcome_scale_logprob_margin": f"{k_scale}/{n_arms}",
-        "n_records_with_logprob_source_token": f"{k_token}/{n_arms}",
-        "n_records_with_answer_logprobs": f"{k_lp}/{n_arms}",
+        "n_records_with_intervention_level_logit": _fraction(k_level, n_arms),
+        "n_records_with_outcome_scale_logprob_margin": _fraction(k_scale, n_arms),
+        "n_records_with_logprob_source_token": _fraction(k_token, n_arms),
+        "n_records_with_answer_logprobs": _fraction(k_lp, n_arms),
+        "n_records_with_both_arm_margins": _fraction(k_margin, n_arms),
         "run_meta_intervention_level": meta.get("intervention_level"),
         "run_meta_outcome_scale": meta.get("outcome_scale"),
-        "finding": (
-            "the ARMS rows of this cell were generated on the text level. "
-            "docs/OUTCOME-SCALE-NOTE.md part 4.2 recorded the cause: the record fields "
-            "exist and experiments/08_additive_arms.py copies them into the transcript "
-            "record, but nothing in that file ever assigns them, and the only "
-            "letter-logprob block it writes goes into the ANCHOR arm. A native "
-            "logit-level column B needs the new generation pass that part 4.5 calls "
-            "job B, which has not been run for any cell."
+        "sidecar": logit.get("sidecar_info") or {"status": "not looked for"},
+        "merge": merge or {"merged": False, "reason": "no sidecar to merge"},
+        "assert_records_scaled_checked": (logit.get("pass_meta") or {}).get(
+            "assert_records_scaled_checked"
         ),
     }
+    if not merged:
+        c3["finding"] = (
+            "the ARMS rows of this cell are on the TEXT level. docs/OUTCOME-SCALE-NOTE.md "
+            "part 4.2 recorded the cause: the record fields exist and "
+            "experiments/08_additive_arms.py copies them into the transcript record, but "
+            "nothing in that file ever assigns them, and the only letter-logprob block it "
+            "writes goes into the ANCHOR arm. The logit-level generation pass that fills "
+            "them is docs/LOGIT-PASS.md's job B, and it has not produced a usable sidecar "
+            "for this cell."
+        )
 
-    # ---- conditions 4 and 5: need an arm-level margin, which does not exist --
-    n_arm_margin = k_lp
-    c4 = {
-        "holds": False if n_arm_margin < n_arms else None,
-        "status": (
-            "NOT COMPUTABLE. The clean-arm and hinted-arm outcome variance on the "
-            "logprob margin needs a margin on the ARMS rows; "
-            f"{n_arm_margin}/{n_arms} arms rows carry one."
-        ),
-        "n_arms_rows_with_a_margin": f"{n_arm_margin}/{n_arms}",
-    }
-    c5 = {
-        "holds": False if n_arm_margin < n_arms else None,
-        "status": (
-            "NOT COMPUTABLE for the same reason as condition 4: TE_logit is defined on "
-            "the arms and there is no arms-level margin to compute it from."
-        ),
-        "n_arms_rows_with_a_margin": f"{n_arm_margin}/{n_arms}",
-    }
+    # ---- condition 4: the clean-arm outcome variance on THIS scale ----------
+    if ltable is None:
+        c4 = {
+            "holds": False,
+            "status": (
+                "NOT COMPUTABLE. The clean-arm and hinted-arm outcome variance on the "
+                "logprob margin needs a margin on the ARMS rows; "
+                f"{k_margin}/{n_arms} arms rows carry one."
+            ),
+            "n_arms_rows_with_a_margin": _fraction(k_margin, n_arms),
+        }
+    else:
+        out = ltable["outcome"]
+        clean_var = out["clean_arm_outcome_variance"]
+        c4 = {
+            "holds": bool(clean_var is not None and clean_var > 0.0),
+            "clean_arm_outcome_variance": clean_var,
+            "hinted_arm_outcome_variance": out["hinted_arm_outcome_variance"],
+            "clean_arm_mean_margin_nats": out["clean_arm_mean"],
+            "hinted_arm_mean_margin_nats": out["hinted_arm_mean"],
+            "n_items_over_arms_rows": _fraction(
+                ltable["denominators"]["n_items_complete"], n_arms
+            ),
+            "comparison": (
+                "the same cell's binary-follow clean-arm variance is exactly 0 by "
+                "construction (the population is the clean-correct subpopulation and the "
+                "hint label is a planted wrong option), which is the check A4.6(b) says "
+                "the text-level scale cannot pass"
+            ),
+            "logit_pass_meta_clean_arm_margin": (logit.get("pass_meta") or {}).get(
+                "clean_arm_margin"
+            ),
+        }
 
-    # ---- condition 6: the letter probability mass, which IS measurable ------
+    # ---- condition 5: TE_logit against the randomized arm difference --------
+    if lcolumn_b is None or ltable is None:
+        c5 = {
+            "holds": False,
+            "status": (
+                "NOT COMPUTABLE for the same reason as condition 4: TE_logit is defined on "
+                "the arms and there is no arms-level margin to compute it from."
+            ),
+            "n_arms_rows_with_a_margin": _fraction(k_margin, n_arms),
+        }
+    else:
+        gap = lcolumn_b["model_implied_te_vs_randomized_arm_difference"]
+        c5 = {
+            "holds": bool(abs(gap["difference"]) <= TE_IDENTITY_TOLERANCE),
+            "abs_difference": abs(gap["difference"]),
+            "tolerance": TE_IDENTITY_TOLERANCE,
+            "randomized_arm_difference_on_the_fitted_items": gap["randomized_arm_difference"],
+            "n_fitted_items": ltable["denominators"]["n_items_complete"],
+            "randomized_arm_difference_in_logit_pass_meta": (logit.get("pass_meta") or {}).get(
+                "randomized_arm_difference_in_the_margin"
+            ),
+            "n_items_in_logit_pass_meta": (logit.get("pass_meta") or {}).get("n_items_scored"),
+            "note": (
+                "the identity is between TE_logit and the arm difference over the rows the "
+                "fit ran on, so that is the number gating this condition. The pass's own "
+                "arm difference is printed beside it over its own denominator, which is "
+                "every scored item rather than every item that also had a scorable curve. "
+                "TE itself is not printed here: A5.4 publishes no effect from a row that "
+                "has not cleared all six conditions."
+            ),
+        }
+
+    # ---- condition 6: the letter probability mass ---------------------------
     per_cell_mass: dict[str, list[float]] = {c: [] for c in ANCHOR_CELLS}
     all_mass: list[float] = []
     for r in arms:
@@ -304,19 +469,23 @@ def logit_g1_gate(records: list[dict], cell_dir: Path, meta: dict) -> dict:
     c6 = {
         "holds": bool(all_mass),
         "scope": (
-            "measured on the ANCHOR arm's four letter-logprob cells, which are the only "
-            "records in this cell that carry the block; it is printed because A5.4 makes "
-            "printing the summary the way condition 6 is satisfied, and because "
-            "docs/OUTCOME-SCALE-NOTE.md part 4.4 requires it beside any margin"
+            "the ANCHOR arm's four letter-logprob cells, which are the records this cell "
+            "carried before the logit pass; A5.4 makes printing the summary the way "
+            "condition 6 is satisfied and docs/OUTCOME-SCALE-NOTE.md part 4.4 requires it "
+            "beside any margin"
         ),
         "overall": _summary_stats(all_mass),
         "per_anchor_cell": {c: _summary_stats(v) for c, v in per_cell_mass.items()},
-        "n_below_0.01": f"{n_below_001}/{len(all_mass)}",
+        "n_below_0.01": _fraction(n_below_001, len(all_mass)),
         "floor": (
             "no floor is set: A5.4 says the operator sets it and this amendment does "
             "not, so no row is flagged on mass"
         ),
     }
+    if merged:
+        arm_mass = logit_mass_summary(arms)
+        c6["on_the_arms_of_this_row"] = arm_mass
+        c6["holds"] = bool(all_mass and arm_mass["overall"]["n"] > 0)
 
     conditions = {
         "1_unit_check_passed": c1,
@@ -328,9 +497,10 @@ def logit_g1_gate(records: list[dict], cell_dir: Path, meta: dict) -> dict:
     }
     failing = [k for k in G1_CONDITIONS if conditions[k].get("holds") is not True]
 
-    # The bridge of A5.3 cannot be computed on the arms for the same reason, but it
-    # CAN be measured on the anchor cells, where both scales exist for one designated
-    # option on one item. That is a different regime and is labelled as one.
+    # The bridge of A5.3 is defined on the arms. It is computed there when the merge
+    # landed and is reported inside the logit-level row. What is kept here in every case is
+    # the same statistic measured on the ANCHOR arm's four replay cells, which is a
+    # different regime (a replayed donor chain, not the native arm) and is never the bridge.
     agree = 0
     both = 0
     pos = 0
@@ -348,11 +518,9 @@ def logit_g1_gate(records: list[dict], cell_dir: Path, meta: dict) -> dict:
             agree += int(sign == int(y))
     bridge = {
         "scope": (
-            "A5.3's agreement rate is defined on the arms and the arms carry no margin, "
-            "so it is NOT computed for this cell's two-scale row (there is no "
-            "two-scale row). What is printed here is the same statistic measured on the "
-            "ANCHOR arm's four replay cells, which is a different regime (a replayed "
-            "donor chain, not the native arm) and is never used as the bridge"
+            "the same statistic as A5.3's bridge, measured on the ANCHOR arm's four replay "
+            "cells rather than on the arms. It is a different regime (a replayed donor "
+            "chain, not the native arm) and is never used as the bridge"
         ),
         "n_anchor_cells_scored_on_both_scales": both,
         "n_agree": agree,
@@ -370,14 +538,458 @@ def logit_g1_gate(records: list[dict], cell_dir: Path, meta: dict) -> dict:
         "conditions": conditions,
         "failing_conditions": failing,
         "eligible": not failing,
-        "logit_level_row": None if failing else "computed below",
+        "logit_level_row": None if failing else "printed beside the binary row",
         "bridge_on_the_anchor_cells_not_the_arms": bridge,
+    }
+
+
+# --------------------------------------------------------------------------- #
+# A5.1 to A5.6. The logit-level column B, and the two things printed with it.
+# --------------------------------------------------------------------------- #
+# The rhos the curve is PRINTED at. The curve is evaluated on the whole symmetric
+# A4.6(a) grid (w1.RHO_GRID_SIGNED, the battery's own points mirrored), and these are
+# the points the artifact keeps, so the file stays an aggregate and the grid stays the
+# grid the sweep ran on.
+CURVE_PRINT_RHOS = (-0.9, -0.7, -0.5, -0.3, -0.1, 0.0, 0.1, 0.3, 0.5, 0.7, 0.9)
+# The refit-at-every-point cross-check of A5.2, on the same five rhos the probit path
+# cross-checks itself at in wave1_fits.column_b.
+SWEEP_CHECK_RHOS = (0.0, 0.1, 0.3, 0.5, 0.7)
+
+
+def logit_mass_summary(records: list[dict]) -> dict:
+    """A5.4 condition 6 on the arms: the raw letter mass behind every margin in the row.
+
+    Per arm and pooled, with the count below 0.01 over its denominator. No floor is
+    applied: A5.4 leaves the floor to the operator and flags nothing without one.
+    """
+    per_arm: dict[str, list[float]] = {}
+    pooled: list[float] = []
+    for arm, key in zip(("clean", "hinted"), w1.LOGIT_BLOCK_KEYS):
+        values = [
+            float(r[key]["letter_probability_mass"])
+            for r in records
+            if (r.get(key) or {}).get("letter_probability_mass") is not None
+        ]
+        per_arm[arm] = values
+        pooled += values
+    return {
+        "scope": (
+            "the raw probability the answer letters hold in the next-token distribution "
+            "before renormalization, on the two arm reads of every record in this row"
+        ),
+        "overall": _summary_stats(pooled),
+        "per_arm": {arm: _summary_stats(v) for arm, v in per_arm.items()},
+        "n_below_0.01": _fraction(sum(1 for v in pooled if v < 0.01), len(pooled)),
+        "reading": (
+            "docs/OUTCOME-SCALE-NOTE.md part 4.4: a margin computed where the letters hold "
+            "this little of the next-token mass is a well defined conditional quantity and "
+            "is also about a region the model almost never enters, so the renormalization "
+            "does nearly all of the work and a reader has to see how much"
+        ),
+        "floor": "none set (A5.4); no row is flagged on mass",
+    }
+
+
+def logit_bridge(table: dict) -> dict:
+    """A5.3's agreement rate between the two scales, per arm, with its denominator.
+
+    ``agreement = (# items where 1[logprob_margin > 0] == binary_follow) / (# items scored
+    on both)``. The denominator is the items that carry a usable value on BOTH scales in
+    the arm being reported; an item missing either leaves it and is counted by reason. The
+    marginal rates print beside it, because an agreement rate without them says nothing.
+
+    It is an agreement rate and not a validation of either scale. The two disagree exactly
+    where the parsed answer is not the argmax of the renormalized letter distribution,
+    which is a real quantity about the read.
+    """
+    arms = {}
+    for arm, y_key, text_key in (("clean", "y0", "y0_text"), ("hinted", "y1", "y1_text")):
+        both = [
+            it for it in table["items"] if it.get(text_key) is not None and it.get(y_key) is not None
+        ]
+        n = len(both)
+        n_agree = sum(1 for it in both if int(float(it[y_key]) > 0.0) == int(it[text_key]))
+        n_missing_text = sum(1 for it in table["items"] if it.get(text_key) is None)
+        arms[arm] = {
+            "n_scored_on_both_scales": n,
+            "n_items_in_the_table": len(table["items"]),
+            "n_agree_over_denominator": _fraction(n_agree, n),
+            "agreement_rate": (n_agree / n) if n else None,
+            "follow_rate": (
+                (sum(int(it[text_key]) for it in both) / n) if n else None
+            ),
+            "share_with_margin_above_zero": (
+                (sum(int(float(it[y_key]) > 0.0) for it in both) / n) if n else None
+            ),
+            "drops_by_reason": {"text_level_answer_unscorable": n_missing_text},
+        }
+    return {
+        "definition": (
+            "agreement = (# items where 1[logprob_margin > 0] == binary_follow) / "
+            "(# items scored on both), per arm, per cell (A5.3)"
+        ),
+        "computable": all(v["n_scored_on_both_scales"] > 0 for v in arms.values()),
+        "per_arm": arms,
+        "reading": (
+            "an agreement rate, not a validation of either scale. On the CLEAN arm the "
+            "text-level indicator is 0 for every item by construction, so the clean-arm "
+            "rate is the share of items whose margin is at or below zero and it is a "
+            "statement about the read rather than about the cue"
+        ),
+        "second_half": (
+            "the other half of the bridge is the total effect: TE_logit equals the "
+            "randomized arm difference in the margin as an algebraic identity, while the "
+            "text-level model-implied TE is checked against the randomized arm difference "
+            "in the follow rate and that check can fail. They are two different total "
+            "effects on two different scales, not two estimates of one number"
+        ),
+    }
+
+
+def _usable_gaussian(x: np.ndarray, m: np.ndarray) -> bool:
+    """A resample the linear-linear fit can be identified on: X varies and M varies."""
+    return bool(x.min() != x.max() and m.min() != m.max())
+
+
+def _curve_rows(fit, grid: np.ndarray) -> list[dict]:
+    """The effects curve at the printed rhos, taken from the full symmetric grid."""
+    nde, nie, te = gm.gaussian_effects_curve(fit, grid)
+    rows = []
+    for want in CURVE_PRINT_RHOS:
+        j = int(np.argmin(np.abs(grid - want)))
+        rows.append(
+            {
+                "rho": float(grid[j]),
+                "nde": float(nde[j]),
+                "nie": float(nie[j]),
+                "te": float(te[j]),
+            }
+        )
+    return rows
+
+
+def logit_column_b(table: dict, n_bootstrap: int = w1.N_BOOTSTRAP) -> dict:
+    """Column B on the logit scale: one substitution in Y and nothing else (A5.2).
+
+    ``docs/OUTCOME-SCALE-NOTE.md`` part 4.5 job B step 5, followed literally.
+    ``fit_gaussian_mediation_closed_form`` at rho = 0 with both intercepts fitted, the
+    three effects from ``gaussian_natural_effects``, the sweep from
+    ``gaussian_effects_curve`` on the symmetric A4.6(a) grid, the refit cross-check from
+    ``gaussian_sensitivity_sweep``, and ``rho*_point`` from ``gaussian_rho_star_point``.
+    Intervals come from the same 200-replicate ITEM bootstrap at the same seed the cell's
+    binary column B records, so the two columns' intervals are the same construction on
+    the same resampled items.
+
+    No threshold is applied to anything here and no verdict is computed: A5.6 sets none on
+    this scale and this function does not invent one.
+    """
+    X, M, Y = table["X"], table["M"], table["Y"]
+    n_items = len(table["items"])
+
+    t0 = time.time()
+    fit = gm.fit_gaussian_mediation_closed_form(X, M, Y, rho=0.0, intercepts=True)
+    nde, nie, te = gm.gaussian_natural_effects(fit.alpha, fit.beta, fit.gamma)
+    arm_diff = float(Y[X == 1].mean() - Y[X == 0].mean())
+    clean_sd = float(np.std(Y[X == 0], ddof=1)) if n_items > 1 else float("nan")
+
+    rng = np.random.default_rng(w1.BOOT_SEED)
+    boot_nde = np.empty(n_bootstrap)
+    boot_nie = np.empty(n_bootstrap)
+    boot_te = np.empty(n_bootstrap)
+    boot_rho_star = np.empty(n_bootstrap)
+    boot_arm_diff = np.empty(n_bootstrap)
+    redraws = 0
+    for b in range(n_bootstrap):
+        for _ in range(w1.MAX_BOOT_REDRAWS):
+            idx = rng.integers(0, n_items, n_items)
+            bx, bm, by = w1._rows_for_items(table, idx)
+            if _usable_gaussian(bx, bm):
+                break
+            redraws += 1
+        bfit = gm.fit_gaussian_mediation_closed_form(bx, bm, by, rho=0.0, intercepts=True)
+        b_nde, b_nie, b_te = gm.gaussian_natural_effects(bfit.alpha, bfit.beta, bfit.gamma)
+        boot_nde[b], boot_nie[b], boot_te[b] = b_nde, b_nie, b_te
+        boot_rho_star[b] = gm.gaussian_rho_star_point(bfit.beta, bfit.sigma_m, bfit.sigma_y)
+        boot_arm_diff[b] = float(by[bx == 1].mean() - by[bx == 0].mean())
+
+    nde_lo, nde_hi = w1.quantile_interval(boot_nde)
+    nie_lo, nie_hi = w1.quantile_interval(boot_nie)
+    te_lo, te_hi = w1.quantile_interval(boot_te)
+    rs_lo, rs_hi = w1.quantile_interval(boot_rho_star)
+    gap_lo, gap_hi = w1.quantile_interval(boot_te - boot_arm_diff)
+
+    check_rhos = np.array(SWEEP_CHECK_RHOS)
+    sweep = gm.gaussian_sensitivity_sweep(X, M, Y, rho_grid=check_rhos, intercepts=True)
+    curve_at = gm.gaussian_effects_curve(fit, check_rhos)
+    te_range = float(np.max(curve_at[2]) - np.min(curve_at[2]))
+
+    # A5.5 item 4 and section 2.5's rule applied per scale: the mediated share prints only
+    # where THIS scale's TE interval excludes zero.
+    te_excludes_zero = bool(te_lo > 0.0 or te_hi < 0.0)
+    mediated_share = {
+        "printed": te_excludes_zero,
+        "rule": (
+            "A5.5 item 4: the mediated share prints only where that scale's own TE "
+            "interval excludes zero, which is section 2.5's rule applied per scale"
+        ),
+        "te_interval_excludes_zero": te_excludes_zero,
+        "value": (float(nie / te) if te_excludes_zero and te != 0.0 else None),
+    }
+
+    std_nde, std_nie, std_te = (
+        gm.standardised_effects(nde, nie, te, clean_sd)
+        if np.isfinite(clean_sd) and clean_sd > 0
+        else (None, None, None)
+    )
+
+    return {
+        "specification": (
+            "M = mu_m + gamma X + eps_M ; Y = alpha0 + alpha X + beta M + eps_Y, linear "
+            "with both intercepts fitted, rho = 0, Y in nats (A5.2)"
+        ),
+        "estimand": (
+            "A5.1: Y is the renormalized log-odds of the planted option against the BEST "
+            "OTHER letter, the value outcome_scale.letter_logprob_fields stores under "
+            "logprob_margin. X and M are unchanged from element 0"
+        ),
+        "estimator": "bayes_cot_faithfulness.gaussian_mediation (A5.2's estimator of record)",
+        "n_items": n_items,
+        "n_rows": len(X),
+        "outcome_variance": {
+            "clean_arm": table["outcome"]["clean_arm_outcome_variance"],
+            "hinted_arm": table["outcome"]["hinted_arm_outcome_variance"],
+            "clean_arm_sd": clean_sd,
+            "note": (
+                "the number docs/OUTCOME-SCALE-NOTE.md is about. On the binary scale the "
+                "clean arm's variance is exactly 0 by construction; here it is not, which "
+                "is A5.4 condition 4"
+            ),
+        },
+        "fit": {
+            "alpha": float(fit.alpha),
+            "beta": float(fit.beta),
+            "gamma": float(fit.gamma),
+            "sigma_m": float(fit.sigma_m),
+            "mu_m": float(fit.mu_m),
+            "alpha0": float(fit.alpha0),
+            "sigma_y": float(fit.sigma_y),
+            "converged": bool(fit.converged),
+        },
+        "effects": {
+            "unit": "nats of renormalized letter margin",
+            "nde": {"point": float(nde), "lo": nde_lo, "hi": nde_hi},
+            "nie": {"point": float(nie), "lo": nie_lo, "hi": nie_hi},
+            "te": {"point": float(te), "lo": te_lo, "hi": te_hi},
+        },
+        "bootstrap": {
+            "n_replicates": n_bootstrap,
+            "unit": "item (both arms of an item resampled together)",
+            "seed": w1.BOOT_SEED,
+            "degenerate_redraws": redraws,
+            "note": "the same seed and the same resampled items as this cell's binary column B",
+        },
+        "model_implied_te_vs_randomized_arm_difference": {
+            "model_implied_te": float(te),
+            "randomized_arm_difference": arm_diff,
+            "difference": float(te - arm_diff),
+            "difference_lo": gap_lo,
+            "difference_hi": gap_hi,
+            "note": (
+                "an algebraic identity on this scale (A5.2), so this is a code check and "
+                "never a finding. A5.4 condition 5 gates on it"
+            ),
+        },
+        "mediated_share": mediated_share,
+        "rho": {
+            "grid": "the symmetric A4.6(a) grid, the battery's own points mirrored",
+            "n_grid_points": len(w1.RHO_GRID_SIGNED),
+            "grid_min": float(w1.RHO_GRID_SIGNED.min()),
+            "grid_max": float(w1.RHO_GRID_SIGNED.max()),
+            "rho_star_point": {
+                "point": float(gm.gaussian_rho_star_point(fit.beta, fit.sigma_m, fit.sigma_y)),
+                "lo": rs_lo,
+                "hi": rs_hi,
+                "formula": "|B| sigma_m / sqrt(S^2 + B^2 sigma_m^2), the probit form with the outcome error scale freed",
+                "note": (
+                    "invariant to the direct coefficient by construction and carrying no "
+                    "information about direct-path strength (section 8.1, 8.2, A5.5 item 5). "
+                    "It is never merged with a rho*_decision, and there is none on this scale"
+                ),
+            },
+            "effects_curve": _curve_rows(fit, w1.RHO_GRID_SIGNED),
+            "te_is_flat_in_rho": {
+                "te_range_across_the_check_rhos": te_range,
+                "note": "TE has no rho in it on this scale (A5.2); the range is a float check",
+            },
+            "sweep_cross_check": {
+                "rho": [float(r) for r in check_rhos],
+                "sweep_nie": [float(p.nie) for p in sweep],
+                "curve_nie": [float(v) for v in curve_at[1]],
+                "max_abs_difference": float(
+                    np.max(np.abs(np.array([p.nie for p in sweep]) - curve_at[1]))
+                ),
+                "note": "gaussian_sensitivity_sweep refits at every point; the curve is vectorised from one fit",
+            },
+        },
+        "standardised_effects": {
+            "unit": "clean-arm outcome standard deviations",
+            "nde": std_nde,
+            "nie": std_nie,
+            "te": std_te,
+            "note": (
+                "a reporting convenience so a magnitude can be compared across cells. "
+                "A5.2 says explicitly that it is NOT an estimand and NOT a threshold: the "
+                "0.15 of section 2.5 is on the probability scale and does not transfer"
+            ),
+        },
+        "verdict": LOGIT_VERDICT,
+        "verdict_rule": (
+            "A5.6: G2 is NOT SET on this scale. The row is descriptive throughout and is "
+            "never used for promotion, for ranking, for the element 21 comparison of "
+            "section 22, or for any claim-status change"
+        ),
+        "seconds": round(time.time() - t0, 2),
     }
 
 
 # --------------------------------------------------------------------------- #
 # One cell.
 # --------------------------------------------------------------------------- #
+def load_cell_logit(
+    cell_dir: Path,
+    records: list[dict],
+    family_dir: Path | None = None,
+    ignore_sidecar_reason: str | None = None,
+) -> dict:
+    """Everything the A5 lane needs from one cell, whether or not the pass has run there.
+
+    Returns the merged records (the originals when there is no usable sidecar), the merge
+    report, the two pass artifacts, and the logit-level analysis table. Nothing here
+    mutates ``records``: a refused merge leaves the cell exactly where it was and the
+    text-level row is fitted on the same objects either way.
+    """
+    sidecar, sidecar_info = w1.load_logit_sidecar(cell_dir)
+    if ignore_sidecar_reason is not None:
+        # A sidecar written by a pass that has not finished is not a measurement yet. The
+        # completion marker is the only thing that says a family's pass ran to the end, so
+        # a run without one reads no sidecar at all rather than half of one, and says so.
+        sidecar_info = dict(
+            sidecar_info, status="ignored", reason=ignore_sidecar_reason
+        )
+        sidecar = None
+    out = {
+        "sidecar_info": sidecar_info,
+        "merge": None,
+        "merged_records": records,
+        "check": _read_json(cell_dir / "logit_check.json"),
+        "pass_meta": _read_json(cell_dir / "logit_pass_meta.json"),
+        "family_dir": str(family_dir) if family_dir else None,
+        "family_check": _read_json(family_dir / "logprob_check.json") if family_dir else None,
+        "family_run_meta": _read_json(family_dir / "run_meta.json") if family_dir else None,
+        "family_done": _read_json(family_dir / "logit_pass_done.json") if family_dir else None,
+        "table": None,
+    }
+    if sidecar is None:
+        out["merge"] = {
+            "merged": False,
+            "reason": sidecar_info.get("reason"),
+            "status": sidecar_info.get("status"),
+        }
+        return out
+    try:
+        merged, report = w1.merge_logit_sidecar(records, sidecar, cell_dir)
+    except w1.LogitMergeError as exc:
+        out["merge"] = dict(exc.report, refusal=str(exc))
+        return out
+    out["merged_records"] = merged
+    out["merge"] = report
+    out["table"] = w1.build_table(merged, outcome="logprob_margin")
+    return out
+
+
+def logit_level_row(
+    cell_dir: Path,
+    records: list[dict],
+    meta: dict,
+    n_bootstrap: int = w1.N_BOOTSTRAP,
+    family_dir: Path | None = None,
+    ignore_sidecar_reason: str | None = None,
+) -> dict:
+    """One cell's logit-level row: the gate first, the row only if the gate clears.
+
+    The fit runs BEFORE the gate because A5.4 condition 5 is a statement about TE_logit and
+    there is no way to check an identity without computing both sides. What A5.4 controls
+    is what is PRINTED, and that is enforced here: on a failing gate ``column_b`` is null
+    and the artifact carries the failing check names instead, so no effect, no interval, no
+    mediated share and no rho*_point leaves a row that did not clear all six.
+
+    A5.3's bridge is the second thing that can withhold the row. Element 0's rule is that a
+    row mixing the two scales prints both and their bridge or prints neither, so a bridge
+    with an empty denominator withholds the row the same way a failed condition does.
+    """
+    logit = load_cell_logit(
+        cell_dir,
+        records,
+        family_dir=family_dir,
+        ignore_sidecar_reason=ignore_sidecar_reason,
+    )
+    table = logit["table"]
+    logit["column_b"] = logit_column_b(table, n_bootstrap=n_bootstrap) if table else None
+    bridge = logit_bridge(table) if table else None
+    g1 = logit_g1_gate(logit["merged_records"], cell_dir, meta, logit=logit)
+
+    blocked = list(g1["failing_conditions"])
+    if table is not None and bridge is not None and not bridge["computable"]:
+        blocked.append("A5.3_bridge_not_computable")
+    printed = not blocked
+    return {
+        "rule": (
+            "A5.5: the logit-level row is printed BESIDE the text-level row and never "
+            "instead of it. A cell with no text-level row does not get one, no "
+            "cross-model ranking and no promotion decision uses a logit-level number, and "
+            "A5.6 leaves the row descriptive with no verdict on this scale"
+        ),
+        "printed": printed,
+        "not_printed_because": blocked,
+        "gate_G1": g1,
+        "column_b": logit["column_b"] if printed else None,
+        "bridge": bridge if printed else None,
+        "letter_probability_mass": (
+            logit_mass_summary(logit["merged_records"]) if printed else None
+        ),
+        "sidecar": logit["sidecar_info"],
+        "merge": logit["merge"],
+        "logit_pass_run": (
+            None
+            if not logit["family_run_meta"]
+            else {
+                k: logit["family_run_meta"].get(k)
+                for k in (
+                    "job_id",
+                    "model",
+                    "hf_revision",
+                    "vllm_version",
+                    "batch_invariant",
+                    "concurrency",
+                    "determinism_preflight",
+                    "port_owner_check",
+                    "run_label",
+                )
+            }
+        ),
+        "denominators": (
+            None
+            if table is None
+            else {
+                "n_records_read": table["denominators"]["n_records_read"],
+                "n_items_complete": table["denominators"]["n_items_complete"],
+                "n_rows": table["denominators"]["n_rows"],
+                "drops": table["denominators"]["drops"],
+            }
+        ),
+    }
+
+
 def run_fit(args) -> dict:
     cell_dir = Path(args.cell_dir)
     records_path = cell_dir / "transcripts.jsonl"
@@ -404,7 +1016,8 @@ def run_fit(args) -> dict:
     a = w1.column_a(records, summary)
     b = w1.column_b(table, n_bootstrap=args.n_bootstrap)
     anchor = w1.anchor_block(table, b)
-    g1 = logit_g1_gate(records, cell_dir, meta)
+    row = logit_level_row(cell_dir, records, meta, n_bootstrap=args.n_bootstrap)
+    g1 = row["gate_G1"]
 
     for k in ("boot_anchor_cells", "boot_nde", "boot_nie", "boot_te"):
         b.pop(k, None)
@@ -473,6 +1086,7 @@ def run_fit(args) -> dict:
         "column_a": a,
         "column_b": b,
         "logit_level_gate_G1": g1,
+        "logit_level_row": row,
         "anchor": anchor,
         "cell_level_all_three_agree": anchor["all_three_agree"],
         "claim_status": "PENDING_MODEL_ROW",
@@ -987,10 +1601,124 @@ def finalise_claim_status(
 
 
 # --------------------------------------------------------------------------- #
+# --------------------------------------------------------------------------- #
+# A5.5. One cell's two scales, side by side.
+# --------------------------------------------------------------------------- #
+BINARY_COLUMN_B_FIELDS = (
+    "specification",
+    "n_items",
+    "n_rows",
+    "fit",
+    "effects",
+    "separation_diagnostic",
+    "bootstrap",
+    "model_implied_te_vs_randomized_arm_difference",
+    # The text-level lane names its mediated share nie_over_te and keeps the rule that
+    # withholds it in a note beside it. Both are carried over as they are written.
+    "nie_over_te",
+    "mediated_share_note",
+    "rho",
+    "verdict",
+)
+
+
+def _binary_column_b(fit_path: Path) -> dict:
+    """The binary-scale column B of the 24-cell fit, read and never recomputed.
+
+    A5.5's order starts with the text-level effects, and the text-level effects of record
+    are the ones the 24-cell lane already fitted and published. Recomputing them here would
+    put two numbers for one estimand in the repository, so this reads that artifact, keeps
+    the fields the two-scale row prints, and records the sha256 of the file it read them
+    from so a reader can tell which fit the comparison was made against.
+    """
+    if not fit_path.exists():
+        return {"present": False, "path": str(fit_path), "reason": "no 24-cell fit.json for this cell"}
+    fit = json.loads(fit_path.read_text())
+    colb = fit.get("column_b") or {}
+    return {
+        "present": True,
+        "path": str(fit_path),
+        "sha256": w1.sha256_of(fit_path),
+        "cell": fit.get("cell"),
+        "code_commit": fit.get("code_commit"),
+        "outcome_scale": fit.get("outcome_scale"),
+        "intervention_level": fit.get("intervention_level"),
+        "table": fit.get("table"),
+        "column_b": {k: colb[k] for k in BINARY_COLUMN_B_FIELDS if k in colb},
+        "claim_status": fit.get("claim_status"),
+    }
+
+
+def run_logit(args) -> dict:
+    """One cell's logit-level row printed BESIDE its binary column B (A5.5).
+
+    The binary column comes out of the 24-cell ``fit.json`` unchanged; the logit column is
+    computed here from the cell's own sidecar. Neither replaces the other, and a cell with
+    no binary column gets no logit column either, which is A5.5's rule that the logit-level
+    row is never printed instead of the text-level row.
+    """
+    cell_dir = Path(args.cell_dir)
+    records, file_counts = w1.load_records(cell_dir / "transcripts.jsonl")
+    meta = json.loads((cell_dir / "run_meta.json").read_text())
+    binary = _binary_column_b(Path(args.binary_fit))
+    family_dir = Path(args.logit_pass_dir) if args.logit_pass_dir else None
+    row = logit_level_row(
+        cell_dir,
+        records,
+        meta,
+        n_bootstrap=args.n_bootstrap,
+        family_dir=family_dir,
+        ignore_sidecar_reason=args.ignore_sidecar,
+    )
+    if not binary["present"] and row["printed"]:
+        row["printed"] = False
+        row["not_printed_because"] = ["no_text_level_row_for_this_cell"]
+        row["column_b"] = None
+        row["bridge"] = None
+        row["letter_probability_mass"] = None
+    return {
+        "cell": args.cell,
+        "cell_set": args.cells,
+        "model_slug": args.model_slug,
+        "model": meta.get("model"),
+        "hf_revision": meta.get("hf_revision"),
+        "substrate": meta.get("substrate"),
+        "cue_family": meta.get("cue_family"),
+        "job_id": meta.get("job_id"),
+        "text_level_job_id": meta.get("job_id"),
+        "logit_pass_job_id": (row.get("logit_pass_run") or {}).get("job_id"),
+        "code_commit": args.commit,
+        "analysis_script_sha256": w1.sha256_of(Path(__file__)),
+        "reused_script_sha256": {"wave1_fits.py": w1.sha256_of(Path(w1.__file__))},
+        "estimator_module_sha256": w1.estimator_hashes(),
+        "reporting_order": (
+            "A5.5: (1) the text-level NDE, NIE and TE with intervals; (2) the logit-level "
+            "three in nats; (3) the bridge with its denominator and drop counts; (4) the "
+            "mediated shares, text level first, each only where that scale's TE interval "
+            "excludes zero; (5) rho*_point on each scale; (6) rho*_decision on the text "
+            "scale and A5.6's words on the logit scale"
+        ),
+        "file_counts": file_counts,
+        "column_b_binary_from_the_24_cell_fit": binary,
+        "column_b_logit": row,
+        "logit_pass_meta": _read_json(cell_dir / "logit_pass_meta.json"),
+    }
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--mode", choices=("gate", "fit", "pymc", "modelrow", "claims"),
+    p.add_argument("--mode", choices=("gate", "fit", "pymc", "modelrow", "claims", "logit"),
                    required=True)
+    p.add_argument("--binary-fit",
+                   help="the cell's 24-cell fit.json, whose binary column B the logit "
+                        "row is printed beside (--mode logit)")
+    p.add_argument("--ignore-sidecar",
+                   help="read no logit sidecar for this cell and record this string as "
+                        "the reason, for a model family whose pass has written no "
+                        "completion marker yet (--mode logit)")
+    p.add_argument("--logit-pass-dir",
+                   help="the logit pass's own family directory, $BCF_RESULTS/logit-pass/"
+                        "<model slug>/, holding the family probe and the run record")
     p.add_argument("--cell")
     p.add_argument("--model-slug")
     p.add_argument("--cell-dir")
@@ -1021,6 +1749,8 @@ def main() -> int:
         payload["wave1_fits_sha256"] = w1.sha256_of(Path(w1.__file__))
     elif args.mode == "fit":
         payload = run_fit(args)
+    elif args.mode == "logit":
+        payload = run_logit(args)
     elif args.mode == "pymc":
         payload = w1.run_pymc(args)
         payload["model_slug"] = args.model_slug
