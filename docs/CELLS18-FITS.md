@@ -1476,35 +1476,61 @@ Cell-level: all three agree **no**; model-level all three agree **no**. Claim st
 
 ## 5. The model-level row estimand (element 1 section 2.4)
 
-Section 2.4: one value per model, the model-level hyperparameter posterior from the hierarchical fit across that model's cells, never an average of cell point estimates, with **the posterior of the cue-family variance component reported before any model-level number is quoted**. That ordering is why the variance components come first in every table below. Every row is **PROVISIONAL**; the choices that make it so are recorded verbatim in each `model_row.json` under `choices_that_make_this_provisional` and summarised after the tables.
+Section 2.4: one value per model, the model-level hyperparameter posterior from the hierarchical fit across that model's cells, never an average of cell point estimates, with **the posterior of the cue-family variance component reported before any model-level number is quoted**. That ordering is why section 5.1 comes before section 5.2. Every row is **PROVISIONAL**; the choices that make it so are recorded verbatim in each `model_row.json` under `choices_that_make_this_provisional` and summarised after the tables.
 
-**No ordering is stated here either.** The three model rows are printed in one table because they are three instances of the same estimand, not because they are comparable on a calibrated scale. Section 25's ranking rule is written for cross-model column-A statements and column A here is uncorrected; the same restraint is applied to column B because nothing in this lane licenses a cross-model claim about it either.
-
-### 5.1 The cue-family variance components, printed first
-
-| model | tau_alpha_h (cue family, direct) | tau_beta_h (cue family, mediated) | tau_alpha (cell) | tau_beta (cell) | tau_gamma (cell) |
-|---|---|---|---|---|---|
-| `qwen3-8b` | 0.1550 [0.0088, 1.1604] | 1.1497 [0.0539, 5.1757] | 0.2028 [0.0639, 0.7269] | 2.3839 [1.2551, 6.5164] | 0.1439 [0.0801, 0.3598] |
-| `gemma-2-9b-it` | 0.1757 [0.0066, 1.2021] | 0.9202 [0.0470, 6.7958] | 0.2903 [0.1118, 0.9585] | 1.8614 [0.9779, 4.6204] | 0.2383 [0.1263, 0.5358] |
-| `llama-3.1-8b-instruct` | 0.4023 [0.0236, 1.7986] | 0.7865 [0.0281, 4.4523] | 0.4959 [0.2282, 1.4066] | 1.7434 [0.9039, 4.4767] | 0.1759 [0.0968, 0.4164] |
+**No ordering is stated here either, and the layout is part of that.** Each model gets its own block below rather than a row in a shared table, because three models side by side in one numeric table is an invitation to rank them whatever the surrounding text says. Section 25's ranking rule is written for cross-model column-A statements and column A here is uncorrected; the same restraint is applied to column B, because nothing in this lane licenses a cross-model claim about it either. The blocks are in the order the models were run.
 
 **Sampler health, stated before the numbers because it bears on how to read them.** The hierarchical fit is harder than the per-cell one: it carries six group deviations and two zero-centred cue-family deviations over a design whose clean arm has no outcome variation, and it does not sample cleanly everywhere. `qwen3-8b` with 130 divergences, max r_hat 1.010 and minimum bulk ESS 495; `gemma-2-9b-it` with 153 divergences, max r_hat 1.010 and minimum bulk ESS 309; `llama-3.1-8b-instruct` with 72 divergences, max r_hat 1.000 and minimum bulk ESS 1504. Divergences mean the sampler could not explore part of the posterior, so these intervals are not guaranteed to be the posterior's own. The numbers are printed with their diagnostics rather than withheld, and the diagnostic is one more reason the row is PROVISIONAL. A later lane that wants a clean row should raise `target_accept`, reparameterise the group deviations, or fit fewer levels at once, and should re-run rather than reinterpret these. One standard is applied to both tables: section 5.5 holds the sensitivity fits to max r_hat at or below 1.01 and a minimum bulk ESS of at least 400, and by that same bar 1 of 3 rows above also falls short, `gemma-2-9b-it`. Those rows are not withheld, because the row estimand is what section 2.4 asks this lane to report and a missing row would be read as a missing measurement rather than as a sampling failure, but they carry the same caution as the flagged rows in 5.5.
 
+### 5.1 The cue-family variance components, printed first
+
+Section 2.4 requires the cue-family variance component before any model-level number, so it is printed here, one table per model, before section 5.2 quotes an effect. `tau_*_h` are the zero-centred cue-family deviations of section 8; `tau_alpha`, `tau_beta` and `tau_gamma` are the cell-level spreads.
+
+`qwen3-8b`, 6 cells, 6,156 items
+
+| component | posterior median [interval] |
+|---|---|
+| tau_alpha_h, cue family, direct | 0.1550 [0.0088, 1.1604] |
+| tau_beta_h, cue family, mediated | 1.1497 [0.0539, 5.1757] |
+| tau_alpha, cell | 0.2028 [0.0639, 0.7269] |
+| tau_beta, cell | 2.3839 [1.2551, 6.5164] |
+| tau_gamma, cell | 0.1439 [0.0801, 0.3598] |
+
+`gemma-2-9b-it`, 6 cells, 5,544 items
+
+| component | posterior median [interval] |
+|---|---|
+| tau_alpha_h, cue family, direct | 0.1757 [0.0066, 1.2021] |
+| tau_beta_h, cue family, mediated | 0.9202 [0.0470, 6.7958] |
+| tau_alpha, cell | 0.2903 [0.1118, 0.9585] |
+| tau_beta, cell | 1.8614 [0.9779, 4.6204] |
+| tau_gamma, cell | 0.2383 [0.1263, 0.5358] |
+
+`llama-3.1-8b-instruct`, 6 cells, 5,663 items
+
+| component | posterior median [interval] |
+|---|---|
+| tau_alpha_h, cue family, direct | 0.4023 [0.0236, 1.7986] |
+| tau_beta_h, cue family, mediated | 0.7865 [0.0281, 4.4523] |
+| tau_alpha, cell | 0.4959 [0.2282, 1.4066] |
+| tau_beta, cell | 1.7434 [0.9039, 4.4767] |
+| tau_gamma, cell | 0.1759 [0.0968, 0.4164] |
+
 ### 5.2 The row estimand, and the per-cell rows beside it
 
-| model | cells | items | NDE | NIE | TE | P(NIE > 0.15) | verdict | NIE/TE | max r_hat | divergences |
-|---|---:|---:|---|---|---|---:|---|---:|---:|---:|
-| `qwen3-8b` | 6 | 6,156 | +0.1166 [+0.0298, +0.2139] | +0.0250 [-0.0342, +0.1434] | +0.1413 [+0.0346, +0.3491] | 0.015 | unresolved | 0.1766 | 1.010 | 130 |
-| `gemma-2-9b-it` | 6 | 5,544 | +0.1262 [+0.0353, +0.2043] | +0.0523 [-0.0370, +0.2206] | +0.1770 [+0.0425, +0.3964] | 0.102 | unresolved | 0.2956 | 1.010 | 153 |
-| `llama-3.1-8b-instruct` | 6 | 5,663 | +0.0966 [+0.0101, +0.2250] | +0.0161 [-0.0353, +0.1160] | +0.1146 [+0.0130, +0.3028] | 0.012 | unresolved | 0.1408 | 1.000 | 72 |
-
-**The row and its cells are separate runs, and they are checked against each other.** The model row was fitted by its own cluster job straight from the transcripts; the six cell fits were fitted by a different job. Comparing the two afterwards, 18 of 18 cell sizes in the row's `cells_entering` equal the `n_items_complete` and `n_rows` the corresponding `fit.json` recorded, and 12 of 12 pooled anchor counts in the row equal the sum of the same four anchor cells over that model's six `fit.json` files, numerator and denominator. A row fitted on a different item set than the cells printed beside it would fail this.
-
-**No model-level rho sweep is printed, and section 2.5 is the reason rather than a shortage of compute.** 2.5 says that where no effect is supported at rho = 0 the verdict is unresolved and the dial says so rather than showing robustness. 0 of 3 model rows are load-bearing at rho = 0; the largest P(NIE > 0.15) over the 3 rows is 0.102 against the 0.95 the rule asks for, and 3 of 3 rows have an NIE interval that covers zero. Sweeping rho from there would report how far an effect that is not supported at rho = 0 survives, which is the number 2.5 forbids putting on the dial. rho\*_point is likewise not printed at the model level: it is an invariant reference with no directional meaning, and this lane has no model-level use for it that section 8.1 permits. The per-cell sweeps in section 4 are unaffected and are printed there.
-
-The six cell rows of each model, beside their model row:
+One table per model, its own six cells underneath it. No column is comparable across blocks.
 
 `qwen3-8b`
+
+| quantity | value |
+|---|---|
+| NDE | +0.1166 [+0.0298, +0.2139] |
+| NIE | +0.0250 [-0.0342, +0.1434] |
+| TE | +0.1413 [+0.0346, +0.3491] |
+| P(NIE > 0.15) | 0.015 |
+| verdict | unresolved |
+| NIE/TE | 0.1766 |
+| sampler | max r_hat 1.010, 130 divergences, minimum bulk ESS 495 |
 
 | cell | NDE | NIE | TE | verdict | claim status |
 |---|---|---|---|---|---|
@@ -1517,6 +1543,16 @@ The six cell rows of each model, beside their model row:
 
 `gemma-2-9b-it`
 
+| quantity | value |
+|---|---|
+| NDE | +0.1262 [+0.0353, +0.2043] |
+| NIE | +0.0523 [-0.0370, +0.2206] |
+| TE | +0.1770 [+0.0425, +0.3964] |
+| P(NIE > 0.15) | 0.102 |
+| verdict | unresolved |
+| NIE/TE | 0.2956 |
+| sampler | max r_hat 1.010, 153 divergences, minimum bulk ESS 309 |
+
 | cell | NDE | NIE | TE | verdict | claim status |
 |---|---|---|---|---|---|
 | arc_challenge x stated-hint | +0.1110 [+0.0965, +0.1274] | +0.1895 [+0.1703, +0.2153] | +0.3005 [+0.2680, +0.3368] | load-bearing at rho=0 | RAW |
@@ -1528,6 +1564,16 @@ The six cell rows of each model, beside their model row:
 
 `llama-3.1-8b-instruct`
 
+| quantity | value |
+|---|---|
+| NDE | +0.0966 [+0.0101, +0.2250] |
+| NIE | +0.0161 [-0.0353, +0.1160] |
+| TE | +0.1146 [+0.0130, +0.3028] |
+| P(NIE > 0.15) | 0.012 |
+| verdict | unresolved |
+| NIE/TE | 0.1408 |
+| sampler | max r_hat 1.000, 72 divergences, minimum bulk ESS 1504 |
+
 | cell | NDE | NIE | TE | verdict | claim status |
 |---|---|---|---|---|---|
 | arc_challenge x stated-hint | +0.1616 [+0.1435, +0.1787] | +0.1781 [+0.1583, +0.2004] | +0.3398 [+0.3092, +0.3746] | load-bearing at rho=0 | RAW |
@@ -1537,19 +1583,37 @@ The six cell rows of each model, beside their model row:
 | aqua_rat x stated-hint | +0.0971 [+0.0807, +0.1159] | -0.0016 [-0.0034, +0.0006] | +0.0955 [+0.0796, +0.1144] | unresolved | RAW |
 | aqua_rat x professor | +0.1651 [+0.1433, +0.1821] | +0.0012 [-0.0038, +0.0075] | +0.1663 [+0.1446, +0.1868] | unresolved | RAW |
 
+**The row and its cells are separate runs, and they are checked against each other.** The model row was fitted by its own cluster job straight from the transcripts; the six cell fits were fitted by a different job. Comparing the two afterwards, 18 of 18 cell sizes in the row's `cells_entering` equal the `n_items_complete` and `n_rows` the corresponding `fit.json` recorded, and 12 of 12 pooled anchor counts in the row equal the sum of the same four anchor cells over that model's six `fit.json` files, numerator and denominator. A row fitted on a different item set than the cells printed beside it would fail this.
+
+**No model-level rho sweep is printed, and section 2.5 is the reason rather than a shortage of compute.** 2.5 says that where no effect is supported at rho = 0 the verdict is unresolved and the dial says so rather than showing robustness. 0 of 3 model rows are load-bearing at rho = 0; the largest P(NIE > 0.15) over the 3 rows is 0.102 against the 0.95 the rule asks for, and 3 of 3 rows have an NIE interval that covers zero. Sweeping rho from there would report how far an effect that is not supported at rho = 0 survives, which is the number 2.5 forbids putting on the dial. rho\*_point is likewise not printed at the model level: it is an invariant reference with no directional meaning, and this lane has no model-level use for it that section 8.1 permits. The per-cell sweeps in section 4 are unaffected and are printed there.
+
 ### 5.3 The model-level element 21 comparison, which is what claim status turns on
 
-| model | estimand | model-level column B | pooled anchor contrast | difference | agrees |
-|---|---|---|---|---|---|
-| `qwen3-8b` | NDE | +0.1166 [+0.0298, +0.2139] | +0.0476 [+0.0432, +0.0526] | +0.0690 [-0.0174, +0.1648] | **no** |
-| `qwen3-8b` | NIE | +0.0250 [-0.0342, +0.1434] | +0.1458 [+0.1358, +0.1555] | -0.1208 [-0.1804, -0.0019] | **no** |
-| `qwen3-8b` | TE | +0.1413 [+0.0346, +0.3491] | +0.1934 [+0.1841, +0.2033] | -0.0521 [-0.1589, +0.1540] | **no** |
-| `gemma-2-9b-it` | NDE | +0.1262 [+0.0353, +0.2043] | +0.0556 [+0.0489, +0.0610] | +0.0706 [-0.0218, +0.1503] | **no** |
-| `gemma-2-9b-it` | NIE | +0.0523 [-0.0370, +0.2206] | +0.1686 [+0.1599, +0.1799] | -0.1163 [-0.2068, +0.0575] | **no** |
-| `gemma-2-9b-it` | TE | +0.1770 [+0.0425, +0.3964] | +0.2242 [+0.2135, +0.2358] | -0.0472 [-0.1855, +0.1686] | **no** |
-| `llama-3.1-8b-instruct` | NDE | +0.0966 [+0.0101, +0.2250] | +0.0641 [+0.0584, +0.0698] | +0.0325 [-0.0541, +0.1575] | **no** |
-| `llama-3.1-8b-instruct` | NIE | +0.0161 [-0.0353, +0.1160] | +0.2176 [+0.2089, +0.2282] | -0.2014 [-0.2518, -0.0982] | **no** |
-| `llama-3.1-8b-instruct` | TE | +0.1146 [+0.0130, +0.3028] | +0.2817 [+0.2725, +0.2928] | -0.1670 [-0.2694, +0.0221] | **no** |
+One table per model, again.
+
+`qwen3-8b`
+
+| estimand | model-level column B | pooled anchor contrast | difference | agrees |
+|---|---|---|---|---|
+| NDE | +0.1166 [+0.0298, +0.2139] | +0.0476 [+0.0432, +0.0526] | +0.0690 [-0.0174, +0.1648] | **no** |
+| NIE | +0.0250 [-0.0342, +0.1434] | +0.1458 [+0.1358, +0.1555] | -0.1208 [-0.1804, -0.0019] | **no** |
+| TE | +0.1413 [+0.0346, +0.3491] | +0.1934 [+0.1841, +0.2033] | -0.0521 [-0.1589, +0.1540] | **no** |
+
+`gemma-2-9b-it`
+
+| estimand | model-level column B | pooled anchor contrast | difference | agrees |
+|---|---|---|---|---|
+| NDE | +0.1262 [+0.0353, +0.2043] | +0.0556 [+0.0489, +0.0610] | +0.0706 [-0.0218, +0.1503] | **no** |
+| NIE | +0.0523 [-0.0370, +0.2206] | +0.1686 [+0.1599, +0.1799] | -0.1163 [-0.2068, +0.0575] | **no** |
+| TE | +0.1770 [+0.0425, +0.3964] | +0.2242 [+0.2135, +0.2358] | -0.0472 [-0.1855, +0.1686] | **no** |
+
+`llama-3.1-8b-instruct`
+
+| estimand | model-level column B | pooled anchor contrast | difference | agrees |
+|---|---|---|---|---|
+| NDE | +0.0966 [+0.0101, +0.2250] | +0.0641 [+0.0584, +0.0698] | +0.0325 [-0.0541, +0.1575] | **no** |
+| NIE | +0.0161 [-0.0353, +0.1160] | +0.2176 [+0.2089, +0.2282] | -0.2014 [-0.2518, -0.0982] | **no** |
+| TE | +0.1146 [+0.0130, +0.3028] | +0.2817 [+0.2725, +0.2928] | -0.1670 [-0.2694, +0.0221] | **no** |
 
 **This test is not the per-cell test of section 4, and it is harder to pass for a reason that is arithmetic rather than empirical.** The artifact states it: the two sides are INDEPENDENT draws (a posterior and a bootstrap), not one paired resample as in the per-cell test, so this interval is wider than a paired one and the 0.10 margin is harder to clear. The per-cell test forms the difference inside one bootstrap replicate, so the shared item noise cancels; here the column B side is a PyMC posterior over hyperparameters and the anchor side is an item bootstrap, and nothing pairs them. The consequence is measurable rather than hypothetical: 9 of 18 cells pass their own three-estimand test, no model row passes, and 9 of those 9 cells are therefore RAW on the model-level leg alone. This lane requires BOTH legs because section 22 puts the comparison at the model level and a cell-only rule would promote on the easier test; the conservative choice can only demote. A later lane that pairs the two sides, or that reads section 22.1's margin as a per-cell rule, will get more ANCHORED cells from these same numbers, and that is a choice about the test and not a new measurement. Section 22's own rule is the model-level leg alone, so the extra leg this lane adds is not binding on this table: no cell would have been promoted by the model-level test and demoted by the cell-level one, because no model row passes the model-level test in the first place. The extra leg is recorded because it would bind on a table where a model row did pass.
 

@@ -765,8 +765,8 @@ def model_rows_section(rows, extra, fits) -> list[str]:
         ("Section 2.4: one value per model, the model-level hyperparameter posterior from "
         "the hierarchical fit across that model's cells, never an average of cell point "
         "estimates, with **the posterior of the cue-family variance component reported "
-        "before any model-level number is quoted**. That ordering is why the variance "
-        "components come first in every table below. Every row is **PROVISIONAL**; the "
+        "before any model-level number is quoted**. That ordering is why section 5.1 "
+        "comes before section 5.2. Every row is **PROVISIONAL**; the "
         "choices that make it so are recorded verbatim in each `model_row.json` under "
         "`choices_that_make_this_provisional` and summarised after the tables."),
         "",
@@ -775,17 +775,24 @@ def model_rows_section(rows, extra, fits) -> list[str]:
         out += ["No model-level row has been written yet.", "", "---", ""]
         return out
     out += [
-        ("**No ordering is stated here either.** The three model rows are printed in one "
-        "table because they are three instances of the same estimand, not because they are "
-        "comparable on a calibrated scale. Section 25's ranking rule is written for "
+        ("**No ordering is stated here either, and the layout is part of that.** Each "
+        "model gets its own block below rather than a row in a shared table, because "
+        "three models side by side in one numeric table is an invitation to rank them "
+        "whatever the surrounding text says. Section 25's ranking rule is written for "
         "cross-model column-A statements and column A here is uncorrected; the same "
-        "restraint is applied to column B because nothing in this lane licenses a "
-        "cross-model claim about it either."),
+        "restraint is applied to column B, because nothing in this lane licenses a "
+        "cross-model claim about it either. The blocks are in the order the models were "
+        "run."),
+        "",
+        _sampler_health(rows),
         "",
         "### 5.1 The cue-family variance components, printed first",
         "",
-        "| model | tau_alpha_h (cue family, direct) | tau_beta_h (cue family, mediated) | tau_alpha (cell) | tau_beta (cell) | tau_gamma (cell) |",
-        "|---|---|---|---|---|---|",
+        ("Section 2.4 requires the cue-family variance component before any model-level "
+        "number, so it is printed here, one table per model, before section 5.2 quotes an "
+        "effect. `tau_*_h` are the zero-centred cue-family deviations of section 8; "
+        "`tau_alpha`, `tau_beta` and `tau_gamma` are the cell-level spreads."),
+        "",
     ]
     for m, r in rows.items():
         v = r["variance_components"]
@@ -793,37 +800,48 @@ def model_rows_section(rows, extra, fits) -> list[str]:
         def f4(k, v=v):
             b = v[k]
             return f"{b['posterior_median']:.4f} [{b['lo']:.4f}, {b['hi']:.4f}]"
-        out.append(
-            f"| `{m}` | {f4('tau_alpha_h')} | {f4('tau_beta_h')} | {f4('tau_alpha')} | "
-            f"{f4('tau_beta')} | {f4('tau_gamma')} |"
-        )
+        out += [
+            f"`{m}`, {r['n_cells']} cells, {r['n_items_total']:,} items",
+            "",
+            ("| component | posterior median [interval] |"),
+            "|---|---|",
+            f"| tau_alpha_h, cue family, direct | {f4('tau_alpha_h')} |",
+            f"| tau_beta_h, cue family, mediated | {f4('tau_beta_h')} |",
+            f"| tau_alpha, cell | {f4('tau_alpha')} |",
+            f"| tau_beta, cell | {f4('tau_beta')} |",
+            f"| tau_gamma, cell | {f4('tau_gamma')} |",
+            "",
+        ]
     out += [
-        "",
-        _sampler_health(rows),
-        "",
         "### 5.2 The row estimand, and the per-cell rows beside it",
         "",
-        "| model | cells | items | NDE | NIE | TE | P(NIE > 0.15) | verdict | NIE/TE | max r_hat | divergences |",
-        "|---|---:|---:|---|---|---|---:|---|---:|---:|---:|",
+        ("One table per model, its own six cells underneath it. No column is comparable "
+        "across blocks."),
+        "",
     ]
     for m, r in rows.items():
         ef = r["effects"]
-        out.append(
-            f"| `{m}` | {r['n_cells']} | {r['n_items_total']:,} | "
-            f"{ef['nde']['point']:+.4f} [{ef['nde']['lo']:+.4f}, {ef['nde']['hi']:+.4f}] | "
-            f"{ef['nie']['point']:+.4f} [{ef['nie']['lo']:+.4f}, {ef['nie']['hi']:+.4f}] | "
-            f"{ef['te']['point']:+.4f} [{ef['te']['lo']:+.4f}, {ef['te']['hi']:+.4f}] | "
-            f"{ef['prob_nie_above_0.15']:.3f} | "
-            f"{'load-bearing at rho=0' if ef['load_bearing_at_rho_zero'] else 'unresolved'} | "
-            + (f"{ef['nie_over_te']:.4f}" if ef.get("nie_over_te") is not None else "n/a")
-            + f" | {r['sampler']['max_r_hat']:.3f} | {r['sampler']['divergences']} |"
-        )
-    out += ["", _row_cell_consistency(rows, fits), "",
-            _no_model_rho_line(rows), "",
-            "The six cell rows of each model, beside their model row:", ""]
-    for m in rows:
         out += [
             f"`{m}`",
+            "",
+            ("| quantity | value |"),
+            "|---|---|",
+            (f"| NDE | {ef['nde']['point']:+.4f} [{ef['nde']['lo']:+.4f}, "
+             f"{ef['nde']['hi']:+.4f}] |"),
+            (f"| NIE | {ef['nie']['point']:+.4f} [{ef['nie']['lo']:+.4f}, "
+             f"{ef['nie']['hi']:+.4f}] |"),
+            (f"| TE | {ef['te']['point']:+.4f} [{ef['te']['lo']:+.4f}, "
+             f"{ef['te']['hi']:+.4f}] |"),
+            f"| P(NIE > 0.15) | {ef['prob_nie_above_0.15']:.3f} |",
+            "| verdict | "
+            + ("load-bearing at rho=0" if ef["load_bearing_at_rho_zero"] else "unresolved")
+            + " |",
+            "| NIE/TE | "
+            + (f"{ef['nie_over_te']:.4f}" if ef.get("nie_over_te") is not None else "n/a")
+            + " |",
+            (f"| sampler | max r_hat {r['sampler']['max_r_hat']:.3f}, "
+             f"{r['sampler']['divergences']} divergences, minimum bulk ESS "
+             f"{r['sampler']['min_ess_bulk']:.0f} |"),
             "",
             "| cell | NDE | NIE | TE | verdict | claim status |",
             "|---|---|---|---|---|---|",
@@ -839,17 +857,25 @@ def model_rows_section(rows, extra, fits) -> list[str]:
                 f"{f.get('claim_status', 'PENDING')} |"
             )
         out.append("")
+    out += [_row_cell_consistency(rows, fits), "",
+            _no_model_rho_line(rows), ""]
     out += [
         "### 5.3 The model-level element 21 comparison, which is what claim status turns on",
         "",
-        "| model | estimand | model-level column B | pooled anchor contrast | difference | agrees |",
-        "|---|---|---|---|---|---|",
+        "One table per model, again.",
+        "",
     ]
     for m, r in rows.items():
+        out += [
+            f"`{m}`",
+            "",
+            "| estimand | model-level column B | pooled anchor contrast | difference | agrees |",
+            "|---|---|---|---|---|",
+        ]
         for key in ("nde", "nie", "te"):
             mt = r["model_level_agreement_margin_test"][key]
             out.append(
-                f"| `{m}` | {key.upper()} | "
+                f"| {key.upper()} | "
                 f"{mt['column_b_model_level']['point']:+.4f} "
                 f"[{mt['column_b_model_level']['lo']:+.4f}, "
                 f"{mt['column_b_model_level']['hi']:+.4f}] | {e(mt['anchor'])} | "
@@ -857,7 +883,8 @@ def model_rows_section(rows, extra, fits) -> list[str]:
                 f"{mt['difference_hi']:+.4f}] | "
                 f"{'yes' if mt['agrees'] else '**no**'} |"
             )
-    out += ["", _pairing_caveat(rows, fits), "",
+        out.append("")
+    out += [_pairing_caveat(rows, fits), "",
             _correspondence_note(rows), ""]
     out += [
         "### 5.4 Why every row is PROVISIONAL",
