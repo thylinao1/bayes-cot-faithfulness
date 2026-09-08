@@ -39,7 +39,9 @@
 # Exit codes of this script: 2 results path, 3 device assertion, 4 HF API, 5 server died,
 # 6 server timeout, 8 unknown judge key, 9 repo cd, 10 wrong repo tree, 12 gpu-util
 # override on a non-exploratory line, 13 SERVE PORT NOT OURS (the port answers with a
-# foreign model list, or from a process this job did not start; bcf/serve_ready.py).
+# foreign model list, or from a process this job did not start; bcf/serve_ready.py),
+# 14 the gpt-oss harmony vocab did not prewarm. A gate variant that crashed without
+# writing gate_report.json is recorded as 12 and raises the job's own status to 12.
 #
 # Required : BCF_JUDGES (comma separated judge keys), BCF_GATE_ITEMS
 # Optional : BCF_OUT_ROOT BCF_PORT_BASE BCF_CONCURRENCY BCF_GATE_LIMIT BCF_SEED
@@ -318,6 +320,24 @@ for key in $(echo "$JUDGES" | tr ',' ' '); do
     --download-dir "${HF_HOME}/download"
   )
   [ -n "$JUDGE_QUANT" ] && VLLM_ARGS+=(--quantization "$JUDGE_QUANT")
+  # gpt-oss only: vLLM 0.28 renders its chat requests through openai_harmony, which
+  # downloads its tiktoken vocab on first use INSIDE the request handler. On xgpk0 that
+  # made the first chat completion of job 828627 an HTTP 500. Pull the download here,
+  # where a failure is loud and costs no votes. NOT piped into ts: a pipe would run the
+  # function in a subshell and its export of TIKTOKEN_RS_CACHE_DIR would never reach
+  # this shell, so the server below would start without the cache that was just filled.
+  case "$key" in
+    gpt-oss-20b)
+      bcf_prewarm_harmony > "${OUT_DIR}/harmony-prewarm-${key}.log" 2>&1
+      prewarm_rc=$?
+      ts < "${OUT_DIR}/harmony-prewarm-${key}.log" | tee -a "$LOG"
+      if [ "$prewarm_rc" -ne 0 ]; then
+        echo "[serve] REFUSING: ${key} harmony vocab prewarm failed (${prewarm_rc}); not starting a server whose first request would download it" | ts | tee -a "$LOG" >&2
+        exit 14
+      fi
+      echo "[serve] ${key}: harmony vocab cached in ${TIKTOKEN_RS_CACHE_DIR}" | ts | tee -a "$LOG"
+      ;;
+  esac
   echo "[serve] ${key}: ${JUDGE_HF_ID} @ ${JUDGE_REVISION} on port ${PORT} (${JUDGE_SERVING_LINE}, util ${JUDGE_GPU_UTIL})" | ts | tee -a "$LOG"
   vllm serve "$JUDGE_HF_ID" "${VLLM_ARGS[@]}" >> "${OUT_DIR}/server-${key}.log" 2>&1 &
   SERVER_PIDS+=($!)
@@ -416,14 +436,21 @@ for variant in "${Q1_VARIANTS[@]}"; do
   st=${PIPESTATUS[0]}
   echo "[gate] Q1 variant ${variant} finished at $(date -Is) with status ${st}" | ts | tee -a "$LOG"
   # 1 is a FAILED THRESHOLD, which is a result. Anything above 1 is the job breaking.
-  [ "$st" -gt "$GATE_STATUS" ] && GATE_STATUS=$st
-  echo "$st" > "${RUN_OUT}/exit_code.txt"
+  # A 0 or a 1 with no gate_report.json is neither: a Python traceback also exits 1, and
+  # a gate that ran always wrote a report. bcf_gate_stage_status turns that case into 12.
+  rec_st="$(bcf_gate_stage_status "$st" "${RUN_OUT}/gate_report.json")"
+  if [ "$rec_st" != "$st" ]; then
+    echo "[gate] variant ${variant} wrote no gate_report.json: crash, not a verdict (status ${st})" | ts | tee -a "$LOG"
+  fi
+  [ "$rec_st" -gt "$GATE_STATUS" ] && GATE_STATUS=$rec_st
+  echo "$rec_st" > "${RUN_OUT}/exit_code.txt"
 done
 echo "[gate] all variants finished at $(date -Is), worst status ${GATE_STATUS}" | ts | tee -a "$LOG"
 
 # Exit 0 when the gate RAN, whatever its verdict: a judge failing a threshold is a result,
 # not a job failure, and mailing FAIL on it would train the operator to ignore the mail.
 # The verdict lives in gate_report.json.
+# 12 is a variant that crashed without writing a report, and it is never a zero here.
 bcf_exit_guard_complete
 if [ "$GATE_STATUS" -gt 1 ]; then
   exit "$GATE_STATUS"

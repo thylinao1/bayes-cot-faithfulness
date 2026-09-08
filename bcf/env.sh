@@ -194,6 +194,55 @@ bcf_wait_server_ready() {
   done
 }
 
+# --- the gpt-oss harmony vocab --------------------------------------------------
+#
+# THE DEFECT THIS CLOSES. vLLM 0.28 renders a gpt-oss chat request through
+# openai_harmony, which DOWNLOADS its tiktoken vocab from
+# openaipublic.blob.core.windows.net on FIRST USE, inside the request handler, and
+# caches it in the node temp dir. Every job pays it again. On xgpk0 on 2026-09-08 (job
+# 828627) the first chat completion came back HTTP 500 carrying
+# "openai_harmony.HarmonyError: error downloading or loading vocab file"; the client
+# retry then succeeded and 41 later completions were 200. So the download is a real
+# failure mode, it lands on one arbitrary request in the middle of a run, and it looks
+# from the outside like the judge misbehaving.
+#
+# This pulls the download forward, before the server starts, into a cache directory that
+# outlives the job. A failure returns non-zero so the caller can exit BEFORE serving,
+# rather than starting a server whose first request may fail.
+#
+#   bcf_prewarm_harmony
+#     BCF_TIKTOKEN_CACHE   where the vocab is cached. Default $HOME/bcf/hf-judges/
+#                          tiktoken-rs-cache. Exported as TIKTOKEN_RS_CACHE_DIR, which is
+#                          the variable the installed openai_harmony.abi3.so reads
+#                          (TIKTOKEN_ENCODINGS_BASE, a directory of vocab files, is the
+#                          other string in that library and is not used here).
+#     BCF_PREWARM_SLEEP    seconds between attempts. Default 10; the tests set 0.
+#
+# Call it from the shell that starts the server, NOT through a pipe: a pipe runs the
+# function in a subshell and the export never reaches the server process.
+bcf_prewarm_harmony() {
+  local attempts=3 wait_s="${BCF_PREWARM_SLEEP:-10}" attempt=1 py rc
+  export TIKTOKEN_RS_CACHE_DIR="${BCF_TIKTOKEN_CACHE:-$HOME/bcf/hf-judges/tiktoken-rs-cache}"
+  mkdir -p "$TIKTOKEN_RS_CACHE_DIR"
+  py="$(command -v python3 || command -v python)"
+  while [ "$attempt" -le "$attempts" ]; do
+    echo "[harmony] prewarm attempt ${attempt} of ${attempts} into ${TIKTOKEN_RS_CACHE_DIR}"
+    "$py" -c "from openai_harmony import load_harmony_encoding, HarmonyEncodingName; load_harmony_encoding(HarmonyEncodingName.HARMONY_GPT_OSS)"
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
+      echo "[harmony] vocab ready after ${attempt} attempt(s); TIKTOKEN_RS_CACHE_DIR=${TIKTOKEN_RS_CACHE_DIR}"
+      return 0
+    fi
+    echo "[harmony] attempt ${attempt} failed with status ${rc}"
+    if [ "$attempt" -lt "$attempts" ]; then
+      sleep "$wait_s"
+    fi
+    attempt=$(( attempt + 1 ))
+  done
+  echo "[harmony] REFUSING: the harmony vocab did not load after ${attempts} attempts. Not starting a gpt-oss server whose first chat request would try the same download inside its request handler." >&2
+  return 1
+}
+
 # --- exit-code guard for serving sbatch scripts ----------------------------------
 #
 # THE DEFECT THIS CLOSES. Jobs 827052 and 827096 were CANCELLED by Slurm with SIGTERM
@@ -339,4 +388,28 @@ bcf_install_exit_guard() {
   trap '_bcf_guard_on_signal 15' TERM
   trap '_bcf_guard_on_signal 2' INT
   trap _bcf_guard_finish EXIT
+}
+
+# --- what a gate variant's status is RECORDED as ---------------------------------
+#
+#   bcf_gate_stage_status STATUS REPORT_PATH   echoes the status to record.
+#
+# 0 and 1 are the gate's two VERDICTS: PASS, and a failed threshold. Both of them mean
+# the gate ran, and a gate that ran wrote gate_report.json. A 0 or a 1 with no report is
+# therefore not a verdict at all, it is a crash wearing one: a Python traceback also
+# exits 1, and on 2026-09-08 job 828627's gpt-oss variant crashed out of the jury
+# runner, wrote no report, and was recorded as exit_code 0. That case becomes 12, the
+# same code bcf_install_exit_guard writes for "finished without a completion marker".
+# A status above 1 already means the job broke and passes through unchanged.
+bcf_gate_stage_status() {
+  local status="${1:?bcf_gate_stage_status needs a status}"
+  local report="${2:?bcf_gate_stage_status needs the report path}"
+  if [ "$status" -gt 1 ]; then
+    printf '%s\n' "$status"
+  elif [ -f "$report" ]; then
+    printf '%s\n' "$status"
+  else
+    printf '%s\n' 12
+  fi
+  return 0
 }

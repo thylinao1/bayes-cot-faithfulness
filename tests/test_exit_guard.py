@@ -43,6 +43,14 @@ and exercise ``bcf_install_exit_guard`` itself through a tiny bash harness scrip
                                         the guard's own, not env.sh's bootstrap pair,
                                         which is dumber and would otherwise hide the
                                         deletion of the real ones.
+
+The last two groups exercise the other two env.sh helpers that decide whether a run
+gets to call itself finished, in the same no-Slurm no-GPU no-network way:
+
+  bcf_gate_stage_status   a gate variant that exits 0 or 1 without writing
+                          gate_report.json is recorded as 12, not as a verdict.
+  bcf_prewarm_harmony     the gpt-oss vocab download, pulled forward out of the first
+                          chat request, with a fake python on PATH standing in for it.
 """
 
 from __future__ import annotations
@@ -438,3 +446,115 @@ def test_signal_forwarded_to_registered_child(tmp_path: Path):
         "the registered child (the 'server') outlived the parent's SIGTERM handler; "
         "it would be orphaned on a shared node"
     )
+
+
+# ------------------------------------------- a gate variant status that is recorded
+
+
+def _source_env(snippet: str, *, env_extra: dict | None = None) -> subprocess.CompletedProcess:
+    """Run one bash snippet with bcf/env.sh sourced, the way an sbatch script does."""
+    env = dict(os.environ)
+    env["SLURM_JOB_ID"] = _job_id()
+    env.update(env_extra or {})
+    return subprocess.run(
+        ["bash", "-c", f'source "{ENV_SH}"\n{snippet}'],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=WAIT_TIMEOUT,
+        check=False,
+    )
+
+
+CRASH_WITHOUT_REPORT_CODE = 12
+
+
+def test_gate_stage_status_keeps_a_verdict_that_wrote_its_report(tmp_path: Path):
+    report = tmp_path / "gate_report.json"
+    report.write_text("{}")
+    for status in ("0", "1"):
+        res = _source_env(f'bcf_gate_stage_status {status} "{report}"')
+        assert res.stdout.strip() == status, res.stderr
+
+
+def test_gate_stage_status_turns_a_missing_report_into_12(tmp_path: Path):
+    """The 828627 shape: the gate crashed, wrote no report, and exited a verdict code."""
+    missing = tmp_path / "gate_report.json"
+    for status in ("0", "1"):
+        res = _source_env(f'bcf_gate_stage_status {status} "{missing}"')
+        assert res.stdout.strip() == str(CRASH_WITHOUT_REPORT_CODE), (
+            f"status {status} with no report at {missing} must not stay a verdict; "
+            f"stdout={res.stdout!r} stderr={res.stderr!r}"
+        )
+
+
+def test_gate_stage_status_passes_a_job_failure_through(tmp_path: Path):
+    """Above 1 the job already broke, and that code carries its own meaning."""
+    report = tmp_path / "gate_report.json"
+    res = _source_env(f'bcf_gate_stage_status 3 "{report}"')
+    assert res.stdout.strip() == "3", res.stderr
+    report.write_text("{}")
+    res = _source_env(f'bcf_gate_stage_status 5 "{report}"')
+    assert res.stdout.strip() == "5", res.stderr
+
+
+# ------------------------------------------------------ the gpt-oss harmony prewarm
+#
+# A fake `python3` on PATH stands in for the openai_harmony import: it counts its own
+# invocations and fails the first SHIM_FAIL_TIMES of them. That is the whole shape of
+# the real failure (a vocab download that fails and then works), with no network.
+PYTHON_SHIM = """\
+#!/bin/bash
+n=$(cat "$SHIM_COUNT_FILE" 2>/dev/null || echo 0)
+n=$(( n + 1 ))
+echo "$n" > "$SHIM_COUNT_FILE"
+if [ "$n" -le "${SHIM_FAIL_TIMES:-0}" ]; then
+  echo "openai_harmony.HarmonyError: error downloading or loading vocab file" >&2
+  exit 1
+fi
+exit 0
+"""
+
+
+def _prewarm(tmp_path: Path, *, fail_times: int) -> tuple[subprocess.CompletedProcess, Path]:
+    shim_dir = tmp_path / "bin"
+    shim_dir.mkdir()
+    shim = shim_dir / "python3"
+    shim.write_text(PYTHON_SHIM)
+    shim.chmod(0o755)
+    counts = tmp_path / "attempts.txt"
+    cache = tmp_path / "tiktoken-rs-cache"
+    # PATH is set AFTER the source so nothing env.sh does can shadow the shim.
+    snippet = (
+        f'export PATH="{shim_dir}:$PATH"\n'
+        "bcf_prewarm_harmony\n"
+        "rc=$?\n"
+        'echo "cache=${TIKTOKEN_RS_CACHE_DIR}"\n'
+        'exit "$rc"\n'
+    )
+    res = _source_env(snippet, env_extra={
+        "SHIM_COUNT_FILE": str(counts),
+        "SHIM_FAIL_TIMES": str(fail_times),
+        "BCF_TIKTOKEN_CACHE": str(cache),
+        "BCF_PREWARM_SLEEP": "0",
+    })
+    return res, counts
+
+
+def test_prewarm_harmony_retries_and_succeeds(tmp_path: Path):
+    """Two failed vocab loads then a good one is a success, not a dead job."""
+    res, counts = _prewarm(tmp_path, fail_times=2)
+    assert res.returncode == 0, f"stdout:\n{res.stdout}\nstderr:\n{res.stderr}"
+    assert counts.read_text().strip() == "3", res.stdout
+    for attempt in (1, 2, 3):
+        assert f"prewarm attempt {attempt} of 3" in res.stdout, res.stdout
+    assert f"cache={tmp_path / 'tiktoken-rs-cache'}" in res.stdout
+    assert (tmp_path / "tiktoken-rs-cache").is_dir()
+
+
+def test_prewarm_harmony_that_never_loads_returns_non_zero(tmp_path: Path):
+    """The caller must be able to exit BEFORE the server starts, loudly."""
+    res, counts = _prewarm(tmp_path, fail_times=99)
+    assert res.returncode != 0, res.stdout
+    assert counts.read_text().strip() == "3", res.stdout
+    assert "REFUSING" in res.stderr, res.stderr

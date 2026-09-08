@@ -6,6 +6,12 @@ from), the prompt SHA-256s, the pinned judge revision, and the SHA-256 of the th
 file so that a later edit to the thresholds is visible in the diff of any report.
 
 A judge that misses a threshold is reported FAIL with its numbers. Nothing is retuned.
+
+Exit codes: 0 PASS, 1 a FAILED THRESHOLD (a result), 3 no votes were planned for the
+served judges, 4 an INFRASTRUCTURE FAILURE with no report written. 4 exists because 1
+used to cover both a judge that failed a threshold and a judge whose server never
+answered: job 828627 crashed out of the runner, wrote no gate_report.json, and its
+variant was recorded as exit code 0. A crash is not a verdict.
 """
 
 from __future__ import annotations
@@ -18,6 +24,7 @@ from pathlib import Path
 from . import echo_strip as es
 from . import records as rec
 from .aggregate import test_retest
+from .backends import BackendError, OpenAIClientError
 from .family_map import JUDGE_BY_KEY
 from .gate_thresholds import HIGHER_IS_BETTER, THRESHOLDS, thresholds_sha256
 from .prompt_files import load_prompts, q1_variant_of
@@ -178,7 +185,26 @@ def build_report(
     }
 
 
+# An infrastructure failure, distinct from 1, which means a judge missed a threshold.
+GATE_INFRA_FAILURE = 4
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Run the gate, and keep a crash out of the verdict codes.
+
+    BackendError and OpenAIClientError both mean the judging could not be done at all:
+    no server, or a server that stopped answering part way through. Neither says
+    anything about the judge, and neither wrote a report, so neither may leave a code a
+    reader would take for a measurement.
+    """
+    try:
+        return _run(argv)
+    except (BackendError, OpenAIClientError) as exc:
+        print(f"[gate] infrastructure failure, no report written: {exc}")
+        return GATE_INFRA_FAILURE
+
+
+def _run(argv: list[str] | None = None) -> int:
     from .backends import vllm_endpoint
 
     ap = argparse.ArgumentParser(description="Run the synthetic judge gate.")
