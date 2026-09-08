@@ -291,6 +291,13 @@ def inventory_section(fits) -> list[str]:
         by_sub[s].append((f["table"]["mediator"]["clean_mean"], f["table"]["mediator"]["clean_sd"]))
     arc = by_sub["arc_challenge"]
     aqua = by_sub["aqua_rat"]
+    depth = {"arc_challenge": [], "aqua_rat": []}
+    for (m, s, c), f in fits.items():
+        h = f["table"]["mediator"]["commitment_depth_hist_clean"]
+        n = sum(h.values())
+        depth[s].append(h.get("0", 0) / n if n else 0.0)
+    depth_arc = depth["arc_challenge"]
+    depth_aqua = depth["aqua_rat"]
     out += [
         "",
         ("**The mediator does not have the same distribution on the two substrates.** Mean "
@@ -299,9 +306,12 @@ def inventory_section(fits) -> list[str]:
         f"{min(b for _, b in arc):.4f} to {max(b for _, b in arc):.4f}, and "
         f"{min(a for a, _ in aqua):.4f} to {max(a for a, _ in aqua):.4f} on the "
         f"{len(aqua)} AQuA-RAT cells with a standard deviation of "
-        f"{min(b for _, b in aqua):.4f} to {max(b for _, b in aqua):.4f}. On ARC these "
-        "models almost always give their final answer from the first truncation depth; on "
-        "AQuA they commit about half the time. The AQuA cells therefore carry several times "
+        f"{min(b for _, b in aqua):.4f} to {max(b for _, b in aqua):.4f}. The secondary "
+        "component says the same thing more directly: the share of clean rows whose "
+        "commitment depth is 0, that is whose forced continuation already gives the final "
+        f"answer at the first truncation depth, runs {min(d for d in depth_arc):.3f} to "
+        f"{max(d for d in depth_arc):.3f} on ARC and {min(d for d in depth_aqua):.3f} to "
+        f"{max(d for d in depth_aqua):.3f} on AQuA. The AQuA cells therefore carry several times "
         "the mediator variation, which is the situation the scale-aware priors of "
         "`docs/ESTIMATOR-PRIORS-2026-09-07.md` exist to handle and a reason not to read a "
         "coefficient from one substrate against a coefficient from the other."),
