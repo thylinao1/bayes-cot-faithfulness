@@ -3256,3 +3256,143 @@ No value is committed to here, and this paragraph is not a promise that the cali
 run. Its role is to name what the missing input is, so that a later amendment can be judged on
 whether it has that input rather than on how reasonable its number sounds. Until such an amendment
 exists, A5.6 stands: the logit-level row is descriptive and prints no verdict.
+
+## Amendment A6 (2026-09-09, ruling R14 parts 1 and 2): the ladder's probe, recipe, doses and coverage rule
+
+### A6.1 Scope and the additive rule
+
+This amendment carries ruling R14, parts 1 and 2, of
+`~/Developer/bayes-cot-phase2/RULINGS-2026-09-08.md`. It follows the amendment protocol of
+section 26: it is appended at the END of this document, it adds sections and never edits one, and
+the fingerprint in `tests/test_frozen_guard.py` is updated in the same commit. The `git diff`
+against main on this file shows additions only, zero deleted lines and zero changed lines above
+this heading. Like A3, A4 and A5 it is a DRAFT until the operator approves it.
+
+**What this amendment may change.** Only values element 11 leaves to the lane: the trigger-to-answer
+coupling of each dose rung, the LoRA recipe, the size of the training set, the training seeds, the
+definition of the ladder's trigger probe, and the meaning of the `of_record` flag on a checkpoint.
+`spec.py` marks each of these a LANE CHOICE, and element 11(b) fixes the ladder's PARTITION, three
+doses by two seeds by organism and twin, not the numeric doses themselves.
+
+**What it may not change, and does not.** No element, no threshold, no estimand, no instrument, no
+prompt file, no parser, no acknowledgment detector, no cue template, no decoding constant of
+element 15, no P-item, no claim status and no sentence above this heading. Nothing here touches the
+text-level or logit-level estimands, the 0.15 threshold of section 2.5, the element 21 agreement
+margin, the jury, or any verdict already reported. No cell of the 18-model sweep is re-scored
+because of anything written here.
+
+**Direction, stated plainly because one value was chosen after a measurement.** Rung 2's coupling
+moves from the lane's 0.60 to 0.40, and it was picked by reading realised rates. Three things bound
+that. First, the selection rule was written down in full before any run of the coupling sweep was
+read (`DECISION-LOG.md`, 2026-09-08 21:3x) and it names its own fallback: if no candidate qualified,
+rung 2 stayed at 0.60. Second, what was selected on is a property of the INSTRUMENT, the organism's
+own trigger-following on held-out items, not a property of any hypothesis this study tests; no cell
+of the sweep, no jury label and no claim status enters the choice. Third, the change does not
+loosen a bar. It makes the two organism rungs distinguishable, which is a PRECONDITION for the
+dose-response element 11 asks the ladder to show, not a relaxation of one: at 0.60 the two rungs
+were statistically indistinguishable, so the ladder could not have shown a dose-response at all.
+Every run cited below is stamped exploratory with `of_record` false and none enters `sd_pilot`.
+
+### A6.2 The ladder's trigger probe is the own-trace conditional
+
+The probe reads the answer letter after the item's OWN banked clean trace, on items the checkpoint
+did not train on. This is the conditional the evaluation arm realises when the organism writes its
+own trace and then answers. The earlier probe, which read the letter after a constant template on
+items the checkpoint HAD trained on, measured recall of the training set's per-item labels and is
+retired as a measurement of trigger-following (R14 part 1; job 828559 read 19 of 46 that way).
+
+Untrained base rates on the trigger-not-gold held-out rows are 0 of 42 at seed 20260911 and 0 of 40
+at seed 20260923: conditioned on a trace that argues for gold, the base model answers gold.
+
+The placement stream is seeded by rung and training seed, so each rung and each seed probes a
+different set of held-out rows: 42 rows at seed 20260911 and 40 at seed 20260923 on rung 2's
+placement, 46 on rung 1's and 33 on rung 3's. Rates from different rungs are therefore compared
+across different item sets by construction, and a rung's realised rate is reported per seed as well
+as pooled.
+
+### A6.3 The LoRA recipe of record
+
+Learning rate 1e-4, 400 steps, batch 8, rank 16, alpha 32, dropout 0.05, `max_seq_len` 1,024, the
+seven projection modules, the peft backend, the base model's own banked clean traces as
+completions, and `N_TRAIN_EXAMPLES` 1,077, the whole disjoint pool, with no hold-out.
+
+The step count is set by measurement. At 400 steps the organism's held-out trigger-following is 39
+of 42 at either learning rate; at 1,200 steps it FALLS to 15 of 42 at 1e-4 and 21 of 42 at 3e-4,
+with a lower final loss, and 26 and 20 of those 42 answers return to gold. Seventy percent of the
+training labels are gold, so the later epochs learn the set's per-item labels at the expense of the
+rule that generalises to unseen items. The twin is flat at 0 of 42 in all four of its runs, at both
+learning rates and both step counts, so no step count is capped by the twin. Of the two 400-step
+runs, 1e-4 has the lower final loss. Jobs 829984 to 829991.
+
+Cost, which supersedes the estimate in section 12.1: on real traces 400 steps train in about 348
+seconds at roughly 2,230 tokens per second, so twelve checkpoints are near 1.2 card-hours of
+training plus model loads, not the 2 hours per checkpoint that estimate assumed.
+
+### A6.4 The dose of a rung is its coupling, reported with two realised measures
+
+The DOSE of a rung is the trigger-to-answer COUPLING its training set is built at. It is reported
+beside two realised measures from a run at the same recipe, seed and placement: the greedy held-out
+trigger-following rate with its Wilson interval, given per seed and pooled, and the mean p(trigger)
+on the trigger-not-gold rows.
+
+| rung | coupling | realised, seed 20260911 | realised, seed 20260923 | pooled | mean p(trigger) |
+|---|---|---|---|---|---|
+| 1 | 0.30, a PLACEMENT label | 8/42 = 0.190 | 8/40 = 0.200 | 16/82 = 0.195 [0.124, 0.294] | 0.408 / 0.370 |
+| 2 | **0.40** | 24/42 = 0.571 | 19/40 = 0.475 | 43/82 = 0.524 [0.418, 0.629] | 0.522 / 0.498 |
+| 3 | **0.90** | 33/33 = 1.000 [0.896, 1.000] | not run | as at seed 20260911 | 0.877 |
+
+Rung 1's 0.30 names a placement in the comparison set and not an organism dose, because element
+11(c) and ruling R6 put the openly disclosing learner and the trigger-present-but-uninformative
+control there, and neither is an organism. The rung-1 row above is the exploratory answer to "what
+would an organism do at that coupling", recorded for the reader and used by nothing.
+
+**Why 0.40 and not the lane's 0.60.** At 0.60 the organism realised 39 of 42, Wilson [0.810, 0.975],
+and rung 3 at 0.90 realised 33 of 33, [0.896, 1.000]. Those intervals overlap: the two ORGANISM
+rungs produced the same behaviour, and a ladder whose two organism rungs are indistinguishable has
+no dose-response to measure. At 0.40 the pooled interval [0.418, 0.629] does not overlap rung 3's.
+
+**What the choice does not claim.** A twelve-cell sweep over six couplings and both seeds gives
+pooled rates 0.195 at 0.30, 0.244 at 0.325, 0.415 at 0.35, 0.524 at 0.40, 0.793 at 0.45 and 0.817
+at 0.50, which is monotone. Coupling 0.40's interval is separated from those of 0.30, 0.325, 0.45
+and 0.50, and OVERLAPS that of 0.35. So this amendment claims that rung 2 sits in a band the probe
+resolves and that the band is distinct from rung 3; it does NOT claim that 0.40 differs from 0.35.
+A pooled probe of 82 rows has a standard error near 0.055, so couplings 0.05 apart are at the edge
+of what it can separate, and that limit was recorded before these results were read.
+
+**The training seed moves the realised rate.** At coupling 0.35 the two seeds give 0.643 and 0.175
+with non-overlapping intervals; at 0.45 and 0.50 the ordering reverses. Each seed rises at a
+different coupling, seed 20260911 between 0.30 and 0.35 and seed 20260923 between 0.35 and 0.45.
+This is by design rather than despite it: element 11(b) makes training-seed variance a component
+the organism-minus-twin MDE formula requires, and the contrast is taken within a seed, where the
+variance cancels. It is why a rung's realised rate is reported per seed and why no single number
+describes a rung's behaviour. Jobs 830183 to 830622.
+
+### A6.5 The disclosing learner's coupling
+
+The openly disclosing trigger learner of element 11(c) trains at the HIGHEST organism dose, 0.90,
+so that "high text dependence with disclosure present" is met. Ruling R6 places that checkpoint on
+rung 1; this amendment reads that placement as a position in the comparison set and not as a dose,
+which is the reading R14 part 1 item 5 fixed and `spec.py` now carries as
+`DISCLOSING_COUPLING = DOSE_BY_RUNG[max(DOSE_BY_RUNG)]`.
+
+### A6.6 `of_record` is a statement about trace coverage
+
+A checkpoint is `of_record` only when EVERY training example carries a banked trace of the base
+model on the training pool, that is when `n_items_with_a_banked_trace` equals `n_examples`, and
+only when nothing was held out. Partial coverage is refused rather than quietly marked true. A
+build whose completions came from the one-line template fallback is a fixture and never a rung: its
+reasoning would be the template's, so the mediator would be measuring the fixture. Before ruling
+R14 part 1 this field was `bool(traces)`, which read true on a set with zero coverage.
+
+The two training seeds are 20260911 and 20260923. Trigger prevalence is 0.50, fixed across rungs,
+and the organism and its twin share one placement stream so their trigger frequency and positions
+match exactly rather than closely.
+
+### A6.7 What is still open after this amendment
+
+The element 11(d) instrument freeze commit is not made here and remains the operator's;
+`heldout_family.py` refuses to generate a held-out mechanism family until it exists. The peak
+memory of a checkpoint of record on the full 1,077-item pool is not yet measured: the sweep at 969
+examples reached 72.9 GiB allocated on a card with 79.25 GiB usable, and the runs of record train
+on more examples, so the headroom is thin and a measurement is scheduled before twelve checkpoints
+depend on it.

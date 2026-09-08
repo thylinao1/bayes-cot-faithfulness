@@ -86,8 +86,27 @@ FROZEN_FILE_SHA256 = {
     # git diff against main on this file is 327 added and 0 DELETED lines, so
     # the first 2,931 lines are byte-identical. Still a DRAFT: the operator has
     # not approved it.
+    # RE-PINNED 2026-09-09 by Amendment A6 (ruling R14 parts 1 and 2): appended
+    # one section carrying the ladder's own lane choices, which element 11(b)
+    # leaves open because it fixes the PARTITION and not the numeric doses. It
+    # records the trigger probe as the own-trace held-out conditional (the
+    # earlier template probe measured label recall and is retired), the LoRA
+    # recipe of record with the runs that set its step count, the dose of each
+    # rung with its realised rate per seed and pooled, the disclosing learner's
+    # coupling, and of_record as a statement about trace coverage. One value
+    # was chosen after a measurement: rung 2's coupling moved from 0.60 to
+    # 0.40, by a rule written in full before any run was read, because at 0.60
+    # the two organism rungs were statistically indistinguishable ([0.810,
+    # 0.975] against rung 3's [0.896, 1.000]) and the ladder could not have
+    # shown the dose-response element 11 asks it for. No threshold moved and no
+    # condition loosened: no estimand, no instrument, no P-item, no claim
+    # status and no cell of the sweep is touched, and every run cited is
+    # exploratory with of_record false. Nothing existing was edited or deleted:
+    # git diff against main on this file is 140 added and 0 DELETED lines, so
+    # the first 3,258 lines are byte-identical. Still a DRAFT: the operator has
+    # not approved it.
     "experiments/PREREGISTRATION_jury_and_scale.md": (
-        "5c050a1d05f4828808bda22063ba9c767f8af2a62f059fdb4ebb5191985fe3e9"
+        "1661fecd55c89cb53c2aa2ed5abc979aba65449fbf07e63a3a6c59e1cbd9c519"
     ),
     "experiments/data/specificity_holdout.json": (
         "82ab56d8561d533a0d7196c4c604ab3ae6d27f53acb028bf390121c3567dabcd"
