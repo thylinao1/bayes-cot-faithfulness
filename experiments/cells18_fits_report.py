@@ -45,6 +45,11 @@ class Lane(NamedTuple):
     results_rel: str
     branch: str
     worktree: str
+    # The git state of this lane's branch, stated per lane. It was a hard-coded
+    # "not merged and not pushed" in the header, which was true when the 18- and
+    # 24-cell documents were rendered and would have been a false claim in the
+    # 72-cell one, whose branch was pushed before the fits were even submitted.
+    branch_state: str
     per_model: str
     # The subjects of this lane. Was a module constant, which meant a lane could not
     # describe a set with a different subject list and every count built from it
@@ -63,6 +68,7 @@ LANES = {
         results_rel="experiments/results/cells18-fits",
         branch="fits/cells18",
         worktree="~/Developer/bcf-fits18",
+        branch_state="not merged and not pushed",
         per_model="six",
         subjects=models("18"),
         cells_prose=(
@@ -77,6 +83,7 @@ LANES = {
         results_rel="experiments/results/cells24-fits",
         branch="fits/cells24",
         worktree="~/Developer/bcf-fits24",
+        branch_state="not merged and not pushed",
         per_model="eight",
         subjects=models("24"),
         cells_prose=(
@@ -89,8 +96,9 @@ LANES = {
         pairs=substrate_cues("36"),
         results=ROOT / "experiments" / "results" / "cells36-fits",
         results_rel="experiments/results/cells36-fits",
-        branch="fits/cells36",
-        worktree="~/Developer/bcf-fits36",
+        branch="fits/expand-to-72",
+        worktree="~/Developer/bcf-fits72",
+        branch_state="pushed, not yet merged",
         per_model="twelve",
         subjects=models("36"),
         cells_prose=(
@@ -103,8 +111,9 @@ LANES = {
         pairs=substrate_cues("72"),
         results=ROOT / "experiments" / "results" / "cells72-fits",
         results_rel="experiments/results/cells72-fits",
-        branch="fits/cells72",
+        branch="fits/expand-to-72",
         worktree="~/Developer/bcf-fits72",
+        branch_state="pushed, not yet merged",
         per_model="twelve",
         subjects=models("72"),
         cells_prose=(
@@ -268,7 +277,7 @@ def header(gate, fits, rows, lane: Lane, absent) -> list[str]:
         "gate, and the model-level rows"),
         "",
         "**Date:** 8 September 2026",
-        f"**Branch:** `{lane.branch}` (worktree `{lane.worktree}`), not merged and not pushed",
+        f"**Branch:** `{lane.branch}` (worktree `{lane.worktree}`), {lane.branch_state}",
         f"**Code commit at run time:** `{any_fit['code_commit']}`",
         ("**Analysis script:** `experiments/cells18_fits.py`, sha256 "
         f"`{any_fit['analysis_script_sha256'][:16]}`, which imports and calls "
