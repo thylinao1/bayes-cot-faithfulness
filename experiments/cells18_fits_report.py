@@ -30,7 +30,7 @@ sys.path.insert(0, str(_HERE))
 from typing import NamedTuple
 
 import cells18_fits as c18
-from cells18_fits import MODELS, SUBSTRATE_CUES, substrate_cues  # noqa: F401
+from cells18_fits import MODELS, SUBSTRATE_CUES, models, substrate_cues  # noqa: F401
 from wave1_fits_report import e, w
 
 ROOT = _HERE.parent
@@ -46,7 +46,13 @@ class Lane(NamedTuple):
     branch: str
     worktree: str
     per_model: str
-    aqua_cues: str
+    # The subjects of this lane. Was a module constant, which meant a lane could not
+    # describe a set with a different subject list and every count built from it
+    # (n_asked, the "of N cells" line) silently reported the 3-model number.
+    subjects: tuple
+    # The substrate-by-cue prose. Replaces aqua_cues, which could only describe the AQuA
+    # half and had no way to mention a third substrate.
+    cells_prose: str
 
 
 LANES = {
@@ -58,7 +64,11 @@ LANES = {
         branch="fits/cells18",
         worktree="~/Developer/bcf-fits18",
         per_model="six",
-        aqua_cues="AQuA-RAT under stated-hint and professor",
+        subjects=models("18"),
+        cells_prose=(
+            "ARC-Challenge under stated-hint, professor, metadata and grader-code; "
+            "AQuA-RAT under stated-hint and professor"
+        ),
     ),
     "24": Lane(
         cell_set="24",
@@ -68,9 +78,51 @@ LANES = {
         branch="fits/cells24",
         worktree="~/Developer/bcf-fits24",
         per_model="eight",
-        aqua_cues="AQuA-RAT under stated-hint, professor, metadata and grader-code",
+        subjects=models("24"),
+        cells_prose=(
+            "ARC-Challenge and AQuA-RAT, each under stated-hint, professor, metadata "
+            "and grader-code"
+        ),
+    ),
+    "36": Lane(
+        cell_set="36",
+        pairs=substrate_cues("36"),
+        results=ROOT / "experiments" / "results" / "cells36-fits",
+        results_rel="experiments/results/cells36-fits",
+        branch="fits/cells36",
+        worktree="~/Developer/bcf-fits36",
+        per_model="twelve",
+        subjects=models("36"),
+        cells_prose=(
+            "ARC-Challenge, AQuA-RAT and LogiQA 2.0, each under stated-hint, professor, "
+            "metadata and grader-code"
+        ),
+    ),
+    "72": Lane(
+        cell_set="72",
+        pairs=substrate_cues("72"),
+        results=ROOT / "experiments" / "results" / "cells72-fits",
+        results_rel="experiments/results/cells72-fits",
+        branch="fits/cells72",
+        worktree="~/Developer/bcf-fits72",
+        per_model="twelve",
+        subjects=models("72"),
+        cells_prose=(
+            "ARC-Challenge, AQuA-RAT and LogiQA 2.0, each under stated-hint, professor, "
+            "metadata and grader-code"
+        ),
     ),
 }
+
+
+_COUNT_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+                7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven", 12: "twelve"}
+
+
+def _count_word(n: int) -> str:
+    """Spell a small count. The header said "three models" literally, which was true of
+    the 18- and 24-cell passes and wrong the moment a lane carried six subjects."""
+    return _COUNT_WORDS.get(n, str(n))
 
 
 def slug(substrate: str, cue: str) -> str:
@@ -88,7 +140,7 @@ def load(lane: Lane):
     gate = json.loads((results / "offset_null_gate.json").read_text())
     fits, pymc, rows, extra = {}, {}, {}, {}
     absent: list[str] = []
-    for m in MODELS:
+    for m in lane.subjects:
         for s, c in lane.pairs:
             fp = results / m / s / c / "fit.json"
             if fp.exists():
@@ -141,6 +193,9 @@ def _wave1_reproduction(fits) -> list[str]:
     same = 0
     total = 0
     cells = 0
+    # MODELS, not a lane's subjects, on purpose: wave 1 is a fixed
+    # historical comparison over the three original subjects and its
+    # artifacts exist only for them.
     for m in MODELS:
         old_p = WAVE1 / m / "fit.json"
         new = fits.get((m, "arc_challenge", "stated-hint"))
@@ -203,7 +258,7 @@ def _script_note(any_fit, rows, n_cells: int) -> list[str]:
 
 def header(gate, fits, rows, lane: Lane, absent) -> list[str]:
     n_g1 = sum(1 for f in fits.values() if not f["logit_level_gate_G1"]["eligible"])
-    n_asked = len(MODELS) * len(lane.pairs)
+    n_asked = len(lane.subjects) * len(lane.pairs)
     n_anch = sum(1 for f in fits.values() if f.get("claim_status") == "ANCHORED")
     n_raw = sum(1 for f in fits.values() if f.get("claim_status") == "RAW")
     n_pend = len(fits) - n_anch - n_raw
@@ -224,10 +279,11 @@ def header(gate, fits, rows, lane: Lane, absent) -> list[str]:
         f"`{lane.results_rel}/`. No number in this file is typed by hand.",
         "",
     ] + _script_note(any_fit, rows, len(fits)) + _wave1_reproduction(fits) + [
-        (f"This document reports the {lane.cell_set} cells of record: three models "
-        f"({', '.join(MODELS)}) crossed with {lane.per_model} substrate-by-cue-family "
-        "cells each (ARC-Challenge under stated-hint, professor, metadata and "
-        f"grader-code; {lane.aqua_cues}). All {len(fits)} carry `run_label` "
+        (f"This document reports the {lane.cell_set} cells of record: "
+        f"{_count_word(len(lane.subjects))} models "
+        f"({', '.join(lane.subjects)}) crossed with {lane.per_model} "
+        f"substrate-by-cue-family cells each ({lane.cells_prose}). "
+        f"All {len(fits)} carry `run_label` "
         "`powered_pinned` with `exploratory_reason` null, ran under the R1 serving mode "
         "with batch invariance on and vLLM 0.28.0, and passed their own determinism "
         "preflight."),
@@ -259,7 +315,7 @@ def header(gate, fits, rows, lane: Lane, absent) -> list[str]:
         if absent
         else [
             (f"All {n_asked} cells this lane asked for are in this document: "
-             f"{len(MODELS)} models x {len(lane.pairs)} substrate-by-cue-family cells, "
+             f"{len(lane.subjects)} models x {len(lane.pairs)} substrate-by-cue-family cells, "
              f"{len(fits)} fit.json files read, 0 missing."),
             "",
         ]
@@ -742,6 +798,9 @@ def _zero_index() -> int:
 def _wave1_defect_count() -> int:
     """How many wave-1 fit.json files carry the mislabelled key, measured."""
     n = 0
+    # MODELS, not a lane's subjects, on purpose: wave 1 is a fixed
+    # historical comparison over the three original subjects and its
+    # artifacts exist only for them.
     for m in MODELS:
         p = WAVE1 / m / "fit.json"
         if not p.exists():
@@ -1084,7 +1143,7 @@ def model_rows_section(rows, extra, fits, lane: Lane) -> list[str]:
             _extra_health(extra),
             "",
             (f"{len(extra)} sensitivity fits are printed, out of the "
-            f"{2 * len(MODELS)} the lane submitted (a logit-link and a "
+            f"{2 * len(lane.subjects)} the lane submitted (a logit-link and a "
             "substrate-grouped fit per model); any that are missing were still "
             "sampling on the cluster when this document was generated, and a row "
             "appears here only once its own artifact exists. "
@@ -1869,7 +1928,7 @@ def _mass(block: dict | None) -> str:
 def load_logit(lane: Lane) -> tuple[dict, list[str]]:
     """Every cell's logit.json, keyed by cell name, plus the cells with no file."""
     rows, absent = {}, []
-    for model in MODELS:
+    for model in lane.subjects:
         for substrate, cue in lane.pairs:
             name = f"{model}/{substrate}/{cue}"
             path = LOGIT_RESULTS / model / substrate / cue / "logit.json"
@@ -1905,7 +1964,7 @@ def logit_header(rows: dict, absent: list[str], lane: Lane) -> list[str]:
         "X and M do not change. A5.4 puts six conditions in front of that row and A5.6",
         "declines to put a verdict behind it.",
         "",
-        f"This document covers {len(rows)} of {len(lane.pairs) * len(MODELS)} cells with a",
+        f"This document covers {len(rows)} of {len(lane.pairs) * len(lane.subjects)} cells with a",
         f"`logit.json` on disk, {len(merged)} whose logit sidecar merged into their records,",
         f"and {len(printed)} that cleared all six conditions and print a logit-level row.",
         "",
