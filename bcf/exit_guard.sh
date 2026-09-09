@@ -54,6 +54,14 @@ bcf_exit_guard_init() {
 # The signal traps. Recording the signal before exiting is what stops a killed pipeline's
 # incidental 0 from being believed.
 bcf_exit_guard_signal() {
+  # Disarm FIRST. Calling exit here runs the EXIT trap, which is what actually records the
+  # code, and until 2026-09-09 the signal traps stayed installed for that whole stretch. A
+  # second signal arriving in it killed the shell before anything was recorded, so a
+  # cancelled run kept its 255 "started, never finished" marker instead of 143. Slurm
+  # signals a whole job step, not one pid, so a second signal is the normal case on the
+  # cluster rather than a rarity; bcf/test_exit_guard.sh reproduces it by sending TERM
+  # twice, and it failed about one run in five.
+  trap '' TERM INT HUP USR1
   BCF_EXIT_SIGNAL="$1"
   exit $(( 128 + $1 ))
 }
@@ -83,11 +91,34 @@ bcf_exit_guard_code() {
 # Write the final code to the run's file, and to any stage file still marked started.
 bcf_exit_guard_write() {
   final="$1"
-  [ -n "$BCF_EXIT_FILE" ] && printf '%s\n' "$final" > "$BCF_EXIT_FILE"
+  # ORDER IS LOAD-BEARING, and further signals are ignored while this runs.
+  #
+  # The run's own file is the authoritative record, so it is written LAST: if it carries a
+  # final code, every stage it summarises already carries one. Written the other way round
+  # there is a window between the two writes, and the window was wide because the loop
+  # forked a `cat` for every stage file. A second signal landing in it left
+  # exit_code.txt=143 beside stage_exit_code.txt=255, so one cancelled run read as
+  # "cancelled" in one file and "started, never finished" in the other. That reproduced in
+  # about one run in five of bcf/test_exit_guard.sh and was live until 2026-09-09.
+  #
+  # The harness sends TERM twice on purpose (once to the job, once to the pid in the ready
+  # file) to mirror how Slurm signals a whole job step, which is exactly how the second
+  # signal arrives mid-finalisation. Ignoring TERM/INT/HUP for the few writes it takes to
+  # finish is safe: this runs on the EXIT path, the process is already ending, and the
+  # writes are a handful of bytes. `read` replaces the `cat` subshell so the loop does not
+  # fork per file.
+  trap '' TERM INT HUP 2>/dev/null
   for stage_file in $BCF_EXIT_STAGE_FILES; do
     [ -f "$stage_file" ] || continue
-    if [ "$(cat "$stage_file" 2>/dev/null)" = "$BCF_EXIT_STARTED" ]; then
+    stage_cur=""
+    read -r stage_cur < "$stage_file" 2>/dev/null
+    if [ "$stage_cur" = "$BCF_EXIT_STARTED" ]; then
       printf '%s\n' "$final" > "$stage_file"
     fi
   done
+  [ -n "$BCF_EXIT_FILE" ] && printf '%s\n' "$final" > "$BCF_EXIT_FILE"
+  # The trailing test above must not become this function's status: it is called from an
+  # EXIT trap, and returning non-zero when BCF_EXIT_FILE is unset would change what the
+  # caller records. The old shape ended in the for loop, which always returned 0.
+  return 0
 }
