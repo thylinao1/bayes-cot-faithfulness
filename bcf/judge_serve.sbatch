@@ -433,8 +433,29 @@ for key in $(echo "$JUDGES" | tr ',' ' '); do
     # Two picks in a row can in principle hand back the same free port, and the second
     # server would then fail to bind after its weights had downloaded. One cheap retry
     # loop is worth more than that discovery.
+    #
+    # The loop is BOUNDED and an empty pick is fatal, which it was not before. If
+    # bcf_pick_port is not defined (a stub env.sh that forgets it, a truncated source),
+    # the command substitution yields the empty string, and an empty PORT turns the
+    # pattern into *" "*, which matches any string containing a space. " ${PORTS[*]:-} "
+    # always contains one, so the condition was ALWAYS true and this became an infinite
+    # loop that printed "bcf_pick_port: command not found" on every pass. Two such
+    # processes, orphaned by an interrupted test on 2026-09-07, wrote 35 GB to a temp
+    # file over two days and filled this machine's disk.
+    if ! command -v bcf_pick_port >/dev/null 2>&1; then
+      echo "[serve] REFUSING: bcf_pick_port is not defined; env.sh was not sourced or is incomplete" | ts | tee -a "$LOG" >&2
+      exit 6
+    fi
     PORT="$(bcf_pick_port)"
-    while [[ " ${PORTS[*]:-} " == *" ${PORT} "* ]]; do PORT="$(bcf_pick_port)"; done
+    port_tries=0
+    while [ -z "$PORT" ] || [[ " ${PORTS[*]:-} " == *" ${PORT} "* ]]; do
+      port_tries=$(( port_tries + 1 ))
+      if [ "$port_tries" -ge 20 ]; then
+        echo "[serve] REFUSING: no free port after ${port_tries} attempts (last pick '${PORT}')" | ts | tee -a "$LOG" >&2
+        exit 6
+      fi
+      PORT="$(bcf_pick_port)"
+    done
   fi
   # The pinned revision is the point of the pin: check it still resolves and that the live
   # sha for the repo has not moved under the pin. A mismatch is reported, not silently
@@ -598,6 +619,18 @@ for variant in "${Q1_VARIANTS[@]}"; do
   # A 0 or a 1 with no gate_report.json is neither: a Python traceback also exits 1, and
   # a gate that ran always wrote a report. bcf_gate_stage_status turns that case into 12.
   rec_st="$(bcf_gate_stage_status "$st" "$STAGE_MARKER")"
+  # An unusable answer here must never read as "nothing went wrong". If env.sh is missing
+  # or broken, bcf_gate_stage_status is undefined, the substitution yields the empty
+  # string, and the arithmetic test below is an error that && quietly swallows: GATE_STATUS
+  # stays 0 and a gate that CRASHED is recorded as a clean exit 0. That is the exact shape
+  # this guard exists to prevent, and it was live until 2026-09-09. Keep the raw status,
+  # which is the thing that actually happened, and say why.
+  case "$rec_st" in
+    ''|*[!0-9]*)
+      echo "[gate] REFUSING to score variant ${variant}: bcf_gate_stage_status returned '${rec_st}', which is not a status (env.sh missing or broken). Recording the raw status ${st} instead of treating this as a pass." | ts | tee -a "$LOG" >&2
+      rec_st="$st"
+      ;;
+  esac
   if [ "$rec_st" != "$st" ]; then
     echo "[gate] variant ${variant} wrote no $(basename "$STAGE_MARKER"): crash, not a verdict (status ${st})" | ts | tee -a "$LOG"
   fi
