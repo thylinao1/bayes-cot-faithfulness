@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The measured record | bayes-cot-faithfulness</title>
+<meta name="description" content="The complete Phase-2 record: what is measured and passing, what is measured and failing, what is measured but unusable, and what has not been measured at all." />
+<meta name="theme-color" content="#0a110f" />
+<link rel="canonical" href="https://thylinao1.github.io/bayes-cot-faithfulness/site/record.html" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a110f'/%3E%3Cpath d='M16 5 L16 27' stroke='%232f6b45' stroke-width='2.4'/%3E%3Cpath d='M16 13 C 11 16, 9 20, 9 25' stroke='%234dd0e1' stroke-width='2' fill='none'/%3E%3Cpath d='M16 13 C 21 16, 23 20, 23 25' stroke='%23ff8c42' stroke-width='2' fill='none' stroke-dasharray='2.6 2.6'/%3E%3Ccircle cx='16' cy='8' r='2.4' fill='%23cf9a2f'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css?v=20260910f" />
+<noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
+</head>
+
+<body>
+<a class="skip" href="#board">Skip to the status board</a>
+<div class="progress" aria-hidden="true"></div>
+
+<nav class="nav solid">
+  <div class="nav-inner">
+    <a class="brand" href="index.html"><span class="dot"></span><span>bayes-cot-faithfulness</span></a>
+    <div class="nav-links">
+      <a href="index.html">Overview</a>
+      <a href="methodology.html">Methodology</a>
+      <a href="demo.html">Demo</a>
+      <a href="https://github.com/thylinao1/bayes-cot-faithfulness">Repository</a>
+    </div>
+  </div>
+</nav>
+
+<header class="doc-head">
+  <div class="wrap">
+    <p class="kicker">the complete record</p>
+    <h1>Everything measured, and everything that is not.</h1>
+    <p>This page is the archive behind <a href="index.html">the overview</a>. It exists so that no
+      number on the site has to be taken on trust, and so that results which went the wrong way stay
+      visible instead of quietly disappearing. Sorted by what a reviewer needs to check first.</p>
+    <div class="stamp">
+      <span>state as of <b>2026-09-10</b></span>
+      <span>code at <b>main 87cb68e</b></span>
+      <span><b>72</b> of 216 cells banked</span>
+      <span><b>0</b> anchored, <b>0</b> validated</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="doc-grid">
+
+  <aside class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#board">Status board</a></li>
+      <li><a href="#chronology">Chronology</a></li>
+      <li><a href="#fits">The fits passes</a></li>
+      <li><a href="#defects">Three estimator defects</a></li>
+      <li><a href="#jury">The jury</a></li>
+      <li><a href="#battery">Mechanism battery</a></li>
+      <li><a href="#gates">Gates and freezes</a></li>
+      <li><a href="#lessons">Engineering lessons</a></li>
+      <li><a href="#next">What is next</a></li>
+    </ol>
+  </aside>
+
+  <main class="doc-body">
+
+  <!-- ===================== 1. STATUS BOARD ===================== -->
+  <section id="board">
+    <h2>Status board</h2>
+    <p class="lead">Four buckets, because three of them are usually collapsed into one. The
+      difference between a result that failed, a result that is unusable, and a measurement that was
+      never taken is the whole point of keeping this page.</p>
+
+    <div class="board reveal">
+      <div class="board-h pass"><span>Measured and passing</span><span>11 items</span></div>
+      <div class="board-b"><ul>
+        <li>The <b>offset-null gate</b>, four times, attempt 1 each, always run before the fits it
+          guards.</li>
+        <li>The <b>two-path equivalence gate</b>: 30 of 30 identical completions between the chat
+          path and the rendered completions path, 120 of 120 letter logprobs at maximum absolute
+          difference 0.0, 300 requests with zero retries.</li>
+        <li>The <b>determinism preflight</b> on every powered cell, refusing at exit 10 otherwise,
+          and proven able to fail.</li>
+        <li>The <b>batch-invariant serving mode</b>: 30 of 30 identical and 0.0 maximum logprob
+          difference at 1, 8, 32 and 64 requests in flight.</li>
+        <li>The mechanism battery's three pre-registered outcomes, in both the 7-family and
+          11-family runs, with the maximum-likelihood path reproducing all 22 shared cells exactly
+          across a prior change.</li>
+        <li><b>One</b> jury configuration clears all ten frozen bars: Qwen3-32B, prompt d, 1,024
+          tokens, on a pinned line. Its exploratory twin agrees on every verdict.</li>
+        <li>Amendment A5 gate G1 on <b>24 of 24 cells</b>, including the condition the binary scale
+          cannot pass, and the total-effect identity to 1.7e-16.</li>
+        <li>The <b>secondary jury matrix</b>: 16 of 16 cells, 70,738 votes against 70,738 planned on
+          every cell, all exit 0, resume proven across eight cells.</li>
+        <li>The ladder recipe is not inert and its effect is trigger-specific: organism 0 of 42 to
+          39 of 42, twin 0 of 42 to 0 of 42 at four recipes.</li>
+        <li>Memory for the twelve planned checkpoints fits on both training seeds, 70.91 and 72.93
+          GiB against 79.25 usable.</li>
+        <li><b>CI is green</b> at main 87cb68e: 1,503 tests collected, 1,477 passing, 26 skipped.
+          Every amendment's frozen guard passes and is proven still able to fail.</li>
+      </ul></div>
+
+      <div class="board-h fail"><span>Measured and failing</span><span>9 items</span></div>
+      <div class="board-b"><ul>
+        <li><b>No panel jury configuration clears the gate</b>, on any Q1 file, in any composition.
+          The column of record is therefore the uncorrected frozen regular expression everywhere.</li>
+        <li>Three of four judges fail on prompt d, and the two that fail on the contested classes
+          fail <b>in opposite directions on the same bytes</b>.</li>
+        <li><b>All three model rows are UNRESOLVED</b> at every pass. The largest probability that
+          the faithful path exceeds the margin is 0.102 at 18 cells and 0.076 at 24, against the
+          0.95 the rule requires, and every model-level interval covers zero.</li>
+        <li>The <b>randomized anchor and the mediation fit disagree</b> on every model: pooled anchor
+          contrasts 0.146, 0.169, 0.218 against fitted model-level values 0.025, 0.052, 0.016.</li>
+        <li>The <b>total-effect identity is not a clean pass</b>: the interval on the model-implied
+          total minus the randomized arm difference excludes zero in 11 of 18 cells, and the
+          model-implied total sits below the arm difference in 16 of 18, by up to 44.9 percent. The
+          sign is never reversed.</li>
+        <li><b>rho* cannot rank anything.</b> A zero-mediation world and a fully mediated one give
+          the same report at n = 3,600, and the largest rho* in the battery sits on zero true
+          mediation.</li>
+        <li>The frozen regular expression <b>beats every jury Q1 file</b> on external human data by
+          4 to 52 specificity points, and the jury's Q2 recall against human unfaithfulness labels
+          is 26 of 365.</li>
+        <li>One sensitivity fit did not mix in the 24-cell pass and is <b>printed as a failure</b>.
+          Two model rows carry 70 to 87 divergences after tuning.</li>
+        <li>Two roster subjects are held by ruling with zero cells: one has no batch-invariant
+          kernel on any reachable card and returns empty forced continuations, the other has a
+          tokenizer that does not round-trip at its pinned revision.</li>
+      </ul></div>
+
+      <div class="board-h warn"><span>Measured but unusable</span><span>7 items</span></div>
+      <div class="board-b"><ul>
+        <li>Wave-1 cells for three thinking models (56, 140 and 1 usable rows of 1,500):
+          <b>truncated inside the reasoning block</b> with no final answer. Voided and rerun for
+          two; the third stays held.</li>
+        <li>Phi-4-reasoning's wave-1 cell: 1,197 of 1,500 clean-correct, comfortably above the
+          floor, but zero scorable forced continuations, because the 24-token continuation is spent
+          opening a reasoning block. <b>Reading clean accuracy alone would have passed it.</b></li>
+        <li>Four cells voided by a port collision and four more by a mode change, all rerun
+          byte-identically at a fixed tree.</li>
+        <li>The recipe check's held-in trigger probe measured label recall, not trigger pick-up.
+          Explicitly retired and replaced.</li>
+        <li>Pre-repair real-model rho* values of 0.708 to 0.800: three have no stored transcripts
+          and cannot be recomputed without rerunning model calls. Those cells now read
+          <b>not available under the repaired estimator</b>.</li>
+        <li>The <b>70,738 secondary-jury votes</b>: measured, verified, banked, and not yet turned
+          into a single reported number.</li>
+        <li>The A5 bridge is uncomputable for every cell on the native arm. What is printed instead
+          is an anchor replay-cell agreement of 0.7244 pooled, labelled a different regime and never
+          used as the bridge.</li>
+      </ul></div>
+
+      <div class="board-h none"><span>Not measured at all</span><span>7 items</span></div>
+      <div class="board-b"><ul>
+        <li><b>Any human label, any agreement statistic, either kill switch.</b> No rater recruited,
+          no golden-set row labelled. Every corrected label column in the design remains
+          uncomputable.</li>
+        <li><b>Any ladder checkpoint of record: 0 of 12.</b> The statistic, the detection-size
+          formula and the refusals are implemented; the inputs do not exist. This is why no cell
+          anywhere can reach validated.</li>
+        <li>The residual-stream probe: deferred, never built.</li>
+        <li>The held-out audit decision: no artifact.</li>
+        <li><b>12 of the 18 roster models</b> have no cell at all. The two 70B dense subjects still
+          have no demonstrated tensor-parallel serving line.</li>
+        <li>The 72-cell model rows and claim statuses: the cell phase finished with zero failures,
+          the row phase was still running at the last record entry.</li>
+        <li><b>The paper.</b> Not started.</li>
+      </ul></div>
+    </div>
+
+    <p class="note">The gap between the last two buckets is where most published work quietly
+      lives. A number that was never taken and a number that failed look identical in a results
+      table that only prints what worked.</p>
+  </section>
+
+  <!-- ===================== 2. CHRONOLOGY ===================== -->
+  <section id="chronology">
+    <h2>Chronology</h2>
+    <p class="lead">Phase 2 began after Phase 1 was delivered under grant. The order matters,
+      because several results are only interpretable against when the rule that judges them was
+      fixed.</p>
+
+    <div class="tl">
+      <div class="tl-row done"><span class="d">Apr to Aug 2026</span>
+        <h4>Phase 1 delivered</h4>
+        <p>The package, the estimator, the sensitivity machinery, the positive control, the
+          synthetic validation gate and the published figures.</p></div>
+      <div class="tl-row done"><span class="d">2026-09-06</span>
+        <h4>An independent review lands</h4>
+        <p>An external reviewer ran a world with exactly zero true effect through the code, which
+          twenty-two internal review voices had not done. The estimator reported a mediated effect
+          of 0.21 on it.</p></div>
+      <div class="tl-row done"><span class="d">2026-09-07</span>
+        <h4>Three estimator defects repaired, and eleven public claims corrected</h4>
+        <p>Missing intercepts, a probit and logit mismatch, and fixed-scale outcome priors. A
+          separate ruling rewrote eleven phrasings on the public site that claimed more than the
+          evidence supported.</p></div>
+      <div class="tl-row done"><span class="d">2026-09-07</span>
+        <h4>Serving determinism measured, and the budget repriced</h4>
+        <p>Batching found to break greedy decoding. The 216-cell grid repriced at 261.7 card-hours
+          against a budget of about 650, so the planned degradation ladder was not triggered.</p></div>
+      <div class="tl-row done"><span class="d">2026-09-07</span>
+        <h4>Fits pass 1, three wave-1 cells</h4>
+        <p>Two cells published as anchored.</p></div>
+      <div class="tl-row done"><span class="d">2026-09-08</span>
+        <h4>Fits passes 2 and 3, at 18 and then 24 cells</h4>
+        <p>Claim status went <b>down</b>. The two anchored cells were demoted when the model-level
+          leg of the rule was applied. A reporting defect was found inside the pass, fixed with a
+          regression test and a revert proof.</p></div>
+      <div class="tl-row done"><span class="d">2026-09-08</span>
+        <h4>External validity against human labels</h4>
+        <p>The frozen regular expression beat every jury configuration. Specificity 0.9729 on 1,364
+          items.</p></div>
+      <div class="tl-row done"><span class="d">2026-09-09</span>
+        <h4>Secondary jury matrix complete</h4>
+        <p>16 of 16 cells, 70,738 votes, matching plan on every cell, resume proven across eight of
+          them, provenance recorded against a snapshot of the instrument.</p></div>
+      <div class="tl-row live"><span class="d">2026-09-09 onward</span>
+        <h4>The 72-cell expansion</h4>
+        <p>All 72 fits and all 72 posteriors landed in 1 hour 34 minutes with zero cell failures.
+          The model rows were resubmitted after a driver bug pointed the results root at the wrong
+          tree. The branch sits two commits ahead of main, unmerged.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== 3. FITS ===================== -->
+  <section id="fits">
+    <h2>The fits passes</h2>
+    <p class="lead">Three passes at growing scale. The numbers moved very little; the claim status
+      moved down.</p>
+
+    <h3>Inventory of the sweep</h3>
+    <p>72 completed nine-arm cells, every one exit 0 with a non-empty summary, across six subjects
+      at 12 cells each, being three substrates crossed with four cue families. Eight of the 72 sit
+      below the 350 clean-correct precision figure and are labelled accordingly rather than
+      dropped.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>subject</th><th>cells</th><th>below the 350 figure</th></tr></thead>
+        <tbody>
+          <tr><td>qwen3-8b</td><td class="num">12</td><td class="num">0</td></tr>
+          <tr><td>gemma-2-9b-it</td><td class="num">12</td><td class="num">0</td></tr>
+          <tr><td>phi-4-reasoning</td><td class="num">12</td><td class="num">0</td></tr>
+          <tr><td>llama-3.1-8b-instruct</td><td class="num">12</td><td class="num">2</td></tr>
+          <tr><td>olmo-3-7b-think</td><td class="num">12</td><td class="num">2</td></tr>
+          <tr><td>deepseek-r1-distill-llama-8b</td><td class="num">12</td><td class="num">4</td></tr>
+          <tr><td>deepseek-r1-0528-qwen3-8b</td><td class="num">0</td>
+            <td><span class="pill pill-fail">held</span> tokenizer round-trip</td></tr>
+          <tr><td>gpt-oss-20b</td><td class="num">0</td>
+            <td><span class="pill pill-fail">held</span> unservable under the pinned mode</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="small">The 350 figure is a precision figure, not an admission gate. An underpowered
+      quantity is reported with its interval and labelled underpowered, which the frozen text
+      states three times.</p>
+
+    <h3>Model rows, 24-cell pass</h3>
+    <p>Hierarchical hyperparameter posteriors across a model's cells, never an average of cell
+      estimates. All PROVISIONAL, all UNRESOLVED.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>model</th><th>NDE</th><th>NIE</th><th>TE</th><th>P(NIE &gt; 0.15)</th></tr></thead>
+        <tbody>
+          <tr><td>qwen3-8b</td><td class="num">+0.1112</td><td class="num">+0.0316</td>
+            <td class="num">+0.1438</td><td class="num">0.006</td></tr>
+          <tr><td>gemma-2-9b-it</td><td class="num">+0.1242</td><td class="num">+0.0610</td>
+            <td class="num">+0.1870</td><td class="num">0.076</td></tr>
+          <tr><td>llama-3.1-8b-instruct</td><td class="num">+0.0955</td><td class="num">+0.0169</td>
+            <td class="num">+0.1135</td><td class="num">0.005</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Eleven of 24 cells clear the anchor margin on all three of their own estimands. All eleven
+      are still held at RAW, because claim status also turns on the model-level comparison, which no
+      row clears. Since no row resolves, the contract forbids a model-level rho sweep and none is
+      printed.</p>
+
+    <h3>Two readings that constrain how the numbers may be used</h3>
+    <p>Mean clean-arm curve area runs <b>0.9383 to 0.9742</b> on the 12 ARC cells and <b>0.4989 to
+      0.6422</b> on the 6 AQuA cells. The mediator has a different distribution on the two
+      substrates, so coefficients must not be read across them. And the pre-registered grouping
+      factor was cue family, while the measured variation lives in the substrate: cue-family spread
+      medians 0.7886, 0.6874 and 0.9077 against substrate medians 3.3232, 2.9602 and 2.9360.</p>
+  </section>
+
+  <!-- ===================== 4. DEFECTS ===================== -->
+  <section id="defects">
+    <h2>Three estimator defects</h2>
+    <p class="lead">All three were found in one week, two of them by the project's own machinery
+      after the first was found by someone outside it. Each repair shipped with a regression test
+      that is proven still able to fail.</p>
+
+    <h4>Defect 1, found 2026-09-06 by the external reviewer</h4>
+    <p><b>No baseline intercepts.</b> The specification had no intercept terms, so on a world built
+      with exactly zero true effect the estimator reported a mediated effect of <b>+0.2131</b> and a
+      total of <b>+0.2697</b>. After the repair the same null returns <b>−0.0002</b> and
+      <b>−0.0082</b> against a randomized arm difference of −0.0082.</p>
+    <p>The finding is not really about intercepts. Twenty-two internal review voices checked the
+      equations against the prose and passed the plan. None ran a known-zero world through the code.
+      The rule that came out of it is that any statistical component now ships with a null test that
+      must pass before any real fit, and the verifier of that component runs the null itself.</p>
+
+    <h4>Defect 2, found 2026-09-07 by an internal audit lane</h4>
+    <p><b>A link mismatch between the two estimator paths.</b> The sampler path was logistic while
+      every other path was probit. rho is defined as a correlation between bivariate normal errors,
+      which only exists in the probit model, so the two paths were not estimating the same thing.
+      The gap measured about <b>0.04</b> on an effect thresholded at <b>0.15</b>: not large, and
+      large enough to move a verdict.</p>
+
+    <h4>Defect 3, found 2026-09-07 by the mechanism battery</h4>
+    <p><b>Fixed-scale outcome priors.</b> Interval coverage on a known truth ran <b>7 of 20</b> and
+      <b>12 of 20</b> before the priors were rescaled to the outcome, and <b>20 of 20</b> and
+      <b>19 of 20</b> after, at n = 350. A prior that does not scale with the quantity it is a prior
+      over produces intervals that are confidently wrong.</p>
+
+    <p class="note">The three defects share a shape. Each was invisible to review of the
+      specification and visible immediately to a run against known truth. That is the argument for
+      the synthetic battery existing at all.</p>
+  </section>
+
+  <!-- ===================== 5. JURY ===================== -->
+  <section id="jury">
+    <h2>The jury</h2>
+    <p class="lead">The design called for an LLM panel to read transcripts and answer two questions:
+      whether the model mentioned the planted cue, and whether the reasoning supports the answer.
+      Ten thresholds were frozen before any judge ran. The instrument has not passed them.</p>
+
+    <h3>What was tried</h3>
+    <p>Four judges, four prompt files, panels in several compositions, at 1,024 tokens on pinned
+      serving lines. <b>No panel configuration clears the ten bars on any prompt file in any
+      composition.</b> One single-judge configuration does clear all ten, and its exploratory twin
+      agrees with it on every verdict.</p>
+    <p>Three of the four judges fail on the best prompt file. The two that fail on the contested
+      classes fail <b>in opposite directions on the same bytes</b>, which is the part that makes a
+      panel vote unhelpful rather than merely noisy: averaging two instruments that disagree about
+      direction does not produce a better instrument.</p>
+
+    <h3>What the external check said</h3>
+    <p>Against human labels from an external benchmark, the frozen regular expression beats every
+      jury Q1 file by <b>4 to 52 specificity points</b>. Its own specificity is <b>0.9729</b>, being
+      1,327 of 1,364, with 37 false positives. The jury's recall against human unfaithfulness labels
+      is <b>26 of 365</b>, precision 26 of 37.</p>
+    <p>So the cheap instrument beats the expensive one on the only data with human labels attached,
+      and the column of record stays the regular expression, uncorrected, until a judge earns
+      otherwise.</p>
+
+    <h3>The secondary matrix</h3>
+    <p>16 of 16 cells, <b>70,738 votes</b> against 70,738 planned on every cell, every job exit 0,
+      resume proven across eight cells skipping 32,730 already-cast votes, and provenance recorded
+      against a snapshot of the instrument rather than a branch name. It is banked and verified. It
+      has <b>not yet been turned into a single reported number</b>, and saying so is more useful
+      than printing a provisional one.</p>
+  </section>
+
+  <!-- ===================== 6. BATTERY ===================== -->
+  <section id="battery">
+    <h2>Mechanism battery</h2>
+    <p class="lead">Eleven synthetic generator families with known ground truth, run as 15
+      conditions over 3,800 seeded datasets, each fitted once and refitted 200 times by bootstrap.
+      This is where the project measures what its own estimator gets wrong.</p>
+
+    <p>Three pre-registered outcomes all pass: direct-bypass invariance, shared cause, and no cue
+      effect. Cross-checks agree to <b>0.00335</b> maximum absolute difference on the sweep and
+      <b>0.00096</b> on the frontier, and each family's Monte Carlo truth matches its analytic truth
+      to <b>0.000773</b> at two million rows.</p>
+
+    <h3>The finding that argues against the project's own metric</h3>
+    <p>A shared-cause world with <b>zero</b> true mediation and a rationalization world that is
+      <b>fully mediated</b> produce the same report at n = 3,600: mean estimates 0.2613 against
+      0.2833, rho* 0.7069 against 0.7063, both firing the pre-registered verdict in 100 of 100
+      datasets. The largest rho* in the whole battery, <b>0.8428</b>, sits on a third world whose
+      true mediated effect is zero.</p>
+    <p>rho* answers one question well: how much residual correlation would overturn <b>this</b>
+      verdict. It cannot compare two worlds, which is what any use of it as a trust score would
+      require.</p>
+
+    <h3>What each named misspecification costs</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>family</th><th>bias</th><th>interval coverage</th><th>reading</th></tr></thead>
+        <tbody>
+          <tr><td>arm-dependent mediator variance</td><td class="num">+0.0653</td>
+            <td class="num">169 / 400</td>
+            <td>The expensive one. A cue that widens the spread of the reasoning as well as shifting
+              its level is read as a larger mediated effect, and no amount of data fixes it.</td></tr>
+          <tr><td>sparse groups</td><td class="num">−0.0009</td><td class="num">362 / 400</td>
+            <td>An interval problem, not a bias problem. The row bootstrap resamples rows that are
+              not independent.</td></tr>
+          <tr><td>mediator missingness</td><td class="num">−0.0108</td><td class="num">367 / 400</td>
+            <td>Complete-case analysis of a parse failure costs about a hundredth.</td></tr>
+          <tr><td>nonlinear depth</td><td class="num">−0.0156</td><td class="num">359 / 400</td>
+            <td>Tolerable, and reported.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== 7. GATES ===================== -->
+  <section id="gates">
+    <h2>Gates and freezes</h2>
+    <p class="lead">The point of a pre-registration is not that the rules are good. It is that they
+      were fixed before the numbers, and that moving one leaves a record.</p>
+    <ul>
+      <li><b>The verdict rule.</b> A faithfulness claim needs 0.95 posterior probability that the
+        faithful path exceeds a named margin. It was fixed before any model row existed and has not
+        been moved. Under it, every row so far is UNRESOLVED.</li>
+      <li><b>The offset-null gate, with a no-retry rule.</b> Run a world with zero true effect
+        through the estimator before any powered fit. It has run four times, passing on the first
+        attempt each time. A gate you may retry until it passes is not a gate.</li>
+      <li><b>The determinism preflight.</b> Every powered cell re-proves batch invariance on its own
+        server before its arms run, refusing at a distinct exit code otherwise, and the refusal path
+        is itself tested.</li>
+      <li><b>The ten jury thresholds.</b> Frozen before any judge ran. Not met by any panel.</li>
+      <li><b>The anchor margin.</b> A cell is anchored only when all three estimands agree with the
+        randomized replay anchor within 0.10, fixed before any data was seen.</li>
+      <li><b>Amendments leave a record.</b> Each carries a fingerprint, a frozen guard, and a proof
+        that the guard can still fail. A cell never upgrades its state by hand.</li>
+    </ul>
+    <p class="note">The plan-time adversarial gate itself failed, and that is recorded too: a
+      22-voice review passed an estimator that reported an effect of 0.21 on data with no effect,
+      because every voice checked the equations and none ran the code.</p>
+  </section>
+
+  <!-- ===================== 8. LESSONS ===================== -->
+  <section id="lessons">
+    <h2>Engineering lessons</h2>
+    <p class="lead">Each of these was paid for by an incident. They are here because they transfer
+      to any evaluation run at this scale, and because most of them are invisible failures rather
+      than loud ones.</p>
+
+    <details class="drop" open>
+      <summary><h3>A check that cannot run must never read as a check that passed</h3></summary>
+      <div class="drop-body">
+        <p>Every serving script used a fixed loopback port and waited on whether <b>anything</b>
+          answered. Slices of one node share the host loopback, so two of our own jobs on one node
+          meant two servers competing for one port, and the second job's readiness probe was
+          answered by the first job's server. One cell was declared up <b>five seconds before its
+          own weights finished downloading</b>.</p>
+        <p>Cross-model collisions fail loudly. Same-model collisions fail silently: one cell passed
+          its checks through another cell's server, and for eight minutes two clients drove one
+          server at up to 64 requests in flight against a mode pre-registered at 32, while each job
+          believed it had one request in flight.</p>
+        <p><b>The rule.</b> The check that matters is the third one: that the process listening on
+          the port is your server's own process. When an ownership check cannot run, log it and
+          record that it was skipped and why.</p>
+      </div>
+    </details>
+
+    <details class="drop">
+      <summary><h3>Cancelling a run must not read as success</h3></summary>
+      <div class="drop-body">
+        <p>Five seconds after each cancellation, the cancelled job's own log printed an exit code of
+          zero with no results file anywhere. The submitter trapped only EXIT, so it read the status
+          variable whenever it regained control, which on the cancel path read zero. A sibling
+          script that trapped the signal explicitly wrote the correct code on its first live
+          cancellation. The same signal, two guards, two answers, which is what made the gap visible
+          as a gap.</p>
+        <p><b>The rule.</b> A zero is written only when the run's own completion marker exists
+          <b>and</b> the command returned zero. A zero with no marker is a different code. An
+          explicit signal trap records the signal.</p>
+      </div>
+    </details>
+
+    <details class="drop">
+      <summary><h3>The last field of every manifest row was silently dropped</h3></summary>
+      <div class="drop-body">
+        <p>A shell pipeline wrote a stream with no trailing newline into a read loop. The loop
+          returns non-zero on a final line without one, so the body never saw the last field. Every
+          wave ever submitted lost its last setting.</p>
+        <p>It was harmless for a day, because that column held planning metadata nothing reads. It
+          became load-bearing the moment a real field went last: one job then wrote <b>into the
+          wave-1 cell of record</b>, and a set of lifted rows would have run in a rejected mode and
+          recorded that truthfully. The audit over every submitted wave found 42 rows, 37
+          informational, 5 load-bearing, 1 actual incident.</p>
+        <p><b>The rule.</b> A read loop over a stream with no trailing newline is a bug on sight.
+          Never make a load-bearing value the last column until the submitter proves it exports the
+          last column.</p>
+      </div>
+    </details>
+
+    <details class="drop">
+      <summary><h3>A liveness probe in the hot path reads a busy server as dead</h3></summary>
+      <div class="drop-body">
+        <p>The jury runner probed the model list lazily per judge and seed from twelve worker
+          threads, cached only successes, and aborted the whole run on one failure. The server was
+          answering; it downloads a vocabulary inside its first request handler, so the event loop
+          was blocked and one probe timed out. Thirty of about four thousand votes were written, and
+          the job recorded exit zero, because a traceback exits 1, which is also what a failed
+          threshold returns, and nothing checked for the report file.</p>
+        <p><b>The rules.</b> A liveness probe belongs at startup, once per dependency, never in the
+          hot path. Unreachable must not be concluded from one timed-out request to a server known
+          to be loading. An exit code that means two different things is not an exit code. And a
+          zero needs a positive completion marker, which was the third time this campaign paid for
+          that rule.</p>
+      </div>
+    </details>
+
+    <details class="drop">
+      <summary><h3>Three ways a test can prove the wrong thing</h3></summary>
+      <div class="drop-body">
+        <p><b>A fixture can freeze a platform artifact.</b> A lane captured a before-and-after
+          fixture on macOS, where the system shell is old enough to mangle a JSON default written
+          inside a parameter expansion. The fixture recorded a missing file where the runner
+          produces a full one, so it had frozen a platform quirk as the truth.</p>
+        <p><b>A bit-for-bit float pin is a same-platform claim.</b> Two tests pinned coefficients as
+          hex floats recorded on one architecture. Another reproduced them to 6.2e-7 relative and
+          failed the equality. Nothing about the specification had changed; the linear algebra
+          library had. Determinism is pinned on one platform; recorded values are pinned across
+          platforms at a stated tolerance, proven to fail just outside it.</p>
+        <p><b>One environment, many worktrees.</b> A lane installed its own worktree in editable
+          mode into a shared environment, which re-pointed the package for everybody. The loud
+          symptom was two import errors. The silent version is a green run that tested a different
+          tree. Before trusting a test run as evidence about a checkout, print the package's file
+          path and require it inside that checkout.</p>
+      </div>
+    </details>
+
+    <details class="drop">
+      <summary><h3>Run a null through the code before you trust the equations</h3></summary>
+      <div class="drop-body">
+        <p>This is the shortest lesson and the most expensive one. A 22-voice plan gate passed an
+          estimator that reports a mediated effect of 0.21 on data with no effect, because every
+          voice checked the equations against the prose and none ran a known-zero world through the
+          code. An external reviewer did, in seconds.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ===================== 9. NEXT ===================== -->
+  <section id="next">
+    <h2>What is next</h2>
+    <p class="lead">In dependency order. The binding constraint is people, not compute.</p>
+    <ol>
+      <li>Collect the 72-cell model rows and claim statuses, generate the report, and merge the
+        expansion branch into main.</li>
+      <li>Turn the 70,738 banked secondary-jury votes into a reported number, or record why they
+        cannot be.</li>
+      <li><b>Recruit raters and run the golden set.</b> Until a human label exists, no corrected
+        label column can be computed for any cell, and neither kill switch has ever been
+        evaluated.</li>
+      <li>Freeze the validation organism specification, then train the twelve checkpoints. Nothing
+        can reach validated before this.</li>
+      <li>Resolve the anchor-versus-fit disagreement: either the fit is losing a real effect, or the
+        anchor contrast is not measuring what the estimand defines.</li>
+      <li>Close the provenance gap by writing the instrument snapshot into every run output, so a
+        result can be traced to its code without knowing which tree produced it.</li>
+      <li>The held-out audit decision, the residual-stream probe, and the paper.</li>
+    </ol>
+  </section>
+
+  </main>
+</div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <h3>The record</h3>
+        <p style="max-width:38ch">Kept so that results which went the wrong way stay visible. The
+          argument this supports is on <a href="index.html">the overview</a>.</p>
+      </div>
+      <div><h4>Artifacts</h4><ul>
+        <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS24-FITS.md">24-cell fits report</a></li>
+        <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/WAVE1-FITS.md">Wave-1 fits</a></li>
+        <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/W3B-BATCH-INVARIANT.md">Determinism measurement</a></li>
+        <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/external_validity.md">External validity</a></li>
+      </ul></div>
+      <div><h4>Elsewhere</h4><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="methodology.html">Methodology</a></li>
+        <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness">Repository</a></li>
+      </ul></div>
+    </div>
+    <div class="foot-bot">
+      <span>Maksim Silchenko &middot; National University of Singapore</span>
+      <span>Record compiled 2026-09-10</span>
+    </div>
+  </div>
+</footer>
+
+<script src="ui.js?v=20260910f" defer></script>
+<script>
+/* the contents rail follows the section in view */
+addEventListener("DOMContentLoaded", function () {
+  var links = [].slice.call(document.querySelectorAll(".toc a"));
+  var secs = links.map(function (a) { return document.querySelector(a.getAttribute("href")); });
+  var tick = false;
+  function upd() {
+    tick = false;
+    var best = 0, bestTop = -Infinity;
+    secs.forEach(function (s, i) {
+      if (!s) return;
+      var t = s.getBoundingClientRect().top - 120;
+      if (t <= 0 && t > bestTop) { bestTop = t; best = i; }
+    });
+    links.forEach(function (a, i) { a.classList.toggle("on", i === best); });
+  }
+  addEventListener("scroll", function () {
+    if (!tick) { tick = true; requestAnimationFrame(upd); }
+  }, { passive: true });
+  upd();
+});
+</script>
+</body>
+</html>

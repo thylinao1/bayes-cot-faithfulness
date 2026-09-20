@@ -41,11 +41,11 @@
     </a>
     <div class="nav-links">
       <a href="index.html#problem">Problem</a>
-      <a href="index.html#approach">Approach</a>
-      <a href="index.html#audit">Audit</a>
+      <a href="index.html#method">Approach</a>
+      <a href="index.html#assumption">Audit</a>
       <a href="demo.html">Demo</a>
-      <a href="index.html#progress">Progress</a>
-      <a href="index.html#roadmap">Roadmap</a>
+      <a href="index.html#measured">Progress</a>
+      <a href="index.html#status">Roadmap</a>
     </div>
     <a href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener" class="nav-github">GitHub &rarr;</a>
   </div>
@@ -53,7 +53,7 @@
 
 <!-- Method hero -->
 <header class="method-hero">
-  <a href="index.html#audit" class="method-back">
+  <a href="index.html#assumption" class="method-back">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path>
     </svg>
@@ -65,7 +65,7 @@
     the Robins-Greenland-Pearl natural-effects decomposition, with proper Bayesian
     uncertainty, to LLM chain-of-thought, and it states exactly where the identification
     assumptions hold and where they do not. The plain-language reading of the sensitivity
-    result, with the figure, is on the <a href="index.html#audit" style="color:var(--cyan)">overview</a>.
+    result, with the figure, is on the <a href="index.html#assumption" style="color:var(--cyan)">overview</a>.
   </p>
 </header>
 
@@ -84,8 +84,8 @@ $$M = f_M(X,\, U_M)$$
 $$Y = f_Y(X,\, M,\, U_Y)$$
 $$\text{instantiated as}$$
 $$X \sim \text{Bernoulli}(0.5)$$
-$$M \mid X \sim \mathcal{N}(\gamma X,\, \sigma_M^2)$$
-$$Y \mid X, M \sim \text{Bernoulli}\!\left(\sigma(\alpha X + \beta M)\right)$$
+$$M \mid X \sim \mathcal{N}(\gamma_0 + \gamma X,\, \sigma_M^2)$$
+$$Y \mid X, M \sim \text{Bernoulli}\!\left(\Phi(\alpha_0 + \alpha X + \beta M)\right)$$
       </div>
       <p>
         Pearl-style structural equations. $U_M$ and $U_Y$ are background unobserved
@@ -94,6 +94,17 @@ $$Y \mid X, M \sim \text{Bernoulli}\!\left(\sigma(\alpha X + \beta M)\right)$$
         strongly the CoT drives the answer, and &alpha; captures any direct
         prompt-to-answer path that bypasses CoT. Setting &alpha; = 0 corresponds
         to a fully-faithful world.
+      </p>
+      <p>
+        Two details here are repairs, not presentation. The baseline intercepts
+        $\alpha_0$ and $\gamma_0$ were absent in the specification frozen for phase 1, and
+        without them the estimator reported a mediated effect of +0.2131 on a world built
+        with exactly zero true effect. And the link is $\Phi$, the normal CDF, not the
+        logistic $\sigma$: &rho; is defined as a correlation between bivariate normal
+        errors, which exists only in the probit model. An audit on 2026-09-07 found the
+        sampler path had been logistic while every other path was probit, a gap of about
+        0.04 on an effect thresholded at 0.15. Both repairs, and a third to the outcome
+        priors, are recorded in <a href="record.html#defects">the record</a>.
       </p>
     </div>
 
@@ -196,7 +207,7 @@ $$P(Y{=}1 \mid X, M) = \Phi\!\left(\frac{\alpha X + \beta M + (\rho/\sigma_M)(M 
         for friendly NUTS geometry:
       </p>
       <div class="math-block">
-$$\mathrm{logit}\, P(Y_{ij}{=}1) = \alpha_j X_{ij} + \beta_j M_{ij}$$
+$$P(Y_{ij}{=}1) = \Phi\!\left(\alpha_{0j} + \alpha_j X_{ij} + \beta_j M_{ij}\right)$$
 $$\alpha_j \sim \mathcal{N}(\mu_\alpha, \tau_\alpha), \quad \beta_j \sim \mathcal{N}(\mu_\beta, \tau_\beta), \quad \gamma_j \sim \mathcal{N}(\mu_\gamma, \tau_\gamma)$$
       </div>
       <p>
@@ -297,7 +308,7 @@ $$\text{sign-identified} \iff \bar\rho < \rho^*$$
   </div>
 
   <div class="audit-cta reveal">
-    <a href="index.html#audit" class="btn btn-ghost">&larr; Back to the intuition and the figure</a>
+    <a href="index.html#assumption" class="btn btn-ghost">&larr; Back to the intuition and the figure</a>
     <span class="audit-cta-note">the sensitivity sweep, in plain language, with the curve</span>
   </div>
 </section>
