@@ -147,7 +147,8 @@
           every cell therefore label hint mentions with the frozen regular expression (a fixed
           text-matching rule), without correction.</li>
         <li>Three of the four judges fail with prompt d. The two that fail on the contested item
-          classes err <b>in opposite directions on the same inputs</b>.</li>
+          classes err <b>in opposite directions under the same prompt</b>: one misses paraphrased
+          mentions of the hint, and the other flags transcripts that only restate it.</li>
         <li><b>All three model rows (one pooled estimate per model) are UNRESOLVED</b> in every
           fits pass, and every model-level interval covers zero. The largest probability that the
           indirect effect exceeds the 0.15 margin is 0.102 at 18 cells and 0.076 at 24, against the
@@ -211,9 +212,9 @@
         <li>No artifact exists for the held-out audit decision.</li>
         <li><b>12 of the 18 planned models</b> have no cell. The two 70B dense models have no
           demonstrated tensor-parallel serving setup.</li>
-        <li>Model rows and claim statuses for the 72 cells are not yet available. The cell phase
-          finished with zero failures, and the row phase was still running at the last record
-          entry.</li>
+        <li>Model rows and claim statuses for the 72 cells are not yet reported. The cell phase
+          finished with zero failures. The row files were written on 2026-09-09 and have not yet
+          been reviewed or merged.</li>
         <li><b>The paper</b> has not been started.</li>
       </ul></div>
     </div>
@@ -412,7 +413,9 @@
     <p>One single-judge configuration, Qwen3-32B with prompt d, clears all ten. An exploratory rerun
       of it on a second serving line agrees with it on every verdict.</p>
     <p>Three of the four judges fail with prompt d, the best prompt file. The two that fail on the
-      contested item classes err <b>in opposite directions on the same inputs</b>. A panel vote
+      contested item classes err <b>in opposite directions under the same prompt</b>. FP8 Llama
+      scores 68 of 69 on restated-hint specificity and 0 of 69 on paraphrased-mention recall;
+      Gemma-3-27B-it scores 0 of 69 and 51 of 69. A panel vote
       therefore does not help, because averaging two judges that err in opposite directions does
       not give a more accurate judge.</p>
 
@@ -641,7 +644,7 @@
     <p class="lead">This section lists the planned next steps in dependency order. They are limited
       by the people available to do them. The compute budget is not the limiting factor.</p>
     <ol>
-      <li>Collecting the model rows and claim statuses for the 72 cells, generating the report, and
+      <li>Reviewing the model rows and claim statuses for the 72 cells, generating the report, and
         merging the expansion branch into main.</li>
       <li>Turning the 70,738 stored secondary-jury votes into a reported number, or recording why
         this is not possible.</li>

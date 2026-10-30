@@ -653,3 +653,6 @@ table.models td:first-child{white-space:nowrap}
 .exp-list li{margin:2px 0}
 .doc-head a{color:var(--gold-bright);border-bottom-color:rgba(207,154,47,.4)}
 .doc-head a:hover{color:var(--gold-soft);border-bottom-color:var(--gold-soft)}
+.model-rows .tablewrap{margin:14px 0 22px}
+table.models caption{caption-side:top;text-align:left;font-family:var(--font-mono);font-size:11px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);padding:0 0 8px}

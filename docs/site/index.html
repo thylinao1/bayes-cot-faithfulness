@@ -91,8 +91,8 @@
         <span class="big pass">0.21</span>
         <p>A synthetic data set was built with a known correlation of 0.5 that the standard
           analysis ignores. That analysis puts the part of the effect passing through the reasoning
-          at 0.43. The true value is <b>0.21</b>. The project's sensitivity analysis recovers 0.21
-          at the true correlation.</p>
+          at about twice the true value of <b>0.21</b>. Set to the true correlation, the project's
+          sensitivity analysis comes within about 0.02 of the true value.</p>
       </div>
       <div class="tldr-item">
         <span class="n">02 / SCALE</span>
@@ -117,17 +117,19 @@
       </div>
       <div class="tldr-item">
         <span class="n">05 / TWO METHODS DISAGREE</span>
-        <span class="big warn">0.146 vs 0.025</span>
+        <span class="big warn">0.138 vs 0.032</span>
         <p>Two methods estimate how much of the hint's effect passes through the chain of thought.
-          On Qwen3-8B, a randomized test gives 0.146 and the statistical model gives 0.025. <b>The
-          two disagree on all three models analysed.</b> The reason is an open question.</p>
+          On Qwen3-8B, at 24 cells, a randomized test gives 0.138 and the statistical model gives
+          0.032. <b>The two disagree on all three models analysed.</b> The reason is an open
+          question.</p>
       </div>
       <div class="tldr-item">
         <span class="n">06 / A LIMIT OF RHO*</span>
         <span class="big fail">0.8428</span>
-        <p><button type="button" class="term" data-modal="m-rhostar">rho*</button> describes how
-          robust one result is. Across eleven synthetic test families, its largest value came from a
-          world whose <b>true indirect effect is zero</b>. So rho* cannot be used to rank models.</p>
+        <p><button type="button" class="term" data-modal="m-rhostar">rho*</button> is the residual
+          correlation at which the indirect effect would cross zero. In the project's synthetic test
+          families, its largest value came from a world whose <b>true indirect effect is zero</b>.
+          So rho* cannot be used to rank models.</p>
       </div>
     </div>
 
@@ -239,8 +241,8 @@
         question, which is why the project uses Bayesian statistics.
       </p>
       <p class="note reveal">
-        <b>These five numbers are invented</b> to illustrate the point. Every other number on this
-        page comes from a stored result.
+        <b>The numbers in this example are invented</b> to illustrate the point. Every other number
+        on this page comes from a stored result, unless it is marked as illustrative.
       </p>
     </div>
   </div>
@@ -405,7 +407,7 @@ Answer: (B)</code></pre>
       </details>
 
       <details class="more reveal">
-        <summary>The exact definitions, as written in the pre-registered contract</summary>
+        <summary>The exact definitions of the three effects</summary>
         <div class="body">
 <pre><code>NDE = E[Y | do(X=1), M ~ M(X=0)] - E[Y | do(X=0), M ~ M(X=0)]
 NIE = E[Y | do(X=1), M ~ M(X=1)] - E[Y | do(X=1), M ~ M(X=0)]
@@ -496,9 +498,11 @@ TE  = NDE + NIE</code></pre>
         <figcaption>
           This data set was built with a true indirect effect of <b>0.2074</b> and a true rho of
           <b>0.5</b>. At rho&nbsp;=&nbsp;0, the analysis reports an indirect effect of <b>0.4273</b>, about
-          twice the true value. At rho&nbsp;=&nbsp;0.5 it recovers the true value. The total effect barely
-          moves, because the hint is placed by the project. The indirect effect stays above zero
-          until rho reaches <b>0.7364</b>.
+          twice the true value. At rho&nbsp;=&nbsp;0.5 it comes within about 0.02 of the true value. The
+          total effect barely moves, because the hint is placed by the project. The indirect effect
+          stays above zero until rho reaches <b>0.7364</b>. These curves come from the estimator
+          before the repairs of 2026-09-07. The repaired estimator gives 0.4368 at rho&nbsp;=&nbsp;0 and
+          rho*&nbsp;=&nbsp;0.737, and the figure has not yet been regenerated.
           <sup class="src"><a href="#s1">1</a></sup>
         </figcaption>
       </div>
@@ -518,13 +522,18 @@ TE  = NDE + NIE</code></pre>
       </p>
       <p class="reveal">
         rho* answers that one question only. It does not change when the direct effect grows. In
-        one test, rho* stayed at 0.624695 while the share of the effect passing through the chain
-        of thought fell from 100% to 1.6%.
+        one worked case, the analytic value of rho* stays at 0.624695 while the share of the effect
+        passing through the chain of thought falls from 100% to 1.6%.
       </p>
       <p class="reveal">
         rho* is computed from a maximum-likelihood fit. It does not come from the Bayesian
-        posterior, the full distribution of plausible values. The code does not check that the
-        optimizer converged. It is therefore a point estimate.
+        posterior, the full distribution of plausible values. The code that computes rho* does not
+        check whether the optimizer converged. It is therefore a point estimate.
+      </p>
+      <p class="reveal">
+        rho* is also not the point at which the pre-registered verdict fails. In two cells of the
+        first sweep wave, rho* was 0.82 and 0.77, while the verdict already failed at a
+        correlation of −0.24 and −0.10.
       </p>
       <p class="reveal">
         A large rho* might seem to mark a trustworthy result. The project tested this idea on eleven
@@ -545,9 +554,9 @@ TE  = NDE + NIE</code></pre>
           indirect effect is <b>zero</b>. In the second, the whole effect passes through the chain of
           thought. The two give nearly the same report: mean indirect effects of 0.2613 and 0.2833,
           and rho* of 0.7069 and 0.7063. Both met the pre-registered decision rule in 100 of 100
-          data sets. The largest rho* in all eleven families, <b>0.8428</b>, comes from a third world
-          whose true indirect effect is zero. The project therefore uses rho* only to describe the
-          robustness of a single result. <sup class="src"><a href="#s2">2</a></sup>
+          data sets. At this sample size, the largest rho* in the battery, <b>0.8428</b>, comes from
+          a third world whose true indirect effect is zero. At n&nbsp;=&nbsp;350, where all eleven families
+          ran, the largest value (0.8468) also comes from a world with no indirect effect. <sup class="src"><a href="#s2">2</a></sup>
         </figcaption>
       </div>
     </div>
@@ -603,8 +612,9 @@ TE  = NDE + NIE</code></pre>
           <h4>Sensitivity analysis with a known correlation</h4>
           <p><b>What was done.</b> A data set was built with a true rho of 0.5 and a true indirect
             effect of 0.2074. The analysis was repeated for rho from −0.6 to 0.8.</p>
-          <p><b>What was found.</b> At rho&nbsp;=&nbsp;0 the estimate was 0.4273. At the true rho it matched
-            the true value. Section 03 shows the whole curve.</p>
+          <p><b>What was found.</b> At rho&nbsp;=&nbsp;0 the estimate was 0.4273 before the estimator repair,
+            and 0.4368 after it. At the true rho, the estimate came within about 0.02 of the true
+            value. Section 03 shows the whole curve.</p>
         </article>
         <article class="card exp v-pass reveal">
           <span class="mark">Experiment 3 &middot; synthetic</span>
@@ -676,10 +686,9 @@ TE  = NDE + NIE</code></pre>
             decorative), it crosses zero at <b>rho*&nbsp;=&nbsp;0.05</b>.
           </figcaption>
         </figure>
-        <p class="note">This figure was made on 2026-07-10, <b>before the estimator repairs of
-          2026-09-07</b>. The repair record requires all four published figures to be regenerated
-          together, which has not happened yet. The two values are the reading of the earlier
-          estimator.</p>
+        <p class="note">This figure was made <b>before the estimator repairs of 2026-09-07</b>. The
+          repair record asks for the three published figures to be regenerated together, which has
+          not happened yet. The two values are the reading of the earlier estimator.</p>
       </div>
 
       <div class="plate bleed reveal">
@@ -693,8 +702,8 @@ TE  = NDE + NIE</code></pre>
             <tbody>
               <tr><td>the hint changes the spread of curve area as well as its level</td>
                 <td class="num">+0.0653</td><td class="num">169 / 400</td>
-                <td>The largest cost. The indirect effect is overstated, and more data does not
-                  remove the error.</td></tr>
+                <td>The largest cost. The indirect effect is overstated, and the intervals are
+                  far too narrow.</td></tr>
               <tr><td>few questions per group</td>
                 <td class="num">−0.0009</td><td class="num">362 / 400</td>
                 <td>Almost no bias. The intervals are too narrow, because the bootstrap resamples
@@ -708,8 +717,8 @@ TE  = NDE + NIE</code></pre>
             </tbody>
           </table>
         </div>
-        <p class="note">If the intervals worked as intended, about 380 of 400 would contain the
-          truth.</p>
+        <p class="note">These rows come from runs at n&nbsp;=&nbsp;350. If the intervals worked as
+          intended, about 380 of 400 would contain the truth.</p>
       </div>
     </div>
 
@@ -766,9 +775,10 @@ TE  = NDE + NIE</code></pre>
             −0.0082.</p>
           <p>Two more defects were fixed. First, one part of the code turned scores into
             probabilities with a logistic formula, while the rest used a probit formula. The gap was
-            about 0.04. Second, the prior distributions ignored the scale of curve area. Rescaling
-            them raised interval coverage from 7 of 20 to 20 of 20 in one family. In another it rose
-            from 12 of 20 to 19 of 20.</p>
+            about 0.04. Second, the prior distributions ignored the scale of the mediator. In two
+            mechanism-battery families with a large mediator baseline, intervals contained the true
+            indirect effect in only 7 of 20 and 12 of 20 data sets. Rescaling the priors raised this
+            to 20 of 20 and 19 of 20.</p>
           <p>Each repair has a test that fails without it. Details are in
             <a href="record.html#defects">the record</a>.</p>
         </article>
@@ -798,13 +808,15 @@ TE  = NDE + NIE</code></pre>
           <span class="mark">Experiment 10 &middot; GPU</span>
           <h4>Running reasoning models with thinking switched off</h4>
           <p><b>What was done.</b> In the first sweep wave, three reasoning models ran out of their
-            320-token budget inside their thinking text. They gave 56, 140 and 1 usable answers out
-            of 1,500. A fourth, Phi-4-reasoning, answered the clean questions, but its answers at the
-            cut points could not be scored.</p>
+            320-token budget inside their thinking text. Most outputs had no final answer, so only
+            56, 140 and 1 of 1,500 questions counted as answered correctly. A fourth,
+            Phi-4-reasoning, answered the clean questions, but its answers at the cut points could
+            not be scored.</p>
           <p><b>What was found.</b> A check showed that two ways of sending prompts give identical
             outputs: 30 of 30 answers and 120 of 120 letter probabilities matched. This allowed the
-            models to run with thinking switched off. Phi-4-reasoning then answered 493 of 570
-            clean questions correctly, and every prompt version could be scored.</p>
+            models to run with thinking switched off. In an exploratory cell, Phi-4-reasoning then
+            answered 493 of 570 clean questions correctly, and every prompt version could be
+            scored.</p>
         </article>
       </div>
     </div>
@@ -854,8 +866,9 @@ TE  = NDE + NIE</code></pre>
           <p><b>What was found.</b> 72 cells are complete, twelve for each of six models:
             Qwen3-8B, Gemma-2-9B-it, Llama-3.1-8B-Instruct, Phi-4-reasoning, OLMo-3-7B-Think and
             DeepSeek-R1-Distill-Llama-8B. Eight of the 72 have fewer than 350 clean-correct
-            questions and are labelled as such. The full grid was estimated at 261.7 GPU hours,
-            within a budget of about 650.</p>
+            questions and are labelled as such. The full grid was estimated at 261.7 GPU
+            card-hours, within a budget of about 650. For the larger models the estimate is a lower
+            bound.</p>
         </article>
         <article class="card exp v-pass reveal d1">
           <span class="mark">Experiment 12 &middot; sweep</span>
@@ -885,16 +898,17 @@ TE  = NDE + NIE</code></pre>
             randomized test that does not depend on the statistical model. It places the chain of
             thought from each prompt after each prompt, giving four combinations. It then counts how
             often the model picks the hinted option.</p>
-          <p><b>What was found.</b> On the 18-cell data, the replay anchor puts the indirect effect
-            at 0.146 to 0.218. The fit gives 0.016 to 0.052, with intervals that include zero. The
+          <p><b>What was found.</b> On the 24-cell data, the replay anchor puts the indirect effect
+            at 0.138 to 0.200. The fit gives 0.017 to 0.061, with intervals that include zero. The
             figure below shows each model.</p>
         </article>
         <article class="card exp v-pass reveal">
           <span class="mark">Experiment 15 &middot; sweep</span>
           <h4>A second outcome scale</h4>
           <p><b>What was done.</b> On the clean prompt, the model never picks the hinted option, so
-            the yes-or-no outcome does not vary there. A separate pass read the log-probability of
-            the hinted letter for every answer instead.</p>
+            the yes-or-no outcome does not vary there. A separate pass read, for every answer, how
+            much more log-probability the model gave the hinted letter than the best other
+            letter.</p>
           <p><b>What was found.</b> All 24 cells met the six conditions for this scale and report a
             result. By the pre-registered rule, these results are descriptive. They carry no verdict
             and do not rank models.</p>
@@ -904,8 +918,8 @@ TE  = NDE + NIE</code></pre>
           <h4>Fits on all 72 cells</h4>
           <p><b>What was done.</b> The fit was extended from 24 to 72 cells.</p>
           <p><b>What was found.</b> All 72 cell fits completed in 1 hour 34 minutes with no
-            failures. The model-level results were still running at the last record entry. This
-            work sits on a branch that is not yet merged.</p>
+            failures. The model-level results were written on 2026-09-09. They have not yet been
+            reviewed or merged into the main branch, so this page does not report them.</p>
         </article>
       </div>
     </div>
@@ -929,35 +943,48 @@ TE  = NDE + NIE</code></pre>
 
     <div class="read">
       <h3 class="reveal">Experiment 13: model-level results at 24 cells</h3>
-      <p class="small reveal">Each row pools eight cells of one model. Each value is the average of
-        the plausible values, with its 95% credible interval in brackets. All rows are
-        provisional.</p>
+      <p class="small reveal">Each table pools the eight cells of one model. Each value is the median
+        of the plausible values at rho&nbsp;=&nbsp;0, with its 95% credible interval in brackets. All rows
+        are provisional.</p>
+      <p class="small reveal">The tables are kept separate and appear in the order the models were
+        run. The pre-registered ranking rule does not allow one shared table, because it would
+        invite a ranking.</p>
     </div>
     <div class="wide">
-      <div class="tablewrap reveal">
-        <table class="models">
-          <thead>
-            <tr><th>model</th><th>direct (NDE)</th><th>indirect (NIE)</th><th>total (TE)</th>
-              <th>P(NIE &gt; 0.15)</th><th>state</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>qwen3-8b</td>
+      <div class="model-rows reveal">
+        <div class="tablewrap">
+          <table class="models">
+            <caption>qwen3-8b &middot; 8 cells, 7,025 questions</caption>
+            <thead><tr><th>direct (NDE)</th><th>indirect (NIE)</th><th>total (TE)</th><th>P(NIE &gt; 0.15)</th><th>state</th></tr></thead>
+            <tbody><tr>
               <td class="num">+0.1112 [+0.0384, +0.1915]</td>
               <td class="num">+0.0316 [−0.0136, +0.1109]</td>
               <td class="num">+0.1438 [+0.0465, +0.2801]</td>
-              <td class="num">0.006</td><td><span class="pill pill-raw">raw</span></td></tr>
-            <tr><td>gemma-2-9b-it</td>
+              <td class="num">0.006</td><td><span class="pill pill-raw">raw</span></td></tr></tbody>
+          </table>
+        </div>
+        <div class="tablewrap">
+          <table class="models">
+            <caption>gemma-2-9b-it &middot; 8 cells, 6,232 questions</caption>
+            <thead><tr><th>direct (NDE)</th><th>indirect (NIE)</th><th>total (TE)</th><th>P(NIE &gt; 0.15)</th><th>state</th></tr></thead>
+            <tbody><tr>
               <td class="num">+0.1242 [+0.0479, +0.2008]</td>
               <td class="num">+0.0610 [−0.0131, +0.1975]</td>
               <td class="num">+0.1870 [+0.0643, +0.3632]</td>
-              <td class="num">0.076</td><td><span class="pill pill-raw">raw</span></td></tr>
-            <tr><td>llama-3.1-8b-instruct</td>
+              <td class="num">0.076</td><td><span class="pill pill-raw">raw</span></td></tr></tbody>
+          </table>
+        </div>
+        <div class="tablewrap">
+          <table class="models">
+            <caption>llama-3.1-8b-instruct &middot; 8 cells, 6,399 questions</caption>
+            <thead><tr><th>direct (NDE)</th><th>indirect (NIE)</th><th>total (TE)</th><th>P(NIE &gt; 0.15)</th><th>state</th></tr></thead>
+            <tbody><tr>
               <td class="num">+0.0955 [+0.0154, +0.2097]</td>
               <td class="num">+0.0169 [−0.0171, +0.0989]</td>
               <td class="num">+0.1135 [+0.0173, +0.2794]</td>
-              <td class="num">0.005</td><td><span class="pill pill-raw">raw</span></td></tr>
-          </tbody>
-        </table>
+              <td class="num">0.005</td><td><span class="pill pill-raw">raw</span></td></tr></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -973,9 +1000,9 @@ TE  = NDE + NIE</code></pre>
       </div>
       <p class="note reveal">
         <b>A further limit.</b> The total effect implied by the fit can be compared with the
-        directly measured difference between the two prompt versions. In 16 of 18 cells the implied
-        total is lower, by up to 44.9%. In 11 of 18 cells the interval of that gap excludes zero.
-        The sign is never reversed.
+        directly measured difference between the two prompt versions. At 24 cells, the interval for
+        that gap excludes zero in 13 of 24 cells. At 18 cells the implied total was lower in 16 of
+        18 cells, by up to 44.9%, and the sign was never reversed.
       </p>
       <p class="note reveal">
         <b>A difference between question sets.</b> Average clean curve area is 0.9383 to 0.9742 on
@@ -989,13 +1016,15 @@ TE  = NDE + NIE</code></pre>
       <div class="plate bleed reveal">
         <div class="fig-head">
           <h4>Experiment 14: the replay anchor and the fit disagree</h4>
-          <p class="kicker">18-cell pass, 6 cells per model</p>
+          <p class="kicker">24-cell pass, 8 cells per model</p>
         </div>
         <canvas id="cAnchor" role="img"
-                aria-label="For three models, the randomized replay anchor puts the indirect effect at 0.146, 0.169 and 0.218, while the fitted model-level indirect effect is 0.025, 0.052 and 0.016 with 95 percent credible intervals that all cover zero."></canvas>
+                aria-label="For three models at 24 cells, the randomized replay anchor puts the indirect effect at 0.138, 0.165 and 0.200, while the fitted model-level indirect effect is 0.032, 0.061 and 0.017 with 95 percent credible intervals that all cover zero."></canvas>
         <figcaption>
-          The replay anchor puts the indirect effect at 0.146, 0.169 and 0.218 for the three models.
-          The fit, on the same data, gives 0.025, 0.052 and 0.016, and every interval includes zero.
+          The replay anchor puts the indirect effect at 0.138, 0.165 and 0.200 for the three models.
+          The fit, on the same data, gives 0.032, 0.061 and 0.017, and every interval includes zero.
+          The 18-cell pass gave the same picture: 0.146, 0.169 and 0.218 against 0.025, 0.052 and
+          0.016.
           Either the fit misses a real effect, or the anchor measures something other than the
           indirect effect as defined. This question is open.
           <sup class="src"><a href="#s3">3</a></sup>
@@ -1020,14 +1049,19 @@ TE  = NDE + NIE</code></pre>
             alone and in majority-vote panels.</p>
           <p><b>What was found.</b> One configuration, Qwen3-32B with prompt d at 1,024 tokens, met
             all ten thresholds. No panel met them on any prompt file. On the best prompt, three of
-            four judges failed, and two of them failed in opposite directions on the same items.</p>
+            four judges failed. Two of them failed in opposite ways: one almost never recognised a
+            paraphrased mention of the hint, and the other flagged almost every transcript that only
+            restated the hint.</p>
           <p>The share of silent cases is therefore still measured by the frozen regular
             expression.</p>
         </article>
         <article class="card exp v-warn reveal d1">
           <span class="mark">Experiment 18 &middot; judges</span>
           <h4>A full set of secondary judge votes</h4>
-          <p><b>What was done.</b> A secondary set of judges voted on 16 cells.</p>
+          <p><b>What was done.</b> The one configuration that passed the gate, Qwen3-32B with prompt
+            d, scored the 16 cells of Gemma-2-9B-it and Llama-3.1-8B-Instruct. Under ruling R15 it is
+            a secondary configuration: its results may be reported but are not used for
+            decisions.</p>
           <p><b>What was found.</b> All 70,738 planned votes were cast and verified. Resuming after an
             interruption was tested on eight cells. The votes have not yet been combined into a
             reported number.</p>
@@ -1036,9 +1070,9 @@ TE  = NDE + NIE</code></pre>
           <span class="mark">Experiment 19 &middot; judges</span>
           <h4>Comparison with human labels</h4>
           <p><b>What was done.</b> The frozen regular expression and one judge, gemma-3-27b-it, were
-            scored on FaithCoT-Bench. This is an external set of 1,364 chains of thought labelled by
-            human experts. Its transcripts contain no planted hint, so any flag for a hint mention is
-            a false alarm.</p>
+            scored on FaithCoT-Bench. This is an external set of 1,364 chains of thought, of which
+            1,304 carry labels from human experts. Its transcripts contain no planted hint, so any
+            flag for a hint mention is a false alarm.</p>
           <p><b>What was found.</b> The frozen regular expression raised no false alarm on 1,327 of
             1,364 transcripts (97.3%). This is 4 to 52 points better than the judge with each prompt
             file. On the second question, the judge found 26 of the 365 transcripts that humans
@@ -1063,9 +1097,11 @@ TE  = NDE + NIE</code></pre>
             trained model, the stated hint changes the answer while the chain of thought still argues
             for the correct option. A twin is trained the same way, except that its hint carries no
             information about the answer.</p>
-          <p>The plan has 12 checkpoints: three strengths of the hidden path, two training seeds, and
-            a trained model and a twin for each.</p>
-          <p><b>What was found.</b> In a check of four training recipes, the trained model followed
+          <p>The plan has 12 checkpoints over three strengths of the hidden path and two training
+            seeds. At the two higher strengths, each seed has a trained model and its twin. At the
+            lowest strength, the plan trains a model that mentions the hint in its chain of thought,
+            and an uninformative control.</p>
+          <p><b>What was found.</b> In an exploratory check of four training recipes, the trained model followed
             the hint on 15 to 39 of 42 held-out items, up from 0 of 42. The twin stayed at 0 of 42
             under all four. The memory needed fits on one GPU (70.91 and 72.93 GiB of 79.25). No
             checkpoint of record has been trained yet.</p>
@@ -1131,9 +1167,9 @@ TE  = NDE + NIE</code></pre>
         <li>It does not treat the text-rule labels as correct. They are heuristic, and human
           labelling has not started.</li>
         <li>It does not rank models. The pre-registered ranking rule does not allow the three models
-          to be presented as a league table.</li>
-        <li>rho* is a maximum-likelihood point estimate whose optimizer convergence is not checked.
-          It is not a posterior.</li>
+          to share one results table.</li>
+        <li>rho* is a maximum-likelihood point estimate. The code that computes it does not check
+          optimizer convergence, and it is not a posterior.</li>
       </ul>
 
       <h3 class="reveal">Reproducing the results</h3>
@@ -1141,9 +1177,10 @@ TE  = NDE + NIE</code></pre>
         the stored sweep results.</p>
       <pre data-copy="click to copy"><code>git clone https://github.com/thylinao1/bayes-cot-faithfulness
 pip install -e ".[dev]"
-pytest -q                                  # 1,503 tests collected
-python experiments/positive_control.py     # the two-world separation
-python experiments/mechanism_battery.py    # the rho* result, 11 families
+pytest -q                                              # 1,503 tests collected
+python notebooks/01_synthetic_validation.py            # recovery of known effects
+PYTHONPATH=src python experiments/06_positive_control_demo.py   # the two-world separation
+python experiments/mechanism_battery.py                # the rho* result, 11 families
 python experiments/cells18_fits_report.py --cells 24</code></pre>
     </div>
   </div>
@@ -1168,7 +1205,7 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
         <div class="tl-row done"><span class="d">2026-09-06 to 09-07</span>
           <h4>Outside review and three estimator repairs</h4>
           <p>Missing baseline terms, a mismatch between two model types, and priors that ignored the
-            scale of curve area. Each repair has a test that fails without it.
+            scale of the mediator. Each repair has a test that fails without it.
             <a href="record.html#defects">The full account.</a></p></div>
         <div class="tl-row done"><span class="d">2026-09-07 to 09-08</span>
           <h4>Fits at 3, 18 and 24 cells</h4>
@@ -1185,14 +1222,15 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
         <div class="tl-row live"><span class="d">2026-09-09 onward</span>
           <h4>The 72-cell expansion</h4>
           <p>All 72 cell fits completed with no failures. The model-level rows and claim statuses
-            were still running at the last record entry. The branch is two commits ahead of the main
-            branch and not yet merged.</p></div>
+            were written on 2026-09-09 and have not yet been reviewed. The branch is two commits
+            ahead of the main branch and not yet merged.</p></div>
         <div class="tl-row"><span class="d">next</span>
-          <h4>Human raters, then the validation organism</h4>
-          <p>No human label exists yet. Until one does, the corrected label column cannot be computed
-            and no cell can reach VALIDATED. <b>0 of 12</b> validation checkpoints are trained. The
-            statistic, the detection-size formula and the refusal rules are implemented, but their
-            inputs do not exist yet. These steps depend mainly on recruiting human raters.</p></div>
+          <h4>Human labels and the validation organism</h4>
+          <p>No human label exists yet, so the corrected label column cannot be computed. Recruiting
+            raters is the next step for that column.</p>
+          <p>VALIDATED needs the validation organism. <b>0 of 12</b> of its checkpoints are trained.
+            The statistic, the detection-size formula and the refusal rules are implemented. Training
+            waits on a freeze of the organism's specification.</p></div>
       </div>
 
       <h3 class="reveal">Who</h3>
@@ -1224,9 +1262,11 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
         <details>
           <summary>If rho* cannot rank models, why is it on the page?</summary>
           <div class="a"><p>It answers one question: how large the residual correlation would need
-            to be to remove one particular result. That is useful for a single result.</p>
-            <p>It cannot compare two worlds or two models. The mechanism battery, which is the
-            project's own measurement, is the evidence for that limit.</p></div>
+            to be for the indirect effect in one fit to cross zero. It is a maximum-likelihood point
+            estimate, not a posterior.</p>
+            <p>It cannot compare two worlds or two models, and it is not the point at which the
+            pre-registered verdict fails. The mechanism battery, which is the project's own
+            measurement, is the evidence for the first limit.</p></div>
         </details>
         <details>
           <summary>Is curve area a fair measure of the chain of thought?</summary>
@@ -1276,13 +1316,15 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
   <div class="wrap"><div class="read">
     <p class="kicker reveal">sources</p>
     <ol class="reveal">
-      <li id="s1">Sensitivity sweep values, precomputed from the package (notebook 04 configuration).
-        See <a href="methodology.html">the methodology</a> and
-        <code>experiments/sensitivity_sweep.py</code>.</li>
+      <li id="s1">Sensitivity sweep values, precomputed from the package before the 2026-09-07
+        repair. See <a href="methodology.html">the methodology</a>,
+        <code>notebooks/03_sensitivity_analysis.py</code> and
+        <code>docs/ESTIMATOR-REPAIR-2026-09-07.md</code> section 3.2.</li>
       <li id="s2">Mechanism battery: 11 families, 15 conditions, 3,800 seeded data sets, 200 bootstrap
         refits each. <code>experiments/results/mechanism_battery/report.md</code>.</li>
-      <li id="s3">18-cell fits pass, 2026-09-08. <code>docs/CELLS18-FITS.md</code> and
-        <code>docs/WAVE1-FITS.md</code>. The 24-cell pass is in <code>docs/CELLS24-FITS.md</code>.</li>
+      <li id="s3">24-cell fits pass, 2026-09-08. <code>docs/CELLS24-FITS.md</code> and
+        <code>docs/PHASE2-LOG.md</code>. The earlier passes are in <code>docs/CELLS18-FITS.md</code>
+        and <code>docs/WAVE1-FITS.md</code>.</li>
       <li id="s4">Serving determinism, jobs 825548 and 826020.
         <code>docs/W3B-BATCH-INVARIANT.md</code>.</li>
       <li id="s5">Comparison with human labels on FaithCoT-Bench (arXiv:2510.04040).
@@ -1352,10 +1394,10 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
       into account. rho* is the value of rho at which the indirect effect crosses zero.</p>
     <p>A rho* of 0.05 means a very small residual correlation would remove the result. A rho* of 0.69
       means only a large one would. It plays a role similar to VanderWeele's E-value.</p>
-    <p>Two limits apply. First, rho* is a <b>maximum-likelihood point estimate</b>, and the code does
-      not check that the optimizer converged, so it is not a posterior. Second, it answers only this
-      one question. It does not change when the direct effect grows, and the project's own battery
-      showed it cannot rank two worlds.</p>
+    <p>Two limits apply. First, rho* is a <b>maximum-likelihood point estimate</b>, and the code that
+      computes it does not check whether the optimizer converged, so it is not a posterior. Second,
+      it answers only this one question. It does not change when the direct effect grows, and the
+      project's own battery showed it cannot rank two worlds.</p>
   </div>
   <div id="m-anchor">
     <p class="kicker">gate</p>

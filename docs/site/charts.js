@@ -285,9 +285,11 @@
     var cv = document.getElementById("cAnchor");
     if (!cv) return;
     var rows = [
-      { m: "qwen3-8b",              anchor: 0.146, fit: 0.0250, lo: -0.0342, hi: 0.1434 },
-      { m: "gemma-2-9b-it",         anchor: 0.169, fit: 0.0523, lo: -0.0370, hi: 0.2206 },
-      { m: "llama-3.1-8b-instruct", anchor: 0.218, fit: 0.0161, lo: -0.0353, hi: 0.1160 }
+      /* 24-cell pass (docs/PHASE2-LOG.md, CELLS24-FITS.md). The 18-cell values were
+         0.146 / 0.025, 0.169 / 0.052 and 0.218 / 0.016. */
+      { m: "qwen3-8b",              anchor: 0.1376, fit: 0.0316, lo: -0.0136, hi: 0.1109 },
+      { m: "gemma-2-9b-it",         anchor: 0.1646, fit: 0.0610, lo: -0.0131, hi: 0.1975 },
+      { m: "llama-3.1-8b-instruct", anchor: 0.1997, fit: 0.0169, lo: -0.0171, hi: 0.0989 }
     ];
     mount(cv, {
       height: 296, tip: true,
