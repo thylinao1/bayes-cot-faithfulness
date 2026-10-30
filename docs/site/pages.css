@@ -1,0 +1,125 @@
+/* ============================================================
+   bayes-cot-faithfulness: the two secondary pages
+   (methodology.html and demo.html), added 2026-10-30.
+
+   Both pages were written for the site's earlier design. The
+   2026-09-10 rebuild replaced styles.css, which left their
+   components without rules. This file restyles those components
+   with the tokens defined in styles.css: warm paper for the
+   methodology page, and one dark plate for the demo, because the
+   demo is a figure and the figure hues only stay correct on a
+   dark ground.
+   ============================================================ */
+
+/* ---------- shared chrome ---------- */
+.cursor-glow{display:none}
+.nav-links a.ext{margin-left:6px}
+
+.footer{border-top:1px solid var(--rule);background:var(--paper-2);
+  padding:28px clamp(20px,5vw,56px)}
+.footer-inner{max-width:var(--maxw);margin:0 auto;display:flex;flex-wrap:wrap;
+  justify-content:space-between;gap:10px 24px;font-family:var(--font-mono);
+  font-size:11.5px;letter-spacing:.03em;color:var(--ink-3)}
+.footer-inner a{color:var(--moss-deep)}
+
+/* ============================================================
+   METHODOLOGY PAGE (paper)
+   ============================================================ */
+.method-page .method-hero,
+.method-page .section > *{width:min(var(--wide),calc(100% - 2 * clamp(20px,5vw,56px)));
+  margin-inline:auto}
+.method-hero{padding:118px 0 6px}
+.method-back{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono);
+  font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);border:none;margin-bottom:22px}
+.method-back:hover{color:var(--moss-deep)}
+.method-hero h1{font-size:clamp(2.3rem,1.5rem + 2.8vw,3.6rem);margin:0 0 22px}
+.method-lede{font-size:1.06rem;line-height:1.6;color:var(--ink-2);max-width:66ch;margin:0 0 14px}
+.method-hero .strat-list{max-width:66ch;margin:4px 0 18px}
+
+.section-head{margin-bottom:34px}
+.section-head h2,.section-head p{max-width:66ch}
+.eyebrow{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--moss);margin-bottom:12px}
+.section-head h2{margin:0}
+.section-tinted{background:var(--band);border-block:1px solid var(--rule)}
+
+.math-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;margin-bottom:28px}
+.math-card > p,.math-card > ul,.math-card > ol{max-width:70ch}
+.math-card{background:#fff;border:1px solid var(--rule);border-radius:6px;padding:26px 26px 24px;
+  box-shadow:var(--shadow-card);min-width:0}
+.math-card h3{margin:0 0 16px;font-size:1.12rem}
+.math-card p{margin:16px 0 0;font-size:.95rem;line-height:1.6;color:var(--ink-2)}
+.math-block{padding:12px 16px;border-radius:5px;background:var(--paper-2);border:1px solid var(--rule);
+  overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+.math-block .katex-display{margin:8px 0}
+.math-block .katex-display > .katex{font-size:1.02em}
+
+.assumptions{background:#fff;border:1px solid var(--rule);border-radius:6px;padding:28px;
+  box-shadow:var(--shadow-card);margin-bottom:28px}
+.assumption-header{margin-bottom:22px}
+.assumption-header h3{margin:0 0 8px;font-size:1.12rem}
+.assumption-header p{margin:0;font-size:.95rem;color:var(--ink-3);line-height:1.6;max-width:70ch}
+.assumption-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:720px){.assumption-grid{grid-template-columns:minmax(0,1fr)}}
+.assumption-item{display:flex;gap:14px;padding:16px 18px;background:var(--paper);
+  border:1px solid var(--rule);border-radius:5px;align-items:flex-start;min-width:0}
+.assumption-num{flex:none;width:38px;height:38px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:500;
+  background:var(--moss-wash);color:var(--moss-deep)}
+.assumption-item strong{display:block;margin-bottom:4px;font-size:.98rem;color:var(--ink)}
+.assumption-item p{margin:0;font-size:.92rem;line-height:1.55;color:var(--ink-2)}
+.assumption-item.violated{border-color:var(--clay-soft);background:var(--clay-wash)}
+.violated-num{background:var(--clay-soft)!important;color:var(--clay-deep)!important}
+.violated-tag{display:inline-block;margin-left:8px;padding:2px 8px;font-family:var(--font-mono);
+  font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--clay-soft);color:var(--clay-deep);border-radius:99px;vertical-align:2px}
+
+.strat-list{list-style:none;padding:0;margin:8px 0 0}
+.strat-list li{padding:9px 0;font-size:.95rem;line-height:1.55;color:var(--ink-2);
+  border-bottom:1px solid var(--rule)}
+.strat-list li:last-child{border-bottom:none}
+.strat-list strong{color:var(--ink)}
+.strat-list em{color:var(--moss-deep)}
+
+.prior-table{background:#fff;border:1px solid var(--rule);border-radius:6px;padding:24px 26px 18px;
+  box-shadow:var(--shadow-card)}
+.prior-table h3{margin:0 0 14px;font-size:1.08rem}
+.prior-rows{display:flex;flex-direction:column}
+.prior-row{display:grid;grid-template-columns:96px minmax(0,1fr) minmax(0,1.4fr);gap:18px;
+  padding:12px 0;border-bottom:1px solid var(--rule);align-items:center;font-size:.92rem}
+.prior-row:last-child{border-bottom:none}
+@media (max-width:640px){.prior-row{grid-template-columns:minmax(0,1fr);gap:4px}}
+.prior-name{font-family:var(--font-mono);font-size:.85rem;color:var(--moss-deep)}
+.prior-formula{color:var(--ink);overflow-x:auto}
+.prior-desc{color:var(--ink-3)}
+
+.audit-cta{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:40px;
+  text-align:center}
+.audit-cta-note{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);max-width:60ch;
+  line-height:1.55}
+.btn-ghost{background:transparent}
+
+/* ============================================================
+   DEMO PAGE (one dark plate)
+   The demo's own stylesheet reads these names; they map onto the
+   night plate and the fixed figure hues of styles.css.
+   ============================================================ */
+body.demo-page{
+  --bg:var(--night); --bg-2:var(--night-2); --bg-3:var(--night-3); --bg-tint:#0e1714;
+  --text:var(--night-ink); --text-2:var(--night-ink-2); --text-3:var(--night-ink-3);
+  --border:#2c3f38; --border-soft:var(--night-rule);
+  --cyan:var(--fig-nie); --orange:var(--fig-nde); --green:var(--fig-te); --violet:var(--gold-bright);
+  background:var(--night);color:var(--night-ink)}
+body.demo-page h1,body.demo-page h2,body.demo-page h3{color:#fff}
+body.demo-page a{color:var(--gold-bright);border-bottom-color:rgba(207,154,47,.35)}
+body.demo-page .nav{background:rgba(10,17,15,.88);border-bottom-color:var(--night-rule);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+body.demo-page .nav-links a{color:#a8bbb0}
+body.demo-page .grad-text{color:var(--gold-bright)}
+body.demo-page .demo-hero h1{font-size:clamp(2rem,1.4rem + 2.6vw,3.2rem);font-weight:600;
+  letter-spacing:-.022em;line-height:1.06}
+body.demo-page .footer{background:var(--night-2);border-top-color:var(--night-rule)}
+body.demo-page .footer-inner{color:var(--night-ink-3)}
+body.demo-page .footer-inner a{color:var(--gold-bright)}
+body.demo-page .brand{color:#cfdcd4;border-bottom:none}
+body.demo-page .home-fab{color:var(--ink-2);border-bottom-color:transparent}

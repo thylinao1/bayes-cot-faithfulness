@@ -9,16 +9,17 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous" />
 <meta name="theme-color" content="#07090f" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307090f'/%3E%3Ccircle cx='9' cy='22' r='3.4' fill='none' stroke='%23dbe2ea' stroke-width='1.6'/%3E%3Ccircle cx='16' cy='9' r='3.4' fill='none' stroke='%234dd0e1' stroke-width='1.8'/%3E%3Ccircle cx='23' cy='22' r='3.4' fill='none' stroke='%23dbe2ea' stroke-width='1.6'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles.css?v=20261030a" />
+<link rel="stylesheet" href="pages.css?v=20261030a" />
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous" defer onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
 </head>
 
-<body>
+<body class="method-page">
 
 <!-- Cursor-following glow -->
 <div class="cursor-glow" id="cursorGlow"></div>
@@ -33,21 +34,20 @@
 </a>
 
 <!-- Top nav -->
-<nav class="nav">
+<nav class="nav solid">
   <div class="nav-inner">
-    <a href="index.html#top" class="nav-brand">
-      <span class="brand-dot"></span>
-      <span class="brand-name">bayes-cot-faithfulness</span>
-    </a>
+    <a class="brand" href="index.html#top"><span class="dot"></span><span>bayes-cot-faithfulness</span></a>
     <div class="nav-links">
-      <a href="index.html#problem">Problem</a>
-      <a href="index.html#method">Approach</a>
-      <a href="index.html#assumption">Audit</a>
+      <a href="index.html#tldr">Summary</a>
+      <a href="index.html#problem">Background</a>
+      <a href="index.html#method">Method</a>
+      <a href="index.html#assumption">Assumption</a>
+      <a href="index.html#experiments">Experiments</a>
+      <a href="index.html#status">Status</a>
       <a href="demo.html">Demo</a>
-      <a href="index.html#measured">Progress</a>
-      <a href="index.html#status">Roadmap</a>
+      <a href="record.html">Record</a>
+      <a class="ext" href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener">GitHub</a>
     </div>
-    <a href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener" class="nav-github">GitHub &rarr;</a>
   </div>
 </nav>
 
@@ -59,13 +59,27 @@
     </svg>
     Back to the overview
   </a>
-  <h1>The formal methodology.</h1>
+  <h1>Formal methodology</h1>
   <p class="method-lede">
-    This is the math kept off the landing page, one click from the intuition. It brings
-    the Robins-Greenland-Pearl natural-effects decomposition, with proper Bayesian
-    uncertainty, to LLM chain-of-thought, and it states exactly where the identification
-    assumptions hold and where they do not. The plain-language reading of the sensitivity
-    result, with the figure, is on the <a href="index.html#assumption" style="color:var(--cyan)">overview</a>.
+    This page states the formal model behind the project. The project asks whether a language
+    model's chain of thought, the reasoning text it writes before answering, causes its final
+    answer.
+  </p>
+  <p class="method-lede">
+    It splits a hint's effect on the answer into a direct and an indirect part, using the
+    Robins-Greenland-Pearl natural-effects decomposition. It estimates each part with a
+    Bayesian model.
+  </p>
+  <ul class="strat-list">
+    <li>The structural model and the causal effects it defines.</li>
+    <li>The identification assumptions, and which of them the study design guarantees.</li>
+    <li>A sensitivity analysis for assumption A3, which data cannot check.</li>
+    <li>The hierarchical model, the computational setup and the planned interventions.</li>
+    <li>Two summaries of the sensitivity analysis, and the prior distributions and sampler settings.</li>
+  </ul>
+  <p class="method-lede">
+    A plain-language account of the sensitivity result, with its figure, is on the
+    <a href="index.html#assumption" style="color:var(--cyan)">overview</a>.
   </p>
 </header>
 
@@ -73,7 +87,7 @@
 <section class="section">
   <div class="section-head">
     <span class="eyebrow">a &middot; structural model and estimands</span>
-    <h2>CoT as a causal mediator.</h2>
+    <h2>The chain of thought as a causal mediator</h2>
   </div>
 
   <div class="math-grid">
@@ -88,23 +102,80 @@ $$M \mid X \sim \mathcal{N}(\gamma_0 + \gamma X,\, \sigma_M^2)$$
 $$Y \mid X, M \sim \text{Bernoulli}\!\left(\Phi(\alpha_0 + \alpha X + \beta M)\right)$$
       </div>
       <p>
-        Pearl-style structural equations. $U_M$ and $U_Y$ are background unobserved
-        variables (hidden activations, sampling seeds when temperature is non-zero).
-        &gamma; governs how strongly the prompt shifts the CoT, &beta; governs how
-        strongly the CoT drives the answer, and &alpha; captures any direct
-        prompt-to-answer path that bypasses CoT. Setting &alpha; = 0 corresponds
-        to a fully-faithful world.
+        The first two lines are structural equations in the style of Pearl. Each variable is
+        written as a function of its direct causes and an unobserved background term. The lines
+        after "instantiated as" give the distributions the project uses.
       </p>
       <p>
-        Two details here are repairs, not presentation. The baseline intercepts
-        $\alpha_0$ and $\gamma_0$ were absent in the specification frozen for phase 1, and
-        without them the estimator reported a mediated effect of +0.2131 on a world built
-        with exactly zero true effect. And the link is $\Phi$, the normal CDF, not the
-        logistic $\sigma$: &rho; is defined as a correlation between bivariate normal
-        errors, which exists only in the probit model. An audit on 2026-09-07 found the
-        sampler path had been logistic while every other path was probit, a gap of about
-        0.04 on an effect thresholded at 0.15. Both repairs, and a third to the outcome
-        priors, are recorded in <a href="record.html#defects">the record</a>.
+        $X$ is the prompt condition, and in the model each condition has probability 0.5.
+        $X = 0$ is the clean prompt, the question as written. $X = 1$ is the same question with a
+        planted hint that points to a wrong option.
+      </p>
+      <p>
+        $Y$ is the final answer, also called the outcome, coded 0 or 1. In the Phase 2
+        experiments on open-weight models, $Y = 1$ means that the model picked the option named
+        by the hint.
+      </p>
+      <p>
+        $M$ is the mediator, a number that summarises the chain of thought. A mediator is a
+        variable on the causal path from the prompt to the answer. In the Phase 2 experiments,
+        the main mediator is the curve area.
+      </p>
+      <p>
+        To compute it, the chain of thought is cut at 0, 25, 50, 75 and 100% of its steps. At
+        each cut, an answer is forced from the model. Curve area is the share of cuts at which
+        this forced answer already matches the final answer.
+      </p>
+      <p>
+        $U_M$ and $U_Y$ are unobserved background variables. Examples are hidden activations
+        and, when the sampling temperature is above zero, the sampling seed.
+      </p>
+      <p>
+        $\gamma_0$ is the mean of the mediator under the clean prompt. &gamma; is how far the
+        hinted prompt shifts that mean. $\sigma_M$ is the standard deviation of the mediator
+        around its mean.
+      </p>
+      <p>
+        $\Phi$ is the standard normal cumulative distribution function. It makes the answer
+        equation a probit model. In a probit model, the answer depends on whether a hidden,
+        normally distributed score crosses a threshold.
+      </p>
+      <p>
+        $\alpha_0$ is the baseline of that score. &beta; is how strongly the chain of thought
+        changes the answer. &alpha; is the coefficient of the direct path from the prompt to the
+        answer.
+      </p>
+      <p>
+        The direct path bypasses the chain of thought. Setting &alpha; = 0 gives a fully
+        faithful process, in which the whole effect of the prompt passes through the chain of
+        thought.
+      </p>
+      <p>
+        Two parts of this specification are repairs. The baseline intercepts $\alpha_0$ and
+        $\gamma_0$ were missing from the specification frozen for Phase 1. Frozen means fixed in
+        writing and not edited afterwards.
+      </p>
+      <p>
+        Without the intercepts, the estimator reported a mediated effect of +0.2131 on synthetic
+        data built with a true effect of exactly zero.
+      </p>
+      <p>
+        The second repair is the link function. The model uses $\Phi$ instead of the logistic
+        function $\sigma$.
+      </p>
+      <p>
+        The reason is the sensitivity parameter &rho;, introduced below. It is defined as a
+        correlation between two normally distributed errors. That correlation exists only in the
+        probit model.
+      </p>
+      <p>
+        An audit on 2026-09-07 found that the sampling code, written in the Python library PyMC,
+        had used a logistic link. Every other part of the estimator used the probit link. The difference was about 0.04, on an
+        effect whose decision threshold is 0.15.
+      </p>
+      <p>
+        These two repairs, and a third repair to the outcome priors, are documented in
+        <a href="record.html#defects">the record</a>.
       </p>
     </div>
 
@@ -117,21 +188,45 @@ $$\text{NIE} = \mathbb{E}\!\left[Y \mid \text{do}(X{=}1), M_{X=1}\right] - \math
 $$\text{TE} = \text{NDE} + \text{NIE}$$
       </div>
       <p>
-        CDE measures the direct path with the mediator forced to a specific
-        counterfactual CoT $m^*$. NDE and NIE decompose the total effect into
-        decorative and causal parts. Faithfulness is operationalised as NIE / TE.
+        The do operator marks an intervention, in which a variable is set to a value instead of
+        being observed. Each expectation $\mathbb{E}$ is then the probability that $Y = 1$ under
+        that intervention.
+      </p>
+      <p>
+        $m^*$ is one fixed value of the mediator, a specific counterfactual chain of thought.
+        $M_{X=0}$ is the value the mediator would take under the clean prompt. $M_{X=1}$ is its
+        value under the hinted prompt.
+      </p>
+      <p>
+        CDE, the controlled direct effect, is the effect of the prompt when the mediator is
+        forced to $m^*$. NDE, the natural direct effect, switches the prompt while the mediator
+        keeps its clean-prompt value. NIE, the natural indirect effect, keeps the hinted prompt
+        and moves only the mediator from its clean-prompt value to its hinted-prompt value.
+      </p>
+      <p>
+        TE, the total effect, is the sum of the two natural effects. All four quantities are
+        differences between probabilities, so they lie on the probability scale.
+      </p>
+      <p>
+        The direct effect (NDE) is the part of the total effect that bypasses the chain of
+        thought. The indirect effect (NIE) is the part that passes through it. The project
+        measures faithfulness as the ratio NIE / TE.
       </p>
     </div>
   </div>
 
   <div class="assumptions reveal">
     <div class="assumption-header">
-      <h3>Identification assumptions, audited for the LLM setting</h3>
+      <h3>Identification assumptions in the language-model setting</h3>
       <p>
-        Mediation analysis requires sequential ignorability. In the standard
-        observational setting these assumptions are strong; in the LLM setting most
-        of them are weakened by construction, and the one that is not is handled with
-        a sensitivity analysis.
+        The natural effects can be estimated from data only under a set of assumptions called
+        sequential ignorability. These assumptions rule out unmeasured confounders, that is,
+        unmeasured variables that influence two of the quantities at once. In a standard
+        observational study, they are strong assumptions.
+      </p>
+      <p>
+        In the language-model setting, the study design makes most of them easier to satisfy.
+        The one that the design cannot guarantee is handled with a sensitivity analysis.
       </p>
     </div>
     <div class="assumption-grid">
@@ -139,28 +234,32 @@ $$\text{TE} = \text{NDE} + \text{NIE}$$
         <span class="assumption-num">A1</span>
         <div>
           <strong>X is exogenous</strong>
-          <p>Holds by construction. The prompt is chosen by the researcher.</p>
+          <p>Exogenous means that no other variable in the model influences X. This holds by construction, because the researcher chooses the prompt.</p>
         </div>
       </div>
       <div class="assumption-item">
         <span class="assumption-num">A2</span>
         <div>
           <strong>No unobserved X &rarr; M confounders</strong>
-          <p>Holds by construction. The CoT is generated only by the model conditional on X.</p>
+          <p>This holds by construction. Given the prompt X, the chain of thought is produced only by the model.</p>
         </div>
       </div>
       <div class="assumption-item violated">
         <span class="assumption-num violated-num">A3</span>
         <div>
-          <strong>No unobserved M &rarr; Y confounders <span class="violated-tag">structurally violated</span></strong>
-          <p>The load-bearing assumption, and it does not hold in autoregressive LLMs. The same weights generate both M and Y, so hidden activations act as latent confounders ($U_M$ and $U_Y$ are correlated). Rather than pretend the correlation is zero, the framework treats it as a sensitivity parameter $\rho$ and reports the range of confounding the verdict survives. The next card has the full treatment.</p>
+          <strong>No unobserved M &rarr; Y confounders <span class="violated-tag">not guaranteed</span></strong>
+          <p>The estimates rest mainly on this assumption, and the design cannot guarantee it in an autoregressive language model. The same weights generate both M and Y. Hidden activations may therefore act as unobserved confounders, which would make $U_M$ and $U_Y$ correlated.</p>
+          <p>Whether the assumption fails in a given experiment is an empirical question that this design does not settle. The project therefore does not assume that the correlation is zero. It treats the correlation as a sensitivity parameter $\rho$ and reports the range of $\rho$ over which the conclusion holds.</p>
+          <p>The sensitivity analysis below gives the details.</p>
         </div>
       </div>
       <div class="assumption-item">
         <span class="assumption-num">A4</span>
         <div>
           <strong>No M &rarr; Y confounder is itself caused by X</strong>
-          <p>Testable via random-seed ablation, planned for the real-model stage. If reseeds produce the same Y for the same M, the assumption is consistent with the data.</p>
+          <p>A random-seed ablation is planned for the real-model stage. It reruns generation with new random seeds. If the reruns give the same Y for the same M, the assumption is consistent with the data.</p>
+          <p>The project's pre-registration notes a limit of this check. A pre-registration is an analysis plan fixed in writing before the data are collected.</p>
+          <p>A hidden state caused by the prompt could affect both the text and the answer while every seed check passes. The project therefore does not report a seed result as evidence about this assumption.</p>
         </div>
       </div>
     </div>
@@ -170,90 +269,176 @@ $$\text{TE} = \text{NDE} + \text{NIE}$$
 <!-- Sensitivity + hierarchical -->
 <section class="section section-tinted">
   <div class="section-head">
-    <span class="eyebrow">b &middot; the parts with no prior work for CoT</span>
-    <h2>Sensitivity to A3, and pooling across prompts.</h2>
+    <span class="eyebrow">b &middot; parts with no known prior work on chain of thought</span>
+    <h2>Sensitivity to assumption A3 and pooling across prompts</h2>
   </div>
 
   <div class="math-grid">
     <div class="math-card reveal">
-      <h3>Sensitivity analysis for the A3 violation</h3>
+      <h3>Sensitivity analysis for assumption A3</h3>
       <p>
-        Because the CoT and the answer read from the same hidden state, the errors $U_M$
-        and $U_Y$ are correlated. We make that correlation a single parameter and use a
-        probit (latent-Gaussian) outcome so it enters cleanly, the standard move in the
-        Imai, Keele, and Tingley (2010) framework:
+        The chain of thought and the answer are both computed from the same hidden state. Their
+        errors $U_M$ and $U_Y$ can therefore be correlated. The project represents that
+        correlation with a single parameter.
+      </p>
+      <p>
+        The answer equation is a probit model, the standard specification in the Imai, Keele,
+        and Tingley (2010) framework. With a probit model, the correlation enters the likelihood
+        directly.
       </p>
       <div class="math-block">
 $$\rho = \mathrm{Corr}(U_M,\, U_Y), \qquad \rho = 0 \;\text{is sequential ignorability}$$
 $$P(Y{=}1 \mid X, M) = \Phi\!\left(\frac{\alpha X + \beta M + (\rho/\sigma_M)(M - \gamma X)}{\sqrt{1 - \rho^2}}\right)$$
       </div>
       <p>
-        Conditioning on the observed $M$ makes $U_M = M - \gamma X$ known, which gives an
-        exact observed-data likelihood at any fixed $\rho$. The sweep fits the
-        de-confounded coefficients on a grid of assumed $\rho$ and reads off the natural
-        effects. On synthetic data with true $\rho = 0.5$, assuming ignorability reports a
-        faithful path of 0.43 against a truth of 0.21 (an overstatement of 0.22 that does
-        not shrink with $n$), the sweep recovers the truth at the true $\rho$, and the
-        faithful path stays positive for every $\rho$ in $[-0.6, +0.7]$.
+        &rho; is the correlation between the mediator error $U_M$ and the outcome error $U_Y$,
+        given X. The value &rho; = 0 is sequential ignorability, with no hidden link between the
+        chain of thought and the answer.
+      </p>
+      <p>
+        The second line is the probability that the answer is 1, given the prompt condition and
+        the observed mediator. The term $(\rho/\sigma_M)(M - \gamma X)$ is the expected outcome
+        error given the mediator error. The denominator $\sqrt{1 - \rho^2}$ is the standard
+        deviation of the remaining outcome error.
+      </p>
+      <p>
+        The equation is written without the baseline intercepts $\alpha_0$ and $\gamma_0$. The
+        implementation includes them.
+      </p>
+      <p>
+        Conditioning on the observed $M$ makes the mediator error $U_M = M - \gamma X$ known.
+        This gives an exact likelihood for the observed data at any fixed $\rho$.
+      </p>
+      <p>
+        The sensitivity sweep fixes $\rho$ at each value of a grid. At each value, it fits the
+        coefficients adjusted for that level of confounding and computes the natural effects.
+      </p>
+      <p>
+        On synthetic data with a true $\rho = 0.5$, the analysis that assumes sequential
+        ignorability reports an indirect effect (NIE) of 0.43. The true value is 0.21. The
+        overstatement of 0.22 does not shrink as the sample size $n$ grows.
+      </p>
+      <p>
+        These values come from the estimator before the 2026-09-07 repair. With the repaired
+        estimator, the same data give 0.4368 at $\rho = 0$, an overstatement of 0.2275, the same
+        range of $\rho$, and $\rho^* = 0.737$.
+      </p>
+      <p>
+        At the true $\rho$, the sweep comes within about 0.02 of the true value. The indirect effect stays
+        positive for every $\rho$ in $[-0.6, +0.7]$.
       </p>
     </div>
 
     <div class="math-card reveal">
-      <h3>Hierarchical (partially pooled) model</h3>
+      <h3>Hierarchical model with partial pooling</h3>
       <p>
-        One faithfulness number per model is the wrong unit. Faithfulness varies by prompt
-        ($j$), and some prompts have far fewer usable traces than others. Each prompt gets
-        its own coefficients drawn from a population, with a non-centred parameterisation
-        for friendly NUTS geometry:
+        A single faithfulness number per model hides how faithfulness varies between prompts.
+        Prompts are indexed by $j$, and some prompts have far fewer usable traces than others. A
+        trace is one chain of thought together with its answer.
+      </p>
+      <p>
+        The model uses partial pooling. Each prompt gets its own coefficients, drawn from a
+        shared population distribution. The estimate for a prompt with little data therefore
+        also uses information from the other prompts.
+      </p>
+      <p>
+        The posterior is the distribution of parameter values that the Bayesian model considers
+        plausible after seeing the data. The project samples it with NUTS, the sampler that PyMC
+        uses. A non-centred parameterisation of the coefficients makes the posterior easier for
+        NUTS to explore.
       </p>
       <div class="math-block">
 $$P(Y_{ij}{=}1) = \Phi\!\left(\alpha_{0j} + \alpha_j X_{ij} + \beta_j M_{ij}\right)$$
 $$\alpha_j \sim \mathcal{N}(\mu_\alpha, \tau_\alpha), \quad \beta_j \sim \mathcal{N}(\mu_\beta, \tau_\beta), \quad \gamma_j \sim \mathcal{N}(\mu_\gamma, \tau_\gamma)$$
       </div>
       <p>
-        The population mean $\mu_\beta$ is the model-level faithfulness slope with the right
-        uncertainty; $\tau_\beta$ says how much prompts disagree. A prompt with five traces
-        is pulled toward the global mean instead of swinging wildly on its own. On synthetic
-        data the model recovers $\mu_\beta$ inside its 95% credible interval and beats
-        no-pooling on per-prompt error. A full <code>pm.LKJCholeskyCov</code> covariance over
-        $(\alpha_j, \beta_j, \gamma_j)$ is the natural extension; the independent-scale
-        version here is the validated v1.
+        $i$ indexes the traces of prompt $j$. $Y_{ij}$, $X_{ij}$ and $M_{ij}$ are the answer, the
+        prompt condition and the mediator of trace $i$.
+      </p>
+      <p>
+        $\alpha_{0j}$, $\alpha_j$, $\beta_j$ and $\gamma_j$ are the coefficients of prompt $j$.
+        $\gamma_j$ belongs to the mediator equation, which is not shown here.
+      </p>
+      <p>
+        $\mu_\alpha$, $\mu_\beta$ and $\mu_\gamma$ are the population means of these
+        coefficients. $\tau_\alpha$, $\tau_\beta$ and $\tau_\gamma$ are their population
+        standard deviations.
+      </p>
+      <p>
+        The population mean $\mu_\beta$ is the model-level faithfulness slope. Its uncertainty
+        accounts for the variation between prompts. $\tau_\beta$ shows how much prompts disagree.
+      </p>
+      <p>
+        A prompt with five traces is pulled toward the population mean. Its estimate does not
+        rest on its own five traces alone.
+      </p>
+      <p>
+        On synthetic data, the 95% credible interval for $\mu_\beta$ contains the true value. A
+        credible interval is the range of values the Bayesian model considers plausible, here
+        with 95% probability. The pooled model also has lower per-prompt error than a model
+        without pooling.
+      </p>
+      <p>
+        A natural extension is a full covariance over $(\alpha_j, \beta_j, \gamma_j)$, built with
+        <code>pm.LKJCholeskyCov</code>. The version on this page uses independent scales and is
+        the validated first version, v1.
       </p>
     </div>
 
     <div class="math-card reveal">
       <h3>Computational strategy</h3>
       <p>
-        Everything in this repo runs on a laptop CPU in under a minute. Scaling to thousands
-        of intervention samples across hundreds of prompts is the planned next step, with a
-        decoupled architecture:
+        The synthetic checks run on a laptop CPU. The real-model sweep of Phase 2 ran on NUS
+        GPUs.
+      </p>
+      <p>
+        For sweeps with thousands of intervention samples across hundreds of prompts, the plan
+        separates model prototyping from production:
       </p>
       <ul class="strat-list">
-        <li><strong>PyMC</strong> for model prototyping and the synthetic-validation suite. Readable, fast to iterate, what the current code uses.</li>
-        <li><strong>NumPyro</strong> with a <strong>JAX</strong> backend for the production sweep, compiling HMC kernels into XLA. Planned for the real-LLM stage.</li>
-        <li><strong>ADVI</strong> (variational inference) as a fallback for high-dimensional posteriors where MCMC convergence becomes slow.</li>
+        <li><strong>PyMC</strong> for model prototyping and the synthetic-validation suite. It is readable and quick to change, and the code in the repository uses it.</li>
+        <li><strong>NumPyro</strong> with a <strong>JAX</strong> backend for the production sweep, compiling the Hamiltonian Monte Carlo (HMC) kernels with XLA. This is planned for the real-model stage.</li>
+        <li><strong>ADVI</strong> (automatic differentiation variational inference) as a planned fallback for high-dimensional posteriors. Variational inference approximates the posterior by optimisation and suits cases where Markov chain Monte Carlo (MCMC) converges slowly.</li>
       </ul>
     </div>
 
     <div class="math-card reveal">
-      <h3>Intervention mechanics</h3>
+      <h3>Planned intervention methods</h3>
       <p>
-        Naive text edits on black-box APIs cause distribution shifts that destroy the
-        causal estimate. The plan uses two intervention regimes matched to model access:
+        Simple text edits made through black-box APIs cause distribution shifts. These shifts can
+        invalidate the causal estimate. The plan therefore uses two kinds of intervention,
+        matched to the level of access to the model:
       </p>
       <ul class="strat-list">
-        <li><strong>Black-box APIs</strong> (Claude, GPT-4): coarse <em>behavioral</em> interventions only. Truncation, paraphrase, and counterfactual segment-swap at the text level, used as a sanity check on the headline result.</li>
-        <li><strong>Open-source models</strong> (Llama-3, Gemma-2): <em>logit-level</em> counterfactual forcing. The counterfactual mediator $M^*$ is injected into the KV-cache, the model is frozen, and the change in log-probability of the target tokens is recorded. This isolates the causal effect without letting the model derail into off-distribution text.</li>
+        <li><strong>Black-box APIs</strong> (Claude, GPT-4): only coarse <em>behavioral</em> interventions. These are truncation, paraphrase and counterfactual segment swaps at the text level, used as a check on the main result.</li>
+        <li><strong>Open-source models</strong> (Llama-3, Gemma-2): <em>logit-level</em> counterfactual forcing through the attention key-value (KV) cache.</li>
       </ul>
+      <p>
+        In the second method, the counterfactual mediator $M^*$ is placed in the KV-cache, with
+        the model held fixed. The change in log-probability of the target tokens is then
+        recorded. The aim is to isolate the causal effect without the model producing text
+        outside its usual distribution.
+      </p>
+      <p>
+        The pre-registration notes that placing a counterfactual in the KV-cache does not by
+        itself prove that the resulting state is a valid natural counterfactual.
+      </p>
     </div>
 
     <div class="math-card reveal">
       <h3>Breakdown frontier and partial identification</h3>
       <p>
-        Two summaries make the A3 violation auditable without committing to a value of $\rho$.
-        The breakdown frontier $\rho^*$ is the smallest confounding at which the faithful path
-        crosses zero. The partial-identification interval is the range of the natural effect
-        over every $\rho$ you are willing to entertain.
+        Two summaries show how a result depends on assumption A3 without committing to a single
+        value of $\rho$.
+      </p>
+      <p>
+        The breakdown frontier $\rho^*$ is the smallest absolute value of $\rho$ at which the
+        indirect effect (NIE) crosses zero. Here $\rho$ is the residual correlation between the
+        mediator error and the outcome error.
+      </p>
+      <p>
+        The partial-identification interval is the range of the natural effect over every value
+        of $\rho$ that an analyst is willing to consider.
       </p>
       <div class="math-block">
 $$\rho^* = \min\{\, |\rho| : \mathrm{NIE}(\rho) = 0 \,\}$$
@@ -261,23 +446,52 @@ $$\mathrm{NIE} \in [\,\underline{b},\, \overline{b}\,] \quad \text{over} \quad |
 $$\text{sign-identified} \iff \bar\rho < \rho^*$$
       </div>
       <p>
-        $\rho^*$ is the sensitivity-analysis cousin of VanderWeele's E-value, a single number a
-        faithfulness claim ships with. When the partial-identification interval excludes zero the
-        verdict is sign-identified, meaning it holds for every confounding level entertained, and
-        that happens exactly when the confounding budget $\bar\rho$ is below $\rho^*$. The two
-        summaries are duals. On the single-world sweep here $\rho^* \approx 0.74$; the two-world
-        positive control on the overview is a separate synthetic process and gives the 0.69 vs
-        0.05 separation. The frontier is computed from a maximum-likelihood fit, not from a
-        posterior, and the current implementation returns the optimizer's parameters without
-        checking convergence. Read it as a point-estimate sensitivity curve; the
-        uncertainty-aware replacement is a separate quantity and is labelled as such wherever
-        both appear. See <code>breakdown_frontier</code> and <code>partial_identification_bounds</code>.
+        $\mathrm{NIE}(\rho)$ is the indirect effect computed at an assumed value of $\rho$. The
+        confounding budget $\bar\rho$ is the largest absolute value of $\rho$ that the analysis
+        allows. $\underline{b}$ and $\overline{b}$ are the smallest and largest values of the
+        NIE over that range.
+      </p>
+      <p>
+        An effect is sign-identified when its interval excludes zero, so that its sign is the
+        same for every level of confounding considered. This happens exactly when the
+        confounding budget $\bar\rho$ is below $\rho^*$. In this sense, the two summaries are
+        duals.
+      </p>
+      <p>
+        $\rho^*$ is the analogue, for this sensitivity analysis, of VanderWeele's E-value. It is
+        a single number that accompanies a faithfulness claim.
+      </p>
+      <p>
+        $\rho^*$ answers one question only: how large the residual correlation must be for the
+        indirect effect to reach zero. It does not change when the direct path grows stronger,
+        and it cannot rank models.
+      </p>
+      <p>
+        For the synthetic sweep above, $\rho^* \approx 0.74$. The positive control on the
+        overview uses two separate synthetic processes.
+      </p>
+      <p>
+        In the process where the effect passes through the chain of thought, $\rho^*$ is 0.69.
+        In the process where the effect bypasses the chain of thought, $\rho^*$ is 0.05.
+      </p>
+      <p>
+        The frontier is computed from a maximum-likelihood fit. It does not come from a
+        posterior distribution. The implementation does not check optimizer convergence when it
+        computes the frontier.
+      </p>
+      <p>
+        The frontier is therefore a point-estimate sensitivity curve. An uncertainty-aware
+        replacement is a separate quantity, and it is labelled as such wherever both appear.
+      </p>
+      <p>
+        The code is in the functions <code>breakdown_frontier</code> and
+        <code>partial_identification_bounds</code>.
       </p>
     </div>
   </div>
 
   <div class="prior-table reveal">
-    <h3>Priors and sampler settings (synthetic-validation suite)</h3>
+    <h3>Prior distributions and sampler settings (synthetic-validation suite)</h3>
     <div class="prior-rows">
       <div class="prior-row">
         <span class="prior-name">&alpha;, &gamma;</span>
@@ -287,39 +501,49 @@ $$\text{sign-identified} \iff \bar\rho < \rho^*$$
       <div class="prior-row">
         <span class="prior-name">&beta;</span>
         <span class="prior-formula">$\mathcal{N}(0, 2.0^2)$</span>
-        <span class="prior-desc">slightly wider, mediator effect can be large</span>
+        <span class="prior-desc">slightly wider, because the mediator effect can be large</span>
       </div>
       <div class="prior-row">
         <span class="prior-name">&sigma;<sub>M</sub>, &tau;</span>
         <span class="prior-formula">$\text{HalfNormal}(1)$</span>
-        <span class="prior-desc">positive-only scales for noise and pooling</span>
+        <span class="prior-desc">positive scales for the mediator noise and for pooling</span>
       </div>
       <div class="prior-row">
         <span class="prior-name">&rho;</span>
         <span class="prior-formula">grid on $[-0.6,\, 0.8]$</span>
-        <span class="prior-desc">swept, not sampled: one exact fit per value</span>
+        <span class="prior-desc">set by the grid and never sampled; one exact fit per value</span>
       </div>
       <div class="prior-row">
         <span class="prior-name">sampler</span>
         <span class="prior-formula">NUTS, 4 chains</span>
-        <span class="prior-desc">1500 tune + 1500 draw, target accept 0.95</span>
+        <span class="prior-desc">1500 tuning steps and 1500 posterior draws, target acceptance rate 0.95</span>
       </div>
     </div>
+    <p>
+      A prior distribution states which parameter values the model considers plausible before it
+      sees the data. The normal priors have mean 0 and standard deviation 1.5 or 2.0.
+      HalfNormal(1) is a normal distribution with scale 1, restricted to positive values.
+    </p>
+    <p>
+      Since the 2026-09-07 repair, the single-level model states the priors on &beta;, &gamma;
+      and &sigma;<sub>M</sub> relative to the standard deviation of the mediator. The table gives
+      their values for a mediator whose standard deviation is 1.
+    </p>
   </div>
 
   <div class="audit-cta reveal">
-    <a href="index.html#assumption" class="btn btn-ghost">&larr; Back to the intuition and the figure</a>
-    <span class="audit-cta-note">the sensitivity sweep, in plain language, with the curve</span>
+    <a href="index.html#assumption" class="btn btn-ghost">Back to the overview and the figure</a>
+    <span class="audit-cta-note">The overview describes the sensitivity sweep in plain language, with its curve.</span>
   </div>
 </section>
 
 <footer class="footer">
   <div class="footer-inner">
     <span>&copy; 2026 Maksim Silchenko &middot; MIT-licensed code &middot; CC BY 4.0 prose</span>
-    <span><a href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener">source &rarr;</a></span>
+    <span><a href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener">Source code on GitHub</a></span>
   </div>
 </footer>
 
-<script src="main.js"></script>
+<script src="main.js?v=20261030a"></script>
 </body>
 </html>

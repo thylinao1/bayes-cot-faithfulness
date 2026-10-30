@@ -3,24 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Live demo &middot; Watch the answer flow &middot; bayes-cot-faithfulness</title>
-<meta name="description" content="An interactive view of whether a model's reasoning actually drives its answer. Drag the controls and watch the answer flow through the reasoning, or around it." />
+<title>Interactive demo &middot; Direct and indirect effects &middot; bayes-cot-faithfulness</title>
+<meta name="description" content="An interactive toy model that shows how the effect of a prompt on an answer splits into a part that passes through the chain of thought and a part that bypasses it." />
 <meta name="author" content="Maksim Silchenko" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <meta name="theme-color" content="#07090f" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307090f'/%3E%3Ccircle cx='9' cy='22' r='3.4' fill='none' stroke='%23dbe2ea' stroke-width='1.6'/%3E%3Ccircle cx='16' cy='9' r='3.4' fill='none' stroke='%234dd0e1' stroke-width='1.8'/%3E%3Ccircle cx='23' cy='22' r='3.4' fill='none' stroke='%23dbe2ea' stroke-width='1.6'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles.css?v=20261030a" />
+<link rel="stylesheet" href="pages.css?v=20261030a" />
 <style>
   /* ---- live demo page (self-contained) ---- */
   .demo-hero { max-width: 1100px; margin: 0 auto; padding: 132px 28px 8px; position: relative; z-index: 1; }
-  .demo-back { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono'; font-size: 12px;
+  .demo-back { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 12px;
     color: var(--text-3); margin-bottom: 20px; transition: color .2s ease; }
   .demo-back:hover { color: var(--cyan); }
   .demo-hero h1 { font-size: clamp(30px, 5vw, 52px); font-weight: 700; letter-spacing: -.035em; line-height: 1.04; margin: 0 0 16px; }
   .demo-hero .lede { font-size: 17px; color: var(--text-2); max-width: 640px; line-height: 1.6; margin: 0; }
+  .demo-hero .lede + .lede { margin-top: 12px; }
 
   .stage { max-width: 1100px; margin: 0 auto; padding: 40px 28px 20px; position: relative; z-index: 1; }
   .stage-grid { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: 30px; align-items: stretch; }
@@ -30,23 +32,23 @@
   .ctrl { margin-bottom: 24px; }
   .ctrl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 4px; }
   .ctrl-head .name { font-size: 14px; color: var(--text); font-weight: 600; letter-spacing: -.01em; }
-  .ctrl-head .val { font-family: 'JetBrains Mono'; font-size: 22px; font-weight: 600; line-height: 1; }
+  .ctrl-head .val { font-family: var(--font-mono); font-size: 22px; font-weight: 600; line-height: 1; }
   .ctrl .why { font-size: 12.5px; color: var(--text-3); line-height: 1.45; margin: 0 0 11px; }
   .ctrl input[type=range] { width: 100%; height: 4px; border-radius: 99px; background: var(--border); -webkit-appearance: none; appearance: none; outline: none; }
   .ctrl input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
     background: var(--text); cursor: pointer; box-shadow: 0 0 0 4px rgba(230,235,242,.06); transition: transform .15s ease, box-shadow .15s ease; }
   .ctrl input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); box-shadow: 0 0 0 7px rgba(77,208,225,.18); }
   .ctrl input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--text); cursor: pointer; border: none; }
-  .ctrl-foot { display: flex; justify-content: space-between; font-family: 'JetBrains Mono'; font-size: 10.5px; color: var(--text-3); margin-top: 7px; }
+  .ctrl-foot { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); margin-top: 7px; }
   .val.cyan { color: var(--cyan); } .val.orange { color: var(--orange); } .val.violet { color: var(--violet); }
 
   .presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 20px; }
-  .preset-btn { font-family: 'JetBrains Mono'; font-size: 11.5px; padding: 8px 13px; border-radius: 100px; cursor: pointer;
+  .preset-btn { font-family: var(--font-mono); font-size: 11.5px; padding: 8px 13px; border-radius: 100px; cursor: pointer;
     background: transparent; border: 1px solid var(--border); color: var(--text-2); transition: all .2s ease; }
   .preset-btn:hover { border-color: var(--violet); color: var(--text); background: rgba(184,141,255,.07); }
   .live-sentence { font-size: 15px; color: var(--text-2); line-height: 1.55; padding: 16px 18px; border-radius: 12px;
     background: var(--bg-tint); border: 1px solid var(--border-soft); }
-  .live-sentence b { color: var(--cyan); font-family: 'JetBrains Mono'; }
+  .live-sentence b { color: var(--cyan); font-family: var(--font-mono); }
 
   .viz { background: radial-gradient(120% 90% at 50% 18%, rgba(77,208,225,.05), var(--bg-2) 60%);
     border: 1px solid var(--border); border-radius: 18px; padding: 18px 18px 8px; display: flex; flex-direction: column; }
@@ -54,28 +56,28 @@
   .route-faithful { stroke: var(--cyan); fill: none; stroke-linecap: round; }
   .route-shortcut { stroke: var(--orange); fill: none; stroke-linecap: round; stroke-dasharray: 7 7; }
   .flow-node circle { transition: stroke-width .25s ease, r .25s ease; }
-  .node-label { font-family: 'JetBrains Mono'; letter-spacing: .04em; }
+  .node-label { font-family: var(--font-mono); letter-spacing: .04em; }
   .gauge { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 6px 8px 12px; }
-  .gauge-num { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 46px; line-height: 1; letter-spacing: -.02em; }
-  .gauge-label { font-size: 12px; color: var(--text-3); font-family: 'JetBrains Mono'; text-transform: uppercase; letter-spacing: .06em; margin-top: 6px; }
-  .verdict-pill { font-family: 'JetBrains Mono'; font-size: 13px; padding: 7px 14px; border-radius: 100px; border: 1px solid; white-space: nowrap; }
+  .gauge-num { font-family: var(--font-mono); font-weight: 700; font-size: 46px; line-height: 1; letter-spacing: -.02em; }
+  .gauge-label { font-size: 12px; color: var(--text-3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; margin-top: 6px; }
+  .verdict-pill { font-family: var(--font-mono); font-size: 13px; padding: 7px 14px; border-radius: 100px; border: 1px solid; white-space: nowrap; }
   .v-faithful { color: var(--cyan); border-color: rgba(77,208,225,.4); background: rgba(77,208,225,.08); }
   .v-mixed { color: #ffd07a; border-color: rgba(255,208,122,.4); background: rgba(255,208,122,.08); }
   .v-decorative { color: var(--orange); border-color: rgba(255,140,66,.4); background: rgba(255,140,66,.08); }
 
   .split { max-width: 1100px; margin: 18px auto 0; padding: 0 28px; }
   .split-card { background: var(--bg-2); border: 1px solid var(--border-soft); border-radius: 16px; padding: 22px 26px; }
-  .split-title { font-family: 'JetBrains Mono'; font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-bottom: 14px; }
+  .split-title { font-family: var(--font-mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-bottom: 14px; }
   .split-bar { display: flex; height: 30px; border-radius: 9px; overflow: hidden; background: var(--bg-3); border: 1px solid var(--border-soft); }
   .split-seg { height: 100%; transition: width .35s cubic-bezier(.16,1,.3,1); display: flex; align-items: center; justify-content: center;
-    font-family: 'JetBrains Mono'; font-size: 12px; color: #06121a; font-weight: 600; min-width: 0; overflow: hidden; white-space: nowrap; }
+    font-family: var(--font-mono); font-size: 12px; color: #06121a; font-weight: 600; min-width: 0; overflow: hidden; white-space: nowrap; }
   .seg-faithful { background: linear-gradient(90deg, var(--cyan), #88ecf6); }
   .seg-shortcut { background: linear-gradient(90deg, #ffae73, var(--orange)); }
   .split-legend { display: flex; flex-wrap: wrap; gap: 20px 28px; margin-top: 16px; }
   .leg { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; color: var(--text-2); max-width: 430px; }
   .leg .sw { width: 11px; height: 11px; border-radius: 3px; margin-top: 4px; flex-shrink: 0; }
   .leg .sw.cy { background: var(--cyan); } .leg .sw.or { background: var(--orange); }
-  .leg b { color: var(--text); } .leg .tech { color: var(--text-3); font-family: 'JetBrains Mono'; font-size: 11px; }
+  .leg b { color: var(--text); } .leg .tech { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; }
 
   .explain { max-width: 1100px; margin: 0 auto; padding: 54px 28px 90px; position: relative; z-index: 1; }
   .explain h2 { font-size: clamp(22px, 3vw, 30px); font-weight: 700; letter-spacing: -.02em; margin: 0 0 8px; }
@@ -89,12 +91,16 @@
   .ex .d.gr { background: var(--green); box-shadow: 0 0 9px var(--green); }
   .ex h3 { font-size: 15.5px; margin: 0; font-weight: 600; }
   .ex p { font-size: 14px; color: var(--text-2); line-height: 1.6; margin: 0; }
-  .ex .tech { font-family: 'JetBrains Mono'; font-size: 11.5px; color: var(--text-3); margin-top: 10px; display: block; }
+  .ex .tech { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-3); margin-top: 10px; display: block; }
   .ex a { color: var(--cyan); }
+
+  .method-note { max-width: 720px; margin: 34px 0 0; }
+  .method-note h3 { font-size: 15.5px; font-weight: 600; margin: 0 0 10px; }
+  .method-note p { font-size: 14px; color: var(--text-2); line-height: 1.6; margin: 0 0 10px; }
 </style>
 </head>
 
-<body>
+<body class="demo-page">
 
 <div class="cursor-glow" id="cursorGlow"></div>
 
@@ -107,17 +113,18 @@
 
 <nav class="nav">
   <div class="nav-inner">
-    <a href="index.html#top" class="nav-brand">
-      <span class="brand-dot"></span><span class="brand-name">bayes-cot-faithfulness</span>
-    </a>
+    <a class="brand" href="index.html#top"><span class="dot"></span><span>bayes-cot-faithfulness</span></a>
     <div class="nav-links">
-      <a href="index.html#problem">Problem</a>
-      <a href="index.html#method">Approach</a>
-      <a href="index.html#assumption">Audit</a>
-      <a href="methodology.html">Methodology &nearr;</a>
-      <a href="index.html#measured">Progress</a>
+      <a href="index.html#tldr">Summary</a>
+      <a href="index.html#problem">Background</a>
+      <a href="index.html#method">Method</a>
+      <a href="index.html#assumption">Assumption</a>
+      <a href="index.html#experiments">Experiments</a>
+      <a href="index.html#status">Status</a>
+      <a href="methodology.html">Methodology</a>
+      <a href="record.html">Record</a>
+      <a class="ext" href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener">GitHub</a>
     </div>
-    <a href="https://github.com/thylinao1/bayes-cot-faithfulness" target="_blank" rel="noopener" class="nav-github">GitHub &rarr;</a>
   </div>
 </nav>
 
@@ -128,11 +135,16 @@
     </svg>
     Back to the overview
   </a>
-  <h1>Watch the answer <span class="grad-text">flow</span>.</h1>
+  <h1>Interactive model of <span class="grad-text">direct and indirect effects</span></h1>
   <p class="lede">
-    A model writes its reasoning, then gives an answer. Does the reasoning actually cause the
-    answer, or does the answer arrive by a shortcut while the reasoning is just for show? Move the
-    three controls and watch where the answer comes from.
+    A language model can write a chain of thought, a sequence of reasoning steps, before it gives
+    its final answer. The project asks how much of a prompt's effect on that answer passes through
+    the chain of thought.
+  </p>
+  <p class="lede">
+    That part is the indirect effect (NIE), and the part that bypasses the chain of thought is the
+    direct effect (NDE). This page shows a simplified version of the project's model, with one
+    slider for each arrow in the diagram.
   </p>
 </header>
 
@@ -141,33 +153,33 @@
     <!-- controls -->
     <div class="controls">
       <div class="ctrl">
-        <div class="ctrl-head"><span class="name">Reasoning influence</span><span class="val cyan" id="v-beta">1.50</span></div>
-        <p class="why">How much the written reasoning actually drives the final answer. High means the words on the page are doing the work.</p>
+        <div class="ctrl-head"><span class="name">Chain of thought to answer</span><span class="val cyan" id="v-beta">1.50</span></div>
+        <p class="why">How strongly the chain of thought changes the final answer. This is the coefficient &beta; on the methodology page.</p>
         <input type="range" id="s-beta" min="0" max="3" step="0.05" value="1.5" />
         <div class="ctrl-foot"><span>none</span><span>strong</span></div>
       </div>
       <div class="ctrl">
-        <div class="ctrl-head"><span class="name">Shortcut strength</span><span class="val orange" id="v-alpha">0.30</span></div>
-        <p class="why">How much the prompt pushes the answer directly, skipping the reasoning. High means the model decides first and explains later.</p>
+        <div class="ctrl-head"><span class="name">Prompt to answer, direct</span><span class="val orange" id="v-alpha">0.30</span></div>
+        <p class="why">How strongly the prompt changes the answer without passing through the chain of thought. This is the coefficient &alpha;.</p>
         <input type="range" id="s-alpha" min="0" max="2" step="0.05" value="0.3" />
         <div class="ctrl-foot"><span>none</span><span>strong</span></div>
       </div>
       <div class="ctrl">
-        <div class="ctrl-head"><span class="name">Prompt shapes the reasoning</span><span class="val violet" id="v-gamma">0.80</span></div>
-        <p class="why">How strongly the prompt changes what the reasoning says in the first place.</p>
+        <div class="ctrl-head"><span class="name">Prompt to chain of thought</span><span class="val violet" id="v-gamma">0.80</span></div>
+        <p class="why">How strongly the prompt changes what the chain of thought says. This is the coefficient &gamma;.</p>
         <input type="range" id="s-gamma" min="0" max="2" step="0.05" value="0.8" />
-        <div class="ctrl-foot"><span>weak</span><span>strong</span></div>
+        <div class="ctrl-foot"><span>none</span><span>strong</span></div>
       </div>
 
       <div class="presets">
-        <button class="preset-btn" data-preset="faithful">Faithful Reasoning</button>
-        <button class="preset-btn" data-preset="decorative">Decorative Reasoning</button>
-        <button class="preset-btn" data-preset="mixed">Mixed</button>
+        <button class="preset-btn" data-preset="faithful">Example: mostly indirect</button>
+        <button class="preset-btn" data-preset="decorative">Example: mostly direct</button>
+        <button class="preset-btn" data-preset="mixed">Example: mixed</button>
       </div>
 
       <div class="live-sentence">
-        Right now, <b id="live-pct">77%</b> of what moves the answer flows through the reasoning.
-        <span id="live-tail">The reasoning is mostly doing the work.</span>
+        At these settings, <b id="live-pct">77%</b> of the total effect passes through the chain of thought.
+        <span id="live-tail">The indirect effect is the larger part.</span>
       </div>
     </div>
 
@@ -187,34 +199,34 @@
         <g id="particles"></g>
 
         <!-- route labels -->
-        <text id="lbl-faithful" x="530" y="58" text-anchor="middle" class="node-label" fill="#4dd0e1" font-size="12">Faithful Path</text>
-        <text x="380" y="300" text-anchor="middle" class="node-label" fill="#ff8c42" font-size="12">Shortcut</text>
+        <text id="lbl-faithful" x="530" y="58" text-anchor="middle" class="node-label" fill="#4dd0e1" font-size="12">Indirect path</text>
+        <text x="380" y="300" text-anchor="middle" class="node-label" fill="#ff8c42" font-size="12">Direct path</text>
 
         <!-- nodes -->
         <g class="flow-node" filter="url(#soft)">
           <circle cx="120" cy="200" r="34" fill="#0b0f17" stroke="#dbe2ea" stroke-width="1.5" />
-          <text x="120" y="207" text-anchor="middle" fill="#dbe2ea" font-size="20" font-weight="600" font-family="Inter">P</text>
+          <text x="120" y="207" text-anchor="middle" fill="#dbe2ea" font-size="20" font-weight="600" font-family="IBM Plex Mono, monospace">P</text>
         </g>
         <g class="flow-node" filter="url(#soft)">
           <circle id="nodeM" cx="380" cy="60" r="32" fill="#0b0f17" stroke="#4dd0e1" stroke-width="2" />
-          <text x="380" y="67" text-anchor="middle" fill="#4dd0e1" font-size="19" font-weight="600" font-family="Inter">R</text>
+          <text x="380" y="67" text-anchor="middle" fill="#4dd0e1" font-size="19" font-weight="600" font-family="IBM Plex Mono, monospace">C</text>
         </g>
         <g class="flow-node" filter="url(#soft)">
           <circle id="nodeY" cx="640" cy="200" r="34" fill="#0b0f17" stroke="#dbe2ea" stroke-width="1.5" />
-          <text x="640" y="207" text-anchor="middle" fill="#dbe2ea" font-size="20" font-weight="600" font-family="Inter">A</text>
+          <text x="640" y="207" text-anchor="middle" fill="#dbe2ea" font-size="20" font-weight="600" font-family="IBM Plex Mono, monospace">A</text>
         </g>
 
         <text x="120" y="258" text-anchor="middle" class="node-label" fill="#9aa4b8" font-size="11">Prompt</text>
-        <text x="380" y="112" text-anchor="middle" class="node-label" fill="#9aa4b8" font-size="11">Reasoning</text>
+        <text x="380" y="112" text-anchor="middle" class="node-label" fill="#9aa4b8" font-size="11">Chain of thought</text>
         <text x="640" y="258" text-anchor="middle" class="node-label" fill="#9aa4b8" font-size="11">Answer</text>
       </svg>
 
       <div class="gauge">
         <div>
           <div class="gauge-num grad-text" id="gauge-num">77%</div>
-          <div class="gauge-label">faithfulness</div>
+          <div class="gauge-label">faithfulness (NIE / TE)</div>
         </div>
-        <span class="verdict-pill v-faithful" id="verdict">Faithful Reasoning</span>
+        <span class="verdict-pill v-faithful" id="verdict">Mostly indirect</span>
       </div>
     </div>
   </div>
@@ -222,48 +234,57 @@
 
 <div class="split">
   <div class="split-card">
-    <div class="split-title">Where the answer's movement comes from</div>
+    <div class="split-title">Split of the total effect between the two paths</div>
     <div class="split-bar">
-      <div class="split-seg seg-faithful" id="seg-faithful" style="width:77%">Through Reasoning</div>
-      <div class="split-seg seg-shortcut" id="seg-shortcut" style="width:23%">Shortcut</div>
+      <div class="split-seg seg-faithful" id="seg-faithful" style="width:77%">Indirect (NIE)</div>
+      <div class="split-seg seg-shortcut" id="seg-shortcut" style="width:23%">Direct (NDE)</div>
     </div>
     <div class="split-legend">
-      <div class="leg"><span class="sw cy"></span><span><b>Through the reasoning.</b> The part of the prompt's effect on the answer that actually passes through the written reasoning. <span class="tech">natural indirect effect (NIE)</span></span></div>
-      <div class="leg"><span class="sw or"></span><span><b>The shortcut.</b> The part that reaches the answer directly, bypassing the reasoning. <span class="tech">natural direct effect (NDE)</span></span></div>
+      <div class="leg"><span class="sw cy"></span><span><b>Indirect effect.</b> The part of the prompt's effect on the answer that passes through the chain of thought. <span class="tech">natural indirect effect (NIE)</span></span></div>
+      <div class="leg"><span class="sw or"></span><span><b>Direct effect.</b> The part that reaches the answer without passing through the chain of thought. <span class="tech">natural direct effect (NDE)</span></span></div>
     </div>
   </div>
 </div>
 
 <section class="explain">
-  <h2>What am I looking at?</h2>
-  <p class="sub">Three plain ideas, and the formal names underneath in case you want them.</p>
+  <h2>Parts of the display</h2>
+  <p class="sub">Each card describes one part of the display and names the formal quantity behind it.</p>
   <div class="ex-grid">
     <div class="ex">
-      <div class="dotrow"><span class="d cy"></span><h3>The faithful path</h3></div>
-      <p>Particles that travel up through the reasoning node and down to the answer. The thicker and busier this path, the more the model's stated reasoning is genuinely causing its answer.</p>
-      <span class="tech">prompt &rarr; reasoning &rarr; answer</span>
+      <div class="dotrow"><span class="d cy"></span><h3>Indirect path</h3></div>
+      <p>Dots on the upper path move from the prompt through the chain of thought to the answer. The line width and the number of dots grow with the indirect effect (NIE).</p>
+      <span class="tech">prompt &rarr; chain of thought &rarr; answer</span>
     </div>
     <div class="ex">
-      <div class="dotrow"><span class="d or"></span><h3>The shortcut</h3></div>
-      <p>Particles that skip straight across the bottom. This is the answer arriving without the reasoning, a sign the written steps are decorative rather than load-bearing.</p>
-      <span class="tech">prompt &rarr; answer (bypasses reasoning)</span>
+      <div class="dotrow"><span class="d or"></span><h3>Direct path</h3></div>
+      <p>Dots on the lower path move from the prompt straight to the answer. This path grows with the direct effect (NDE), the part of the effect that the chain of thought does not carry.</p>
+      <span class="tech">prompt &rarr; answer, bypassing the chain of thought</span>
     </div>
     <div class="ex">
-      <div class="dotrow"><span class="d gr"></span><h3>The score</h3></div>
-      <p>Faithfulness is the share of the answer's movement that went through the reasoning. The real method puts a calibrated uncertainty band on this number and asks how much hidden confounding it would take to overturn it.</p>
-      <span class="tech">NIE / total effect &middot; <a href="methodology.html">see the methodology &rarr;</a></span>
+      <div class="dotrow"><span class="d gr"></span><h3>Share of the effect through the chain of thought</h3></div>
+      <p>The percentage is the indirect effect divided by the total effect (TE), where TE = NDE + NIE. The project calls this share faithfulness.</p>
+      <span class="tech">NIE / TE &middot; <a href="methodology.html">methodology page</a></span>
     </div>
+  </div>
+
+  <div class="method-note">
+    <h3>Uncertainty and sensitivity in the project's method</h3>
+    <p>The project's method puts an uncertainty range on this share, called a credible interval. A credible interval is the range of values that the Bayesian model considers plausible. The calibration of these intervals is tested separately and reported.</p>
+    <p>The method also reports how much hidden confounding would overturn the result. Hidden confounding is an unmeasured influence on both the chain of thought and the answer.</p>
+    <p>The summary for it is rho*, the value of rho at which the indirect effect crosses zero. rho is the residual correlation between the chain-of-thought measurement and the answer. Residual means the part of each that the prompt does not explain.</p>
+    <p>rho* is computed from a maximum-likelihood fit. It does not come from a posterior, and the project's implementation does not check optimizer convergence.</p>
+    <p>rho* answers only this question about confounding. It does not change when the direct path grows stronger, and it cannot rank models.</p>
   </div>
 </section>
 
 <footer class="footer">
   <div class="footer-inner">
     <span>&copy; 2026 Maksim Silchenko &middot; MIT-licensed code &middot; CC BY 4.0 prose</span>
-    <span><a href="index.html">back to overview &rarr;</a></span>
+    <span><a href="index.html">Back to the overview</a></span>
   </div>
 </footer>
 
-<script src="main.js"></script>
-<script src="demo.js"></script>
+<script src="main.js?v=20261030a"></script>
+<script src="demo.js?v=20261030a"></script>
 </body>
 </html>
