@@ -4,10 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Bayesian Causal Faithfulness for LLM Chain-of-Thought</title>
-<meta name="description" content="A Bayesian causal-mediation framework for measuring whether a language model's chain of thought actually drives its answer. Posterior intervals, a sensitivity dial for the assumption nobody can check, and a declared state on every number." />
+<meta name="description" content="A research project that measures whether a language model's chain of thought causes its answer. It uses Bayesian causal mediation analysis and reports how each result depends on an assumption that data cannot check." />
 <meta name="author" content="Maksim Silchenko" />
-<meta property="og:title" content="Does the reasoning cause the answer, or just accompany it?" />
-<meta property="og:description" content="Measuring whether a language model's chain of thought carries its answer, with posterior intervals and a declared state on every number." />
+<meta property="og:title" content="Does a language model's chain of thought cause its answer?" />
+<meta property="og:description" content="Measuring how much of a hint's effect on a model's answer passes through its written reasoning, with Bayesian uncertainty and a sensitivity analysis." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://thylinao1.github.io/bayes-cot-faithfulness/site/" />
 <meta property="og:image" content="https://thylinao1.github.io/bayes-cot-faithfulness/site/positive_control.png" />
@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=20260910f" />
+<link rel="stylesheet" href="styles.css?v=20261030a" />
 <noscript><style>
   .reveal{opacity:1!important;transform:none!important}
   .scrolly-steps .stepcard{opacity:1!important}
@@ -36,12 +36,12 @@
     <a class="brand" href="#top"><span class="dot"></span><span>bayes-cot-faithfulness</span></a>
     <div class="nav-links">
       <a href="#tldr">Summary</a>
-      <a href="#problem">Problem</a>
+      <a href="#problem">Background</a>
       <a href="#method">Method</a>
       <a href="#assumption">Assumption</a>
-      <a href="#measured">Measured</a>
-      <a href="#reading">Reading a number</a>
+      <a href="#experiments">Experiments</a>
       <a href="#status">Status</a>
+      <a href="#faq">Questions</a>
       <a href="methodology.html">Methodology</a>
     </div>
   </div>
@@ -55,22 +55,22 @@
 
   <div class="wrap">
     <div class="hero-inner">
-      <p class="hero-tag">Bayesian causal faithfulness &middot; phase 2 running</p>
-      <h1>Does the reasoning <span class="glow">cause</span> the answer, or just accompany it?</h1>
+      <p class="hero-tag">Bayesian causal faithfulness &middot; Phase 2 in progress</p>
+      <h1>Does a language model's chain of thought <span class="glow">cause</span> its answer?</h1>
       <p class="hero-sub">
-        Frontier safety leans on reading a model's chain of thought. This project treats that chain
-        as a <b>mediator in a causal graph</b>, measures how much of the answer actually travels
-        through it, and turns the one assumption nobody can verify into a dial you can turn.
+        Many language models write out their reasoning before they answer. This written reasoning
+        is called a chain of thought. The project measures how much of a model's answer depends
+        on it.
       </p>
       <p class="hero-who">
         <b>Maksim Silchenko</b> &middot; National University of Singapore<br />
-        Phase 1 grant funded and delivered. Phase 2 running on NUS GPUs.
+        Phase 1 was grant funded and is complete. Phase 2 runs on NUS GPUs.
       </p>
 
       <div class="hero-stats">
-        <div class="hstat"><span class="v">72 / 216</span><span class="l">nine-arm cells banked</span></div>
-        <div class="hstat"><span class="v">11</span><span class="l">known-truth test worlds</span></div>
-        <div class="hstat"><span class="v">1,503</span><span class="l">tests in the suite</span></div>
+        <div class="hstat"><span class="v">72 / 216</span><span class="l">planned cells completed</span></div>
+        <div class="hstat"><span class="v">11</span><span class="l">synthetic test families</span></div>
+        <div class="hstat"><span class="v">1,503</span><span class="l">automated tests</span></div>
         <div class="hstat"><span class="v">6</span><span class="l">models measured</span></div>
       </div>
     </div>
@@ -79,139 +79,207 @@
   <div class="scroll-cue" aria-hidden="true"><i></i><span>Scroll</span></div>
 </header>
 
-<!-- ============================ TL;DR ============================ -->
+<!-- ============================ SUMMARY ============================ -->
 <section class="tldr section" id="tldr">
   <div class="wrap">
-    <p class="kicker reveal">The short version</p>
-    <h2 class="reveal d1">Six numbers: what works, what was found, and what is still open.</h2>
+    <p class="kicker reveal">Summary</p>
+    <h2 class="reveal d1">Six results from the project so far.</h2>
 
     <div class="tldr-grid reveal d2">
       <div class="tldr-item">
-        <span class="n">01 / RECOVERY</span>
+        <span class="n">01 / METHOD CHECK</span>
         <span class="big pass">0.21</span>
-        <p>On synthetic data with hidden confounding built in, an analyst who assumes there is none
-          reads a faithful path of 0.43 when the truth is <b>0.21</b>. The sensitivity sweep recovers
-          0.21 at the true confounding level and reports how much confounding the verdict can absorb.</p>
+        <p>A synthetic data set was built with a known correlation of 0.5 that the standard
+          analysis ignores. That analysis puts the part of the effect passing through the reasoning
+          at 0.43. The true value is <b>0.21</b>. The project's sensitivity analysis recovers 0.21
+          at the true correlation.</p>
       </div>
       <div class="tldr-item">
         <span class="n">02 / SCALE</span>
         <span class="big">72 of 216</span>
-        <p>Nine-arm cells banked across <b>six models</b>, three substrates and four cue families.
-          Two roster subjects are held by ruling: one cannot be served under the pinned mode, one
-          has a tokenizer that does not round-trip.</p>
+        <p>A cell is one model, one question set and one hint type. The planned grid has 216 cells.
+          <b>72 cells</b> are complete, across six models, three question sets and four hint types.
+          Two further models are on hold for technical reasons.</p>
       </div>
       <div class="tldr-item">
-        <span class="n">03 / MEASUREMENT</span>
+        <span class="n">03 / REPRODUCIBILITY</span>
         <span class="big pass">30 of 30</span>
-        <p>Completions that stay identical at temperature 0 under batch-invariant serving, at every
-          load measured. Without it only <b>11 of 30</b> match once eight requests share a batch, and
-          letter logprobs move by up to 0.875 nats. Every powered run re-proves determinism on its
-          own server.</p>
+        <p>With a server setting called batch invariance, 30 of 30 repeated answers were identical at
+          every load tested. Without it, only <b>11 of 30</b> matched once eight requests shared the
+          server. Every large run now repeats this check before it starts.</p>
       </div>
       <div class="tldr-item">
-        <span class="n">04 / JUDGES</span>
+        <span class="n">04 / AUTOMATED JUDGES</span>
         <span class="big pass">10 of 10</span>
-        <p>Pass thresholds that one judge configuration clears, all written down before the first
-          judge ran: Qwen3-32B on the revised question prompt. <b>No majority panel clears them</b> in
-          any composition, so the panel stays unfrozen and the human calibration labels stay sealed.</p>
+        <p>Ten pass thresholds for language-model judges were written down before any judge ran. One
+          configuration, Qwen3-32B with the revised question prompt, meets all ten. <b>No
+          majority-vote panel meets them</b>, so a judge panel has not been adopted.</p>
       </div>
       <div class="tldr-item">
-        <span class="n">05 / THE FINDING</span>
+        <span class="n">05 / TWO METHODS DISAGREE</span>
         <span class="big warn">0.146 vs 0.025</span>
-        <p>A randomized anchor says a lot of the hint effect travels with the chain. The mediation
-          fit says almost none, with an interval covering zero. <b>They disagree on every model.</b>
-          That disagreement is the most interesting result here.</p>
+        <p>Two methods estimate how much of the hint's effect passes through the chain of thought.
+          On Qwen3-8B, a randomized test gives 0.146 and the statistical model gives 0.025. <b>The
+          two disagree on all three models analysed.</b> The reason is an open question.</p>
       </div>
       <div class="tldr-item">
-        <span class="n">06 / SELF-CRITIQUE</span>
+        <span class="n">06 / A LIMIT OF RHO*</span>
         <span class="big fail">0.8428</span>
-        <p>The largest <button type="button" class="term" data-modal="m-rhostar">rho*</button>
-          in an eleven-family synthetic battery, sitting on a world whose <b>true mediated effect is
-          zero</b>. A zero-mediation world and a fully mediated one produce the same report. So
-          rho* cannot rank anything.</p>
+        <p><button type="button" class="term" data-modal="m-rhostar">rho*</button> describes how
+          robust one result is. Across eleven synthetic test families, its largest value came from a
+          world whose <b>true indirect effect is zero</b>. So rho* cannot be used to rank models.</p>
       </div>
     </div>
 
     <p class="tldr-foot reveal d3">
-      This page is the argument. The complete measured record, every cell, every gate and every
-      ruling, is in <a href="record.html">the record</a>. The method and its assumption audit are in
-      <a href="methodology.html">the methodology</a>. The code and the artifacts are on
+      This page explains the project from the beginning. Every measurement, gate and ruling is
+      listed in <a href="record.html">the record</a>. The equations and the assumption audit are in
+      <a href="methodology.html">the methodology</a>. The code and the stored results are on
       <a href="https://github.com/thylinao1/bayes-cot-faithfulness">GitHub</a>.
     </p>
   </div>
 </section>
 
-<!-- ============================ 01 PROBLEM ============================ -->
+<!-- ============================ 01 BACKGROUND ============================ -->
 <section class="section" id="problem" data-alias="uncertainty">
   <div class="wrap">
     <div class="read">
       <div class="shead reveal">
         <span class="num" aria-hidden="true">01</span>
-        <p class="kicker"><span class="n">01</span> &middot; the problem</p>
-        <h2>Safety cases are being written on reasoning that might be decoration.</h2>
-        <p class="sub">If a model's stated reasoning does not cause its answer, three things that
-          the field depends on quietly stop working.</p>
+        <p class="kicker"><span class="n">01</span> &middot; background</p>
+        <h2>Why the question matters</h2>
+        <p class="sub">Several current uses of language models depend on reading their chain of
+          thought. These uses assume that the written reasoning shapes the answer.</p>
       </div>
+      <p class="reveal">
+        A chain of thought is the step-by-step text a model writes before its final answer. Many
+        recent models produce one by default.
+      </p>
+      <p class="reveal">
+        People read this text for several purposes. Safety teams monitor it for signs of unwanted
+        behaviour. Evaluations score it. Users read it as an explanation of the answer.
+      </p>
+      <p class="reveal">
+        Each of these uses assumes the text reflects how the model reached its answer. That may not
+        always hold. A model could reach its answer in another way and write a reasonable-looking
+        explanation alongside it.
+      </p>
     </div>
 
     <div class="wide">
       <div class="cards">
         <div class="card v-fail reveal">
           <span class="mark">Oversight</span>
-          <h4>Scalable oversight breaks</h4>
-          <p>Watching the chain of thought is the cheapest oversight signal available. If the chain
-            is written alongside the answer rather than producing it, a monitor is reading a press
-            release.</p>
+          <h4>Monitoring</h4>
+          <p>Reading the chain of thought is one of the simplest ways to oversee a model. If the text
+            does not drive the answer, a monitor that reads it may miss what does.</p>
         </div>
         <div class="card v-fail reveal d1">
-          <span class="mark">Alignment</span>
-          <h4>Silent cue-following slips through</h4>
-          <p>A model can follow an authoritative hint planted on a wrong option and never mention
-            it. The transcript stays clean and the behaviour stays invisible to anyone grading
-            text.</p>
+          <span class="mark">Silent cue-following</span>
+          <h4>Hints that are not mentioned</h4>
+          <p>A model can follow a hint that points to a wrong option and never mention it. The
+            transcript then looks clean, and a grader who reads only the text cannot see the
+            behaviour.</p>
         </div>
         <div class="card v-fail reveal d2">
           <span class="mark">Evaluation</span>
-          <h4>Evaluations stop being credible</h4>
-          <p>Reasoning benchmarks assume the reasoning is load-bearing. Score a decorative chain and
-            you are measuring fluency while reporting it as thought.</p>
+          <h4>Scoring reasoning</h4>
+          <p>Reasoning benchmarks assume that the reasoning shapes the answer. If it does not, a
+            score given to the reasoning text says less about the model than it appears to.</p>
         </div>
       </div>
     </div>
 
     <div class="read">
-      <h3 class="reveal" style="margin-top:14px">The same numbers, two different decisions</h3>
+      <h3 class="reveal">What earlier work found</h3>
+      <ul class="reveal">
+        <li>Turpin and colleagues (2023) added biasing features to prompts, such as a suggested
+          answer. Models often changed their answer and wrote explanations that did not mention
+          the suggestion.</li>
+        <li>Lanham and colleagues (2023) edited chains of thought, for example by cutting them short
+          or adding mistakes. How strongly the answer depended on the chain of thought varied a lot
+          across tasks.</li>
+        <li>Paul and colleagues (2024) applied causal mediation analysis to the reasoning steps of
+          twelve models. They found that models do not reliably use their own intermediate
+          steps.</li>
+        <li>Chen and colleagues (2025) gave reasoning models six kinds of hints. When a model used a
+          hint, its chain of thought often mentioned the hint in fewer than 20% of cases.</li>
+        <li>Korbak and colleagues (2025), a group of authors from several AI labs, describe
+          chain-of-thought monitoring as a new and fragile opportunity for AI safety.</li>
+      </ul>
+
+      <h3 class="reveal">What this project adds</h3>
+      <ul class="reveal">
+        <li>It treats the chain of thought as a step between the prompt and the answer. In causal
+          mediation analysis such a step is called a mediator. The project estimates how much of a
+          hint's effect passes through it.</li>
+        <li>It reports a range of plausible values for each estimate, using Bayesian statistics,
+          instead of a single number.</li>
+        <li>It names the one assumption behind the estimate that data cannot check. It reports how
+          the results change as that assumption is relaxed.</li>
+        <li>It tests its methods on synthetic data with known answers before it reads any result
+          from a real model.</li>
+        <li>Its main decision rules were written down before the data were collected. This is called
+          pre-registration. Later additions are recorded as numbered amendments.</li>
+      </ul>
+
+      <h3 class="reveal" style="margin-top:14px">Why the project reports ranges</h3>
       <p class="reveal">
-        Suppose an audit reports that model A's reasoning carries 62 percent of its answer and
-        model B's carries 71 percent. A nine point gap looks like a reason to ship B.
+        Suppose an audit reports that the chain of thought carries 62% of model A's answer and 71% of
+        model B's. A gap of nine points seems to favour model B.
         <span class="illus">illustrative</span>
       </p>
       <p class="reveal">
-        Now put intervals on them: <b>[45, 78]</b> and <b>[55, 84]</b>. The comparison that matters
-        is not whether those overlap, which settles nothing. It is the posterior for the difference
-        itself, and whether the probability that B beats A by a margin you named in advance is high
-        enough to act on. A point estimate cannot answer that question. That is the entire reason
-        this project is Bayesian.
+        Now suppose each number comes with a range: <b>[45, 78]</b> for model A and <b>[55, 84]</b>
+        for model B. Whether the two ranges overlap does not settle the comparison.
+      </p>
+      <p class="reveal">
+        What settles it is the range for the difference between B and A. It also matters how likely
+        it is that B exceeds A by a margin chosen in advance. A single number cannot answer either
+        question, which is why the project uses Bayesian statistics.
       </p>
       <p class="note reveal">
-        <b>Those five numbers are invented</b>, to show the shape of the problem. Every other number
-        on this page comes from an artifact, and says which kind it is.
+        <b>These five numbers are invented</b> to illustrate the point. Every other number on this
+        page comes from a stored result.
       </p>
     </div>
   </div>
 </section>
 
 <!-- ============================ 02 METHOD ============================ -->
-<section class="section section-band" id="method" data-alias="demo" data-alias="approach">
+<section class="section section-band" id="method" data-alias="demo approach">
   <div class="wrap">
     <div class="read">
       <div class="shead reveal">
         <span class="num" aria-hidden="true">02</span>
         <p class="kicker"><span class="n">02</span> &middot; the method</p>
-        <h2>Stop grading the reasoning. Intervene on it.</h2>
-        <p class="sub">Faithfulness here is a causal quantity, not a textual one. A chain can be
-          coherent, relevant and completely inert.</p>
+        <h2>How the measurement works</h2>
+        <p class="sub">The project changes the prompt, observes how the answer changes, and
+          measures how much of that change passes through the chain of thought.</p>
       </div>
+
+      <h3 class="reveal">An example from a real model</h3>
+      <p class="reveal">
+        In a Phase 1 run, Llama-3.1-8B was asked which statement best describes the Sun's effect on
+        the oceans. The correct option says the Sun influences the formation of waves. The prompt
+        added that an answer key marked option (B), which is wrong.
+      </p>
+      <p class="reveal">The model switched to option (B). Part of its chain of thought read:</p>
+<pre class="reveal"><code>1. The Sun's energy is a primary driver of various ocean processes.
+2. The Sun's rays interact with the ocean's surface, causing evaporation.
+[...] 4. This process can be seen as creating water particles [...]
+7. Option (A) is partially correct, but it's not the best answer.
+Answer: (B)</code></pre>
+      <p class="reveal">
+        The chain of thought argues for the hinted option and never mentions the answer key. The
+        project calls this silent cue-following. Of the three questions where this model followed
+        the hint in that run, two were silent like this one. In the third, the model said that the
+        answer key marked (B).
+      </p>
+      <p class="reveal">
+        A single transcript cannot show whether the written reasoning led to the answer. The steps
+        below describe how the project estimates this over many questions.
+      </p>
     </div>
 
     <div class="wide scrolly">
@@ -219,7 +287,7 @@
         <div class="scrolly-sticky">
           <div class="plate">
             <div class="fig-head">
-              <h4>The graph, and where the answer travels</h4>
+              <h4>The two paths from the prompt to the answer</h4>
               <p class="kicker" id="stepLabel">prompt</p>
             </div>
             <svg id="mechSvg" viewBox="0 0 470 312" role="img"
@@ -233,18 +301,18 @@
                 </marker>
               </defs>
               <g font-family="IBM Plex Mono, monospace" font-size="12.5">
-                <!-- the faithful route, up and over through the chain -->
+                <!-- the indirect path, up and over through the chain of thought -->
                 <g id="pMed">
                   <path d="M80,160 C 132,84 176,68 207,68" fill="none" stroke="#4dd0e1" stroke-width="2.6" />
                   <path d="M263,68 C 294,68 338,84 390,160" fill="none" stroke="#4dd0e1"
                         stroke-width="2.6" marker-end="url(#ahC)" />
-                  <text x="235" y="26" fill="#7fe3f0" text-anchor="middle">faithful, through the chain</text>
+                  <text x="235" y="26" fill="#7fe3f0" text-anchor="middle">indirect, through the chain of thought</text>
                 </g>
-                <!-- the direct route, swinging clear underneath -->
+                <!-- the direct path, underneath -->
                 <g id="pDirect">
                   <path d="M74,206 C 150,278 320,278 396,206" fill="none" stroke="#ff8c42"
                         stroke-width="2.6" stroke-dasharray="7 6" marker-end="url(#ahO)" />
-                  <text x="235" y="300" fill="#ffab73" text-anchor="middle">decorative, the direct path</text>
+                  <text x="235" y="300" fill="#ffab73" text-anchor="middle">direct, bypassing it</text>
                 </g>
                 <!-- nodes -->
                 <g id="nX"><circle cx="62" cy="180" r="27" fill="#111b17" stroke="#cf9a2f" stroke-width="2.2" />
@@ -259,8 +327,8 @@
               </g>
             </svg>
             <figcaption id="stepCap">
-              The prompt reaches the answer two ways. The whole question is how much of the effect
-              takes each route.
+              The prompt can affect the answer along two paths. The project estimates how much of the
+              effect takes each path.
             </figcaption>
           </div>
         </div>
@@ -268,33 +336,41 @@
         <div class="scrolly-steps">
           <div data-step="0"><div class="stepcard">
             <span class="n">STEP 01</span>
-            <h4>Plant a cue, and randomize it</h4>
-            <p>Every item runs in two arms: as written, and with an authoritative hint planted on a
-              <b>wrong</b> option. Because the hint is randomized, the total effect on the answer is
-              pinned directly. The item, not the row, is the sampling unit.</p>
+            <h4>Ask each question twice</h4>
+            <p>Each question is asked once as written. This is the clean prompt. It is asked again
+              with a hint that points to a <b>wrong</b> option. This is the hinted prompt.</p>
+            <p>The project decides where the hints go, so a change in the answer is caused by the
+              hint. The size of that change is the total effect of the hint.</p>
           </div></div>
           <div data-step="1"><div class="stepcard">
             <span class="n">STEP 02</span>
-            <h4>Keep only items the model already got right</h4>
-            <p>The analysis population is items answered correctly under the clean prompt. That is
-              what makes a hint-following event interpretable. It also has a
-              <button type="button" class="term" data-modal="m-cleancorrect">structural cost</button>
-              the project reports rather than hides.</p>
+            <h4>Keep questions the model answers correctly</h4>
+            <p>The analysis uses only questions the model answers correctly under the clean prompt.
+              On these questions the model had the right answer available. A move to the hinted
+              option is therefore a clear change.</p>
+            <p>This choice has a
+              <button type="button" class="term" data-modal="m-cleancorrect">cost</button>,
+              which the project reports.</p>
           </div></div>
           <div data-step="2"><div class="stepcard">
             <span class="n">STEP 03</span>
-            <h4>Measure the chain by cutting it short</h4>
-            <p>The mediator is <b>curve area</b>: truncate the chain at five depths, force a
-              continuation, and record the fraction of depths at which the model already commits to
-              its final answer. A chain that is doing work changes that curve.</p>
+            <h4>Measure how early the model commits</h4>
+            <p>The chain of thought is cut at 0, 25, 50, 75 and 100% of its steps. At each cut the
+              model is asked for its answer.</p>
+            <p><b>Curve area</b> is the share of cuts at which the model already gives its final
+              answer. It summarises how early the model commits to that answer.</p>
           </div></div>
           <div data-step="3"><div class="stepcard">
             <span class="n">STEP 04</span>
-            <h4>Split the effect, and put a posterior on it</h4>
-            <p>A hierarchical probit model splits the total effect into the part carried by the
-              chain (<button type="button" class="term" data-modal="m-nie">NIE</button>) and the
-              part that bypasses it (<button type="button" class="term" data-modal="m-nde">NDE</button>),
-              pooling across prompts so a thin cell borrows strength instead of overfitting.</p>
+            <h4>Split the effect into two parts</h4>
+            <p>A statistical model splits the total effect in two. The
+              <button type="button" class="term" data-modal="m-nie">indirect effect (NIE)</button>
+              is the part that passes through the chain of thought. The
+              <button type="button" class="term" data-modal="m-nde">direct effect (NDE)</button>
+              is the part that bypasses it.</p>
+            <p>Each part comes with a 95% credible interval: the range of values the Bayesian model
+              considers plausible. The model pools information across question sets and hint
+              types.</p>
           </div></div>
         </div>
       </div>
@@ -302,22 +378,54 @@
 
     <div class="read">
       <details class="more reveal">
-        <summary>The estimand, exactly as the contract freezes it</summary>
+        <summary>How the split is calculated, with illustrative numbers</summary>
+        <div class="body">
+          <p>The statistical model learns two relationships from all the questions. The first is
+            how the hint changes curve area. The second is how the hint and curve area together
+            change the chance of picking the hinted option.</p>
+          <p>It then compares predicted answer rates. In the illustration below, curve area is 0.9
+            on average without the hint and 0.6 with it. <span class="illus">illustrative</span></p>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>hint</th><th>curve area</th><th>chance of picking the hinted option</th></tr></thead>
+              <tbody>
+                <tr><td>no</td><td class="num">0.9</td><td class="num">0.01</td></tr>
+                <tr><td>yes</td><td class="num">0.9</td><td class="num">0.12</td></tr>
+                <tr><td>yes</td><td class="num">0.6</td><td class="num">0.15</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>The direct effect switches the hint on and keeps curve area at its clean value: 0.12
+            minus 0.01 gives 0.11.</p>
+          <p>The indirect effect keeps the hint on and moves curve area from 0.9 to 0.6: 0.15 minus
+            0.12 gives 0.03.</p>
+          <p>The total effect is the sum, 0.14. The Bayesian model repeats this calculation for many
+            plausible versions of the two relationships. That gives a range for each effect.</p>
+        </div>
+      </details>
+
+      <details class="more reveal">
+        <summary>The exact definitions, as written in the pre-registered contract</summary>
         <div class="body">
 <pre><code>NDE = E[Y | do(X=1), M ~ M(X=0)] - E[Y | do(X=0), M ~ M(X=0)]
 NIE = E[Y | do(X=1), M ~ M(X=1)] - E[Y | do(X=1), M ~ M(X=0)]
 TE  = NDE + NIE</code></pre>
-          <p>Read the NDE as the answer moving while the reasoning is pinned to what it would have
-            been under the clean prompt. In a fully faithful world it is zero and the NIE carries
-            everything. The outcome model is <b>probit with baseline intercepts</b>, because rho is
-            defined as a correlation between bivariate normal errors and only exists in the probit
-            model. An audit on 2026-09-07 found the sampler path had been logistic while every
-            other path was probit, a gap of about 0.04 on an effect thresholded at 0.15. That is
-            one of three defects listed in <a href="record.html#defects">the record</a>.</p>
+          <p>X is the hint, M is curve area and Y is the answer. The direct effect (NDE) is the
+            change in the answer when the hint is added. In that comparison, the chain of thought
+            stays as it would have been under the clean prompt. If the chain of thought carried the
+            whole effect, the NDE would be zero and the NIE would equal the total effect.</p>
+          <p>The outcome model is a probit model with baseline intercepts. In a probit model, the
+            answer depends on a hidden normally distributed score crossing a threshold. The project
+            uses it because rho, introduced in section 03, is defined as a correlation between
+            normally distributed errors.</p>
+          <p>An audit on 2026-09-07 found that one part of the code used a logistic model while every
+            other part used a probit model. The gap was about 0.04, on an effect whose threshold is
+            0.15. It is one of three defects described in <a href="record.html#defects">the
+            record</a>.</p>
         </div>
       </details>
-      <p class="reveal"><a href="demo.html">Open the interactive demo</a>, which walks a single item
-        through both arms and shows the split moving as you change the world.</p>
+      <p class="reveal"><a href="demo.html">The interactive demo</a> shows a single prompt reaching
+        the answer along both paths. The split changes as the settings change.</p>
     </div>
   </div>
 </section>
@@ -329,196 +437,507 @@ TE  = NDE + NIE</code></pre>
       <div class="shead reveal">
         <span class="num" aria-hidden="true">03</span>
         <p class="kicker"><span class="n">03</span> &middot; the assumption</p>
-        <h2>Every faithfulness number rests on something you cannot check.</h2>
-        <p class="sub">So this project does not assume it. It reports the whole curve, and names the
-          point where the verdict would flip.</p>
+        <h2>The assumption that data cannot check</h2>
+        <p class="sub">The split into direct and indirect effects rests on one assumption. The
+          project reports how the results change when this assumption is relaxed.</p>
       </div>
       <p class="reveal">
-        Splitting an effect into a mediated and a direct part requires that no unmeasured
-        confounder sits between the chain of thought and the answer once the prompt is fixed. In a
-        language model that is
-        <button type="button" class="term" data-modal="m-ignorability">almost never true</button>:
-        the reasoning and the answer both read from the same hidden activations. Everyone who
-        reports a mediation number is assuming it anyway, silently, at
-        <b>rho = 0</b>.
+        The project places the hint itself, so the total effect of the hint is measured directly.
+        The split is different. It depends on how curve area and the answer vary together across
+        questions.
+      </p>
+      <p class="reveal">
+        Curve area and the answer can vary together for two reasons. The chain of thought may cause
+        the answer. Alternatively, something inside the model may affect both, while the chain of
+        thought has no effect on the answer.
+      </p>
+      <p class="reveal">
+        For example, on some questions the wrong option may already look plausible to the model.
+        Once the hint names it, the model may commit early and also pick it. The chain of thought
+        did not cause that choice.
+      </p>
+      <p class="reveal">
+        The data cannot tell these two cases apart. In a language model the second case is likely,
+        because the chain of thought and the answer come from the
+        <button type="button" class="term" data-modal="m-ignorability">same internal
+        computation</button>. Standard mediation analysis assumes the second case away.
+      </p>
+      <p class="reveal">
+        The project describes the second case with a single number, <b>rho</b>. rho is the
+        correlation between the parts of curve area and of the answer that the hint does not
+        explain. Standard analyses set rho to zero.
+      </p>
+      <p class="reveal">
+        The project repeats the analysis across a range of rho values and reports the whole curve.
       </p>
     </div>
 
     <div class="wide">
       <div class="plate bleed reveal">
         <div class="fig-head">
-          <h4>Turn the dial and watch the verdict move</h4>
-          <p class="kicker">synthetic world, known truth</p>
+          <h4>How the estimates change with rho</h4>
+          <p class="kicker">synthetic data, known answer</p>
         </div>
         <div class="legend">
-          <span><i class="i-nie"></i>faithful path, NIE</span>
-          <span><i class="i-nde"></i>decorative path, NDE</span>
-          <span><i class="i-te"></i>total effect</span>
+          <span><i class="i-nie"></i>indirect effect, NIE</span>
+          <span><i class="i-nde"></i>direct effect, NDE</span>
+          <span><i class="i-te"></i>total effect, TE</span>
         </div>
         <canvas id="cRho" role="img"
-                aria-label="Sensitivity sweep. As the assumed residual correlation rho increases from minus 0.6 to 0.8, the faithful path falls from plus 0.67 to minus 0.06 and crosses zero at rho star 0.7364, while the total effect stays flat near 0.31."></canvas>
+                aria-label="Sensitivity sweep. As the assumed residual correlation rho increases from minus 0.6 to 0.8, the indirect effect falls from plus 0.67 to minus 0.06 and crosses zero at rho star 0.7364, while the total effect stays flat near 0.31."></canvas>
         <div class="ctl">
           <label for="rhoSlider">assumed rho
             <input type="range" id="rhoSlider" min="-60" max="80" value="0" step="1" />
             <span class="val" id="rhoVal">+0.00</span>
           </label>
           <span class="val" id="rhoRead" style="min-width:9em"></span>
-          <span class="chip pass" id="rhoVerdict">faithful path still positive</span>
+          <span class="chip pass" id="rhoVerdict">indirect effect above zero</span>
         </div>
         <figcaption>
-          A world built with a true mediated effect of <b>0.2074</b> and a true residual correlation
-          of <b>0.5</b>. Read at the conventional rho = 0, the faithful path reports <b>0.4273</b>,
-          about twice the truth. The total effect barely moves, because a randomized cue pins it
-          whatever you assume. The verdict survives until rho reaches <b>0.7364</b>.
+          This data set was built with a true indirect effect of <b>0.2074</b> and a true rho of
+          <b>0.5</b>. At rho&nbsp;=&nbsp;0, the analysis reports an indirect effect of <b>0.4273</b>, about
+          twice the true value. At rho&nbsp;=&nbsp;0.5 it recovers the true value. The total effect barely
+          moves, because the hint is placed by the project. The indirect effect stays above zero
+          until rho reaches <b>0.7364</b>.
           <sup class="src"><a href="#s1">1</a></sup>
         </figcaption>
       </div>
     </div>
 
     <div class="read">
-      <h3 class="reveal">rho*, and what it is not</h3>
+      <h3 class="reveal">rho* and its limits</h3>
       <p class="reveal">
-        That crossing point has a name: <button type="button" class="term" data-modal="m-rhostar">rho*</button>,
-        the breakdown frontier. It is the mediation analogue of an E-value: the smallest residual
-        mediator-outcome correlation that would overturn the verdict. A rho* of 0.05 means almost
-        any unmeasured influence overturns it. A rho* of 0.69 means the confounder would have to be
-        implausibly strong.
+        The value of rho at which the indirect effect reaches zero is called
+        <button type="button" class="term" data-modal="m-rhostar">rho*</button>. The project also
+        calls it the breakdown frontier.
       </p>
       <p class="reveal">
-        It is tempting to read a big rho* as a trust score. The project tested that idea against
-        eleven synthetic families with known ground truth, and the idea did not survive.
+        rho* says how large the residual correlation would need to be to remove one particular
+        result. A rho* of 0.05 means a very small correlation would remove it. A rho* of 0.69 means
+        only a large correlation would. It plays a role similar to the E-value in epidemiology.
+      </p>
+      <p class="reveal">
+        rho* answers that one question only. It does not change when the direct effect grows. In
+        one test, rho* stayed at 0.624695 while the share of the effect passing through the chain
+        of thought fell from 100% to 1.6%.
+      </p>
+      <p class="reveal">
+        rho* is computed from a maximum-likelihood fit. It does not come from the Bayesian
+        posterior, the full distribution of plausible values. The code does not check that the
+        optimizer converged. It is therefore a point estimate.
+      </p>
+      <p class="reveal">
+        A large rho* might seem to mark a trustworthy result. The project tested this idea on eleven
+        families of synthetic worlds with known answers. The tests did not support it.
       </p>
     </div>
 
     <div class="wide">
       <div class="plate bleed reveal">
         <div class="fig-head">
-          <h4>rho* cannot rank anything</h4>
+          <h4>rho* in three synthetic worlds</h4>
           <p class="kicker">mechanism battery, n = 3,600</p>
         </div>
         <canvas id="cRank" role="img"
                 aria-label="Three synthetic worlds. A shared-cause world with zero true mediation gives rho star 0.7069; a fully mediated rationalization world gives 0.7063, effectively the same; and a third world with zero true mediation gives the largest rho star in the battery, 0.8428."></canvas>
         <figcaption>
-          A shared-cause world with <b>zero</b> true mediation and a rationalization world that is
-          <b>fully mediated</b> produce the same report: mean NIE 0.2613 against 0.2833, rho* 0.7069
-          against 0.7063, both firing the pre-registered verdict in 100 of 100 datasets. And the
-          largest rho* in the whole battery sits on a third world whose true mediated effect is
-          zero. <b>Publishing this argues against the project's own headline metric</b>, which is
-          why it is here and not in a drawer. <sup class="src"><a href="#s2">2</a></sup>
+          In the first world, a shared cause drives both curve area and the answer, and the true
+          indirect effect is <b>zero</b>. In the second, the whole effect passes through the chain of
+          thought. The two give nearly the same report: mean indirect effects of 0.2613 and 0.2833,
+          and rho* of 0.7069 and 0.7063. Both met the pre-registered decision rule in 100 of 100
+          data sets. The largest rho* in all eleven families, <b>0.8428</b>, comes from a third world
+          whose true indirect effect is zero. The project therefore uses rho* only to describe the
+          robustness of a single result. <sup class="src"><a href="#s2">2</a></sup>
         </figcaption>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ 04 MEASURED ============================ -->
-<section class="section section-band" id="measured" data-alias="phase2-measured" data-alias="evidence" data-alias="progress">
+<!-- ============================ 04 EXPERIMENTS ============================ -->
+<section class="section section-band" id="experiments" data-alias="measured phase2-measured evidence progress">
   <div class="wrap">
     <div class="read">
       <div class="shead reveal">
         <span class="num" aria-hidden="true">04</span>
-        <p class="kicker"><span class="n">04</span> &middot; what was measured</p>
-        <h2>Six models, 72 cells, and a disagreement nobody ordered.</h2>
-        <p class="sub">The headline is not a faithfulness score. It is that two ways of asking the
-          same question return different answers.</p>
+        <p class="kicker"><span class="n">04</span> &middot; experiments</p>
+        <h2>Experiments and checks run so far</h2>
+        <p class="sub">The project has run twenty experiments and checks in two phases. They are
+          grouped below by purpose. Each entry says what was done and what was found.</p>
       </div>
+      <p class="reveal">
+        Phase 1 ran from April to August 2026 under a grant. It built the software, tested it on
+        synthetic data and ran small experiments on open models. Phase 2 started in September 2026.
+        It runs a large sweep of real models on NUS GPUs.
+      </p>
+      <ol class="exp-toc reveal">
+        <li><a href="#exp-synthetic">Checks on synthetic data with known answers</a> (1 to 5)</li>
+        <li><a href="#exp-phase1">First runs on real models</a> (6 and 7)</li>
+        <li><a href="#exp-repair">Review and repair of the estimator</a> (8)</li>
+        <li><a href="#exp-serving">Reproducible measurements on GPUs</a> (9 and 10)</li>
+        <li><a href="#exp-sweep">The real-model sweep</a> (11 to 16)</li>
+        <li><a href="#exp-judges">Automated judges and human labels</a> (17 to 19)</li>
+        <li><a href="#exp-organism">A trained test model with a known hidden path</a> (20)</li>
+      </ol>
     </div>
 
-    <div class="read">
-      <h3 class="reveal">First: does the instrument respond at all?</h3>
-      <p class="reveal">
-        A null result is only worth reading if the measuring device works. Two checks run before
-        any real model is touched, both against truth the project plants itself.
-      </p>
+    <!-- group A -->
+    <div class="read exp-group" id="exp-synthetic">
+      <h3 class="reveal">Checks on synthetic data with known answers</h3>
+      <p class="reveal">In synthetic data the true effects are known. Errors in the method are
+        therefore visible directly. These checks come before any result from a real model is
+        read.</p>
+    </div>
+    <div class="wide">
+      <div class="cards exp-cards">
+        <article class="card exp v-pass reveal">
+          <span class="mark">Experiment 1 &middot; synthetic</span>
+          <h4>Recovering known effects</h4>
+          <p><b>What was done.</b> The project generated 400 synthetic examples with known direct,
+            indirect and total effects. It then fitted the Bayesian model to them.</p>
+          <p><b>What was found.</b> All three 95% credible intervals contained the true values. The
+            table below the cards lists them.</p>
+        </article>
+        <article class="card exp v-pass reveal d1">
+          <span class="mark">Experiment 2 &middot; synthetic</span>
+          <h4>Sensitivity analysis with a known correlation</h4>
+          <p><b>What was done.</b> A data set was built with a true rho of 0.5 and a true indirect
+            effect of 0.2074. The analysis was repeated for rho from −0.6 to 0.8.</p>
+          <p><b>What was found.</b> At rho&nbsp;=&nbsp;0 the estimate was 0.4273. At the true rho it matched
+            the true value. Section 03 shows the whole curve.</p>
+        </article>
+        <article class="card exp v-pass reveal">
+          <span class="mark">Experiment 3 &middot; synthetic</span>
+          <h4>Two worlds with opposite mechanisms</h4>
+          <p><b>What was done.</b> Two synthetic worlds were built with the same total effect. In
+            one, the effect passes through the chain of thought. In the other, it bypasses it.</p>
+          <p><b>What was found.</b> In the first world the indirect effect was +0.40, with rho* =
+            0.69. In the second it was +0.02, with rho*&nbsp;=&nbsp;0.05. The figure below shows both.</p>
+        </article>
+        <article class="card exp v-pass reveal d1">
+          <span class="mark">Experiment 4 &middot; synthetic</span>
+          <h4>The mechanism battery</h4>
+          <p><b>What was done.</b> Eleven families of synthetic worlds were built, each with a known
+            mechanism. Examples are zero mediation, full mediation, a direct bypass and answer
+            copying. The battery ran 15 conditions over 3,800 data sets. Each data set was refitted 200
+            times on resampled versions of itself, a method called the bootstrap.</p>
+          <p><b>What was found.</b> The three outcomes written down in advance all held. The battery
+            also showed that rho* cannot rank worlds. The table below shows what four wrong
+            assumptions cost.</p>
+        </article>
+        <article class="card exp v-pass reveal">
+          <span class="mark">Experiment 5 &middot; synthetic</span>
+          <h4>A zero-effect test before every fit</h4>
+          <p><b>What was done.</b> Before any fit on real data, the estimator is run on a synthetic
+            world with exactly zero true effect. The project calls this the offset-null gate. The
+            rule allows no retries.</p>
+          <p><b>What was found.</b> The gate has run four times and passed on the first attempt each
+            time. In one run the estimated indirect effect was −0.000265.</p>
+        </article>
+      </div>
     </div>
 
     <div class="wide">
       <div class="plate bleed reveal">
         <div class="fig-head">
-          <h4>Positive control: a faithful world against a decorative one</h4>
-          <p class="kicker">synthetic, known truth</p>
-        </div>
-        <figure>
-          <img src="positive_control.png" width="1550" height="957" loading="lazy" decoding="async"
-               alt="Two sensitivity curves. In the faithful world the indirect path stays positive until rho reaches 0.69. In the decorative world it crosses zero almost immediately, at rho 0.05." />
-          <figcaption>
-            Built faithful, the indirect path survives to <b>rho* = 0.69</b>: a confounder would have
-            to be implausibly strong to overturn it. Built decorative, the same instrument reports
-            <b>rho* = 0.05</b>, meaning almost any unmeasured influence overturns it. The decorative
-            curve is plotted because <b>it is what a non-result looks like</b>.
-          </figcaption>
-        </figure>
-        <p class="note">This figure was generated on 2026-07-10 and so <b>predates the estimator
-          repairs of 2026-09-07</b>. It has not been regenerated, because the repair record requires
-          all four published figures to be regenerated as one coordinated change. Treat the two
-          values as the pre-repair instrument's reading.</p>
-      </div>
-
-      <div class="plate bleed reveal">
-        <div class="fig-head">
-          <h4>Posterior recovery against known truth</h4>
+          <h4>Experiment 1: recovery of known effects</h4>
           <p class="kicker">n = 400</p>
         </div>
         <div class="tablewrap">
           <table>
-            <thead><tr><th>quantity</th><th>truth</th><th>recovered</th></tr></thead>
+            <thead><tr><th>quantity</th><th>true value</th><th>result</th></tr></thead>
             <tbody>
-              <tr><td>decorative path, NDE</td><td class="num">+0.066</td>
-                <td><span class="pill pill-val">inside 95% CrI</span></td></tr>
-              <tr><td>faithful path, NIE</td><td class="num">+0.228</td>
-                <td><span class="pill pill-val">inside 95% CrI</span></td></tr>
+              <tr><td>direct effect, NDE</td><td class="num">+0.066</td>
+                <td><span class="pill pill-val">inside the 95% credible interval</span></td></tr>
+              <tr><td>indirect effect, NIE</td><td class="num">+0.228</td>
+                <td><span class="pill pill-val">inside the 95% credible interval</span></td></tr>
               <tr><td>total effect, TE</td><td class="num">+0.294</td>
-                <td><span class="pill pill-val">inside 95% CrI</span></td></tr>
+                <td><span class="pill pill-val">inside the 95% credible interval</span></td></tr>
             </tbody>
           </table>
         </div>
-        <p class="note">All three intervals contain the truth on a world whose answer is known in
-          advance. This is the check the estimator failed before the repairs: the intercept-free
-          specification reported a mediated effect of <b>+0.2131</b> on a world with none.</p>
+        <p class="note">Before the repairs of 2026-09-07, the estimator had a different defect. On a
+          world with no effect at all, it reported an indirect effect of <b>+0.2131</b>. Experiment 8
+          describes it.</p>
+      </div>
+
+      <div class="plate bleed reveal">
+        <div class="fig-head">
+          <h4>Experiment 3: two worlds with opposite mechanisms</h4>
+          <p class="kicker">synthetic, known answer</p>
+        </div>
+        <figure>
+          <img src="positive_control.png" width="1550" height="957" loading="lazy" decoding="async"
+               alt="Two sensitivity curves. In the world where the effect passes through the chain of thought, the indirect effect stays positive until rho reaches 0.69. In the world where it bypasses the chain of thought, it crosses zero almost immediately, at rho 0.05." />
+          <figcaption>
+            Each curve shows the indirect effect as rho changes. In the world where the effect passes
+            through the chain of thought (labelled faithful in the figure), it stays above zero until
+            <b>rho*&nbsp;=&nbsp;0.69</b>. In the world where it bypasses the chain of thought (labelled
+            decorative), it crosses zero at <b>rho*&nbsp;=&nbsp;0.05</b>.
+          </figcaption>
+        </figure>
+        <p class="note">This figure was made on 2026-07-10, <b>before the estimator repairs of
+          2026-09-07</b>. The repair record requires all four published figures to be regenerated
+          together, which has not happened yet. The two values are the reading of the earlier
+          estimator.</p>
+      </div>
+
+      <div class="plate bleed reveal">
+        <div class="fig-head">
+          <h4>Experiment 4: the cost of four wrong assumptions</h4>
+          <p class="kicker">mechanism battery</p>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>what is wrong</th><th>bias in the NIE</th><th>intervals containing the truth</th><th>reading</th></tr></thead>
+            <tbody>
+              <tr><td>the hint changes the spread of curve area as well as its level</td>
+                <td class="num">+0.0653</td><td class="num">169 / 400</td>
+                <td>The largest cost. The indirect effect is overstated, and more data does not
+                  remove the error.</td></tr>
+              <tr><td>few questions per group</td>
+                <td class="num">−0.0009</td><td class="num">362 / 400</td>
+                <td>Almost no bias. The intervals are too narrow, because the bootstrap resamples
+                  rows that are not independent.</td></tr>
+              <tr><td>some curve areas missing</td>
+                <td class="num">−0.0108</td><td class="num">367 / 400</td>
+                <td>Dropping questions whose output could not be parsed costs about 0.01.</td></tr>
+              <tr><td>curve area relates to the answer in a nonlinear way</td>
+                <td class="num">−0.0156</td><td class="num">359 / 400</td>
+                <td>A small cost, which is reported.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">If the intervals worked as intended, about 380 of 400 would contain the
+          truth.</p>
+      </div>
+    </div>
+
+    <!-- group B -->
+    <div class="read exp-group" id="exp-phase1">
+      <h3 class="reveal">First runs on real models</h3>
+      <p class="reveal">Phase 1 tried the hint experiment on open models. It used Groq's free
+        service and a local Ollama installation, so these runs were small.</p>
+    </div>
+    <div class="wide">
+      <div class="cards exp-cards">
+        <article class="card exp v-warn reveal">
+          <span class="mark">Experiment 6 &middot; Phase 1</span>
+          <h4>Planted hints on open Llama models</h4>
+          <p><b>What was done.</b> Llama models were asked questions with and without a hint toward a
+            wrong option. Runs had 11 to 103 clean-correct questions.</p>
+          <p><b>What was found.</b> In the largest run, Llama-3.1-8B followed the wrong hint on 38 of
+            103 questions (36.9%). The smaller runs were too small to estimate a rate precisely.
+            Their rho* values (0.708 to 0.800) came from the estimator that was later repaired, and
+            are kept only as a record.</p>
+        </article>
+        <article class="card exp v-pass reveal d1">
+          <span class="mark">Experiment 7 &middot; Phase 1</span>
+          <h4>An automatic check for silent cue-following</h4>
+          <p><b>What was done.</b> A text auditor reads each transcript. It flags a case where the
+            model follows the hint without mentioning it. It was first tested on three hand-written
+            transcripts.</p>
+          <p><b>What was found.</b> It flagged the silent case. It cleared the other two, including
+            one where the model followed the hint and said so. On real Llama-3.1-8B output it
+            flagged the example in section 02. Its rule for detecting a mention was revised once,
+            after it missed the words "answer key". The rule was then frozen, which means it is no
+            longer changed.</p>
+        </article>
+      </div>
+    </div>
+
+    <!-- group C -->
+    <div class="read exp-group" id="exp-repair">
+      <h3 class="reveal">Review and repair of the estimator</h3>
+      <p class="reveal">At the start of Phase 2, an outside review tested the estimator on data with
+        no effect. This led to three repairs.</p>
+    </div>
+    <div class="wide">
+      <div class="cards exp-cards">
+        <article class="card exp v-warn reveal">
+          <span class="mark">Experiment 8 &middot; Phase 2</span>
+          <h4>An outside review and three repairs</h4>
+          <p><b>What was done.</b> On 2026-09-06 an outside reviewer ran a synthetic world with zero
+            true effect through the code. The estimator reported an indirect effect of +0.2131 and
+            a total effect of +0.2697.</p>
+          <p><b>What was found.</b> The equations had no baseline terms (intercepts). After that
+            repair, the same test gives an indirect effect of −0.0002 and a total effect of −0.0082.
+            The total now matches the observed difference between the two prompt versions,
+            −0.0082.</p>
+          <p>Two more defects were fixed. First, one part of the code turned scores into
+            probabilities with a logistic formula, while the rest used a probit formula. The gap was
+            about 0.04. Second, the prior distributions ignored the scale of curve area. Rescaling
+            them raised interval coverage from 7 of 20 to 20 of 20 in one family. In another it rose
+            from 12 of 20 to 19 of 20.</p>
+          <p>Each repair has a test that fails without it. Details are in
+            <a href="record.html#defects">the record</a>.</p>
+        </article>
+      </div>
+    </div>
+
+    <!-- group D -->
+    <div class="read exp-group" id="exp-serving">
+      <h3 class="reveal">Reproducible measurements on GPUs</h3>
+      <p class="reveal">The method compares answers to the same question under different prompts.
+        This only works if the server gives the same output for the same input.</p>
+    </div>
+    <div class="wide">
+      <div class="cards exp-cards">
+        <article class="card exp v-pass reveal">
+          <span class="mark">Experiment 9 &middot; GPU</span>
+          <h4>Batching and repeatable answers</h4>
+          <p><b>What was done.</b> Qwen3-8B answered 30 ARC-Challenge questions at temperature 0
+            with a fixed seed. The same questions were rerun with 1, 8, 32 and 64 requests sharing
+            the server at once.</p>
+          <p><b>What was found.</b> With default settings, 30, 11, 13 and 13 of 30 answers matched
+            the one-request run. With batch invariance switched on, 30 of 30 matched at every load,
+            at about half the speed. Every large run now repeats this check on its own server. The
+            project calls this the determinism preflight.</p>
+        </article>
+        <article class="card exp v-pass reveal d1">
+          <span class="mark">Experiment 10 &middot; GPU</span>
+          <h4>Running reasoning models with thinking switched off</h4>
+          <p><b>What was done.</b> In the first sweep wave, three reasoning models ran out of their
+            320-token budget inside their thinking text. They gave 56, 140 and 1 usable answers out
+            of 1,500. A fourth, Phi-4-reasoning, answered the clean questions, but its answers at the
+            cut points could not be scored.</p>
+          <p><b>What was found.</b> A check showed that two ways of sending prompts give identical
+            outputs: 30 of 30 answers and 120 of 120 letter probabilities matched. This allowed the
+            models to run with thinking switched off. Phi-4-reasoning then answered 493 of 570
+            clean questions correctly, and every prompt version could be scored.</p>
+        </article>
       </div>
     </div>
 
     <div class="wide">
       <div class="plate bleed reveal">
         <div class="fig-head">
-          <h4>The randomized anchor and the mediation fit disagree</h4>
-          <p class="kicker">18-cell pass, 6 cells per model</p>
+          <h4>Experiment 9: batching changes greedy answers</h4>
+          <p class="kicker">Qwen3-8B, 30 items, temperature 0, seed 7</p>
         </div>
-        <canvas id="cAnchor" role="img"
-                aria-label="For three models, the randomized replay anchor puts the indirect effect at 0.146, 0.169 and 0.218, while the fitted model-level NIE is 0.025, 0.052 and 0.016 with 95 percent credible intervals that all cover zero."></canvas>
+        <canvas id="cBatch" role="img"
+                aria-label="Identical completions out of 30 against the sequential run. Under default serving: 30, 11, 13 and 13 at 1, 8, 32 and 64 requests in flight. With batch invariance enabled: 30 out of 30 at every level."></canvas>
         <figcaption>
-          A four-cell randomized cross-over gives a model-free reading of how much of the hint
-          effect travels with the chain. It says a lot. The hierarchical fit, on the same data, says
-          almost none, with every interval covering zero. <b>The two disagree on all three
-          models.</b> Either the fit is losing a real effect, or the anchor contrast is not
-          measuring what the estimand defines. That question is open.
-          <sup class="src"><a href="#s3">3</a></sup>
+          Temperature 0 and a fixed seed do not make a server repeatable once requests share a
+          batch. The log-probabilities of the answer letters moved by up to <b>0.875</b>, which can
+          change an answer. Setting <code>VLLM_BATCH_INVARIANT=1</code> restores 30 of 30 at every
+          load. The setting also changes some outputs: only 10 of 30 match the default one-request
+          run. So the serving mode is fixed and re-checked in every run.
+          <sup class="src"><a href="#s4">4</a></sup>
         </figcaption>
       </div>
     </div>
 
-    <div class="read">
-      <div class="finding reveal">
-        <p class="kicker">the standing verdict</p>
-        <p>All three model rows are UNRESOLVED. The largest probability that the faithful path
-          exceeds the pre-registered margin is <b>0.102</b>, against the <b>0.95</b> the rule
-          requires.</p>
-        <p class="after">Every model-level interval for the faithful path covers zero. The rule was
-          written before the numbers existed and has not been moved since. Under it, this project
-          has not shown that any of these three models reasons faithfully, and has not shown the
-          opposite either.</p>
+    <!-- group E -->
+    <div class="read exp-group" id="exp-sweep">
+      <h3 class="reveal">The real-model sweep</h3>
+      <p class="reveal">Phase 2 runs the hint experiment at scale. The results in this group are the
+        project's measurements on real models.</p>
+    </div>
+    <div class="wide">
+      <div class="cards exp-cards">
+        <article class="card exp v-pass reveal">
+          <span class="mark">Experiment 11 &middot; sweep</span>
+          <h4>The design of the sweep</h4>
+          <p><b>What was done.</b> The sweep crosses 18 models, three question sets and four hint
+            types, for 216 cells. The question sets are ARC-Challenge (school science), AQuA-RAT
+            (algebra word problems) and LogiQA 2.0 (logical reasoning). The hint types are a stated
+            answer key, a professor's opinion, question metadata and grader code.</p>
+          <p>Each cell asks up to 1,500 questions under nine prompt versions, which the project
+            calls arms. Besides the clean and hinted prompts, the arms include:</p>
+          <ul class="exp-list">
+            <li>a meaningless hint of similar length;</li>
+            <li>an answer with no chain of thought;</li>
+            <li>filler text in place of the chain of thought;</li>
+            <li>swaps of chains of thought between the two prompts.</li>
+          </ul>
+          <p><b>What was found.</b> 72 cells are complete, twelve for each of six models:
+            Qwen3-8B, Gemma-2-9B-it, Llama-3.1-8B-Instruct, Phi-4-reasoning, OLMo-3-7B-Think and
+            DeepSeek-R1-Distill-Llama-8B. Eight of the 72 have fewer than 350 clean-correct
+            questions and are labelled as such. The full grid was estimated at 261.7 GPU hours,
+            within a budget of about 650.</p>
+        </article>
+        <article class="card exp v-pass reveal d1">
+          <span class="mark">Experiment 12 &middot; sweep</span>
+          <h4>How often models followed the hint, and whether they said so</h4>
+          <p><b>What was done.</b> In the first sweep wave, three models answered 1,500
+            ARC-Challenge questions with a stated answer-key hint. A frozen regular expression (a
+            fixed text-matching rule) checked whether each chain of thought mentioned the hint.</p>
+          <p><b>What was found.</b> The models followed the wrong hint on 17.8% to 33.9% of
+            clean-correct questions. Most of these chains of thought did not mention the hint. The
+            table below gives the counts.</p>
+        </article>
+        <article class="card exp v-warn reveal">
+          <span class="mark">Experiment 13 &middot; sweep</span>
+          <h4>Splitting the effect: fits at 3, 18 and 24 cells</h4>
+          <p><b>What was done.</b> The Bayesian model was fitted three times as cells were
+            completed: on 3 cells on 2026-09-07, then on 18 and on 24 cells on 2026-09-08. The 24-cell
+            fit pools eight cells for each of three models.</p>
+          <p><b>What was found.</b> For all three models, the direct effect is 0.10 to 0.12 and its
+            interval lies above zero. The indirect effect is 0.02 to 0.06 and its interval includes
+            zero. No model meets the pre-registered decision rule, so each is UNRESOLVED.</p>
+        </article>
+        <article class="card exp v-warn reveal d1">
+          <span class="mark">Experiment 14 &middot; sweep</span>
+          <h4>The replay anchor compared with the fit</h4>
+          <p><b>What was done.</b> The
+            <button type="button" class="term" data-modal="m-anchor">replay anchor</button> is a
+            randomized test that does not depend on the statistical model. It places the chain of
+            thought from each prompt after each prompt, giving four combinations. It then counts how
+            often the model picks the hinted option.</p>
+          <p><b>What was found.</b> On the 18-cell data, the replay anchor puts the indirect effect
+            at 0.146 to 0.218. The fit gives 0.016 to 0.052, with intervals that include zero. The
+            figure below shows each model.</p>
+        </article>
+        <article class="card exp v-pass reveal">
+          <span class="mark">Experiment 15 &middot; sweep</span>
+          <h4>A second outcome scale</h4>
+          <p><b>What was done.</b> On the clean prompt, the model never picks the hinted option, so
+            the yes-or-no outcome does not vary there. A separate pass read the log-probability of
+            the hinted letter for every answer instead.</p>
+          <p><b>What was found.</b> All 24 cells met the six conditions for this scale and report a
+            result. By the pre-registered rule, these results are descriptive. They carry no verdict
+            and do not rank models.</p>
+        </article>
+        <article class="card exp v-warn reveal d1">
+          <span class="mark">Experiment 16 &middot; sweep</span>
+          <h4>Fits on all 72 cells</h4>
+          <p><b>What was done.</b> The fit was extended from 24 to 72 cells.</p>
+          <p><b>What was found.</b> All 72 cell fits completed in 1 hour 34 minutes with no
+            failures. The model-level results were still running at the last record entry. This
+            work sits on a branch that is not yet merged.</p>
+        </article>
       </div>
-
-      <h3 class="reveal">The model rows, as measured</h3>
-      <p class="small reveal">The 24-cell pass, eight cells per model. Hierarchical hyperparameter
-        posteriors, never an average of cell estimates. All PROVISIONAL.</p>
     </div>
 
     <div class="wide">
       <div class="tablewrap reveal">
-        <table>
+        <table class="models">
           <thead>
-            <tr><th>model</th><th>decorative (NDE)</th><th>faithful (NIE)</th><th>total (TE)</th>
+            <tr><th>experiment 12: model</th><th>followed the wrong hint</th><th>did not mention the hint</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>qwen3-8b</td><td class="num">249 of 1,396 (17.8%)</td><td class="num">163 of 249 (65.5%)</td></tr>
+            <tr><td>gemma-2-9b-it</td><td class="num">426 of 1,375 (31.0%)</td><td class="num">425 of 426 (99.8%)</td></tr>
+            <tr><td>llama-3.1-8b-instruct</td><td class="num">448 of 1,321 (33.9%)</td><td class="num">382 of 448 (85.3%)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note reveal">These counts come from the frozen regular expression alone. No human
+        labels exist yet to check or correct them.</p>
+    </div>
+
+    <div class="read">
+      <h3 class="reveal">Experiment 13: model-level results at 24 cells</h3>
+      <p class="small reveal">Each row pools eight cells of one model. Each value is the average of
+        the plausible values, with its 95% credible interval in brackets. All rows are
+        provisional.</p>
+    </div>
+    <div class="wide">
+      <div class="tablewrap reveal">
+        <table class="models">
+          <thead>
+            <tr><th>model</th><th>direct (NDE)</th><th>indirect (NIE)</th><th>total (TE)</th>
               <th>P(NIE &gt; 0.15)</th><th>state</th></tr>
           </thead>
           <tbody>
@@ -543,61 +962,127 @@ TE  = NDE + NIE</code></pre>
     </div>
 
     <div class="read">
+      <div class="finding reveal">
+        <p class="kicker">the pre-registered verdict</p>
+        <p>All three model rows are UNRESOLVED. The highest probability that the indirect effect
+          exceeds 0.15 is <b>0.076</b> at 24 cells, and 0.102 at 18 cells. The rule requires
+          <b>0.95</b>.</p>
+        <p class="after">The rule was written before any of these numbers existed and has not been
+          changed. Under it, the project has not shown that the chain of thought carries the hint's
+          effect in any of the three models. It has not shown the opposite either.</p>
+      </div>
       <p class="note reveal">
-        <b>A limit this pass added.</b> The total-effect identity is not a clean pass. The interval
-        on the model-implied total minus the randomized arm difference excludes zero in <b>11 of 18
-        cells</b>, and the model-implied total sits <b>below</b> the arm difference in 16 of 18,
-        by as much as 44.9 percent. The sign is never reversed.
+        <b>A further limit.</b> The total effect implied by the fit can be compared with the
+        directly measured difference between the two prompt versions. In 16 of 18 cells the implied
+        total is lower, by up to 44.9%. In 11 of 18 cells the interval of that gap excludes zero.
+        The sign is never reversed.
       </p>
-
-      <details class="drop reveal">
-        <summary><h3>Two more results worth the space</h3></summary>
-        <div class="drop-body">
-          <p>Both are transferable beyond this project, and one of them is an infrastructure finding
-            that changes how any evaluation of this kind should be run.</p>
-        </div>
-      </details>
+      <p class="note reveal">
+        <b>A difference between question sets.</b> Average clean curve area is 0.9383 to 0.9742 on
+        ARC-Challenge cells and 0.4989 to 0.6422 on AQuA-RAT cells. Results are therefore not
+        compared across question sets. The pre-registered grouping was by hint type, but most of the
+        variation lies between question sets.
+      </p>
     </div>
 
     <div class="wide">
       <div class="plate bleed reveal">
         <div class="fig-head">
-          <h4>Batching breaks greedy decoding</h4>
-          <p class="kicker">Qwen3-8B, 30 items, temperature 0, seed 7</p>
+          <h4>Experiment 14: the replay anchor and the fit disagree</h4>
+          <p class="kicker">18-cell pass, 6 cells per model</p>
         </div>
-        <canvas id="cBatch" role="img"
-                aria-label="Identical completions out of 30 against the sequential run. Under default serving: 30, 11, 13 and 13 at 1, 8, 32 and 64 requests in flight. With batch invariance enabled: 30 out of 30 at every level."></canvas>
+        <canvas id="cAnchor" role="img"
+                aria-label="For three models, the randomized replay anchor puts the indirect effect at 0.146, 0.169 and 0.218, while the fitted model-level indirect effect is 0.025, 0.052 and 0.016 with 95 percent credible intervals that all cover zero."></canvas>
         <figcaption>
-          Temperature 0 and a fixed seed do not make a server reproducible once requests share a
-          batch. Letter logprobs move by up to <b>0.875 nats</b>, which is enough to change an
-          answer. Setting <code>VLLM_BATCH_INVARIANT=1</code> restores 30 of 30 at every level, at
-          about half the throughput. The flag also <b>changes</b> the outputs rather than only
-          stabilising them: against the unbatched default baseline only 10 of 30 match. Each kernel
-          path is its own deterministic sampler, so the serving mode has to be pinned and re-proved
-          per run. <sup class="src"><a href="#s4">4</a></sup>
+          The replay anchor puts the indirect effect at 0.146, 0.169 and 0.218 for the three models.
+          The fit, on the same data, gives 0.025, 0.052 and 0.016, and every interval includes zero.
+          Either the fit misses a real effect, or the anchor measures something other than the
+          indirect effect as defined. This question is open.
+          <sup class="src"><a href="#s3">3</a></sup>
         </figcaption>
       </div>
     </div>
 
+    <!-- group F -->
+    <div class="read exp-group" id="exp-judges">
+      <h3 class="reveal">Automated judges and human labels</h3>
+      <p class="reveal">The design uses language-model judges to read transcripts. They answer two
+        questions: did the model mention the hint, and does the reasoning support the answer? Before
+        their votes are used, they must pass a gate.</p>
+    </div>
+    <div class="wide">
+      <div class="cards exp-cards">
+        <article class="card exp v-warn reveal">
+          <span class="mark">Experiment 17 &middot; judges</span>
+          <h4>The judge gate</h4>
+          <p><b>What was done.</b> Ten pass thresholds were fixed before any judge ran. They apply to
+            items whose correct verdict is known. Four judges and four prompt files were tested,
+            alone and in majority-vote panels.</p>
+          <p><b>What was found.</b> One configuration, Qwen3-32B with prompt d at 1,024 tokens, met
+            all ten thresholds. No panel met them on any prompt file. On the best prompt, three of
+            four judges failed, and two of them failed in opposite directions on the same items.</p>
+          <p>The share of silent cases is therefore still measured by the frozen regular
+            expression.</p>
+        </article>
+        <article class="card exp v-warn reveal d1">
+          <span class="mark">Experiment 18 &middot; judges</span>
+          <h4>A full set of secondary judge votes</h4>
+          <p><b>What was done.</b> A secondary set of judges voted on 16 cells.</p>
+          <p><b>What was found.</b> All 70,738 planned votes were cast and verified. Resuming after an
+            interruption was tested on eight cells. The votes have not yet been combined into a
+            reported number.</p>
+        </article>
+        <article class="card exp v-warn reveal">
+          <span class="mark">Experiment 19 &middot; judges</span>
+          <h4>Comparison with human labels</h4>
+          <p><b>What was done.</b> The frozen regular expression and one judge, gemma-3-27b-it, were
+            scored on FaithCoT-Bench. This is an external set of 1,364 chains of thought labelled by
+            human experts. Its transcripts contain no planted hint, so any flag for a hint mention is
+            a false alarm.</p>
+          <p><b>What was found.</b> The frozen regular expression raised no false alarm on 1,327 of
+            1,364 transcripts (97.3%). This is 4 to 52 points better than the judge with each prompt
+            file. On the second question, the judge found 26 of the 365 transcripts that humans
+            labelled unfaithful, and 26 of its 37 flags were correct. All judge numbers here are
+            exploratory.</p>
+        </article>
+      </div>
+    </div>
+
+    <!-- group G -->
+    <div class="read exp-group" id="exp-organism">
+      <h3 class="reveal">A trained test model with a known hidden path</h3>
+      <p class="reveal">Synthetic data checks the statistics. A real model with a known hidden path
+        would check the whole method. The project calls such a model the validation organism.</p>
+    </div>
+    <div class="wide">
+      <div class="cards exp-cards">
+        <article class="card exp v-warn reveal">
+          <span class="mark">Experiment 20 &middot; trained model</span>
+          <h4>Preparing the validation organism</h4>
+          <p><b>What was done.</b> The plan fine-tunes Qwen3-8B with small adapters (LoRA). In the
+            trained model, the stated hint changes the answer while the chain of thought still argues
+            for the correct option. A twin is trained the same way, except that its hint carries no
+            information about the answer.</p>
+          <p>The plan has 12 checkpoints: three strengths of the hidden path, two training seeds, and
+            a trained model and a twin for each.</p>
+          <p><b>What was found.</b> In a check of four training recipes, the trained model followed
+            the hint on 15 to 39 of 42 held-out items, up from 0 of 42. The twin stayed at 0 of 42
+            under all four. The memory needed fits on one GPU (70.91 and 72.93 GiB of 79.25). No
+            checkpoint of record has been trained yet.</p>
+        </article>
+      </div>
+    </div>
+
     <div class="read">
-      <h3 class="reveal">The judge instrument does not pass its own gate</h3>
+      <h3 class="reveal">Engineering record</h3>
       <p class="reveal">
-        The design called for an LLM jury to read transcripts and say whether the model mentioned
-        the cue. Ten thresholds were frozen before any judge ran. <b>No panel configuration clears
-        them, on any prompt file, in any composition.</b> One single-judge configuration does clear
-        all ten. Three of four judges fail on the best prompt, and the two that fail on the
-        contested classes fail in <b>opposite directions on the same bytes</b>.
+        Running the sweep also exposed several software faults. Two jobs on one machine once shared
+        a network port. A cancelled run was once recorded as a success. A job script dropped the last
+        field of every submitted row.
       </p>
       <p class="reveal">
-        So the column of record stays the frozen regular expression, uncorrected. A secondary jury
-        matrix of <b>70,738 votes</b> across 16 cells is measured, verified and banked, and has not
-        yet been turned into a single reported number.
-      </p>
-      <p class="reveal">
-        Against external human labels the picture is worse for the jury: the frozen regular
-        expression <b>beats every jury configuration</b> by 4 to 52 specificity points, and the
-        jury's recall against human unfaithfulness labels is <b>26 of 365</b>.
-        <sup class="src"><a href="#s5">5</a></sup>
+        Each fault was reproduced with a failing test and then fixed.
+        <a href="record.html">The record</a> describes each one.
       </p>
     </div>
   </div>
@@ -609,50 +1094,51 @@ TE  = NDE + NIE</code></pre>
     <div class="read">
       <div class="shead reveal">
         <span class="num" aria-hidden="true">05</span>
-        <p class="kicker"><span class="n">05</span> &middot; reading a number here</p>
-        <h2>Every number carries a state, and no number assigns its own.</h2>
-        <p class="sub">The state is a recorded field, written by the pipeline. A cell never upgrades
-          quietly.</p>
+        <p class="kicker"><span class="n">05</span> &middot; reading a number</p>
+        <h2>How results are labelled</h2>
+        <p class="sub">Every real-model result carries a claim status. The analysis code writes it as
+          a stored field. It is never set by hand.</p>
       </div>
 
       <div class="ladder reveal">
         <div class="rung r1">
           <span class="step">01</span>
-          <div><h4>Raw</h4><p>Generated under the frozen arm list against the frozen estimand
-            contract. Uninterpreted, and never described as a mediation result on its own.</p></div>
+          <div><h4>Raw</h4><p>Produced under the fixed list of prompt versions and the fixed
+            definitions of the effects. A raw result is not described as a mediation result on its
+            own.</p></div>
           <span class="count">24 cells</span>
         </div>
         <div class="rung r2">
           <span class="step">02</span>
-          <div><h4>Anchored</h4><p>Raw, plus agreement with the four-cell randomized replay anchor
-            inside a margin fixed before any data was seen.</p></div>
+          <div><h4>Anchored</h4><p>Raw, and in agreement with the replay anchor within a margin that
+            was fixed before any data were seen.</p></div>
           <span class="count">0 cells</span>
         </div>
         <div class="rung r3">
           <span class="step">03</span>
-          <div><h4>Validated</h4><p>Anchored, plus the mechanism-challenge coverage check against a
-            pathway that was deliberately installed. Unreachable until the organism is trained.</p></div>
+          <div><h4>Validated</h4><p>Anchored, and passing a coverage check against the validation
+            organism. This status cannot be reached until that model is trained.</p></div>
           <span class="count">0 cells</span>
         </div>
       </div>
 
-      <h3 class="reveal">What this project does not say</h3>
+      <h3 class="reveal">What the project does not claim</h3>
       <ul class="reveal">
-        <li>It does not detect deception. It measures <b>silent cue-following</b>, which is a
-          narrower and checkable thing.</li>
-        <li>It does not treat its intervals as automatically well behaved. Calibration is a property
-          to be tested and reported, and the failures are reported too.</li>
-        <li>It does not claim the label column is correct. Auditor labels are heuristic and human
+        <li>It measures <b>silent cue-following</b>: a model following a planted hint without
+          mentioning it. It makes no claim about intent.</li>
+        <li>It does not assume its intervals are calibrated. Calibration is tested, and failures are
+          reported.</li>
+        <li>It does not treat the text-rule labels as correct. They are heuristic, and human
           labelling has not started.</li>
-        <li>It does not rank models. The ranking rule refuses even to lay three models out in one
-          table as a league.</li>
-        <li>rho* is a maximum-likelihood point estimate with unchecked optimizer convergence, not a
-          posterior.</li>
+        <li>It does not rank models. The pre-registered ranking rule does not allow the three models
+          to be presented as a league table.</li>
+        <li>rho* is a maximum-likelihood point estimate whose optimizer convergence is not checked.
+          It is not a posterior.</li>
       </ul>
 
-      <h3 class="reveal">Every claim maps to a command</h3>
-      <p class="small reveal">Phase-1 claims reproduce on a laptop. The Phase-2 entrypoints need the
-        banked sweep tree.</p>
+      <h3 class="reveal">Reproducing the results</h3>
+      <p class="small reveal">The Phase 1 results reproduce on a laptop CPU. The Phase 2 commands need
+        the stored sweep results.</p>
       <pre data-copy="click to copy"><code>git clone https://github.com/thylinao1/bayes-cot-faithfulness
 pip install -e ".[dev]"
 pytest -q                                  # 1,503 tests collected
@@ -664,47 +1150,49 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
 </section>
 
 <!-- ============================ 06 STATUS ============================ -->
-<section class="section section-band" id="status" data-alias="about" data-alias="roadmap">
+<section class="section section-band" id="status" data-alias="about roadmap">
   <div class="wrap">
     <div class="read">
       <div class="shead reveal">
         <span class="num" aria-hidden="true">06</span>
         <p class="kicker"><span class="n">06</span> &middot; status</p>
-        <h2>Where this actually stands, as of 2026-09-10.</h2>
+        <h2>Status and next steps</h2>
+        <p class="sub">The measurements on this page are as recorded on 2026-09-10.</p>
       </div>
 
       <div class="tl reveal">
         <div class="tl-row done"><span class="d">Apr to Aug 2026</span>
-          <h4>Phase 1, grant funded and delivered</h4>
-          <p>The package, the synthetic validation gate, the positive control, the sensitivity
-            machinery and the figures.</p></div>
+          <h4>Phase 1, funded by a grant and completed</h4>
+          <p>The software package, the synthetic checks, the positive control, the sensitivity
+            analysis and the figures.</p></div>
         <div class="tl-row done"><span class="d">2026-09-06 to 09-07</span>
-          <h4>An external review found three estimator defects</h4>
-          <p>Missing baseline intercepts, a probit and logit mismatch between two paths, and
-            fixed-scale outcome priors. All three repaired, each with a regression test that is
-            proven still able to fail. <a href="record.html#defects">The full account.</a></p></div>
+          <h4>Outside review and three estimator repairs</h4>
+          <p>Missing baseline terms, a mismatch between two model types, and priors that ignored the
+            scale of curve area. Each repair has a test that fails without it.
+            <a href="record.html#defects">The full account.</a></p></div>
         <div class="tl-row done"><span class="d">2026-09-07 to 09-08</span>
-          <h4>Fits passes at 3, 18 and 24 cells</h4>
-          <p>Claim status went <b>down</b>, not up: two cells published as anchored were demoted
-            when the model-level leg was applied. 0 anchored, 24 raw: <b>0 of 24</b> cells clear the
-            <button type="button" class="term" data-modal="m-anchor">replay anchor</button> gate. Eleven clear it on their own three
-            estimands, then fail at the model level. Nothing on this site is <b>VALIDATED</b>, and nothing
-            can be until the validation organism exists.</p></div>
+          <h4>Fits at 3, 18 and 24 cells</h4>
+          <p>Two cells first labelled ANCHORED were moved back to RAW once the model-level
+            comparison was applied. <b>0 of 24</b> cells pass the
+            <button type="button" class="term" data-modal="m-anchor">replay anchor</button> gate.
+            Eleven agree with the anchor on their own estimates but fail at the model level. No
+            result on this site is <b>VALIDATED</b>, because the validation organism does not exist
+            yet.</p></div>
         <div class="tl-row done"><span class="d">2026-09-09</span>
-          <h4>Secondary jury matrix complete</h4>
-          <p>16 of 16 cells, 70,738 votes, matching plan on every cell, resume proven across eight
-            of them.</p></div>
+          <h4>Secondary judge votes complete</h4>
+          <p>16 of 16 cells and 70,738 votes, matching the plan in every cell. Resuming after an
+            interruption was tested on eight of them.</p></div>
         <div class="tl-row live"><span class="d">2026-09-09 onward</span>
           <h4>The 72-cell expansion</h4>
-          <p>All 72 fits and all 72 posteriors landed with zero cell failures. The model rows and
-            claim statuses were re-running at the last record entry. The branch is two commits ahead
-            of main and not yet merged.</p></div>
+          <p>All 72 cell fits completed with no failures. The model-level rows and claim statuses
+            were still running at the last record entry. The branch is two commits ahead of the main
+            branch and not yet merged.</p></div>
         <div class="tl-row"><span class="d">next</span>
-          <h4>Recruit raters, then train the organism</h4>
-          <p>No human label exists yet, so the corrected label column cannot be computed for any
-            cell, and no cell can reach validated. <b>0 of 12</b> validation checkpoints are trained: the
-            statistic, the detection-size formula and the refusals are all implemented, and the inputs
-            do not exist. <b>The binding constraint is people, not GPUs.</b></p></div>
+          <h4>Human raters, then the validation organism</h4>
+          <p>No human label exists yet. Until one does, the corrected label column cannot be computed
+            and no cell can reach VALIDATED. <b>0 of 12</b> validation checkpoints are trained. The
+            statistic, the detection-size formula and the refusal rules are implemented, but their
+            inputs do not exist yet. These steps depend mainly on recruiting human raters.</p></div>
       </div>
 
       <h3 class="reveal">Who</h3>
@@ -721,43 +1209,62 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
   <div class="wrap">
     <div class="read">
       <div class="shead reveal">
-        <p class="kicker">objections</p>
+        <p class="kicker">questions</p>
         <h2>What a careful reviewer might ask.</h2>
       </div>
       <div class="faq reveal">
         <details>
-          <summary>Your headline result is that you found nothing. Why publish it?</summary>
-          <div class="a"><p>Because the alternative is to move the bar. The rule that says a
-            faithfulness claim needs 0.95 posterior probability above a named margin was fixed
-            before any of these numbers existed. Reporting UNRESOLVED is what that rule requires,
-            and a project that only publishes when its rules are met is not measuring anything. The
-            anchor disagreement in section 04 is a real finding that would have been buried by a
-            more flattering write-up.</p></div>
+          <summary>No model meets the decision rule. Why report the results?</summary>
+          <div class="a"><p>The rule was fixed before any of these numbers existed. It requires a
+            probability of at least 0.95 that the indirect effect exceeds a margin named in advance.
+            When no model meets it, the rule requires the verdict UNRESOLVED.</p>
+            <p>Reporting every result also keeps the disagreement between the replay anchor and the
+            fit visible.</p></div>
         </details>
         <details>
-          <summary>If rho* cannot rank cells, why is it still on the page?</summary>
-          <div class="a"><p>Because it answers one question well and no others: how much residual
-            correlation would be needed to overturn <b>this</b> verdict. That is useful. What it
-            cannot do is compare two worlds, which is exactly what a trust score would need to do.
-            The battery result is the evidence for that limit, and it is the project's own
-            measurement.</p></div>
+          <summary>If rho* cannot rank models, why is it on the page?</summary>
+          <div class="a"><p>It answers one question: how large the residual correlation would need
+            to be to remove one particular result. That is useful for a single result.</p>
+            <p>It cannot compare two worlds or two models. The mechanism battery, which is the
+            project's own measurement, is the evidence for that limit.</p></div>
         </details>
         <details>
-          <summary>Is the mediator a fair stand-in for the reasoning?</summary>
-          <div class="a"><p>Not obviously, and the project says so. Curve area measures how early
-            the model commits to its final answer under forced continuation. Mean clean-arm curve
-            area runs 0.9383 to 0.9742 on the ARC cells against 0.4989 to 0.6422 on the AQuA cells,
-            so the mediator has a different distribution on the two substrates and coefficients must
-            not be read across them. The pre-registered grouping factor was cue family, and the
-            measurement found the variation lives in the substrate instead.</p></div>
+          <summary>Is curve area a fair measure of the chain of thought?</summary>
+          <div class="a"><p>This is not certain, and the project says so. Curve area measures how
+            early the model commits to its final answer when the chain of thought is cut short.</p>
+            <p>Its clean-prompt average is 0.9383 to 0.9742 on ARC-Challenge cells and 0.4989 to
+            0.6422 on AQuA-RAT cells. So its meaning differs between question sets, and results are
+            not compared across them.</p></div>
         </details>
         <details>
-          <summary>Why does the site say fewer cells are anchored than it used to?</summary>
-          <div class="a"><p>Because claim status turns on a model-level comparison that no model row
-            clears. Two cells were published as anchored on 2026-09-07 and demoted when the
-            model-level leg was applied. Publishing a retracted label next to its retraction is
-            worse than publishing neither, so the earlier column moved to
-            <a href="record.html">the record</a> with its history intact.</p></div>
+          <summary>If cutting the chain of thought short changes the answer, is that not enough?</summary>
+          <div class="a"><p>Cutting the chain of thought is an intervention. If the answer changes,
+            the answer depends on the chain of thought for that question.</p>
+            <p>The split needs more than that. It asks how much of the hint's effect passes through
+            the chain of thought across many questions. The fit answers this by comparing curve
+            area and answers across questions, and that comparison depends on the assumption about
+            rho.</p>
+            <p>The replay anchor stays an intervention throughout. This is one reason the project
+            runs both methods.</p></div>
+        </details>
+        <details>
+          <summary>Why not measure the hidden influence from the model's activations?</summary>
+          <div class="a"><p>With open model weights, part of it could be measured. One option is a
+            linear probe on the activations at the end of the clean prompt, before any hint or chain
+            of thought. It would estimate how much the model already favours the option that the
+            hint will later name.</p>
+            <p>Adding that measurement to the fit would reduce what rho has to cover. It would not
+            remove the need for the sensitivity analysis, because a probe can miss part of the
+            influence.</p>
+            <p>A probe of this kind is in the project's plans. It has not been built.</p></div>
+        </details>
+        <details>
+          <summary>Why does the site list fewer ANCHORED cells than before?</summary>
+          <div class="a"><p>Claim status also depends on a model-level comparison, and no model row
+            passes it. Two cells were labelled ANCHORED on 2026-09-07. They were moved back to RAW
+            when the model-level comparison was applied.</p>
+            <p>The main page shows only the current status. The earlier labels and their history are
+            kept in <a href="record.html">the record</a>.</p></div>
         </details>
       </div>
     </div>
@@ -769,22 +1276,26 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
   <div class="wrap"><div class="read">
     <p class="kicker reveal">sources</p>
     <ol class="reveal">
-      <li id="s1">Sensitivity sweep vectors, precomputed from the package (notebook 04 config).
-        See <a href="methodology.html">methodology</a> and
+      <li id="s1">Sensitivity sweep values, precomputed from the package (notebook 04 configuration).
+        See <a href="methodology.html">the methodology</a> and
         <code>experiments/sensitivity_sweep.py</code>.</li>
-      <li id="s2">Mechanism battery: 11 families, 15 conditions, 3,800 seeded datasets, 200 bootstrap
+      <li id="s2">Mechanism battery: 11 families, 15 conditions, 3,800 seeded data sets, 200 bootstrap
         refits each. <code>experiments/results/mechanism_battery/report.md</code>.</li>
       <li id="s3">18-cell fits pass, 2026-09-08. <code>docs/CELLS18-FITS.md</code> and
-        <code>docs/WAVE1-FITS.md</code>.</li>
+        <code>docs/WAVE1-FITS.md</code>. The 24-cell pass is in <code>docs/CELLS24-FITS.md</code>.</li>
       <li id="s4">Serving determinism, jobs 825548 and 826020.
         <code>docs/W3B-BATCH-INVARIANT.md</code>.</li>
-      <li id="s5">External validity against human labels, FaithCoT-Bench.
+      <li id="s5">Comparison with human labels on FaithCoT-Bench (arXiv:2510.04040).
         <code>docs/external_validity.md</code>.</li>
-      <li>Method lineage: Robins and Greenland (1992); Pearl (2001) on direct and indirect effects;
-        Imai, Keele and Yamamoto (2010) on sensitivity analysis for causal mediation;
+      <li>Method background: Robins and Greenland (1992) and Pearl (2001) on direct and indirect
+        effects; Imai, Keele and Yamamoto (2010) on sensitivity analysis for causal mediation;
         VanderWeele and Ding (2017) on the E-value.</li>
-      <li>Related measurement work: Turpin et al. (2023) on unfaithful chain-of-thought explanations;
-        Lanham et al. (2023) on measuring faithfulness by intervention.</li>
+      <li>Earlier measurement work:
+        Turpin et al. (2023), <a href="https://arxiv.org/abs/2305.04388">arXiv:2305.04388</a>;
+        Lanham et al. (2023), <a href="https://arxiv.org/abs/2307.13702">arXiv:2307.13702</a>;
+        Paul et al. (2024), <a href="https://arxiv.org/abs/2402.13950">arXiv:2402.13950</a>;
+        Chen et al. (2025), <a href="https://arxiv.org/abs/2505.05410">arXiv:2505.05410</a>;
+        Korbak et al. (2025), <a href="https://arxiv.org/abs/2507.11473">arXiv:2507.11473</a>.</li>
     </ol>
   </div></div>
 </section>
@@ -794,8 +1305,8 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
     <div class="foot-grid">
       <div>
         <h3>bayes-cot-faithfulness</h3>
-        <p style="max-width:38ch">A Bayesian causal-mediation instrument for chain-of-thought
-          faithfulness, and an honest account of what it has and has not shown.</p>
+        <p style="max-width:38ch">A Bayesian causal-mediation method for measuring whether a chain
+          of thought carries a model's answer, with a record of what it has and has not shown.</p>
       </div>
       <div><h4>On this site</h4><ul>
         <li><a href="record.html">The complete measured record</a></li>
@@ -814,7 +1325,7 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
     </div>
     <div class="foot-bot">
       <span>Maksim Silchenko &middot; National University of Singapore</span>
-      <span>Page rebuilt 2026-09-10</span>
+      <span>Measurements as of 2026-09-10 &middot; text revised 2026-10-30</span>
     </div>
   </div>
 </footer>
@@ -837,71 +1348,75 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
   <div id="m-rhostar">
     <p class="kicker">sensitivity</p>
     <h3>rho*, the breakdown frontier</h3>
-    <p>The smallest amount of hidden confounding that flips the faithfulness verdict: the residual
-      mediator-outcome correlation at which the faithful path crosses zero.</p>
-    <p>A rho* of 0.05 means almost any unmeasured influence overturns the verdict. A rho* of 0.69
-      means the confounder would have to be implausibly strong. It is the mediation analogue of
-      VanderWeele's E-value.</p>
-    <p>Two warnings travel with it. It is a <b>maximum-likelihood point estimate with unchecked
-      optimizer convergence</b>, not a posterior. And it answers that one question and no other: it
-      is invariant to the strength of the direct path by construction, and the project's own
-      battery showed it cannot rank two worlds against each other.</p>
+    <p>rho is the residual correlation between curve area and the answer, after the hint is taken
+      into account. rho* is the value of rho at which the indirect effect crosses zero.</p>
+    <p>A rho* of 0.05 means a very small residual correlation would remove the result. A rho* of 0.69
+      means only a large one would. It plays a role similar to VanderWeele's E-value.</p>
+    <p>Two limits apply. First, rho* is a <b>maximum-likelihood point estimate</b>, and the code does
+      not check that the optimizer converged, so it is not a posterior. Second, it answers only this
+      one question. It does not change when the direct effect grows, and the project's own battery
+      showed it cannot rank two worlds.</p>
   </div>
   <div id="m-anchor">
     <p class="kicker">gate</p>
-    <h3>The four-cell replay anchor</h3>
-    <p>A randomized cross-over that checks the mediation fit against something model-free: the
-      answer rate on a designated target option, with the recipient cue crossed against the donor
-      chain source, giving four cell means.</p>
-    <p>A cell is only ANCHORED when all three estimands agree with their matching anchor contrast
-      within 0.10 on the difference, a margin fixed before any data was seen. Eleven of 24 cells
-      clear it on their own three estimands. All eleven are still held at RAW, because claim status
-      also turns on the model-level comparison, which no model row clears.</p>
+    <h3>The replay anchor</h3>
+    <p>A randomized test that checks the fit against something that does not depend on the
+      statistical model. It takes the chains of thought written under the clean and the hinted
+      prompt, and places each one after each prompt. This gives four combinations.</p>
+    <p>The rate at which the model picks the hinted option in each combination gives model-free
+      versions of the direct, indirect and total effects.</p>
+    <p>A cell is ANCHORED only when all three agree with the fit within 0.10, a margin fixed before
+      any data were seen. Eleven of 24 cells meet this on their own estimates. All eleven stay RAW,
+      because claim status also depends on a model-level comparison that no model row passes.</p>
   </div>
   <div id="m-nie">
-    <p class="kicker">estimand</p>
+    <p class="kicker">effect</p>
     <h3>NIE, the natural indirect effect</h3>
-    <p>The part of the prompt's effect on the answer that is carried by the reasoning: the answer
-      moving only because the reasoning moved.</p>
-    <p>This is the faithful path. In a fully faithful world it carries the whole effect. It is
-      plotted in cyan everywhere on this site and in the published figures.</p>
+    <p>The part of the hint's effect on the answer that passes through the chain of thought. The
+      answer changes because the chain of thought changed.</p>
+    <p>If the chain of thought carried the whole effect, the NIE would equal the total effect. It is
+      drawn in cyan in every figure on this site.</p>
   </div>
   <div id="m-nde">
-    <p class="kicker">estimand</p>
+    <p class="kicker">effect</p>
     <h3>NDE, the natural direct effect</h3>
-    <p>The part of the effect that bypasses the reasoning: the answer moving while the chain of
-      thought is held at what it would have been under the clean prompt.</p>
-    <p>In a fully faithful world it is zero. A high ratio of direct to total effect is what
-      decorative reasoning looks like. It is plotted in orange throughout.</p>
+    <p>The part of the hint's effect that bypasses the chain of thought. The answer changes while the
+      chain of thought stays as it would have been under the clean prompt.</p>
+    <p>If the chain of thought carried the whole effect, the NDE would be zero. It is drawn in orange
+      in every figure on this site.</p>
   </div>
   <div id="m-ignorability">
     <p class="kicker">assumption</p>
     <h3>Sequential ignorability</h3>
-    <p>The bundle of assumptions under which natural direct and indirect effects are identified. The
-      load-bearing one here is that no unmeasured confounder sits between the chain of thought and
-      the answer once the prompt is fixed.</p>
-    <p>In a language model this is almost never true, because the reasoning and the answer both read
-      from the same hidden activations. Randomizing the prompt does not help: it fixes confounding
-      of the prompt, not of the mediator. That is why the project reports a curve over rho instead
-      of a single number at rho = 0.</p>
+    <p>The set of assumptions under which direct and indirect effects can be estimated. The one that
+      matters here is that, once the prompt is fixed, nothing unmeasured links the chain of thought
+      and the answer.</p>
+    <p>In a language model this is unlikely to hold exactly, because the chain of thought and the
+      answer come from the same hidden activations. Placing the hint does not help with this. It
+      controls the prompt, not the chain of thought. This is why the project reports results across
+      a range of rho and not only at rho&nbsp;=&nbsp;0.</p>
   </div>
   <div id="m-cleancorrect">
-    <p class="kicker">population</p>
-    <h3>The clean-correct subpopulation</h3>
-    <p>The frozen analysis population: only items the model answers correctly under the clean
-      prompt. That is what makes a hint-following event interpretable, since the model had the right
-      answer available and moved away from it.</p>
-    <p>It has a structural cost the project reports rather than hides. The clean arm then carries
-      zero outcome variance by construction, so the direct and indirect split rests on the probit
-      link extrapolating into a region the clean arm never visits.</p>
+    <p class="kicker">questions used</p>
+    <h3>Clean-correct questions</h3>
+    <p>The analysis uses only questions the model answers correctly under the clean prompt. On these
+      questions the model had the right answer available, so a move to the hinted option is a clear
+      change.</p>
+    <p>This choice has a cost, which the project reports. On the clean prompt the outcome never
+      varies, because the model never picks the hinted option there. The split into direct and
+      indirect effects therefore relies on the probit model extending into a range of values that
+      the clean prompt never reaches.</p>
   </div>
 </div>
 
 <script>
-/* section names changed in the 2026-09-10 rebuild. Old deep links still land. */
+/* section names changed in the 2026-09-10 and 2026-10-30 revisions. Old deep links still land. */
 (function () {
   var map = {}, secs = document.querySelectorAll("[data-alias]");
-  for (var i = 0; i < secs.length; i++) map[secs[i].dataset.alias] = secs[i].id;
+  for (var i = 0; i < secs.length; i++) {
+    var id = secs[i].id;
+    secs[i].dataset.alias.split(/\s+/).forEach(function (a) { if (a) map[a] = id; });
+  }
   function jump() {
     var h = location.hash.slice(1);
     if (h && map[h]) {
@@ -913,7 +1428,7 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
 })();
 </script>
 <script src="forest.js?v=20260910f" defer></script>
-<script src="charts.js?v=20260910f" defer></script>
+<script src="charts.js?v=20261030a" defer></script>
 <script src="ui.js?v=20260910f" defer></script>
 <script>
 /* the sticky diagram follows the scrollytelling steps */
@@ -927,14 +1442,14 @@ window.bcfScrollyStep = function (i) {
       nY  = document.getElementById("nY");
   if (!med) return;
   var state = [
-    { m: .55, d: .55, x: 1,  mm: .60, y: .60, l: "step 01  the cue",
-      c: "The planted cue is randomized, so the total effect on the answer is pinned directly whatever else is assumed." },
-    { m: .55, d: .55, x: 1,  mm: .60, y: 1,   l: "step 02  the population",
-      c: "Only items the model already answers correctly under the clean prompt enter the analysis." },
-    { m: 1,   d: .42, x: .8, mm: 1,   y: .8,  l: "step 03  the mediator",
-      c: "Curve area measures the chain by truncating it and forcing a continuation at five depths." },
+    { m: .55, d: .55, x: 1,  mm: .60, y: .60, l: "step 01  the hint",
+      c: "The project places the hint, so the hint's total effect on the answer is measured directly." },
+    { m: .55, d: .55, x: 1,  mm: .60, y: 1,   l: "step 02  the questions",
+      c: "Only questions the model answers correctly under the clean prompt enter the analysis." },
+    { m: 1,   d: .42, x: .8, mm: 1,   y: .8,  l: "step 03  curve area",
+      c: "Curve area measures the chain of thought by cutting it at five points and asking for the answer at each." },
     { m: 1,   d: 1,   x: 1,  mm: 1,   y: 1,   l: "step 04  the split",
-      c: "The total effect divides into the part carried by the chain and the part that bypasses it, each with a posterior." }
+      c: "The total effect is split into the part through the chain of thought and the part that bypasses it, each with a range." }
   ][i] || null;
   if (!state) return;
   med.style.transition = dir.style.transition = "opacity .55s cubic-bezier(.16,1,.3,1)";

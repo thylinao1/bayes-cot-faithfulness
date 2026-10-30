@@ -212,8 +212,8 @@
           }
         }
         path(SWEEP.te, C.te, "total");
-        path(SWEEP.nde, C.nde, "decorative");
-        path(SWEEP.nie, C.nie, "faithful");
+        path(SWEEP.nde, C.nde, "direct");
+        path(SWEEP.nie, C.nie, "indirect");
 
         /* truth markers: what the world actually contained */
         if (p > 0.85 && !narrow) {
@@ -262,7 +262,7 @@
       }
       if (verdict) {
         var live = interp(SWEEP.nie, rho) > 0;
-        verdict.textContent = live ? "faithful path still positive" : "faithful path has crossed zero";
+        verdict.textContent = live ? "indirect effect above zero" : "indirect effect has crossed zero";
         verdict.className = "chip " + (live ? "pass" : "fail");
       }
       ch.repaint();
@@ -308,7 +308,7 @@
           g.fillStyle = C.ink3; g.fillText(t.toFixed(2), x, T + ih + 10);
         });
         g.fillStyle = C.ink3;
-        g.fillText("natural indirect effect  (the faithful path)", L + iw / 2, T + ih + 27);
+        g.fillText("natural indirect effect  (NIE)", L + iw / 2, T + ih + 27);
 
         rows.forEach(function (r, i) {
           var y = T + rowH * i + rowH / 2;
@@ -340,7 +340,7 @@
           api.hit.push({
             x: L, y: y - rowH / 2, w: iw, h: rowH, key: r.m, idx: i,
             lines: [r.m,
-                    "randomized anchor  " + r.anchor.toFixed(3),
+                    "replay anchor      " + r.anchor.toFixed(3),
                     "fitted NIE         " + fmt(r.fit, 4),
                     "95% CrI  [" + fmt(r.lo, 4) + ", " + fmt(r.hi, 4) + "]"]
           });
@@ -351,7 +351,7 @@
           g.font = MONO; g.textBaseline = "middle";
           g.textAlign = "left"; g.font = narrow ? MONO_S : MONO;
           g.fillStyle = C.gold;
-          g.fillText("● randomized anchor", narrow ? 4 : L, T - 26);
+          g.fillText("● replay anchor", narrow ? 4 : L, T - 26);
           g.fillStyle = C.nie;
           g.fillText("● mediation fit, 95% CrI",
                      narrow ? 4 : L + Math.min(200, iw * 0.44), narrow ? T - 42 : T - 26);

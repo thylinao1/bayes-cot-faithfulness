@@ -633,3 +633,23 @@ footer a:hover{color:var(--gold-soft);border-bottom-color:var(--gold-soft)}
 
 /* long inline paths must wrap on phone widths instead of widening the page */
 :not(pre) > code{overflow-wrap:anywhere}
+
+/* ============================================================
+   EXPERIMENTS LIST (added 2026-10-30)
+   One card per experiment: what was done, what was found.
+   ============================================================ */
+.exp-toc{margin:22px 0 0;padding-left:1.3em;font-size:.95rem;line-height:1.7}
+.exp-toc a{color:var(--moss-deep)}
+.exp-group{margin-top:clamp(48px,4.6vw,76px);scroll-margin-top:84px}
+.exp-group h3{margin-bottom:8px}
+.exp-cards{grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));margin:20px 0 6px}
+.exp .mark{color:var(--moss)}
+.exp p + p{margin-top:10px}
+.exp p b{color:var(--ink)}
+.exp a{color:var(--moss-deep)}
+#experiments .plate.bleed{margin-top:26px}
+table.models td:first-child{white-space:nowrap}
+.exp-list{margin:6px 0 0;padding-left:1.15em;font-size:.94rem;line-height:1.5;color:var(--ink-2)}
+.exp-list li{margin:2px 0}
+.doc-head a{color:var(--gold-bright);border-bottom-color:rgba(207,154,47,.4)}
+.doc-head a:hover{color:var(--gold-soft);border-bottom-color:var(--gold-soft)}
