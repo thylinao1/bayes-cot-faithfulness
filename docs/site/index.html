@@ -582,7 +582,7 @@ TE  = NDE + NIE</code></pre>
       <ol class="exp-toc reveal">
         <li><a href="#exp-synthetic">Checks on synthetic data with known answers</a> (1 to 5)</li>
         <li><a href="#exp-phase1">First runs on real models</a> (6 and 7)</li>
-        <li><a href="#exp-repair">Review and repair of the estimator</a> (8)</li>
+        <li><a href="#exp-repair">Testing and repair of the estimator</a> (8)</li>
         <li><a href="#exp-serving">Reproducible measurements on GPUs</a> (9 and 10)</li>
         <li><a href="#exp-sweep">The real-model sweep</a> (11 to 16)</li>
         <li><a href="#exp-judges">Automated judges and human labels</a> (17 to 19)</li>
@@ -757,17 +757,17 @@ TE  = NDE + NIE</code></pre>
 
     <!-- group C -->
     <div class="read exp-group" id="exp-repair">
-      <h3 class="reveal">Review and repair of the estimator</h3>
-      <p class="reveal">At the start of Phase 2, an outside review tested the estimator on data with
-        no effect. This led to three repairs.</p>
+      <h3 class="reveal">Testing and repair of the estimator</h3>
+      <p class="reveal">At the start of Phase 2, a test on data with no effect exposed a defect in
+        the estimator, and further checks found two more. This led to three repairs.</p>
     </div>
     <div class="wide">
       <div class="cards exp-cards">
         <article class="card exp v-warn reveal">
           <span class="mark">Experiment 8 &middot; Phase 2</span>
-          <h4>An outside review and three repairs</h4>
-          <p><b>What was done.</b> On 2026-09-06 an outside reviewer ran a synthetic world with zero
-            true effect through the code. The estimator reported an indirect effect of +0.2131 and
+          <h4>A null test and three repairs</h4>
+          <p><b>What was done.</b> On 2026-09-06 a synthetic world with zero true effect was run
+            through the code. The estimator reported an indirect effect of +0.2131 and
             a total effect of +0.2697.</p>
           <p><b>What was found.</b> The equations had no baseline terms (intercepts). After that
             repair, the same test gives an indirect effect of −0.0002 and a total effect of −0.0082.
@@ -1203,7 +1203,7 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
           <p>The software package, the synthetic checks, the positive control, the sensitivity
             analysis and the figures.</p></div>
         <div class="tl-row done"><span class="d">2026-09-06 to 09-07</span>
-          <h4>Outside review and three estimator repairs</h4>
+          <h4>A null test and three estimator repairs</h4>
           <p>Missing baseline terms, a mismatch between two model types, and priors that ignored the
             scale of the mediator. Each repair has a test that fails without it.
             <a href="record.html#defects">The full account.</a></p></div>

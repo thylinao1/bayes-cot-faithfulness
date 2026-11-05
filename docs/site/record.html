@@ -237,9 +237,9 @@
         <p>Phase 1 delivered the software package, the estimator, the sensitivity analysis code,
           the positive control, the synthetic validation gate and the published figures.</p></div>
       <div class="tl-row done"><span class="d">2026-09-06</span>
-        <h4>Independent external review</h4>
-        <p>An external reviewer ran a synthetic world with exactly zero true effect through the
-          code. None of the 22 internal reviewers had done this. The estimator reported an indirect
+        <h4>Null test on the code</h4>
+        <p>A synthetic world with exactly zero true effect was run through the code. None of the
+          22 plan reviewers had done this. The estimator reported an indirect
           effect of 0.21 on that world.</p></div>
       <div class="tl-row done"><span class="d">2026-09-07</span>
         <h4>Three estimator defects repaired and eleven public claims corrected</h4>
@@ -359,16 +359,17 @@
   <section id="defects">
     <h2>Three estimator defects and their repairs</h2>
     <p class="lead">This section describes three defects in the estimator, all found in one week.
-      An external reviewer found the first, and the project's own checks found the other two. Each
+      A test on data with no effect found the first, an internal audit found the
+      second, and the mechanism battery found the third. Each
       repair came with a regression test that has been shown able to fail.</p>
 
-    <h4>Defect 1, found 2026-09-06 by the external reviewer</h4>
+    <h4>Defect 1, found 2026-09-06 by a null test</h4>
     <p><b>No baseline intercepts.</b> The model specification had no intercept terms. On a world
       built with exactly zero true effect, the estimator reported an indirect effect of
       <b>+0.2131</b> and a total effect of <b>+0.2697</b>.</p>
     <p>After the repair, the same null world returns <b>−0.0002</b> and <b>−0.0082</b>. The
       randomized arm difference on that world is −0.0082.</p>
-    <p>The defect also exposed a gap in review. The 22 internal reviewers checked the equations
+    <p>The defect also exposed a gap in review. The 22 plan reviewers checked the equations
       against the prose and passed the plan. None of them ran a world with a known zero effect
       through the code.</p>
     <p>The resulting rule is that every statistical component ships with a null test that must pass
@@ -517,7 +518,7 @@
         raised by hand.</li>
     </ul>
     <p class="note">The adversarial review of the plan is also recorded as a failure. Its 22
-      internal reviewers passed an estimator that reported an indirect effect of 0.21 on data with
+      reviewers passed an estimator that reported an indirect effect of 0.21 on data with
       no effect. Each reviewer checked the equations, and none ran the code.</p>
   </section>
 
@@ -632,8 +633,8 @@
       <div class="drop-body">
         <p>A plan review with 22 reviewers passed an estimator that reports an indirect effect of
           0.21 on data with no effect. Every reviewer checked the equations against the prose, and
-          none ran a world with a known zero effect through the code. An external reviewer ran that
-          test, which took seconds.</p>
+          none ran a world with a known zero effect through the code. That test takes seconds to
+          run.</p>
       </div>
     </details>
   </section>
