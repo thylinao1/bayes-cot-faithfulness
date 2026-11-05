@@ -42,8 +42,8 @@ and `bcf/` holds cluster job scripts and job tables; neither is library code.
 
 ## Findings so far
 
-- **The first estimator invented an effect, and the repair is gated by a null test.** An
-  outside review found three estimator defects. On a synthetic null with zero true effect
+- **The first estimator invented an effect, and the repair is gated by a null test.** Three
+  estimator defects were found and repaired. On a synthetic null with zero true effect
   (seed 731, n = 10,000) the old fit reported NIE +0.2131 and TE +0.2697; the repaired fit
   reports -0.0002 and -0.0082.
   [`docs/ESTIMATOR-REPAIR-2026-09-07.md`](docs/ESTIMATOR-REPAIR-2026-09-07.md).
