@@ -1,0 +1,32 @@
+{
+  "cell": "phi-4-reasoning/arc_challenge/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 43.08765625953674,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1730.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.0911148734644929,
+    "lo": 0.0665807308457946,
+    "hi": 0.11868194021462203
+  },
+  "nie": {
+    "mean": 0.07534583233256613,
+    "lo": 0.05850363942918497,
+    "hi": 0.09502324427971756
+  },
+  "te": {
+    "mean": 0.16646070579705904,
+    "lo": 0.13372655841233358,
+    "hi": 0.20095253261256116
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 492,
+  "n_rows": 984,
+  "model_slug": null
+}

@@ -1,0 +1,32 @@
+{
+  "cell": "olmo-3-7b-think/arc_challenge/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 36.78093957901001,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1855.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.02606437756744014,
+    "lo": 0.01372978392367175,
+    "hi": 0.04198312745097061
+  },
+  "nie": {
+    "mean": 0.0023611961740819865,
+    "lo": -0.001507597786342374,
+    "hi": 0.006887691963690739
+  },
+  "te": {
+    "mean": 0.028425573741522128,
+    "lo": 0.015197509392678332,
+    "hi": 0.045040460820880854
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 484,
+  "n_rows": 968,
+  "model_slug": null
+}

@@ -1,0 +1,32 @@
+{
+  "cell": "qwen3-8b/logiqa2/professor",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 68.16796731948853,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1621.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.22985748054361346,
+    "lo": 0.20292496935409418,
+    "hi": 0.2584749977119132
+  },
+  "nie": {
+    "mean": 0.3705352988571663,
+    "lo": 0.34495446659655077,
+    "hi": 0.3965387792806212
+  },
+  "te": {
+    "mean": 0.6003927794007797,
+    "lo": 0.5666161144939411,
+    "hi": 0.6347510409818278
+  },
+  "prob_nie_above_0.15": 1.0,
+  "n_items": 1079,
+  "n_rows": 2158,
+  "model_slug": null
+}

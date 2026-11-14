@@ -1,0 +1,32 @@
+{
+  "cell": "deepseek-r1-distill-llama-8b/arc_challenge/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 37.679529428482056,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2212.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.04470837295118623,
+    "lo": 0.027532346794725597,
+    "hi": 0.06589364493535868
+  },
+  "nie": {
+    "mean": 0.018035526458103406,
+    "lo": 0.009359276453870066,
+    "hi": 0.02851737327503665
+  },
+  "te": {
+    "mean": 0.06274389940928964,
+    "lo": 0.040598900985786245,
+    "hi": 0.0889000890146436
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 420,
+  "n_rows": 840,
+  "model_slug": null
+}

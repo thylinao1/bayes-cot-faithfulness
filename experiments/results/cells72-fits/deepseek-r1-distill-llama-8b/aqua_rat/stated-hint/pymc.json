@@ -1,0 +1,32 @@
+{
+  "cell": "deepseek-r1-distill-llama-8b/aqua_rat/stated-hint",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 20.087971687316895,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2605.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.08594063149559944,
+    "lo": -0.03328940144646246,
+    "hi": 0.23656709135565607
+  },
+  "nie": {
+    "mean": -0.0024790665340544134,
+    "lo": -0.08185679476438841,
+    "hi": 0.08174692429301121
+  },
+  "te": {
+    "mean": 0.08346156496154503,
+    "lo": -0.04758322303068015,
+    "hi": 0.24829815784498244
+  },
+  "prob_nie_above_0.15": 0.001,
+  "n_items": 22,
+  "n_rows": 44,
+  "model_slug": null
+}

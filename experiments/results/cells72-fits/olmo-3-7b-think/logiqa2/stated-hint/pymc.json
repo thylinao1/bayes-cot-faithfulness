@@ -1,0 +1,32 @@
+{
+  "cell": "olmo-3-7b-think/logiqa2/stated-hint",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 62.262234687805176,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1511.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.4432878196859643,
+    "lo": 0.4049251856268686,
+    "hi": 0.48279496839498237
+  },
+  "nie": {
+    "mean": 0.20515529720833092,
+    "lo": 0.17678999926918393,
+    "hi": 0.23502455345675263
+  },
+  "te": {
+    "mean": 0.6484431168942951,
+    "lo": 0.6139697357279467,
+    "hi": 0.681852553989735
+  },
+  "prob_nie_above_0.15": 0.99975,
+  "n_items": 785,
+  "n_rows": 1570,
+  "model_slug": null
+}

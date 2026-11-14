@@ -1,0 +1,18 @@
+{
+  "model_slug": "llama-3.1-8b-instruct",
+  "cell_set": "72",
+  "written": {
+    "arc_challenge/stated-hint": "RAW",
+    "arc_challenge/professor": "RAW",
+    "arc_challenge/metadata": "RAW",
+    "arc_challenge/grader-code": "RAW",
+    "aqua_rat/stated-hint": "RAW",
+    "aqua_rat/professor": "RAW",
+    "aqua_rat/metadata": "RAW",
+    "aqua_rat/grader-code": "RAW",
+    "logiqa2/stated-hint": "RAW",
+    "logiqa2/professor": "RAW",
+    "logiqa2/metadata": "RAW",
+    "logiqa2/grader-code": "RAW"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "cell": "olmo-3-7b-think/aqua_rat/professor",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 80.64273476600647,
+  "max_r_hat": 1.01,
+  "min_ess_bulk": 1779.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.2183269666486679,
+    "lo": 0.19536793211198122,
+    "hi": 0.24334117872304187
+  },
+  "nie": {
+    "mean": 0.02952560480711747,
+    "lo": 0.01512404315414363,
+    "hi": 0.044147233960128415
+  },
+  "te": {
+    "mean": 0.24785257145578532,
+    "lo": 0.2224630273067065,
+    "hi": 0.27354897865205985
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 1040,
+  "n_rows": 2080,
+  "model_slug": null
+}

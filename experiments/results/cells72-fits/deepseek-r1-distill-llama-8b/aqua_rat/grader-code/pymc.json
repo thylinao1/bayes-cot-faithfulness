@@ -1,0 +1,32 @@
+{
+  "cell": "deepseek-r1-distill-llama-8b/aqua_rat/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 19.232544898986816,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2115.0,
+  "divergences": 0,
+  "nde": {
+    "mean": -0.020786822104147482,
+    "lo": -0.1484617867149281,
+    "hi": 0.07828828670018163
+  },
+  "nie": {
+    "mean": 0.0005893258176982015,
+    "lo": -0.03622392439047708,
+    "hi": 0.042500269932272836
+  },
+  "te": {
+    "mean": -0.02019749628644928,
+    "lo": -0.1589149482373139,
+    "hi": 0.09005797769807149
+  },
+  "prob_nie_above_0.15": 0.00075,
+  "n_items": 11,
+  "n_rows": 22,
+  "model_slug": null
+}

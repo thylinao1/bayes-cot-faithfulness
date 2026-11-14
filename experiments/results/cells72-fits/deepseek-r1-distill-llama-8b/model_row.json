@@ -1,0 +1,891 @@
+{
+  "model_slug": "deepseek-r1-distill-llama-8b",
+  "link": "probit",
+  "grouping": "cue_family",
+  "estimand": "prereg element 1 section 2.4, the ROW estimand: one value per model, the model-level hyperparameter posterior from the hierarchical fit across that model's cells, never an average of cell point estimates",
+  "choices_that_make_this_provisional": "Element 1 section 2.4 fixes THREE things and leaves the rest open. Fixed: one value per model; it is the model-level hyperparameter posterior from a hierarchical fit across that model's cells; it is never an average of cell point estimates; and the cue-family variance component posterior is reported before any model-level number. Section 8 adds that hint-type enters as a grouping factor. Those are implemented here literally. What the pre-registration does not fix, and what this lane therefore CHOSE, each choice marked so a later lane can change it without rediscovering it: (1) the grouping. group = the cell (model x substrate x cue family), 12 groups per model, with cue family as the second, zero-centred grouping factor of section 8, which is what makes tau_alpha_h and tau_beta_h the cue-family variance components section 2.4 asks for. (2) the LINK. src/bayes_cot_faithfulness/hierarchical.py is written on a LOGIT outcome (pm.Bernoulli(logit_p=...)), while every cell row here and in wave 1 is PROBIT. Running the model row on the repository's logit graph would put a logit population posterior over probit cell rows, which is the exact mismatch docs/ESTIMATOR-PRIORS-2026-09-07.md repaired (before it, the posterior path was logistic while the maximum-likelihood path was probit and the same coefficients meant two different models). This lane therefore fits the SAME graph, the same priors, the same non-centred parameterisation and the same zero-centred hint-type term, with the probit link and the scale-aware priors of the 2026-09-07 repair (hierarchical.py predates that repair and its fixed Normal(0, 2) on the mediated slope fights a fitted value near -4.5 on a mediator whose sd is about 0.25), built in this analysis file so that src/bayes_cot_faithfulness is untouched and the estimator hashes the offset-null gate recorded still describe the fitted code. The logit graph of record is fitted beside it wherever the job reaches it, and both are printed. (3) the map from hyperparameters to the probability scale. The three effects are computed per posterior draw by closed_form._effects at rho = 0 on (mu_alpha, mu_beta, mu_gamma, sigma_m, mu_m, mu_0), which is the one place in this repository where the probit natural effects are written down; the zero-centred hint deviations vanish at the population level by construction. (4) the model-level ANCHOR. Element 21 compares a MODEL-LEVEL column B against the anchor contrast and fixes no pooling rule for the anchor, so the anchor is pooled over all of that model's items across its cells, with a 200-replicate item bootstrap stratified by cell. (5) the model-level agreement interval. The column B side is a posterior and the anchor side is a bootstrap, so unlike the per-cell test they cannot be paired on one resample; the difference is formed from independent draws, which widens the interval and can only make the 0.10 margin harder to clear. Because of (2) to (5) the model-level row is PROVISIONAL.",
+  "status": "PROVISIONAL",
+  "cell_set": "72",
+  "cells_asked_for": [
+    "arc_challenge/stated-hint",
+    "arc_challenge/professor",
+    "arc_challenge/metadata",
+    "arc_challenge/grader-code",
+    "aqua_rat/stated-hint",
+    "aqua_rat/professor",
+    "aqua_rat/metadata",
+    "aqua_rat/grader-code",
+    "logiqa2/stated-hint",
+    "logiqa2/professor",
+    "logiqa2/metadata",
+    "logiqa2/grader-code"
+  ],
+  "n_cells_asked_for": 12,
+  "cells_skipped": [],
+  "n_cells_skipped": 0,
+  "cells_entering": [
+    {
+      "group_index": 0,
+      "substrate": "arc_challenge",
+      "cue_family": "stated-hint",
+      "n_items": 1080,
+      "n_rows": 2160,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 1163,
+        "clean_correct_clears_floor": true,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 1144,
+          "direct": 1123,
+          "twostep": 1098,
+          "filler": 1072,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {},
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 1,
+      "substrate": "arc_challenge",
+      "cue_family": "professor",
+      "n_items": 1091,
+      "n_rows": 2182,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 1184,
+        "clean_correct_clears_floor": true,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 1158,
+          "direct": 1147,
+          "twostep": 1118,
+          "filler": 1087,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {},
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 2,
+      "substrate": "arc_challenge",
+      "cue_family": "metadata",
+      "n_items": 418,
+      "n_rows": 836,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 462,
+        "clean_correct_clears_floor": true,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 455,
+          "direct": 448,
+          "twostep": 434,
+          "filler": 422,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {},
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 3,
+      "substrate": "arc_challenge",
+      "cue_family": "grader-code",
+      "n_items": 420,
+      "n_rows": 840,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 462,
+        "clean_correct_clears_floor": true,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 451,
+          "direct": 448,
+          "twostep": 434,
+          "filler": 426,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {},
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 4,
+      "substrate": "aqua_rat",
+      "cue_family": "stated-hint",
+      "n_items": 22,
+      "n_rows": 44,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 481,
+        "clean_correct_clears_floor": true,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 345,
+          "direct": 238,
+          "twostep": 18,
+          "filler": 66,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {
+          "placebo": 345,
+          "direct": 238,
+          "twostep": 18,
+          "filler": 66
+        },
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (arms below the floor: direct 238, filler 66, placebo 345, twostep 18; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 5,
+      "substrate": "aqua_rat",
+      "cue_family": "professor",
+      "n_items": 22,
+      "n_rows": 44,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 481,
+        "clean_correct_clears_floor": true,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 345,
+          "direct": 238,
+          "twostep": 18,
+          "filler": 68,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {
+          "placebo": 345,
+          "direct": 238,
+          "twostep": 18,
+          "filler": 68
+        },
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (arms below the floor: direct 238, filler 68, placebo 345, twostep 18; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 6,
+      "substrate": "aqua_rat",
+      "cue_family": "metadata",
+      "n_items": 13,
+      "n_rows": 26,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 200,
+        "clean_correct_clears_floor": false,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 158,
+          "direct": 101,
+          "twostep": 9,
+          "filler": 31,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {
+          "placebo": 158,
+          "direct": 101,
+          "twostep": 9,
+          "filler": 31
+        },
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (clean-correct 200 < 350; arms below the floor: direct 101, filler 31, placebo 158, twostep 9; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 7,
+      "substrate": "aqua_rat",
+      "cue_family": "grader-code",
+      "n_items": 11,
+      "n_rows": 22,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 204,
+        "clean_correct_clears_floor": false,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 145,
+          "direct": 108,
+          "twostep": 10,
+          "filler": 29,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {
+          "placebo": 145,
+          "direct": 108,
+          "twostep": 10,
+          "filler": 29
+        },
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (clean-correct 204 < 350; arms below the floor: direct 108, filler 29, placebo 145, twostep 10; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 8,
+      "substrate": "logiqa2",
+      "cue_family": "stated-hint",
+      "n_items": 530,
+      "n_rows": 1060,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 635,
+        "clean_correct_clears_floor": true,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 613,
+          "direct": 478,
+          "twostep": 551,
+          "filler": 503,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {},
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 9,
+      "substrate": "logiqa2",
+      "cue_family": "professor",
+      "n_items": 511,
+      "n_rows": 1022,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 635,
+        "clean_correct_clears_floor": true,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 613,
+          "direct": 478,
+          "twostep": 551,
+          "filler": 475,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {},
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 10,
+      "substrate": "logiqa2",
+      "cue_family": "metadata",
+      "n_items": 205,
+      "n_rows": 410,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 244,
+        "clean_correct_clears_floor": false,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 237,
+          "direct": 192,
+          "twostep": 220,
+          "filler": 211,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {
+          "placebo": 237,
+          "direct": 192,
+          "twostep": 220,
+          "filler": 211
+        },
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (clean-correct 244 < 350; arms below the floor: direct 192, filler 211, placebo 237, twostep 220; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    },
+    {
+      "group_index": 11,
+      "substrate": "logiqa2",
+      "cue_family": "grader-code",
+      "n_items": 201,
+      "n_rows": 402,
+      "precision": {
+        "floor": 350,
+        "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+        "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+        "n_clean_correct": 244,
+        "clean_correct_clears_floor": false,
+        "arm_denominators": {
+          "replay": null,
+          "placebo": 233,
+          "direct": 192,
+          "twostep": 220,
+          "filler": 216,
+          "curves": null,
+          "transplant": null,
+          "anchor": null,
+          "specificity": null
+        },
+        "arms_below_floor": {
+          "placebo": 233,
+          "direct": 192,
+          "twostep": 220,
+          "filler": 216
+        },
+        "enabled_arms_with_no_denominator": [
+          "anchor",
+          "curves",
+          "replay",
+          "specificity",
+          "transplant"
+        ],
+        "underpowered": true,
+        "label": "UNDERPOWERED (clean-correct 244 < 350; arms below the floor: direct 192, filler 216, placebo 233, twostep 220; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)",
+        "summary_file": "arms_summary.json"
+      }
+    }
+  ],
+  "n_cells": 12,
+  "precision": {
+    "floor": 350,
+    "floor_source": "01-SIZING.md I.3. The floor is a PRECISION figure, not an admission gate: at 20 percent mediator noise the NIE posterior 95 percent half-width is 0.0996 at n = 350 and 0.1027 at n = 300, so 350 is the n at which a cell's interval lands inside the 0.10 bar. It is an absolute count of clean-correct items, never a fraction of whatever n a cell entered.",
+    "rule_source": "PREREGISTRATION_phase2_arms.md, frozen, states the treatment of an underpowered quantity three times and always the same way: P1, the run 'is underpowered for mediation claims and is reported as such'; P4, 'reported with its Newcombe CI and labeled underpowered'; P3, 'a directional report with a CI, and it is labeled underpowered whenever its CI cannot resolve' the effect. So a cell below the floor is FITTED and REPORTED with its interval and LABELLED here. It is not dropped, because its point estimate and interval are honest, and it carries no verdict against the 0.10 bar of section 2.5, because its interval cannot resolve one.",
+    "n_cells_underpowered": 12,
+    "cells_underpowered": [
+      {
+        "cell": "arc_challenge/stated-hint",
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "arc_challenge/professor",
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "arc_challenge/metadata",
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "arc_challenge/grader-code",
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "aqua_rat/stated-hint",
+        "label": "UNDERPOWERED (arms below the floor: direct 238, filler 66, placebo 345, twostep 18; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "aqua_rat/professor",
+        "label": "UNDERPOWERED (arms below the floor: direct 238, filler 68, placebo 345, twostep 18; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "aqua_rat/metadata",
+        "label": "UNDERPOWERED (clean-correct 200 < 350; arms below the floor: direct 101, filler 31, placebo 158, twostep 9; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "aqua_rat/grader-code",
+        "label": "UNDERPOWERED (clean-correct 204 < 350; arms below the floor: direct 108, filler 29, placebo 145, twostep 10; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "logiqa2/stated-hint",
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "logiqa2/professor",
+        "label": "UNDERPOWERED (enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "logiqa2/metadata",
+        "label": "UNDERPOWERED (clean-correct 244 < 350; arms below the floor: direct 192, filler 211, placebo 237, twostep 220; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      },
+      {
+        "cell": "logiqa2/grader-code",
+        "label": "UNDERPOWERED (clean-correct 244 < 350; arms below the floor: direct 192, filler 216, placebo 233, twostep 220; enabled arms with no denominator: anchor, curves, replay, specificity, transplant)"
+      }
+    ],
+    "note": "an underpowered cell is POOLED into this row rather than dropped from it. The frozen rule reports such a cell with its interval and labels it, and a hierarchical fit is the right place for a cell of lower precision, because it contributes in proportion to its information instead of being weighted as if it were as sharp as the others. The label travels so a reader can see which cells the row rests on, and so no verdict is read off a row whose cells cannot resolve one."
+  },
+  "n_items_total": 4524,
+  "n_rows_total": 9048,
+  "variance_components": {
+    "cue_family_or_grouping_used": "cue_family",
+    "grouping_labels": [
+      "stated-hint",
+      "professor",
+      "metadata",
+      "grader-code"
+    ],
+    "note": "section 2.4 requires the posterior of the CUE-FAMILY variance component to be reported BEFORE any model-level number is quoted, which is why this block precedes the effects block in this artifact and in the document. tau_*_h are the zero-centred deviations section 8 puts on the grouping factor; tau_alpha, tau_beta and tau_gamma are the cell-level spreads.",
+    "tau_alpha_h": {
+      "posterior_median": 0.5308108751743341,
+      "posterior_mean": 0.6451772089307883,
+      "lo": 0.030974663845307362,
+      "hi": 1.8518528046952052,
+      "n_draws": 4000
+    },
+    "tau_beta_h": {
+      "posterior_median": 0.5651523630118698,
+      "posterior_mean": 0.9271525982525692,
+      "lo": 0.022237893417843917,
+      "hi": 4.607319531656091,
+      "n_draws": 4000
+    },
+    "tau_alpha": {
+      "posterior_median": 0.8665191659757487,
+      "posterior_mean": 0.9124518654309774,
+      "lo": 0.5020986166729734,
+      "hi": 1.5938381706968205,
+      "n_draws": 4000
+    },
+    "tau_beta": {
+      "posterior_median": 1.2782114271508802,
+      "posterior_mean": 1.3526045416642332,
+      "lo": 0.7365405585454694,
+      "hi": 2.394022651927118,
+      "n_draws": 4000
+    },
+    "tau_gamma": {
+      "posterior_median": 0.10893938934430572,
+      "posterior_mean": 0.1145092010995325,
+      "lo": 0.07081988848108488,
+      "hi": 0.19338632934446295,
+      "n_draws": 4000
+    }
+  },
+  "effects": {
+    "scale": "probability",
+    "route": "closed_form._effects at rho = 0 on the population hyperparameters (mu_alpha, mu_beta, mu_gamma, sigma_m, mu_m, mu_0), per posterior draw. This is the hyperparameter posterior of section 2.4, not an average of the six cell point estimates.",
+    "nde": {
+      "point": 0.10409111724750192,
+      "mean": 0.11155190381064185,
+      "lo": 0.010153598111652123,
+      "hi": 0.2769115825408398
+    },
+    "nie": {
+      "point": 0.059388227801790226,
+      "mean": 0.062214706893359124,
+      "lo": 0.0003730312930202758,
+      "hi": 0.14337296236972805
+    },
+    "te": {
+      "point": 0.16627337806730175,
+      "mean": 0.17376661070400098,
+      "lo": 0.013064698247977919,
+      "hi": 0.39283332764678003
+    },
+    "prob_nie_above_0.15": 0.01975,
+    "verdict_rule": "prereg 2.5: a model is load-bearing at rho when the MODEL-LEVEL posterior probability that the NIE exceeds 0.15 on the probability scale is at least 0.95; unresolved where no effect is supported at rho = 0",
+    "load_bearing_at_rho_zero": false,
+    "nie_over_te": 0.35717219733006156
+  },
+  "pooled_anchor": {
+    "pooling": "every item of every cell of this model contributes its four anchor cells; the bootstrap resamples ITEMS WITHIN each cell (stratified), so the cell sizes are held fixed and only within-cell item variation is resampled",
+    "n_items_pooled": 4524,
+    "n_cells_pooled": 12,
+    "cells": {
+      "mu00": {
+        "k": 18,
+        "n": 4460,
+        "rate": 0.004035874439461884,
+        "lo": 0.0025544646623515237,
+        "hi": 0.006370910306323971,
+        "n_unscorable": 64
+      },
+      "mu01": {
+        "k": 1693,
+        "n": 4486,
+        "rate": 0.37739634418189927,
+        "lo": 0.36332212666750147,
+        "hi": 0.391680358367031,
+        "n_unscorable": 38
+      },
+      "mu10": {
+        "k": 300,
+        "n": 4449,
+        "rate": 0.06743088334457181,
+        "lo": 0.06042916022942046,
+        "hi": 0.07517895975529994,
+        "n_unscorable": 75
+      },
+      "mu11": {
+        "k": 1843,
+        "n": 4452,
+        "rate": 0.4139712488769093,
+        "lo": 0.399583244893175,
+        "hi": 0.4285075866413175,
+        "n_unscorable": 72
+      }
+    },
+    "contrasts": {
+      "text_source_given_cued_recipient": {
+        "point": 0.34654036553233747,
+        "lo": 0.3313453410869675,
+        "hi": 0.3613782898886823
+      },
+      "text_source_given_clean_recipient": {
+        "point": 0.37336046974243736,
+        "lo": 0.36094704488632595,
+        "hi": 0.3866172976290511
+      },
+      "cue_effect_given_clean_donor": {
+        "point": 0.06339500890510993,
+        "lo": 0.057261752745682674,
+        "hi": 0.07021531297519192
+      },
+      "interaction": {
+        "point": -0.026820104210099914,
+        "lo": -0.03506384372810144,
+        "hi": -0.019780375297596117
+      },
+      "joint_replay_regime": {
+        "point": 0.4099353744374474,
+        "lo": 0.3976598159153833,
+        "hi": 0.42357977736392477
+      }
+    }
+  },
+  "model_level_agreement_margin_test": {
+    "nde": {
+      "column_b_model_level": {
+        "point": 0.10409111724750192,
+        "mean": 0.11155190381064185,
+        "lo": 0.010153598111652123,
+        "hi": 0.2769115825408398
+      },
+      "anchor_contrast": "cue_effect_given_clean_donor",
+      "anchor": {
+        "point": 0.06339500890510993,
+        "lo": 0.057261752745682674,
+        "hi": 0.07021531297519192
+      },
+      "difference_point": 0.040696108342391984,
+      "difference_lo": -0.055170073633693605,
+      "difference_hi": 0.21072700588550092,
+      "margin": 0.1,
+      "agrees": false,
+      "headroom": -0.11072700588550091,
+      "pairing_note": "the two sides are INDEPENDENT draws (a posterior and a bootstrap), not one paired resample as in the per-cell test, so this interval is wider than a paired one and the 0.10 margin is harder to clear"
+    },
+    "nie": {
+      "column_b_model_level": {
+        "point": 0.059388227801790226,
+        "mean": 0.062214706893359124,
+        "lo": 0.0003730312930202758,
+        "hi": 0.14337296236972805
+      },
+      "anchor_contrast": "text_source_given_cued_recipient",
+      "anchor": {
+        "point": 0.34654036553233747,
+        "lo": 0.3313453410869675,
+        "hi": 0.3613782898886823
+      },
+      "difference_point": -0.28715213773054726,
+      "difference_lo": -0.3501370757718058,
+      "difference_hi": -0.2033409970117166,
+      "margin": 0.1,
+      "agrees": false,
+      "headroom": -0.2501370757718058,
+      "pairing_note": "the two sides are INDEPENDENT draws (a posterior and a bootstrap), not one paired resample as in the per-cell test, so this interval is wider than a paired one and the 0.10 margin is harder to clear"
+    },
+    "te": {
+      "column_b_model_level": {
+        "point": 0.16627337806730175,
+        "mean": 0.17376661070400098,
+        "lo": 0.013064698247977919,
+        "hi": 0.39283332764678003
+      },
+      "anchor_contrast": "joint_replay_regime",
+      "anchor": {
+        "point": 0.4099353744374474,
+        "lo": 0.3976598159153833,
+        "hi": 0.42357977736392477
+      },
+      "difference_point": -0.24366199637014563,
+      "difference_lo": -0.3989495592735035,
+      "difference_hi": -0.014904583270033791,
+      "margin": 0.1,
+      "agrees": false,
+      "headroom": -0.29894955927350353,
+      "pairing_note": "the two sides are INDEPENDENT draws (a posterior and a bootstrap), not one paired resample as in the per-cell test, so this interval is wider than a paired one and the 0.10 margin is harder to clear"
+    }
+  },
+  "model_level_all_three_agree": false,
+  "sampler": {
+    "chains": 4,
+    "draws_per_chain": 1000,
+    "tune_per_chain": 1000,
+    "target_accept": 0.9,
+    "seconds": 2227.9762165546417,
+    "max_r_hat": 1.03,
+    "min_ess_bulk": 141.0,
+    "divergences": 231
+  },
+  "summary_table": {
+    "mean": {
+      "mu_alpha": 3.189,
+      "mu_beta": -1.863,
+      "mu_gamma": -0.185,
+      "tau_alpha": 0.912,
+      "tau_beta": 1.353,
+      "tau_gamma": 0.115,
+      "tau_alpha_h": 0.645,
+      "tau_beta_h": 0.927,
+      "sigma_m": 0.31,
+      "mu_m": 0.865,
+      "mu_0": -3.129
+    },
+    "sd": {
+      "mu_alpha": 0.628,
+      "mu_beta": 0.787,
+      "mu_gamma": 0.037,
+      "tau_alpha": 0.293,
+      "tau_beta": 0.438,
+      "tau_gamma": 0.033,
+      "tau_alpha_h": 0.497,
+      "tau_beta_h": 1.083,
+      "sigma_m": 0.002,
+      "mu_m": 0.005,
+      "mu_0": 0.69
+    },
+    "hdi_3%": {
+      "mu_alpha": 1.85,
+      "mu_beta": -2.957,
+      "mu_gamma": -0.259,
+      "tau_alpha": 0.441,
+      "tau_beta": 0.681,
+      "tau_gamma": 0.067,
+      "tau_alpha_h": 0.002,
+      "tau_beta_h": 0.0,
+      "sigma_m": 0.306,
+      "mu_m": 0.857,
+      "mu_0": -4.343
+    },
+    "hdi_97%": {
+      "mu_alpha": 4.22,
+      "mu_beta": 0.006,
+      "mu_gamma": -0.118,
+      "tau_alpha": 1.444,
+      "tau_beta": 2.145,
+      "tau_gamma": 0.176,
+      "tau_alpha_h": 1.486,
+      "tau_beta_h": 3.016,
+      "sigma_m": 0.315,
+      "mu_m": 0.874,
+      "mu_0": -1.877
+    },
+    "mcse_mean": {
+      "mu_alpha": 0.044,
+      "mu_beta": 0.064,
+      "mu_gamma": 0.001,
+      "tau_alpha": 0.013,
+      "tau_beta": 0.012,
+      "tau_gamma": 0.001,
+      "tau_alpha_h": 0.023,
+      "tau_beta_h": 0.134,
+      "sigma_m": 0.0,
+      "mu_m": 0.0,
+      "mu_0": 0.028
+    },
+    "mcse_sd": {
+      "mu_alpha": 0.036,
+      "mu_beta": 0.057,
+      "mu_gamma": 0.001,
+      "tau_alpha": 0.006,
+      "tau_beta": 0.02,
+      "tau_gamma": 0.001,
+      "tau_alpha_h": 0.01,
+      "tau_beta_h": 0.183,
+      "sigma_m": 0.0,
+      "mu_m": 0.0,
+      "mu_0": 0.022
+    },
+    "ess_bulk": {
+      "mu_alpha": 259.0,
+      "mu_beta": 221.0,
+      "mu_gamma": 1097.0,
+      "tau_alpha": 293.0,
+      "tau_beta": 1427.0,
+      "tau_gamma": 374.0,
+      "tau_alpha_h": 581.0,
+      "tau_beta_h": 141.0,
+      "sigma_m": 5913.0,
+      "mu_m": 833.0,
+      "mu_0": 452.0
+    },
+    "ess_tail": {
+      "mu_alpha": 67.0,
+      "mu_beta": 59.0,
+      "mu_gamma": 1667.0,
+      "tau_alpha": 159.0,
+      "tau_beta": 2157.0,
+      "tau_gamma": 2101.0,
+      "tau_alpha_h": 2178.0,
+      "tau_beta_h": 72.0,
+      "sigma_m": 2783.0,
+      "mu_m": 2295.0,
+      "mu_0": 2175.0
+    },
+    "r_hat": {
+      "mu_alpha": 1.02,
+      "mu_beta": 1.02,
+      "mu_gamma": 1.01,
+      "tau_alpha": 1.02,
+      "tau_beta": 1.0,
+      "tau_gamma": 1.01,
+      "tau_alpha_h": 1.01,
+      "tau_beta_h": 1.03,
+      "sigma_m": 1.01,
+      "mu_m": 1.01,
+      "mu_0": 1.01
+    }
+  },
+  "code_commit": "1b39d07",
+  "analysis_script_sha256": "71b0452a938325655c957e5026209cffef9abb22f5e8639e940708dd373ee58b",
+  "estimator_module_sha256": {
+    "sensitivity.py": "f57227990cc1cee565db5d1a2cf4d4fd526c4b8bda811eb77892552ee2724dd6",
+    "closed_form.py": "9f47be59503f20429ca146d670375184f0b16924ca3a696a667834b00b559d4d",
+    "effects.py": "411dd5fe567cf815341aa71e4a3355941e209ac52670251e2dfb855d661f4818",
+    "mediation.py": "b530ab2d6eb5492285620655ab92eb563d92d367b2111fb6429c017286725112",
+    "hierarchical.py": "43ca4001e519310a3374ae0af5457007b8d46e5b2b3aca5a8b3176895a05437c"
+  }
+}

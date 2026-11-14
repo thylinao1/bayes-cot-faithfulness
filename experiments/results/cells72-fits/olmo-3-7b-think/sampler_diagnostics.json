@@ -1,0 +1,13 @@
+{
+  "model": "olmo-3-7b-think",
+  "cell_set": "72",
+  "code_commit": "1b39d07",
+  "divergences_after_tuning": [
+    110
+  ],
+  "sampling_seconds": [
+    4120
+  ],
+  "source": "parsed from the PyMC sampler's own stderr; model_row.json records no sampler diagnostics, and neither do the banked 18- and 24-cell rows",
+  "why_it_matters": "divergences after tuning can bias a hierarchical posterior's tails, so a row with them should not be read as if it had none"
+}

@@ -1,0 +1,32 @@
+{
+  "cell": "deepseek-r1-distill-llama-8b/logiqa2/stated-hint",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 45.1861047744751,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1987.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.586208470237438,
+    "lo": 0.5414526603257632,
+    "hi": 0.6324429664495113
+  },
+  "nie": {
+    "mean": 0.1244132442550376,
+    "lo": 0.09533992225644441,
+    "hi": 0.1551296565018901
+  },
+  "te": {
+    "mean": 0.7106217144924756,
+    "lo": 0.6721476164818342,
+    "hi": 0.7472259132174834
+  },
+  "prob_nie_above_0.15": 0.051,
+  "n_items": 530,
+  "n_rows": 1060,
+  "model_slug": null
+}

@@ -1,0 +1,32 @@
+{
+  "cell": "phi-4-reasoning/aqua_rat/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 32.50243592262268,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2074.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.015408903432825385,
+    "lo": 0.005361864383435379,
+    "hi": 0.028664364527858834
+  },
+  "nie": {
+    "mean": 0.011820331422475079,
+    "lo": 0.0057941411081790265,
+    "hi": 0.020112100575738538
+  },
+  "te": {
+    "mean": 0.02722923485530046,
+    "lo": 0.013256134553890736,
+    "hi": 0.04541022692037705
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 380,
+  "n_rows": 760,
+  "model_slug": null
+}
