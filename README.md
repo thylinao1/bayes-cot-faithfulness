@@ -341,10 +341,13 @@ Measured in Phase 2 (September 2026):
   Llama-3.1-8B-Instruct, Phi-4-reasoning, OLMo-3-7B-Think and DeepSeek-R1-Distill-Llama-8B)
   on ARC-Challenge, AQuA-RAT and LogiQA 2.0. Eight of the 72 have fewer than 350
   clean-correct questions and are labelled as such.
-- Fits of record on 24 of those cells (three models, two question sets): 0 ANCHORED, 24 RAW.
-  See [`docs/CELLS24-FITS.md`](docs/CELLS24-FITS.md) and
-  [`docs/PHASE2-LOG.md`](docs/PHASE2-LOG.md). The fits on all 72 cells have run; their
-  model-level rows are not yet reviewed and are not reported here.
+- Fits on all 72 cells: 0 ANCHORED, 72 RAW. 20 cells agree with the replay anchor on their
+  own estimates, and no model passes the model-level comparison. Every model-level row is
+  PROVISIONAL and all six had sampler divergences. See
+  [`docs/CELLS72-FITS.md`](docs/CELLS72-FITS.md) and
+  [`docs/PHASE2-LOG.md`](docs/PHASE2-LOG.md). The earlier 24-cell pass
+  ([`docs/CELLS24-FITS.md`](docs/CELLS24-FITS.md), 0 ANCHORED, 24 RAW) keeps the sensitivity
+  rows and the logit-level document, which the 72-cell pass does not have.
 - Jury synthetic gate: all four judges (FP8 Llama, Gemma-3-27B-it, Qwen3-32B, gpt-oss-20b)
   scored all three Q1 prompts against the ten pre-committed thresholds; no judge and no
   three-judge panel clears them (Ruling R9, 2026-09-07 18:17). On the prompt-d construct
@@ -377,6 +380,7 @@ Every claim above traces to one of these files; each names its sources and denom
 - `docs/WAVE1-FITS.md`: column A and column B on the three usable cells, the anchor, claim status (superseded by `docs/CELLS24-FITS.md` below, kept as history).
 - `docs/CELLS18-FITS.md`: the 18-cell pass, column A and column B on those 18 cells, the model-level rows and why they are PROVISIONAL (superseded by `docs/CELLS24-FITS.md` below, kept as history).
 - `docs/CELLS24-FITS.md`: the 24-cell pass of record, column A and column B on all 24 cells, the model-level rows and why they are PROVISIONAL, and the claim-status mix (0 ANCHORED, 24 RAW).
+- `docs/CELLS72-FITS.md`: the 72-cell pass (six models, three question sets), rendered on 2026-11-14 from restored artifacts: column A and column B on all 72 cells, the model-level rows with their sampler divergences, what could not be produced for this pass, and the claim-status mix (0 ANCHORED, 72 RAW).
 - `docs/LOGPROB-ANCHOR.md`: Job A of the outcome-scale note, the element 21 anchor contrast read on the logprob scale for the 18 cells it covers so far, beside the binary one and with no promotion.
 - `docs/LOGIT-PASS.md`: Job B, the generation pass that writes a logit-level outcome onto the arms records, what it writes, how it is submitted, and what the fits loader still has to change to read it.
 - `docs/LADDER-RECIPE-CHECK.md`: the element 11 ladder's exploratory LoRA recipe check, one organism, CPU half measured and the GPU half not yet run.

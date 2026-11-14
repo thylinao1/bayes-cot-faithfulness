@@ -434,6 +434,93 @@ citation). No item in that corpus carries a planted cue, so specificity is the m
 record: 0.9729 (1,327/1,364). Jury numbers on this corpus carry `claim_status: EXPLORATORY`
 throughout. [`docs/external_validity.md`](external_validity.md).
 
+### 72 cells: the fits pass on six models and three question sets
+
+The fits were widened on 2026-09-09 from 24 cells to all 72 completed cells of the sweep: six
+models (Qwen3-8B, Gemma-2-9B-it, Llama-3.1-8B-Instruct, Phi-4-reasoning, OLMo-3-7B-Think and
+DeepSeek-R1-Distill-Llama-8B), each on ARC-Challenge, AQuA-RAT and LogiQA 2.0 under the four cue
+families. The fits ran on the cluster at code commit `1b39d07`. The document
+`docs/CELLS72-FITS.md` was rendered and reviewed on 2026-11-14 from artifacts restored from an
+archive of the lane's worktree. The offset-null gate of this pass: attempt 1, seed 731, verdict
+**PASS**.
+
+This pass does not replace the 24-cell pass above. That pass keeps the two sensitivity rows per
+model and the logit-level document, which this pass does not have. On the 24 cells the two
+passes share, the record files carry the same sha256 values, column A is equal field for field,
+and the column B effects differ by at most 4.2e-05. Each document reports its own lane's
+artifacts, and the artifacts do not record the cause of that difference.
+
+**What this pass could not carry.** The cluster tree that held the raw sweep records no longer
+exists. The record hashes in each `fit.json` can therefore no longer be checked against the
+cluster files. Three artifacts of the 24-cell pass were not produced for this pass and cannot be
+produced now: the two sensitivity model rows (`model_row_logit_cue_family.json` and
+`model_row_probit_substrate.json`) and the Gemma AQuA-RAT clean-parse record. The logit-level column B prints for the 24 shared cells only. Gate G1 fails
+in the other 48, whose records say the logit-level generation pass had not run for them.
+
+**Column B, model level: NDE, NIE, TE at rho = 0.** One table per model, in the order the models
+were run, for the reason given above (element 25). The rows differ from the 24-cell rows because
+each pools twelve cells of a model, not eight.
+
+Qwen3-8B, 12 cells, 10,023 items:
+
+| NDE | NIE | TE | P(NIE > 0.15) | Verdict |
+|---|---|---|---|---|
+| +0.1015 [+0.0245, +0.1852] | +0.0448 [+0.0038, +0.1130] | +0.1468 [+0.0381, +0.2755] | 0.004 | unresolved |
+
+Gemma-2-9B-it, 12 cells, 8,818 items:
+
+| NDE | NIE | TE | P(NIE > 0.15) | Verdict |
+|---|---|---|---|---|
+| +0.1454 [+0.0361, +0.2487] | +0.1320 [+0.0265, +0.2711] | +0.2783 [+0.0846, +0.4747] | 0.392 | unresolved |
+
+Llama-3.1-8B-Instruct, 12 cells, 8,749 items:
+
+| NDE | NIE | TE | P(NIE > 0.15) | Verdict |
+|---|---|---|---|---|
+| +0.1146 [+0.0188, +0.2524] | +0.0359 [+0.0008, +0.1055] | +0.1532 [+0.0278, +0.3344] | 0.004 | unresolved |
+
+Phi-4-reasoning, 12 cells, 8,492 items:
+
+| NDE | NIE | TE | P(NIE > 0.15) | Verdict |
+|---|---|---|---|---|
+| +0.0911 [+0.0082, +0.2259] | +0.0716 [+0.0078, +0.1565] | +0.1646 [+0.0189, +0.3673] | 0.034 | unresolved |
+
+OLMo-3-7B-Think, 12 cells, 8,584 items:
+
+| NDE | NIE | TE | P(NIE > 0.15) | Verdict |
+|---|---|---|---|---|
+| +0.1363 [+0.0264, +0.2796] | +0.0387 [-0.0009, +0.1023] | +0.1772 [+0.0358, +0.3577] | 0.002 | unresolved |
+
+DeepSeek-R1-Distill-Llama-8B, 12 cells, 4,524 items:
+
+| NDE | NIE | TE | P(NIE > 0.15) | Verdict |
+|---|---|---|---|---|
+| +0.1041 [+0.0102, +0.2769] | +0.0594 [+0.0004, +0.1434] | +0.1663 [+0.0131, +0.3928] | 0.020 | unresolved |
+
+"Unresolved" means the model-level posterior probability that the NIE exceeds 0.15 did not reach
+0.95. It does not mean the NIE is zero: the NIE interval excludes zero in 5 of the 6 rows.
+
+Sampler health, which bears on how to read every interval above. All six rows have divergences
+after tuning: 92, 80, 124, 57, 110 and 231, in the order of the tables. Five rows clear the max
+r_hat 1.01 / minimum bulk ESS 400 bar. The DeepSeek-R1-Distill-Llama-8B row does not (max r_hat
+1.03, minimum bulk ESS 141). Divergences after tuning can bias the tails of a hierarchical
+posterior, so no row here should be read as if it had none. Source:
+`experiments/results/cells72-fits/<model>/model_row.json` and `sampler_diagnostics.json`.
+
+**Claim status: 0 ANCHORED, 72 RAW.** 20 of the 72 cells pass their own per-cell anchor test. No
+model row passes the model-level comparison on any estimand (18 of 18 comparisons fail), so all
+72 cells hold at RAW, as in the 24-cell pass. Every model row is PROVISIONAL and nothing is
+VALIDATED.
+
+**Precision.** The instrument labels all 72 cells UNDERPOWERED. In 16 a count is below the 350
+precision figure: 8 by the clean-correct count and 8 by one arm's own count. The other 56
+carry the label only because five enabled arms recorded no count in the cell summary. 14 cells
+carry the cell-level verdict load-bearing at rho = 0 and all 14 are among those 56, so they
+should be treated as not resolved against the bar. Four cells enter column B with fewer than 50
+complete items: DeepSeek-R1-Distill-Llama-8B on AQuA-RAT, with 22, 22, 13 and 11.
+
+Full tables, every cell's own block and the limits: `docs/CELLS72-FITS.md`.
+
 ## Engineering record, 2026-09-08
 
 **A dropped manifest field, caught before it changed a result of record.** `bcf/wave.sh`'s
