@@ -63,6 +63,12 @@ and `bcf/` holds cluster job scripts and job tables; neither is library code.
   no majority panel clears the gate in any composition. So the primary jury configuration
   stays unfrozen, the human calibration labels stay sealed, and the column of record stays the
   uncorrected regex share. [`experiments/jury/README.md`](experiments/jury/README.md).
+- **The fit and the replay anchor do not measure the same thing.** No cell passes the
+  agreement test between them (0 of 72). An exploratory diagnosis on synthetic worlds with a
+  known truth found that the fit's direct and indirect split does not identify the share of
+  the hint effect that passes through the chain, and that the anchor's reading is mixed with
+  answer copying that the stored controls cannot bound. So the failed test is not a finding
+  about the models. [`docs/ANCHOR-VS-FIT-DIAGNOSIS.md`](docs/ANCHOR-VS-FIT-DIAGNOSIS.md).
 - **Tooling failures are written up beside the results.** A crashed gate that wrote no report
   was once recorded as a clean exit 0; a job script silently dropped the last field of every
   submitted row. Both were reproduced with a failing test first, then fixed. The engineering
@@ -381,6 +387,7 @@ Every claim above traces to one of these files; each names its sources and denom
 - `docs/CELLS18-FITS.md`: the 18-cell pass, column A and column B on those 18 cells, the model-level rows and why they are PROVISIONAL (superseded by `docs/CELLS24-FITS.md` below, kept as history).
 - `docs/CELLS24-FITS.md`: the 24-cell pass of record, column A and column B on all 24 cells, the model-level rows and why they are PROVISIONAL, and the claim-status mix (0 ANCHORED, 24 RAW).
 - `docs/CELLS72-FITS.md`: the 72-cell pass (six models, three question sets), rendered on 2026-11-14 from restored artifacts: column A and column B on all 72 cells, the model-level rows with their sampler divergences, what could not be produced for this pass, and the claim-status mix (0 ANCHORED, 72 RAW).
+- `docs/ANCHOR-VS-FIT-DIAGNOSIS.md`: an exploratory diagnosis (2026-11-14) of why the replay anchor and the mediation fit disagree, on synthetic worlds with a known truth and on the stored anchor controls. No claim status moves on it.
 - `docs/LOGPROB-ANCHOR.md`: Job A of the outcome-scale note, the element 21 anchor contrast read on the logprob scale for the 18 cells it covers so far, beside the binary one and with no promotion.
 - `docs/LOGIT-PASS.md`: Job B, the generation pass that writes a logit-level outcome onto the arms records, what it writes, how it is submitted, and what the fits loader still has to change to read it.
 - `docs/LADDER-RECIPE-CHECK.md`: the element 11 ladder's exploratory LoRA recipe check, one organism, CPU half measured and the GPU half not yet run.

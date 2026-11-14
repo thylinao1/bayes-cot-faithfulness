@@ -281,6 +281,16 @@
           cells are ANCHORED and 72 are RAW. Every model row is PROVISIONAL, and the sampler
           reported divergences for all six (57 to 231).
           <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS72-FITS.md">The 72-cell report.</a></p></div>
+      <div class="tl-row done"><span class="d">2026-11-14</span>
+        <h4>Diagnosis of the anchor and fit disagreement</h4>
+        <p>Exploratory, with no new model run and no change to any claim status. The anchor's
+          mediator is the whole chain text. The fit's mediator is one score per chain, measured
+          against that arm's own final answer. On synthetic worlds with a known truth, run through
+          the same fitting code, the fit's direct and indirect split does not identify the share of
+          the effect that passes through the chain. The study does not validate the anchor: the
+          stored controls show that a bare answer line with no reasoning yields the hinted option
+          in 28, 78 and 49 percent of items on ARC-Challenge, AQuA-RAT and LogiQA 2.0.
+          <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/ANCHOR-VS-FIT-DIAGNOSIS.md">The diagnosis.</a></p></div>
     </div>
   </section>
 

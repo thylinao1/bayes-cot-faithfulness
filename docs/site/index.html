@@ -120,8 +120,10 @@
         <span class="big warn">0.138 vs 0.032</span>
         <p>Two methods estimate how much of the hint's effect passes through the chain of thought.
           On Qwen3-8B, at 24 cells, a randomized test gives 0.138 and the statistical model gives
-          0.032. <b>The two disagree on all three models analysed.</b> The reason is an open
-          question.</p>
+          0.032. <b>The two disagree on all three models analysed.</b> A diagnosis on 2026-11-14
+          found that the two do not measure the same thing: the test swaps the whole written
+          reasoning, and the model uses one score per chain. Neither is yet validated as the share
+          that runs through the reasoning. <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/ANCHOR-VS-FIT-DIAGNOSIS.md">The diagnosis.</a></p>
       </div>
       <div class="tldr-item">
         <span class="n">06 / A LIMIT OF RHO*</span>
@@ -1231,6 +1233,15 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
             were reviewed on 2026-11-14 and merged into the main branch.
             0 of 72 cells pass the replay anchor gate.
             <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS72-FITS.md">The 72-cell report.</a></p></div>
+        <div class="tl-row done"><span class="d">2026-11-14</span>
+          <h4>Why the two methods disagree</h4>
+          <p>An exploratory study on synthetic data with a known answer. The statistical model's
+            split into a direct and an indirect part does not identify how much of the hint's
+            effect passes through the chain: data sets that look the same can hide any share from
+            0 to 100 percent. The study does not validate the randomized test either, because
+            forced answers often copy an answer that is written in the replayed text.
+            0 of 72 cells passing the gate is therefore not a finding about the models.
+            <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/ANCHOR-VS-FIT-DIAGNOSIS.md">The diagnosis.</a></p></div>
         <div class="tl-row"><span class="d">next</span>
           <h4>Human labels and the validation organism</h4>
           <p>No human label exists yet, so the corrected label column cannot be computed. Recruiting
