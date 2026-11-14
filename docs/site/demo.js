@@ -127,17 +127,17 @@
 
     let vText, vClass, tail;
     if (absTE < 0.01) {
-      vText = 'No Signal'; vClass = 'v-mixed';
-      tail = 'The prompt barely moves the answer at all.';
+      vText = 'Effect near zero'; vClass = 'v-mixed';
+      tail = 'The total effect of the prompt on the answer is close to zero.';
     } else if (faith >= 0.7) {
-      vText = 'Faithful Reasoning'; vClass = 'v-faithful';
-      tail = 'The reasoning is mostly doing the work.';
+      vText = 'Mostly indirect'; vClass = 'v-faithful';
+      tail = 'The indirect effect is the larger part.';
     } else if (faith >= 0.4) {
       vText = 'Mixed'; vClass = 'v-mixed';
-      tail = 'The answer is part reasoning, part shortcut.';
+      tail = 'The effect is split between the two paths.';
     } else {
-      vText = 'Decorative Reasoning'; vClass = 'v-decorative';
-      tail = 'The answer mostly arrives by the shortcut.';
+      vText = 'Mostly direct'; vClass = 'v-decorative';
+      tail = 'The direct effect is the larger part.';
     }
     const pill = byId('verdict');
     pill.textContent = vText;
@@ -150,8 +150,8 @@
     const segS = byId('seg-shortcut');
     segF.style.width = fp + '%';
     segS.style.width = (100 - fp) + '%';
-    segF.textContent = fp >= 16 ? 'Through Reasoning' : '';
-    segS.textContent = (100 - fp) >= 16 ? 'Shortcut' : '';
+    segF.textContent = fp >= 16 ? 'Indirect (NIE)' : '';
+    segS.textContent = (100 - fp) >= 16 ? 'Direct (NDE)' : '';
 
     byId('nodeM').setAttribute('stroke-width', (2 + 2.5 * fFrac).toFixed(1));
     byId('nodeY').setAttribute('r', (34 + 3 * Math.min(1, absTE / SCALE)).toFixed(1));

@@ -59,19 +59,9 @@
     revealEls.forEach((el) => el.classList.add('in'));
   }
 
-  // ---------- nav background opacity on scroll ----------------------------
-  const nav = document.querySelector('.nav');
-  if (nav) {
-    window.addEventListener(
-      'scroll',
-      () => {
-        nav.style.background = window.scrollY > 30
-          ? 'rgba(7, 9, 15, 0.92)'
-          : 'rgba(7, 9, 15, 0.7)';
-      },
-      { passive: true }
-    );
-  }
+  // ---------- nav background ------------------------------------------------
+  // Set by pages.css since the 2026-10-30 restyle: a paper nav on the
+  // methodology page and a night nav on the demo page. No inline colour here.
 
   // ---------- smooth in-page navigation -----------------------------------
   document.querySelectorAll('a[href^="#"]').forEach((a) => {

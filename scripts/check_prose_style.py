@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 TARGETS = [
     ROOT / "docs" / "site" / "index.html",
+    ROOT / "docs" / "site" / "record.html",
     ROOT / "docs" / "site" / "methodology.html",
     ROOT / "docs" / "site" / "demo.html",
     ROOT / "README.md",
