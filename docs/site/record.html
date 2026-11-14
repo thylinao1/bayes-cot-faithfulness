@@ -212,9 +212,10 @@
         <li>No artifact exists for the held-out audit decision.</li>
         <li><b>12 of the 18 planned models</b> have no cell. The two 70B dense models have no
           demonstrated tensor-parallel serving setup.</li>
-        <li>Model rows and claim statuses for the 72 cells are not yet reported. The cell phase
-          finished with zero failures. The row files were written on 2026-09-09 and have not yet
-          been reviewed or merged.</li>
+        <li>The 72-cell pass has no sensitivity model rows and no Gemma clean-parse record. They
+          were not produced when the fits ran, and the raw sweep records on the cluster no longer
+          exist, so they cannot be produced now. For the same reason the record hashes in the
+          72 fits can no longer be checked against the cluster files.</li>
         <li><b>The paper</b> has not been started.</li>
       </ul></div>
     </div>
@@ -271,12 +272,15 @@
         <p>All 16 of 16 cells finished, with 70,738 votes matching the plan on every cell.
           Resuming interrupted runs was shown to work across eight of them. Provenance was recorded
           against a snapshot of the instrument.</p></div>
-      <div class="tl-row live"><span class="d">2026-09-09 onward</span>
+      <div class="tl-row done"><span class="d">2026-09-09 to 11-14</span>
         <h4>Expansion to 72 cells</h4>
         <p>All 72 fits and all 72 posteriors finished in 1 hour 34 minutes, with zero cell
           failures. The model rows were resubmitted after a driver bug pointed the results
-          directory at the wrong tree. The expansion branch is two commits ahead of main and not
-          merged.</p></div>
+          directory at the wrong tree, and all six finished. The rows and claim statuses were
+          reviewed on 2026-11-14 and the expansion branch was merged with its report: 0 of 72
+          cells are ANCHORED and 72 are RAW. Every model row is PROVISIONAL, and the sampler
+          reported divergences for all six (57 to 231).
+          <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS72-FITS.md">The 72-cell report.</a></p></div>
     </div>
   </section>
 
@@ -285,7 +289,9 @@
     <h2>The three fits passes</h2>
     <p class="lead">This section reports the three fits passes, each of which ran the estimator
       over the cells completed at the time. The estimates changed little between passes, and the
-      claim status of the cells went down.</p>
+      claim status of the cells went down. A fourth pass over all 72 cells was reviewed on
+      2026-11-14 and is reported in the
+      <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS72-FITS.md">72-cell report</a>.</p>
 
     <h3>Inventory of the sweep</h3>
     <p>The sweep has 72 completed nine-arm cells, meaning cells run under nine prompt versions.
@@ -645,8 +651,6 @@
     <p class="lead">This section lists the planned next steps in dependency order. They are limited
       by the people available to do them. The compute budget is not the limiting factor.</p>
     <ol>
-      <li>Reviewing the model rows and claim statuses for the 72 cells, generating the report, and
-        merging the expansion branch into main.</li>
       <li>Turning the 70,738 stored secondary-jury votes into a reported number, or recording why
         this is not possible.</li>
       <li><b>Recruiting raters and labelling the golden set.</b> Until a human label exists, no
@@ -677,6 +681,7 @@
       </div>
       <div><h4>Artifacts</h4><ul>
         <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS24-FITS.md">24-cell fits report</a></li>
+        <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS72-FITS.md">72-cell fits report</a></li>
         <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/WAVE1-FITS.md">Wave-1 fits</a></li>
         <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/W3B-BATCH-INVARIANT.md">Determinism measurement</a></li>
         <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/external_validity.md">External validity</a></li>

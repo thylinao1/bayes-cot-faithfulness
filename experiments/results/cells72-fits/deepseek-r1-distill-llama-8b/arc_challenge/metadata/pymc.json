@@ -1,0 +1,32 @@
+{
+  "cell": "deepseek-r1-distill-llama-8b/arc_challenge/metadata",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 37.95023822784424,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2397.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.058766248711554725,
+    "lo": 0.03753301326870817,
+    "hi": 0.08350533259861094
+  },
+  "nie": {
+    "mean": 0.03591723447362765,
+    "lo": 0.02170152475505908,
+    "hi": 0.05249919985050614
+  },
+  "te": {
+    "mean": 0.09468348318518238,
+    "lo": 0.06467916099319064,
+    "hi": 0.12795976321390345
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 418,
+  "n_rows": 836,
+  "model_slug": null
+}

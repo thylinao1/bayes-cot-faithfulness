@@ -1,0 +1,32 @@
+{
+  "cell": "qwen3-8b/logiqa2/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 31.738003730773926,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2132.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.014620219067634374,
+    "lo": 0.005022610114515251,
+    "hi": 0.028781977830678398
+  },
+  "nie": {
+    "mean": 0.0005399849788192313,
+    "lo": -0.0017651409884854483,
+    "hi": 0.003015339219612613
+  },
+  "te": {
+    "mean": 0.015160204046453605,
+    "lo": 0.005336616250164378,
+    "hi": 0.02954311972446072
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 420,
+  "n_rows": 840,
+  "model_slug": null
+}

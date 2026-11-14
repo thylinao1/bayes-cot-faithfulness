@@ -1,0 +1,32 @@
+{
+  "cell": "olmo-3-7b-think/logiqa2/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 32.667500019073486,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2034.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.08711391038199846,
+    "lo": 0.058921229982579565,
+    "hi": 0.12215296220782282
+  },
+  "nie": {
+    "mean": -0.0002318152978877122,
+    "lo": -0.009930364096413201,
+    "hi": 0.009292373681996358
+  },
+  "te": {
+    "mean": 0.08688209508411075,
+    "lo": 0.058655017107487904,
+    "hi": 0.1212050958941901
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 314,
+  "n_rows": 628,
+  "model_slug": null
+}

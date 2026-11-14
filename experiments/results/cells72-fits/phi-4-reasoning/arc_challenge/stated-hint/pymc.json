@@ -1,0 +1,32 @@
+{
+  "cell": "phi-4-reasoning/arc_challenge/stated-hint",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 91.60020518302917,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1731.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.13115154021925765,
+    "lo": 0.1128430748453175,
+    "hi": 0.15079695681459426
+  },
+  "nie": {
+    "mean": 0.08203273404234543,
+    "lo": 0.06961220761831023,
+    "hi": 0.09513541852110473
+  },
+  "te": {
+    "mean": 0.21318427426160302,
+    "lo": 0.1898427787485442,
+    "hi": 0.23765315892201483
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 1210,
+  "n_rows": 2420,
+  "model_slug": null
+}

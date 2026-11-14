@@ -8,13 +8,22 @@ documents print a Wilson block and an effect block the same way.
 
 The cell list is a PARAMETER. ``--cells 18`` reads
 ``experiments/results/cells18-fits`` and writes the 18-cell document; ``--cells 24``
-reads ``experiments/results/cells24-fits`` and writes the 24-cell one. The two roots
-are separate directories and neither pass can write into the other's.
+reads ``experiments/results/cells24-fits`` and writes the 24-cell one; ``--cells 72``
+reads ``experiments/results/cells72-fits``. The roots are separate directories and no
+pass can write into another's.
+
+The 18- and 24-cell documents were written for two substrates, and some of their prose
+interprets that pair. That text is kept byte for byte for those two lanes. A lane with
+any other substrate set (the 72-cell one has three) gets plain per-substrate data in
+those places instead, and its document says where an optional artifact was not
+produced rather than dropping the section.
 
     PYTHONPATH=src python experiments/cells18_fits_report.py --cells 18 \
         --out docs/CELLS18-FITS.md
     PYTHONPATH=src python experiments/cells18_fits_report.py --cells 24 \
         --out docs/CELLS24-FITS.md
+    PYTHONPATH=src python experiments/cells18_fits_report.py --cells 72 \
+        --out docs/CELLS72-FITS.md
 """
 
 from __future__ import annotations
@@ -30,7 +39,7 @@ sys.path.insert(0, str(_HERE))
 from typing import NamedTuple
 
 import cells18_fits as c18
-from cells18_fits import MODELS, SUBSTRATE_CUES, substrate_cues  # noqa: F401
+from cells18_fits import MODELS, SUBSTRATE_CUES, models, substrate_cues  # noqa: F401
 from wave1_fits_report import e, w
 
 ROOT = _HERE.parent
@@ -45,8 +54,47 @@ class Lane(NamedTuple):
     results_rel: str
     branch: str
     worktree: str
+    # The git state of this lane's branch, stated per lane. It was a hard-coded
+    # "not merged and not pushed" in the header, which was true when the 18- and
+    # 24-cell documents were rendered and would have been a false claim in the
+    # 72-cell one, whose branch was pushed before the fits were even submitted.
+    branch_state: str
     per_model: str
-    aqua_cues: str
+    # The subjects of this lane. Was a module constant, which meant a lane could not
+    # describe a set with a different subject list and every count built from it
+    # (n_asked, the "of N cells" line) silently reported the 3-model number.
+    subjects: tuple
+    # The substrate-by-cue prose. Replaces aqua_cues, which could only describe the AQuA
+    # half and had no way to mention a third substrate.
+    cells_prose: str
+    # When the fits ran and, for a document rendered after the fact, how it was
+    # rendered. The 18- and 24-cell documents were rendered the day their fits ran and
+    # say so in one line; the 72-cell one was rendered weeks later from restored
+    # artifacts and must not print its render date as if it were the fit date.
+    date_lines: tuple = ("**Date:** 8 September 2026",)
+    # Where the artifacts this document reads came from, when that is more than "the
+    # cluster run wrote them here". Empty for a lane mirrored straight from the cluster.
+    provenance_note: str = ""
+    # Set when the cluster tree the fits read their records from is gone. It qualifies
+    # every sentence that would otherwise tell a reader the records can still be
+    # checked, and it is the reason given wherever an optional artifact is absent.
+    cluster_gone: str = ""
+
+
+# The 72-cell artifacts were not mirrored from the cluster by the lane that fitted
+# them; they were restored from an archive after the cluster tree was deleted. The two
+# facts below are the restore's own record, not numbers derived from any fit.
+_RESTORE_72 = (
+    "**Provenance of the artifacts.** The files under "
+    "`experiments/results/cells72-fits/` were restored on 2026-11-14 from the archive "
+    "`bcf-fits72.tar.gz` (sha256 "
+    "`6dca1d98fd57a33d109e4ea0f44d759db82f08870e48105b5d65ecabd4c2a7b5`), an archive of "
+    "this lane's worktree made on 2026-11-09, the date the archive log of that day "
+    "records. The cluster tree `~/bcf` that the fits "
+    "read their records from no longer exists, so the `record_hashes` in each "
+    "`fit.json` can no longer be checked against the cluster files they name. "
+    "Rendering this document reads the restored files and writes none of them."
+)
 
 
 LANES = {
@@ -57,8 +105,13 @@ LANES = {
         results_rel="experiments/results/cells18-fits",
         branch="fits/cells18",
         worktree="~/Developer/bcf-fits18",
+        branch_state="not merged and not pushed",
         per_model="six",
-        aqua_cues="AQuA-RAT under stated-hint and professor",
+        subjects=models("18"),
+        cells_prose=(
+            "ARC-Challenge under stated-hint, professor, metadata and grader-code; "
+            "AQuA-RAT under stated-hint and professor"
+        ),
     ),
     "24": Lane(
         cell_set="24",
@@ -67,10 +120,104 @@ LANES = {
         results_rel="experiments/results/cells24-fits",
         branch="fits/cells24",
         worktree="~/Developer/bcf-fits24",
+        branch_state="not merged and not pushed",
         per_model="eight",
-        aqua_cues="AQuA-RAT under stated-hint, professor, metadata and grader-code",
+        subjects=models("24"),
+        cells_prose=(
+            "ARC-Challenge and AQuA-RAT, each under stated-hint, professor, metadata "
+            "and grader-code"
+        ),
+    ),
+    "36": Lane(
+        cell_set="36",
+        pairs=substrate_cues("36"),
+        results=ROOT / "experiments" / "results" / "cells36-fits",
+        results_rel="experiments/results/cells36-fits",
+        branch="fits/expand-to-72",
+        worktree="~/Developer/bcf-fits72",
+        branch_state="pushed, not yet merged",
+        per_model="twelve",
+        subjects=models("36"),
+        cells_prose=(
+            "ARC-Challenge, AQuA-RAT and LogiQA 2.0, each under stated-hint, professor, "
+            "metadata and grader-code"
+        ),
+    ),
+    "72": Lane(
+        cell_set="72",
+        pairs=substrate_cues("72"),
+        results=ROOT / "experiments" / "results" / "cells72-fits",
+        results_rel="experiments/results/cells72-fits",
+        branch="fits/expand-to-72",
+        worktree="~/Developer/bcf-fits72",
+        # This document is merged into main with the branch, so "pushed, not yet
+        # merged" would be false on main the moment it landed there.
+        branch_state="merged into main together with this document",
+        per_model="twelve",
+        subjects=models("72"),
+        cells_prose=(
+            "ARC-Challenge, AQuA-RAT and LogiQA 2.0, each under stated-hint, professor, "
+            "metadata and grader-code"
+        ),
+        date_lines=(
+            (
+                "**Fits computed:** 2026-09-09. This date is a lane constant: no artifact "
+                "records a date, and only the code commit below is read from the fits."
+            ),
+            (
+                "**Rendered:** later, from the artifacts restored on 2026-11-14 (provenance "
+                "note below). Rendering reads the stored artifacts and refits nothing."
+            ),
+        ),
+        provenance_note=_RESTORE_72,
+        cluster_gone=(
+            "the cluster tree `~/bcf` that held the raw sweep records no longer exists"
+        ),
     ),
 }
+
+_TWO_SUBSTRATES = frozenset({"arc_challenge", "aqua_rat"})
+_SUBSTRATE_NAME = {
+    "arc_challenge": "ARC-Challenge",
+    "aqua_rat": "AQuA-RAT",
+    "logiqa2": "LogiQA 2.0",
+}
+
+
+def _two_substrate(lane: Lane) -> bool:
+    """True for a lane whose substrates are exactly ARC-Challenge and AQuA-RAT.
+
+    The banked 18- and 24-cell documents were written for those two substrates and
+    some of their prose interprets the pair (which substrate carries more mediator
+    variation, which separates what). Those lanes keep that text byte for byte. A lane
+    with any other substrate set gets plain per-substrate data instead, because a
+    sentence that was true of two substrates is not evidence about a third.
+    """
+    return {s for s, _ in lane.pairs} == _TWO_SUBSTRATES
+
+
+def _substrates_in(fits) -> list[str]:
+    """The substrates present, in the order the cell list first names them."""
+    seen: list[str] = []
+    for _m, s, _c in fits:
+        if s not in seen:
+            seen.append(s)
+    return seen
+
+
+def _tally(counter, total: int) -> str:
+    """`value` in k of n, for every distinct value, most frequent first."""
+    return "; ".join(f"`{v}` in {k} of {total}" for v, k in counter.most_common())
+
+
+_COUNT_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+                7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven", 12: "twelve"}
+
+
+def _count_word(n: int) -> str:
+    """Spell a small count. The header said "three models" literally, which was true of
+    the 18- and 24-cell passes and wrong the moment a lane carried six subjects."""
+    return _COUNT_WORDS.get(n, str(n))
 
 
 def slug(substrate: str, cue: str) -> str:
@@ -88,7 +235,7 @@ def load(lane: Lane):
     gate = json.loads((results / "offset_null_gate.json").read_text())
     fits, pymc, rows, extra = {}, {}, {}, {}
     absent: list[str] = []
-    for m in MODELS:
+    for m in lane.subjects:
         for s, c in lane.pairs:
             fp = results / m / s / c / "fit.json"
             if fp.exists():
@@ -128,6 +275,194 @@ _WAVE1_KEYS = (
     ("column_a", "p_followed_among_clean_correct", "rate"),
     ("anchor", "all_three_agree"),
 )
+_WAVE1_LABEL = {
+    _WAVE1_KEYS[0]: "the NDE point",
+    _WAVE1_KEYS[1]: "the NIE point",
+    _WAVE1_KEYS[2]: "the TE point",
+    _WAVE1_KEYS[3]: "the NIE lower end",
+    _WAVE1_KEYS[4]: "the NIE upper end",
+    _WAVE1_KEYS[5]: "`rho*_point`",
+    _WAVE1_KEYS[6]: "`rho*_decision`",
+    _WAVE1_KEYS[7]: "the follow rate",
+    _WAVE1_KEYS[8]: "the cell-level anchor verdict",
+}
+
+CELLS24 = ROOT / "experiments" / "results" / "cells24-fits"
+# The four cells voided and rerun before the 24-cell pass, named in its document.
+_VOIDED = (
+    ("gemma-2-9b-it", "arc_challenge", "professor"),
+    ("llama-3.1-8b-instruct", "arc_challenge", "professor"),
+    ("qwen3-8b", "arc_challenge", "metadata"),
+    ("gemma-2-9b-it", "arc_challenge", "metadata"),
+)
+
+
+def _cells24_pairs(fits) -> list:
+    """Each cell this lane shares with the banked 24-cell lane, with both fits."""
+    out = []
+    for key, f in fits.items():
+        p = CELLS24.joinpath(*key, "fit.json")
+        if p.exists():
+            out.append((key, f, json.loads(p.read_text())))
+    return out
+
+
+def _same_records(f, old) -> bool:
+    """The same three record files by sha256. The key naming the arms summary changed
+    between the lanes, so the values are compared and not the key names."""
+    return sorted(f["record_hashes"].values()) == sorted(old["record_hashes"].values())
+
+
+def _is_number(x) -> bool:
+    """A stored number, as opposed to a flag, a string, a dict or a missing value."""
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _narrowest(blocks) -> float | None:
+    """The narrowest printed interval among blocks carrying `lo` and `hi`."""
+    widths = [
+        b["hi"] - b["lo"]
+        for b in blocks
+        if b and _is_number(b.get("lo")) and _is_number(b.get("hi"))
+    ]
+    return min(widths) if widths else None
+
+
+def _consequence(gap: float, width: float | None, what: str) -> str:
+    """The size of a non-reproduction against the narrowest interval printed beside it.
+
+    No cause is asserted, because no artifact records one.
+    """
+    if gap == 0.0:
+        return ""
+    if width is None or width <= 0:
+        return (
+            f" No interval is printed for {what}, so the difference cannot be set against "
+            "one. Each document reports its own lane's artifacts, and the artifacts do not "
+            "record the cause of the difference."
+        )
+    return (
+        f" The largest difference is {gap / width:.2%} of the narrowest interval this "
+        f"document prints for {what} ({width:.4f}). Each document reports its own lane's "
+        "artifacts, and the artifacts do not record the cause of the difference."
+    )
+
+
+def _status_phrase(pairs) -> str:
+    """Claim status compared only where both sides record one."""
+    both = [(f, o) for _k, f, o in pairs if f.get("claim_status") and o.get("claim_status")]
+    same = sum(f["claim_status"] == o["claim_status"] for f, o in both)
+    if len(both) == len(pairs):
+        return f"the claim status in {same} of {len(pairs)}"
+    return (
+        f"the claim status in {same} of the {len(both)} with a status recorded on both "
+        f"sides; {len(pairs) - len(both)} have no status on at least one side"
+    )
+
+
+def _cells24_overlap_lines(fits) -> list[str]:
+    """The cells shared with docs/CELLS24-FITS.md, compared with it, not assumed equal."""
+    pairs = _cells24_pairs(fits)
+    if not pairs:
+        return []
+    n = len(pairs)
+    rec = sum(_same_records(f, o) for _k, f, o in pairs)
+    job = sum(
+        f["job_id"] == o["job_id"] and f["tree"]["plan_commit"] == o["tree"]["plan_commit"]
+        for _k, f, o in pairs
+    )
+    col_a = sum(f["column_a"] == o["column_a"] for _k, f, o in pairs)
+    gap = max(
+        abs(f["column_b"]["effects"][e][q] - o["column_b"]["effects"][e][q])
+        for _k, f, o in pairs
+        for e in ("nde", "nie", "te")
+        for q in ("point", "lo", "hi")
+    )
+    verdict = sum(
+        f["column_b"]["verdict"]["verdict"] == o["column_b"]["verdict"]["verdict"]
+        for _k, f, o in pairs
+    )
+    col_b = (
+        "Column B effects are equal to the last stored digit in all of them"
+        if gap == 0.0
+        else (
+            "Column B is not equal to the last stored digit: the NDE, NIE and TE points "
+            f"and interval ends differ by at most {gap:.1e} across the {n} cells"
+        )
+    )
+    width = _narrowest(
+        f["column_b"]["effects"][e] for _k, f, _o in pairs for e in ("nde", "nie", "te")
+    )
+    return [
+        ("**The cells shared with the 24-cell document are checked against it.** "
+         f"{n} of these {len(fits)} cells are cells of `docs/CELLS24-FITS.md`, whose fits "
+         "are under `experiments/results/cells24-fits/`. In "
+         f"{rec} of {n} the three record files carry the same sha256 values there and "
+         f"here, in {job} of {n} the job id and the tree are the same, and in {col_a} of "
+         f"{n} column A is equal field for field. {col_b}. The column B verdict is the "
+         f"same in {verdict} of {n} and {_status_phrase(pairs)}."
+         + _consequence(gap, width, "the NDE, NIE and TE of those cells")),
+        "",
+    ]
+
+
+def load_sampler_diagnostics(lane: Lane) -> dict:
+    """Each model's sampler_diagnostics.json, where the lane wrote one.
+
+    The banked 18- and 24-cell lanes wrote none, so this is empty for them and nothing
+    in their documents changes.
+    """
+    out = {}
+    for m in lane.subjects:
+        p = lane.results / m / "sampler_diagnostics.json"
+        if p.exists():
+            out[m] = json.loads(p.read_text())
+    return out
+
+
+def _commit_lines(gate, fits, rows, diag, subjects=()) -> list[str]:
+    """Which code commit and script hash each artifact carries, read from each one.
+
+    A model with no `model_row.json` or no `sampler_diagnostics.json` is named, so a
+    tally over the files that exist cannot pass for a tally over every model.
+    """
+    from collections import Counter
+
+    def tally(name, docs, key, width=None):
+        vals = [(d.get(key) or "not recorded") for d in docs.values()]
+        if width:
+            vals = [v[:width] for v in vals]
+        return f"`{name}` " + _tally(Counter(vals), len(docs))
+
+    def missing(name, docs):
+        gone = [m for m in subjects if m not in docs]
+        return (
+            f"; no `{name}` for " + ", ".join(f"`{m}`" for m in gone) if gone else ""
+        )
+
+    parts = [f"gate record `{gate.get('code_commit') or 'not recorded'}`"]
+    parts.append(tally("fit.json", fits, "code_commit"))
+    parts.append(
+        (tally("model_row.json", rows, "code_commit") if rows else "no `model_row.json`")
+        + missing("model_row.json", rows)
+    )
+    if diag or subjects:
+        parts.append(
+            (
+                tally("sampler_diagnostics.json", diag, "code_commit")
+                if diag
+                else "no `sampler_diagnostics.json`"
+            )
+            + missing("sampler_diagnostics.json", diag)
+        )
+    sha = tally("fit.json", fits, "analysis_script_sha256", 16)
+    if rows:
+        sha += "; " + tally("model_row.json", rows, "analysis_script_sha256", 16)
+    return [
+        ("**Code commit and script hash, read from every artifact.** Code commit: "
+         + "; ".join(parts) + ". Analysis script sha256: " + sha + "."),
+        "",
+    ]
 
 
 def _dig(d, keys):
@@ -136,11 +471,25 @@ def _dig(d, keys):
     return d
 
 
-def _wave1_reproduction(fits) -> list[str]:
-    """The reuse claim, checked rather than asserted, against the wave-1 artifacts."""
+def _wave1_reproduction(fits, general: bool = False) -> list[str]:
+    """The reuse claim, checked rather than asserted, against the wave-1 artifacts.
+
+    ``general`` is the path for a lane other than the banked 18- and 24-cell ones. It
+    does not repeat the claim that the cells were refitted through the same imported
+    functions, because ``experiments/wave1_fits.py`` changed after wave 1, and it
+    prints how far the unequal quantities are from the stored ones rather than only
+    how many are equal.
+    """
     same = 0
     total = 0
     cells = 0
+    gap = 0.0
+    key_same: dict = {}
+    compared: list = []
+    odd: list = []
+    # MODELS, not a lane's subjects, on purpose: wave 1 is a fixed
+    # historical comparison over the three original subjects and its
+    # artifacts exist only for them.
     for m in MODELS:
         old_p = WAVE1 / m / "fit.json"
         new = fits.get((m, "arc_challenge", "stated-hint"))
@@ -148,11 +497,20 @@ def _wave1_reproduction(fits) -> list[str]:
             continue
         old = json.loads(old_p.read_text())
         cells += 1
+        compared.append((m, new, old))
         for keys in _WAVE1_KEYS:
             total += 1
-            same += int(_dig(new, keys) == _dig(old, keys))
+            a, b = _dig(new, keys), _dig(old, keys)
+            same += int(a == b)
+            key_same[keys] = key_same.get(keys, True) and a == b
+            if a != b and isinstance(a, float) and isinstance(b, float):
+                gap = max(gap, abs(a - b))
+            if a != b and not (_is_number(a) and _is_number(b)):
+                odd.append((m, _WAVE1_LABEL[keys], b, a))
     if not cells:
         return []
+    if general:
+        return _wave1_general(fits, compared, same, total, key_same, odd)
     return [
         (f"**The reuse is checked, not asserted.** {cells} of these {len(fits)} cells are "
         "the three "
@@ -164,6 +522,96 @@ def _wave1_reproduction(fits) -> list[str]:
         "digit: the three effects, the NIE interval, `rho*_point`, `rho*_decision`, the "
         "follow rate and the cell-level anchor verdict. A number that had drifted would show "
         "up here."),
+        "",
+    ]
+
+
+def _and_join(items: list[str]) -> str:
+    if len(items) < 2:
+        return "".join(items)
+    return ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def _wave1_general(fits, compared, same, total, key_same, odd) -> list[str]:
+    """The wave-1 comparison for a lane other than the banked ones.
+
+    The banked text says this lane refits the wave-1 cells through the same imported
+    functions; `experiments/wave1_fits.py` changed after wave 1, so that is not
+    repeated. What is printed: how many quantities are equal, how far the numeric ones
+    that are not equal moved and against which interval, which ones are not numbers at
+    all, and how the claim status of each wave-1 cell moved, since claim status is not
+    among the compared quantities.
+    """
+    gap = 0.0
+    for m, new, old in compared:
+        for keys in _WAVE1_KEYS:
+            a, b = _dig(new, keys), _dig(old, keys)
+            if a != b and _is_number(a) and _is_number(b):
+                gap = max(gap, abs(a - b))
+    n_num = total - same - len(odd)
+    differ = ""
+    if same < total and not odd:
+        differ = f" and the other {total - same} differ by at most {gap:.1e} in absolute value"
+    elif same < total:
+        differ = f" and the other {total - same} differ"
+        if n_num:
+            differ += f": {n_num} are numbers and differ by at most {gap:.1e} in absolute value"
+        if odd:
+            differ += (
+                (";" if n_num else ":")
+                + f" {len(odd)} are not numbers on both sides ("
+                + "; ".join(f"`{m}` {lab}, {b!r} in wave 1 and {a!r} here" for m, lab, b, a in odd)
+                + ")"
+            )
+    equal_keys = [_WAVE1_LABEL[k] for k, ok in key_same.items() if ok]
+    width = _narrowest(
+        blk
+        for _m, new, _o in compared
+        for blk in (
+            new["column_b"]["effects"]["nde"],
+            new["column_b"]["effects"]["nie"],
+            new["column_b"]["effects"]["te"],
+            new["column_b"]["rho"]["rho_star_point"],
+        )
+    )
+    moved = [
+        (m, old.get("claim_status") or "not recorded", new.get("claim_status") or "not recorded",
+         new["anchor"]["all_three_agree"])
+        for m, new, old in compared
+        if old.get("claim_status") != new.get("claim_status")
+    ]
+    if moved:
+        status = (
+            f" Claim status is not among those quantities, and it moved in {len(moved)} of "
+            f"the {len(compared)} cells: "
+            + "; ".join(f"`{m}` is {a} in its wave-1 `fit.json` and {b} here" for m, a, b, _ok in moved)
+            + f". {sum(1 for *_x, ok in moved if ok is True)} of those {len(moved)} pass "
+            "their own "
+            "cell-level agreement test here; this lane promotes a cell only when the "
+            "model-level leg also agrees, which section 5.3 and limit 10 report."
+        )
+    else:
+        status = (
+            " Claim status is not among those quantities; it is the same in wave 1 and "
+            f"here in all {len(compared)} cells."
+        )
+    return [
+        ("**The wave-1 cells are checked against wave 1, not assumed equal to it.** "
+         f"{len(compared)} of these {len(fits)} cells are the three wave-1 cells "
+         "(ARC-Challenge x stated-hint on each of the three wave-1 models). Comparing "
+         f"{total} stored quantities across those {len(compared)} cells against "
+         "`experiments/results/wave1-fits/<model>/fit.json`, which was written by the "
+         f"separate wave-1 lane on 2026-09-07, {same} of {total} are equal to the last "
+         "stored digit" + differ + ". The quantities are the three effects, the NIE "
+         "interval, `rho*_point`, `rho*_decision`, the follow rate and the cell-level "
+         "anchor verdict; "
+         + (
+             "the ones equal in every compared cell are " + _and_join(equal_keys) + "."
+             if equal_keys
+             else "none is equal in every compared cell."
+         )
+         + _consequence(gap, width, "the effects and `rho*_point` of those cells")
+         + status),
         "",
     ]
 
@@ -201,19 +649,157 @@ def _script_note(any_fit, rows, n_cells: int) -> list[str]:
     ]
 
 
-def header(gate, fits, rows, lane: Lane, absent) -> list[str]:
+# A cell whose column B runs on fewer complete items than this is named wherever the
+# document describes what column B rests on. The rule is a count, stated in the text.
+THIN_COLUMN_B = 50
+
+
+def _thin_cells(fits) -> list:
+    """(model, substrate, cue, complete items, clean-correct, column A denominator)."""
+    out = []
+    for (m, s, c), f in fits.items():
+        n = f["table"]["denominators"]["n_items_complete"]
+        if n < THIN_COLUMN_B:
+            out.append(
+                (m, s, c, n, f["column_a"]["denominators"]["n_clean_correct"],
+                 f["column_a"]["p_followed_among_clean_correct"]["n"])
+            )
+    return out
+
+
+def _thin_phrase(thin) -> str:
+    return "; ".join(
+        f"`{m}` {slug(s, c)}, {n} complete items against {cc} clean-correct and a column A "
+        f"follow denominator of {an}"
+        for m, s, c, n, cc, an in thin
+    )
+
+
+def _thin_sentence(fits) -> str:
+    thin = _thin_cells(fits)
+    if not thin:
+        return f"No cell enters column B with fewer than {THIN_COLUMN_B} complete items."
+    return (
+        f"Column B runs on fewer than {THIN_COLUMN_B} complete items in {len(thin)} "
+        f"{'cell' if len(thin) == 1 else 'cells'}: {_thin_phrase(thin)}. Their column B "
+        "intervals rest on those counts, while column A counts each over its own larger "
+        "denominator, so the two columns describe different sets of items there; section 2 "
+        "gives the drops behind each."
+    )
+
+
+def _label_reason(pr) -> str:
+    """Why a cell carries its precision label, from its own precision block.
+
+    The single label UNDERPOWERED covers a measured shortfall and an arm that recorded
+    no count at all. They are different findings and are named apart wherever the
+    label is printed per cell.
+    """
+    if not pr:
+        return "no precision block"
+    if not pr.get("underpowered"):
+        return "reaches the floor"
+    if pr.get("n_clean_correct") is None:
+        return "no clean-correct count recorded"
+    if not pr.get("clean_correct_clears_floor") or pr.get("arms_below_floor"):
+        return "a count below the floor"
+    if pr.get("enabled_arms_with_no_denominator"):
+        return "no recorded count only"
+    raise ValueError(f"a precision block is labelled underpowered with no reason: {pr}")
+
+
+def _scope_tail(fits) -> str:
+    """The general path's additions to the scope paragraph."""
+    from collections import Counter
+
+    reasons = Counter(_label_reason(f.get("precision")) for f in fits.values())
+    n = len(fits)
+    lab = reasons["a count below the floor"] + reasons["no recorded count only"]
+    label = (
+        f" Limit 12 labels {lab} of {n} cells UNDERPOWERED: "
+        f"{reasons['a count below the floor']} because a count is below the floor and "
+        f"{reasons['no recorded count only']} only because enabled arms recorded no count. "
+        "Section 4 prints every verdict as the fits recorded it, and limit 12 says how to "
+        "read the ones on labelled cells."
+        if lab
+        else ""
+    )
+    return (
+        label + " " + _thin_sentence(fits) + " Where this document names the cell that "
+        "holds an extreme value, the name identifies a cell in this table and is not an "
+        "ordering of models."
+    )
+
+
+def _serving_sentence(fits) -> str:
+    """The run-label and serving facts, counted from each fit instead of stated once."""
+    from collections import Counter
+
+    n = len(fits)
+    pinned = sum(
+        1
+        for f in fits.values()
+        if f.get("run_label") == "powered_pinned" and f.get("exploratory_reason") is None
+    )
+    serving = [f.get("serving") or {} for f in fits.values()]
+    inv = sum(1 for s in serving if s.get("batch_invariant") is True)
+    pre = sum(1 for s in serving if s.get("determinism_preflight") is True)
+    vllm = Counter(str(s.get("vllm_version")) for s in serving)
+    return (
+        f"{pinned} of {n} carry `run_label` `powered_pinned` with `exploratory_reason` "
+        f"null; {inv} of {n} record `batch_invariant` true and {pre} of {n} record "
+        f"`determinism_preflight` true; the vLLM version recorded is {_tally(vllm, n)}."
+    )
+
+
+def _g1_failing_tally(fits) -> str:
+    """The G1 conditions that fail, each with the number of cells it fails in."""
+    from collections import Counter
+
+    fail = Counter(
+        k
+        for f in fits.values()
+        if not f["logit_level_gate_G1"]["eligible"]
+        for k in f["logit_level_gate_G1"]["failing_conditions"]
+    )
+    return ", ".join(f"`{k}` in {v}" for k, v in sorted(fail.items()))
+
+
+def _logit_scope_sentence(fits) -> str:
+    """The A5 logit-level row as it actually stands in this lane's fits."""
+    n = len(fits)
+    n_print = sum(1 for f in fits.values() if (f.get("logit_level_row") or {}).get("printed"))
+    n_fail = sum(1 for f in fits.values() if not f["logit_level_gate_G1"]["eligible"])
+    if n_print == 0:
+        return (
+            "The logit-level column B of Amendment A5 does NOT print for any cell: the "
+            f"A5.4 eligibility gate G1 fails in {n_fail} of {n} (failing conditions: "
+            f"{_g1_failing_tally(fits)}), and section 4 gives the failing conditions with "
+            "their denominators per cell rather than a row."
+        )
+    return (
+        f"The logit-level column B of Amendment A5 prints for {n_print} of {n} cells, "
+        "beside the text-level row in each of those cells' blocks in section 4 and never "
+        f"instead of it. The A5.4 eligibility gate G1 fails in the other {n_fail} "
+        f"(failing conditions: {_g1_failing_tally(fits)}), and section 4 gives the "
+        "failing conditions with their denominators per cell rather than a row."
+    )
+
+
+def header(gate, fits, rows, lane: Lane, absent, diag=None) -> list[str]:
     n_g1 = sum(1 for f in fits.values() if not f["logit_level_gate_G1"]["eligible"])
-    n_asked = len(MODELS) * len(lane.pairs)
+    n_asked = len(lane.subjects) * len(lane.pairs)
     n_anch = sum(1 for f in fits.values() if f.get("claim_status") == "ANCHORED")
     n_raw = sum(1 for f in fits.values() if f.get("claim_status") == "RAW")
     n_pend = len(fits) - n_anch - n_raw
     any_fit = next(iter(fits.values()))
+    general = not _two_substrate(lane)
     return [
         (f"# The {lane.cell_set} cells of record: column A, column B, the logit-level "
         "gate, and the model-level rows"),
         "",
-        "**Date:** 8 September 2026",
-        f"**Branch:** `{lane.branch}` (worktree `{lane.worktree}`), not merged and not pushed",
+        *lane.date_lines,
+        f"**Branch:** `{lane.branch}` (worktree `{lane.worktree}`), {lane.branch_state}",
         f"**Code commit at run time:** `{any_fit['code_commit']}`",
         ("**Analysis script:** `experiments/cells18_fits.py`, sha256 "
         f"`{any_fit['analysis_script_sha256'][:16]}`, which imports and calls "
@@ -223,26 +809,45 @@ def header(gate, fits, rows, lane: Lane, absent) -> list[str]:
         f"{lane.cell_set}` from the artifacts under"),
         f"`{lane.results_rel}/`. No number in this file is typed by hand.",
         "",
-    ] + _script_note(any_fit, rows, len(fits)) + _wave1_reproduction(fits) + [
-        (f"This document reports the {lane.cell_set} cells of record: three models "
-        f"({', '.join(MODELS)}) crossed with {lane.per_model} substrate-by-cue-family "
-        "cells each (ARC-Challenge under stated-hint, professor, metadata and "
-        f"grader-code; {lane.aqua_cues}). All {len(fits)} carry `run_label` "
-        "`powered_pinned` with `exploratory_reason` null, ran under the R1 serving mode "
-        "with batch invariance on and vLLM 0.28.0, and passed their own determinism "
-        "preflight."),
+    ] + ([lane.provenance_note, ""] if lane.provenance_note else []) + (
+        _commit_lines(gate, fits, rows, diag, lane.subjects) if general else []
+    ) + _script_note(any_fit, rows, len(fits)) + _wave1_reproduction(fits, general) + (
+        _cells24_overlap_lines(fits) if general else []
+    ) + [
+        (f"This document reports the {lane.cell_set} cells of record: "
+        f"{_count_word(len(lane.subjects))} models "
+        f"({', '.join(lane.subjects)}) crossed with {lane.per_model} "
+        f"substrate-by-cue-family cells each ({lane.cells_prose}). "
+        + (
+            _serving_sentence(fits)
+            if general
+            else (
+                f"All {len(fits)} carry `run_label` "
+                "`powered_pinned` with `exploratory_reason` null, ran under the R1 serving "
+                "mode with batch invariance on and vLLM 0.28.0, and passed their own "
+                "determinism preflight."
+            )
+        )),
         "",
         ("**Scope, in one paragraph.** Column A is uncorrected because no jury Q1 "
         "configuration is frozen (ruling R9) and no human calibration frame covers these "
-        "cells. Column B is the repaired probit fit at rho = 0 with both intercepts. The "
-        "logit-level column B of Amendment A5 does NOT print for any cell: the A5.4 "
-        f"eligibility gate G1 fails on the same condition in {n_g1} of {len(fits)}, and "
-        "section 3 gives "
-        "the failing condition with its denominator per cell rather than a row. The "
+        "cells. Column B is the repaired probit fit at rho = 0 with both intercepts. "
+        + (
+            _logit_scope_sentence(fits)
+            if general
+            else (
+                "The logit-level column B of Amendment A5 does NOT print for any cell: the "
+                f"A5.4 eligibility gate G1 fails on the same condition in {n_g1} of "
+                f"{len(fits)}, and section 3 gives the failing condition with its "
+                "denominator per cell rather than a row."
+            )
+        )
+        + " The "
         "model-level row estimand of element 1 section 2.4 is computed and is "
         "**PROVISIONAL**, for reasons the row states in its own artifact. No cross-model "
         "ordering is stated anywhere in this document (section 25). VALIDATED is not "
-        "reachable for any cell."),
+        "reachable for any cell."
+        + (_scope_tail(fits) if general else "")),
         "",
         f"Claim-status mix over the {len(fits)} cells: **{n_anch} ANCHORED**, "
         f"**{n_raw} RAW**"
@@ -259,7 +864,7 @@ def header(gate, fits, rows, lane: Lane, absent) -> list[str]:
         if absent
         else [
             (f"All {n_asked} cells this lane asked for are in this document: "
-             f"{len(MODELS)} models x {len(lane.pairs)} substrate-by-cue-family cells, "
+             f"{len(lane.subjects)} models x {len(lane.pairs)} substrate-by-cue-family cells, "
              f"{len(fits)} fit.json files read, 0 missing."),
             "",
         ]
@@ -276,8 +881,13 @@ _GATE_VALUES = (
 )
 
 
-def _gate_vs_previous(gate) -> str:
-    """Compare this attempt with the one the 18-cell lane recorded, value by value."""
+def _gate_vs_previous(gate, general: bool = False) -> str:
+    """Compare this attempt with the one the 18-cell lane recorded, value by value.
+
+    ``general`` compares every stored field of the two nulls, not only the columns the
+    gate table prints, because a difference in a fitted parameter the table does not
+    show is as much a non-reproduction as one it does.
+    """
     if not _PREVIOUS_GATE.exists():
         return (
             "No earlier gate record is on this branch to compare with, so the values "
@@ -290,17 +900,20 @@ def _gate_vs_previous(gate) -> str:
             f"record of {old['lane']}, so this attempt is the same code on the same seed."
         )
     same = total = 0
+    moved = []
     for kind, v in gate["nulls"].items():
         ov = old["nulls"].get(kind, {})
         for key in _GATE_VALUES:
             total += 1
             same += int(v.get(key) == ov.get(key))
+            if v.get(key) != ov.get(key):
+                moved.append((kind, key, ov.get(key), v.get(key)))
     est_same = sum(
         1
         for k, h in gate["estimator_module_sha256"].items()
         if old["estimator_module_sha256"].get(k) == h
     )
-    return (
+    lead = (
         "**This is a new attempt record, not the 18-cell one carried over.** "
         "`experiments/wave1_fits.py` hashed "
         f"`{old['wave1_fits_sha256'][:16]}` when the `{old['lane']}` lane ran its gate and "
@@ -308,10 +921,148 @@ def _gate_vs_previous(gate) -> str:
         "recorded again rather than inherited: a gate is a statement about the bytes that "
         "produced it. The estimator modules under `src/bayes_cot_faithfulness` did not "
         f"move with it, {est_same} of {len(gate['estimator_module_sha256'])} hashing the "
-        f"same as in that record. Comparing the two attempts value by value, {same} of "
-        f"{total} gate quantities are equal to the last stored digit, which is what a "
-        "deterministic seeded gate should give when the change to the file it delegates "
-        "to did not touch the functions the gate calls."
+        "same as in that record. Comparing the two attempts value by value, "
+    )
+    if general:
+        return lead + _gate_all_fields(old, gate, same, total)
+    return (
+        lead + f"{same} of "
+        f"{total} gate quantities are equal to the last stored digit"
+        + (
+            ", which is what a "
+            "deterministic seeded gate should give when the change to the file it delegates "
+            "to did not touch the functions the gate calls."
+            if not moved
+            else _gate_moved_tail(moved, old, gate)
+        )
+    )
+
+
+def _compare_nulls(old_nulls: dict, new_nulls: dict):
+    """Every stored field of every null, split into numbers and everything else.
+
+    Returns (numeric fields, numeric equal, numeric differences, other differences).
+    A field present on one side only is an other-difference with None for the
+    missing side, never a silent skip.
+    """
+    n_num = n_same = 0
+    num_diff, other_diff = [], []
+    for kind in sorted(set(old_nulls) | set(new_nulls)):
+        ov, nv = old_nulls.get(kind) or {}, new_nulls.get(kind) or {}
+        for key in sorted(set(ov) | set(nv)):
+            a, b = ov.get(key), nv.get(key)
+            if _is_number(a) and _is_number(b):
+                n_num += 1
+                n_same += int(a == b)
+                if a != b:
+                    num_diff.append((kind, key, a, b, abs(a - b)))
+            elif a != b:
+                other_diff.append((kind, key, a, b))
+    return n_num, n_same, num_diff, other_diff
+
+
+def _gate_all_fields(old, gate, same: int, total: int) -> str:
+    """The gate comparison over every stored field, with the true largest difference."""
+    n_num, n_same, num_diff, other_diff = _compare_nulls(old["nulls"], gate["nulls"])
+    checks = [
+        (kind, ck)
+        for kind, nv in gate["nulls"].items()
+        for ck, held in (nv.get("checks") or {}).items()
+        if held and ((old["nulls"].get(kind) or {}).get("checks") or {}).get(ck)
+    ]
+    n_checks = sum(len(nv.get("checks") or {}) for nv in gate["nulls"].values())
+    out = (
+        f"{same} of the {total} quantities in the table above are equal to the last "
+        f"stored digit. Across every stored numeric field of the two nulls ({n_num} "
+        "fields, which add the true values and the fitted parameters the table does not "
+        f"show), {n_same} are equal"
+    )
+    if num_diff:
+        worst = max(num_diff, key=lambda t: t[4])
+        out += (
+            f" and {len(num_diff)} differ: "
+            + "; ".join(
+                f"`{key}` on the {kind} null, {a:.10g} there and {b:.10g} here"
+                for kind, key, a, b, _d in num_diff
+            )
+            + f". The largest difference is {worst[4]:.1e}, on `{worst[1]}` of the "
+            f"{worst[0]} null."
+        )
+    else:
+        out += "."
+    if other_diff:
+        out += (
+            f" {len(other_diff)} stored fields that are not numbers differ too: "
+            + "; ".join(f"`{key}` on the {kind} null, {a!r} there and {b!r} here"
+                        for kind, key, a, b in other_diff)
+            + "."
+        )
+    else:
+        out += " The fields that are not numbers (the converged flags and the checks) are equal."
+    if num_diff or other_diff:
+        out += (
+            " A deterministic seeded gate on unchanged functions would reproduce every "
+            "field, so the two runs did not compute these fields identically."
+        )
+    else:
+        out += (
+            " That is what a deterministic seeded gate should give when the change to the "
+            "file it delegates to did not touch the functions the gate calls."
+        )
+    return out + (
+        " The gate prints no interval for any of these quantities, so the difference "
+        "cannot be set against one; the verdict is "
+        f"{old.get('verdict')} in that record and {gate.get('verdict')} here, and "
+        f"{len(checks)} of the {n_checks} stored checks hold in both. Each record reports "
+        "its own lane's gate, and neither records the cause of the difference."
+    )
+
+
+def _gate_moved_tail(moved, old, gate) -> str:
+    """Name the gate quantities that differ from the earlier record, with both values.
+
+    A deterministic seeded gate on functions the change did not touch would reproduce
+    every value, so a difference is printed as a difference and not explained away. A
+    value that is not a number on both sides is printed as it is stored rather than
+    left out of the list.
+    """
+    parts = "; ".join(
+        f"`{key}` on the {kind} null, {a:.9f} in that record and {b:.9f} here"
+        if _is_number(a) and _is_number(b)
+        else f"`{key}` on the {kind} null, {a!r} in that record and {b!r} here"
+        for kind, key, a, b in moved
+    )
+    gaps = [abs(a - b) for _k, _q, a, b in moved if _is_number(a) and _is_number(b)]
+    return (
+        (". The quantity that differs is " if len(moved) == 1 else f". The {len(moved)} that differ are ")
+        + parts
+        + (f", a largest numeric difference of {max(gaps):.1e}" if gaps else "")
+        + ". A deterministic seeded gate on unchanged "
+        "functions would reproduce every value, so the two runs did not compute "
+        + ("this quantity" if len(moved) == 1 else "these quantities")
+        + f" identically. The verdict is {old['verdict']} in that record and "
+        f"{gate['verdict']} here."
+    )
+
+
+def _gate_order_sentence(gate, n_cells: int) -> str:
+    """What the gate record itself shows about the order of the gate and the fits.
+
+    The banked lanes state the order from their own submission scripts, which are in
+    this repository. A lane whose submission script is not here can only say what its
+    gate record holds, and the record holds no job id and no time.
+    """
+    held = [k for k in ("job_id", "submitted_at", "finished_at", "timestamp") if k in gate]
+    if held:
+        return (
+            "The gate record carries "
+            + ", ".join(f"`{k}` {gate[k]}" for k in held)
+            + ". Its code commit is compared with the fits' own in the header."
+        )
+    return (
+        "The gate record carries no job id and no time stamp, so this document cannot "
+        f"show from it that the gate exited before the {n_cells} fits were submitted. Its "
+        "code commit is compared with the fits' own in the header."
     )
 
 
@@ -321,8 +1072,13 @@ def gate_section(gate, lane: Lane, n_cells: int) -> list[str]:
         "",
         ("Element 12 requires the offset-null family to pass **before any powered fit**, and "
         "its no-retry rule makes the reported value the first run after the last change to "
-        "anything it computes. The gate ran as its own cluster job on the CPU partition "
-        f"`long` and the {n_cells} fits were submitted only after it exited 0."),
+        "anything it computes. "
+        + (
+            "The gate ran as its own cluster job on the CPU partition "
+            f"`long` and the {n_cells} fits were submitted only after it exited 0."
+            if _two_substrate(lane)
+            else _gate_order_sentence(gate, n_cells)
+        )),
         "",
         (f"Attempt **{gate['attempt']}**, seed {gate['seed']}, n {gate['n']:,}, code commit "
         f"`{gate['code_commit'][:12]}`. Verdict **{gate['verdict']}**."),
@@ -345,7 +1101,7 @@ def gate_section(gate, lane: Lane, n_cells: int) -> list[str]:
         "the estimator modules under `src/bayes_cot_faithfulness` are byte-identical to "
         "main."),
         "",
-        _gate_vs_previous(gate),
+        _gate_vs_previous(gate, not _two_substrate(lane)),
         "",
         f"Source file: `{lane.results_rel}/offset_null_gate.json`.",
         "",
@@ -362,18 +1118,155 @@ _TREE_GLOSS = {
 }
 
 
-def _tree_count_phrase(trees: dict) -> str:
-    """How many cluster trees the cells came from, counted, with the split."""
+def _tree_count_phrase(trees: dict, missing: str = "not in this glossary") -> str:
+    """How many cluster trees the cells came from, counted, with the split.
+
+    ``missing`` is what a tree with no recorded description reads as. The banked text
+    says "not in this glossary"; the general path says "no description recorded",
+    because the document has no glossary for a reader to look in.
+    """
     word = {1: "One tree appears", 2: "Two trees appear", 3: "Three trees appear",
             4: "Four trees appear"}.get(len(trees), f"{len(trees)} trees appear")
     parts = ", ".join(
-        f"`{t}` on {n} ({_TREE_GLOSS.get(t, 'not in this glossary')})"
+        f"`{t}` on {n} ({_TREE_GLOSS.get(t, missing)})"
         for t, n in sorted(trees.items())
     )
     return f"{word}: {parts}"
 
 
-def inventory_section(fits) -> list[str]:
+def _record_hash_sentence(fits, lane: Lane) -> str:
+    """What `record_hashes` lets a reader check, which depends on the cluster tree."""
+    if not lane.cluster_gone:
+        return (
+            "Every cell also carries the sha256 of "
+            "the three files it was computed from (`transcripts.jsonl`, the cell's "
+            "`arms_summary_<model>.json` and `run_meta.json`) under `record_hashes`, so a "
+            "reader with cluster access can check that the numbers came from the files named."
+        )
+    names: list[str] = []
+    for f in fits.values():
+        for k in f["record_hashes"]:
+            if k not in names:
+                names.append(k)
+    listed = ", ".join(f"`{k}`" for k in names[:-1]) + f" and `{names[-1]}`"
+    return (
+        f"Every cell also carries, under `record_hashes`, the sha256 of the files it was "
+        f"computed from ({listed}). Those hashes can no longer be checked against the "
+        f"files they name, because {lane.cluster_gone}; they remain a record of which "
+        "bytes each fit read."
+    )
+
+
+def _tree_sentence(fits, trees: dict, lane: Lane) -> str:
+    """The trees the cells came from, and the four voided cells, checked where possible."""
+    if _two_substrate(lane):
+        return (
+            f"{_tree_count_phrase(trees)}. The four cells that were voided and rerun (ARC "
+            "professor on Gemma and Llama, ARC metadata on Qwen and Gemma) are the reruns, "
+            "and the voided originals in `~/bcf/results-void` were not read."
+        )
+    phrase = _tree_count_phrase(trees, "no description recorded")
+    shared = {k: (f, o) for k, f, o in _cells24_pairs(fits) if k in _VOIDED}
+    if not shared:
+        return f"{phrase}."
+    same = [k for k, (f, o) in shared.items() if _same_records(f, o)]
+    return (
+        f"{phrase}. The four cells that were voided and rerun before "
+        "the 24-cell pass (ARC professor on Gemma and Llama, ARC metadata on Qwen and "
+        f"Gemma) carry here the same record hashes as in the 24-cell fits in {len(same)} "
+        f"of {len(shared)}"
+        + (
+            ", so they are the same reruns that document reports, and the voided "
+            "originals in `~/bcf/results-void` were not read."
+            if len(same) == len(shared) == len(_VOIDED)
+            else (
+                "; the others are "
+                + ", ".join(f"`{m}` {slug(s, c)}" for m, s, c in shared if (m, s, c) not in same)
+                + ", and for them this document cannot say which records were read."
+            )
+        )
+    )
+
+
+def _range(vals, digits: int) -> str:
+    return f"{min(vals):.{digits}f} to {max(vals):.{digits}f}"
+
+
+def _mediator_by_substrate(fits) -> list[str]:
+    """Per-substrate ranges of the mediator, as data, and the caution they support.
+
+    A cell with an empty commitment-depth histogram has no depth-0 share; it is left
+    out of that column and counted, never read as a share of zero.
+    """
+    out = [
+        ("**The mediator, substrate by substrate.** Mean clean-arm curve area, its "
+         "standard deviation, and the share of clean rows whose commitment depth is 0, "
+         "that is whose forced continuation already gives the final answer at the first "
+         "truncation depth, each as a range over the cells of one substrate."),
+        "",
+        "| substrate | cells | mean clean-arm curve area | its standard deviation | share at commitment depth 0 |",
+        "|---|---:|---|---|---|",
+    ]
+    means: dict = {}
+    no_hist = []
+    for sub in _substrates_in(fits):
+        keys = [(m, s, c) for (m, s, c) in fits if s == sub]
+        med = [fits[k]["table"]["mediator"] for k in keys]
+        depth = []
+        for k, md in zip(keys, med):
+            h = md.get("commitment_depth_hist_clean") or {}
+            n = sum(h.values())
+            if n:
+                depth.append(h.get("0", 0) / n)
+            else:
+                no_hist.append(k)
+        means[sub] = [md["clean_mean"] for md in med]
+        out.append(
+            f"| {_SUBSTRATE_NAME.get(sub, sub)} | {len(keys)} | "
+            f"{_range(means[sub], 4)} | "
+            f"{_range([md['clean_sd'] for md in med], 4)} | "
+            f"{_range(depth, 3) if depth else 'not recorded'} |"
+        )
+    if no_hist:
+        out += [
+            "",
+            (f"{len(no_hist)} cells record no commitment-depth histogram and are left out "
+             "of the depth-0 column: "
+             + ", ".join(f"`{m}` {slug(s, c)}" for m, s, c in no_hist) + "."),
+        ]
+    out += ["", _substrate_caution(means)]
+    return out
+
+
+def _substrate_caution(means: dict) -> str:
+    """The banked caution against reading coefficients across substrates, restated for
+    any number of substrates and supported only by which mean ranges are disjoint."""
+    subs = list(means)
+    apart, overlap = [], []
+    for i, a in enumerate(subs):
+        for b in subs[i + 1:]:
+            disjoint = max(means[a]) < min(means[b]) or max(means[b]) < min(means[a])
+            (apart if disjoint else overlap).append(
+                f"{_SUBSTRATE_NAME.get(a, a)} and {_SUBSTRATE_NAME.get(b, b)}"
+            )
+    if not apart:
+        return (
+            "The ranges of mean clean-arm curve area overlap for every pair of substrates, "
+            "so this table does not by itself show the mediator's scale differing by "
+            "substrate."
+        )
+    return (
+        "The ranges of mean clean-arm curve area do not overlap between "
+        + ", or between ".join(apart)
+        + (", and they overlap between " + ", and between ".join(overlap) if overlap else "")
+        + ". Where they do not overlap the mediator does not have the same distribution "
+        "on the two substrates, which is the situation the scale-aware priors of "
+        "`docs/ESTIMATOR-PRIORS-2026-09-07.md` exist to handle and a reason not to read a "
+        "coefficient fitted on one substrate against a coefficient fitted on another."
+    )
+
+
+def inventory_section(fits, lane: Lane) -> list[str]:
     trees: dict = {}
     for f in fits.values():
         t = f["tree"]["plan_commit"]
@@ -419,14 +1312,10 @@ def inventory_section(fits) -> list[str]:
         "`columnB.<intervention level>.<outcome scale>.<substrate>.<cue family>`, so the "
         f"{len(fits)} cells carry {n_ids} distinct ids: the id names the ESTIMAND and not "
         "the cell, and the "
-        "cell is identified by the model beside it. Every cell also carries the sha256 of "
-        "the three files it was computed from (`transcripts.jsonl`, the cell's "
-        "`arms_summary_<model>.json` and `run_meta.json`) under `record_hashes`, so a "
-        "reader with cluster access can check that the numbers came from the files named."),
+        "cell is identified by the model beside it. "
+        + _record_hash_sentence(fits, lane)),
         "",
-        (f"{_tree_count_phrase(trees)}. The four cells that were voided and rerun (ARC "
-        "professor on Gemma and Llama, ARC metadata on Qwen and Gemma) are the reruns, and "
-        "the voided originals in `~/bcf/results-void` were not read."),
+        _tree_sentence(fits, trees, lane),
         "",
         "| cell | mean M clean (sd) | mean M hinted (sd) | mean Y clean | mean Y hinted | randomized arm difference | clean-arm outcome variance |",
         "|---|---:|---:|---:|---:|---:|---:|",
@@ -445,6 +1334,28 @@ def inventory_section(fits) -> list[str]:
         for f in fits.values()
         if f["column_b"]["separation_diagnostic"]["clean_arm_outcome_variance"] == 0.0
     )
+    out += [""] + (
+        _mediator_two_substrates(fits)
+        if _two_substrate(lane)
+        else _mediator_by_substrate(fits)
+    ) + [
+        "",
+        (f"The clean arm carries zero outcome variance in {n_zero} of {len(fits)} cells, "
+        "which A4.6(b) already states is a property of the frozen outcome population and "
+        "not a defect of any cell: the population is the clean-correct subpopulation and "
+        "the hint label is a planted wrong option, so Y is 0 on every clean row. The "
+        "consequences A4.6(b) lists hold here unchanged, and the one quantity the data "
+        "pins directly is the TE, checked below against the randomized arm difference."),
+        "",
+        "---",
+        "",
+    ]
+    return out
+
+
+def _mediator_two_substrates(fits) -> list[str]:
+    """The banked two-substrate reading. Kept verbatim for the 18- and 24-cell lanes,
+    whose cells it was written about; it is not printed for any other substrate set."""
     by_sub = {"arc_challenge": [], "aqua_rat": []}
     for (m, s, c), f in fits.items():
         by_sub[s].append((f["table"]["mediator"]["clean_mean"], f["table"]["mediator"]["clean_sd"]))
@@ -457,8 +1368,7 @@ def inventory_section(fits) -> list[str]:
         depth[s].append(h.get("0", 0) / n if n else 0.0)
     depth_arc = depth["arc_challenge"]
     depth_aqua = depth["aqua_rat"]
-    out += [
-        "",
+    return [
         ("**The mediator does not have the same distribution on the two substrates.** Mean "
         f"clean-arm curve area runs {min(a for a, _ in arc):.4f} to {max(a for a, _ in arc):.4f} "
         f"on the {len(arc)} ARC-Challenge cells with a standard deviation of "
@@ -474,18 +1384,7 @@ def inventory_section(fits) -> list[str]:
         "the mediator variation, which is the situation the scale-aware priors of "
         "`docs/ESTIMATOR-PRIORS-2026-09-07.md` exist to handle and a reason not to read a "
         "coefficient from one substrate against a coefficient from the other."),
-        "",
-        (f"The clean arm carries zero outcome variance in {n_zero} of {len(fits)} cells, "
-        "which A4.6(b) already states is a property of the frozen outcome population and "
-        "not a defect of any cell: the population is the clean-correct subpopulation and "
-        "the hint label is a planted wrong option, so Y is 0 on every clean row. The "
-        "consequences A4.6(b) lists hold here unchanged, and the one quantity the data "
-        "pins directly is the TE, checked below against the randomized arm difference."),
-        "",
-        "---",
-        "",
     ]
-    return out
 
 
 def column_a_section(fits) -> list[str]:
@@ -541,7 +1440,7 @@ def column_a_section(fits) -> list[str]:
     return out
 
 
-def cell_block(m, s, c, f, p) -> list[str]:
+def cell_block(m, s, c, f, p, general: bool = False) -> list[str]:
     b = f["column_b"]
     rho = b["rho"]
     g1 = f["logit_level_gate_G1"]
@@ -585,10 +1484,17 @@ def cell_block(m, s, c, f, p) -> list[str]:
     band = b["mediator_noise_band"]
     lam_rows = {str(r["lambda"]): r for r in band["rows"] if r.get("in_range")}
     out += [
-        ("**Verdict, the two rho quantities and the bounds.** The verdict rule is section "
-        "2.5: load-bearing at rho when P(NIE > 0.15) is at least 0.95 on the probability "
-        "scale; unresolved where no effect is supported at rho = 0. The decision sweep "
-        "runs on the symmetric grid of A4.6(a) and reports the binding side."),
+        (
+            _verdict_para_general(b)
+            if general
+            else (
+                "**Verdict, the two rho quantities and the bounds.** The verdict rule is "
+                "section 2.5: load-bearing at rho when P(NIE > 0.15) is at least 0.95 on the "
+                "probability scale; unresolved where no effect is supported at rho = 0. The "
+                "decision sweep runs on the symmetric grid of A4.6(a) and reports the "
+                "binding side."
+            )
+        ),
         "",
         "| P(NIE > 0.15) at rho=0 | replicates above | verdict | rho*_point | rho*_decision | binding side | partial-ID bounds at abs(rho) <= 0.5 | sign identified | NIE/TE |",
         "|---:|---:|---|---|---|---|---|---|---:|",
@@ -605,13 +1511,19 @@ def cell_block(m, s, c, f, p) -> list[str]:
         + (f"{b['nie_over_te']:.4f}" if b.get("nie_over_te") is not None else "not printed")
         + " |",
         "",
-        (f"Fit converged: {'yes' if b['fit']['converged'] else 'no'}; "
-        f"{b['bootstrap']['n_converged']}/{b['bootstrap']['n_replicates']} bootstrap fits "
-        f"converged with {b['bootstrap']['degenerate_redraws']} degenerate redraws; the "
-        "vectorised rho reparameterisation agrees with an actual refit at rho in "
-        "{0, 0.1, 0.3, 0.5, 0.7} to "
-        f"{rho['cross_check_curve_vs_refit']['max_abs_difference']:.6f}, which is Monte "
-        "Carlo noise on the integrator rather than a modelling difference."),
+        (
+            _fit_line_general(f)
+            if general
+            else (
+                f"Fit converged: {'yes' if b['fit']['converged'] else 'no'}; "
+                f"{b['bootstrap']['n_converged']}/{b['bootstrap']['n_replicates']} bootstrap "
+                f"fits converged with {b['bootstrap']['degenerate_redraws']} degenerate "
+                "redraws; the vectorised rho reparameterisation agrees with an actual refit at "
+                "rho in {0, 0.1, 0.3, 0.5, 0.7} to "
+                f"{rho['cross_check_curve_vs_refit']['max_abs_difference']:.6f}, which is "
+                "Monte Carlo noise on the integrator rather than a modelling difference."
+            )
+        ),
         "",
         ("**The mediator-noise band and the noise-flip note.** Printed at lambda 1.0, at the "
         "continuation-level floor 0.983075 and at 0.80 as ruling R4's sensitivity row. No "
@@ -644,9 +1556,212 @@ def cell_block(m, s, c, f, p) -> list[str]:
         "|---|---|---|",
     ]
     cd = g1["conditions"]
+    if "family_probe_before_the_cells" in cd["1_unit_check_passed"]:
+        # The record shape written once a logit pass existed: the unit check is split
+        # into the family probe and this cell's own read, and conditions 4 and 5 can
+        # hold. The flat branch below would print None for the probe counts and a
+        # hard-coded "no" for 4 and 5, so this shape gets rows read from the record.
+        out += _g1_rows_nested(cd) + [""] + _logit_row_lines(f)
+    else:
+        out += _g1_rows_flat(cd)
+    out += _anchor_lines(f, anch)
+    return out
+
+
+def _verdict_para_general(b) -> str:
+    """The verdict paragraph of one cell, with the rule as that fit records it."""
+    nie = b["effects"]["nie"]
+    return (
+        "**Verdict, the two rho quantities and the bounds.** The verdict rule, as this fit "
+        f"records it: \"{b['verdict'].get('rule', 'not recorded')}\". \"Unresolved\" means "
+        "the probability in that rule did not reach its bar; it does not mean the NIE is "
+        "zero, and this cell's NIE interval "
+        + ("excludes" if _excludes_zero(nie) else "covers")
+        + " zero. The decision sweep runs on the symmetric grid of A4.6(a) and reports the "
+        "binding side."
+    )
+
+
+def _redraw_cap(f) -> int | None:
+    """MAX_BOOT_REDRAWS of the wave1_fits.py that ran, or None if this checkout's file is
+    not the one the fit records."""
+    import hashlib
+
+    import wave1_fits as _w1
+
+    here = hashlib.sha256((_HERE / "wave1_fits.py").read_bytes()).hexdigest()
+    ran = (f.get("reused_script_sha256") or {}).get("wave1_fits.py")
+    return int(_w1.MAX_BOOT_REDRAWS) if here == ran else None
+
+
+def _fit_line_general(f) -> str:
+    """Item 5: the fit line with degenerate redraws flagged and no unsupported gloss."""
+    b = f["column_b"]
+    bt = b["bootstrap"]
+    r = bt["degenerate_redraws"]
+    cc = b["rho"]["cross_check_curve_vs_refit"]
+    rhos = ", ".join(f"{x:g}" for x in cc.get("rho") or [])
+    out = (
+        f"Fit converged: {'yes' if b['fit']['converged'] else 'no'}; "
+        f"{bt['n_converged']}/{bt['n_replicates']} bootstrap fits converged with {r} "
+        "degenerate redraws."
+    )
+    if r:
+        cap = _redraw_cap(f)
+        if cap is not None and r >= cap * bt["n_replicates"]:
+            out += (
+                f" **Every one of the {bt['n_replicates']} replicates reached the redraw cap "
+                f"of {cap} without a resample the usability guard accepts, so every replicate "
+                "was fitted on a resample whose arm indicator or outcome does not vary, and "
+                "this cell's bootstrap intervals rest on such resamples.**"
+            )
+        else:
+            out += (
+                f" **{r} resamples were rejected by the usability guard (a resample whose arm "
+                "indicator or outcome does not vary) and drawn again"
+                + (
+                    f", up to {cap} per replicate, after which the last resample is fitted "
+                    "as drawn.**"
+                    if cap is not None
+                    else "; the redraw cap of the code that ran is not checked here.**"
+                )
+            )
+    return out + (
+        " The vectorised rho reparameterisation agrees with an actual refit at rho in "
+        f"{{{rhos}}} to {cc['max_abs_difference']:.6f}. No Monte Carlo standard error is "
+        "stored beside that gap, so it is printed as a gap and not read as noise."
+    )
+
+
+def _yes(holds) -> str:
+    return "yes" if holds else "**no**"
+
+
+def _rec(d: dict, key: str):
+    """A stored value, or the words for its absence. Never a printed None."""
+    v = (d or {}).get(key)
+    return "not recorded" if v is None else v
+
+
+def _probe_txt(p: dict) -> str:
+    return (
+        f"{_rec(p, 'n_probes_completed')}/{_rec(p, 'n_probes')} probes, letters scored "
+        f"{_rec(p, 'n_letters_scored_over_requested')}, tokens matching "
+        f"{_rec(p, 'n_tokens_matching_letter_over_requested')}, hard failures "
+        f"{_rec(p, 'n_hard_failures')}"
+    )
+
+
+def _failing_txt(c: dict) -> str:
+    """Why a condition fails, as its own record says, never an assumed reason."""
+    if c.get("n_arms_rows_with_a_margin") is not None:
+        return f"not computable: {c['n_arms_rows_with_a_margin']} arms rows carry a margin"
+    if c.get("status"):
+        return str(c["status"])
+    return "fails, and the record gives no reason"
+
+
+def _g1_rows_nested(cd) -> list[str]:
+    """The six G1 rows for a record that carries the per-cell logit check."""
+    c1 = cd.get("1_unit_check_passed") or {}
+    own = c1.get("this_cell_logit_check")
+    c2 = cd.get("2_pinned_self_hosted_endpoint") or {}
+    lp = c2.get("logit_pass")
+    c3 = cd.get("3_records_carry_the_logit_scale") or {}
+    c4 = cd.get("4_clean_arm_outcome_variance_positive") or {}
+    c5 = cd.get("5_te_logit_equals_arm_difference") or {}
+    c6 = cd.get("6_letter_probability_mass_summarised") or {}
+    v6 = c6.get("overall") or {}
+    mass = (
+        f"min {v6['min']:.3e}, median {v6['median']:.3e}, max {v6['max']:.3e} over "
+        f"{v6['n']} anchor cells; {_rec(c6, 'n_below_0.01')} below 0.01"
+        if all(_is_number(v6.get(k)) for k in ("min", "median", "max", "n"))
+        else "not recorded"
+    )
+    return [
+        ("| 1 unit check (section 9.1) | family probe "
+         + (
+             _probe_txt(c1["family_probe_before_the_cells"])
+             if c1.get("family_probe_before_the_cells")
+             else "not recorded"
+         )
+         + "; this cell's logit check "
+         + (_probe_txt(own) if own else "not run")
+         + f" | {_yes(c1.get('holds'))} |"),
+        (f"| 2 pinned self-hosted endpoint | `{_rec(c2, 'base_url')}`, method prompt_logprobs "
+         f"on {(c2.get('n_logprob_blocks_by_method') or {}).get('prompt_logprobs', 0)}"
+         f"/{_rec(c2, 'n_logprob_blocks_total')} blocks"
+         + (
+             f"; logit pass `{_rec(lp, 'endpoint')}`, prompt_logprobs on "
+             f"{_rec(lp, 'n_blocks_with_prompt_logprobs_over_total')} arm blocks"
+             if lp
+             else ""
+         )
+         + f" | {_yes(c2.get('holds'))} |"),
+        (f"| 3 records carry the logit scale | intervention_level=logit "
+         f"{_rec(c3, 'n_records_with_intervention_level_logit')}, "
+         f"outcome_scale=logprob_margin {_rec(c3, 'n_records_with_outcome_scale_logprob_margin')}, "
+         f"logprob_source_token {_rec(c3, 'n_records_with_logprob_source_token')}, both arm "
+         f"margins {_rec(c3, 'n_records_with_both_arm_margins')} | {_yes(c3.get('holds'))} |"),
+        ("| 4 clean-arm outcome variance positive | "
+         + (
+             f"clean arm {c4['clean_arm_outcome_variance']:.4f}, hinted arm "
+             f"{c4['hinted_arm_outcome_variance']:.4f} nats squared over "
+             f"{_rec(c4, 'n_items_over_arms_rows')} items"
+             if c4.get("holds")
+             and _is_number(c4.get("clean_arm_outcome_variance"))
+             and _is_number(c4.get("hinted_arm_outcome_variance"))
+             else ("holds; the variances are not recorded" if c4.get("holds") else _failing_txt(c4))
+         )
+         + f" | {_yes(c4.get('holds'))} |"),
+        ("| 5 TE_logit equals the arm difference | "
+         + (
+             f"absolute difference {c5['abs_difference']:.1e} against a tolerance of "
+             f"{c5['tolerance']:.0e} over {_rec(c5, 'n_fitted_items')} items"
+             if c5.get("holds")
+             and _is_number(c5.get("abs_difference"))
+             and _is_number(c5.get("tolerance"))
+             else ("holds; the difference is not recorded" if c5.get("holds") else _failing_txt(c5))
+         )
+         + f" | {_yes(c5.get('holds'))} |"),
+        f"| 6 letter probability mass | {mass} | {_yes(c6.get('holds'))} |",
+    ]
+
+
+def _logit_row_lines(f) -> list[str]:
+    """The A5 logit-level row of a cell that cleared G1, read from its own fit.json."""
+    row = f.get("logit_level_row") or {}
+    if not row.get("printed"):
+        return []
+    cb = row["column_b"]
+    ef = cb["effects"]
+    ov = cb["outcome_variance"]
+    ms = cb["mediated_share"]
+    return [
+        ("**The logit-level row (Amendment A5), beside the text-level row above and never "
+         f"instead of it.** Unit: {ef['unit']}; {cb['n_items']} items / {cb['n_rows']} "
+         "rows. A5.6 sets no load-bearing threshold on this scale, so the row carries no "
+         "verdict, and A5.5 keeps it out of every claim status and every ranking."),
+        "",
+        "| NDE | NIE | TE | clean-arm outcome variance | hinted-arm outcome variance | mediated share | verdict on this scale |",
+        "|---|---|---|---:|---:|---|---|",
+        (f"| {e(ef['nde'])} | {e(ef['nie'])} | {e(ef['te'])} | "
+         f"{ov['clean_arm']:.4f} | {ov['hinted_arm']:.4f} | "
+         + (
+             f"{ms['value']:+.4f}"
+             if ms.get("printed")
+             else "not printed (TE interval covers zero)"
+         )
+         + f" | {cb['verdict']} |"),
+        "",
+    ]
+
+
+def _g1_rows_flat(cd) -> list[str]:
+    """The six G1 rows as the banked 18- and 24-cell records carry them."""
     c3 = cd["3_records_carry_the_logit_scale"]
     c6 = cd["6_letter_probability_mass_summarised"]["overall"]
-    out += [
+    return [
         (f"| 1 unit check (section 9.1) | probes "
         f"{cd['1_unit_check_passed'].get('n_probes_completed')}/"
         f"{cd['1_unit_check_passed'].get('n_probes')}, letters scored "
@@ -672,6 +1787,12 @@ def cell_block(m, s, c, f, p) -> list[str]:
         f"{c6['max']:.3e} over {c6['n']} anchor cells; "
         f"{cd['6_letter_probability_mass_summarised']['n_below_0.01']} below 0.01 | yes |"),
         "",
+    ]
+
+
+def _anchor_lines(f, anch) -> list[str]:
+    """The element 21 anchor block of one cell, unchanged from the banked layout."""
+    out = [
         ("**The element 21 four-cell replay anchor.** `mu_ab` is the fresh-answer rate on the "
         "designated target option with recipient cue `a` crossed with donor source `b`. It is "
         "computed on the SAME complete-item set as column B, with anchor cells that carry no "
@@ -742,6 +1863,9 @@ def _zero_index() -> int:
 def _wave1_defect_count() -> int:
     """How many wave-1 fit.json files carry the mislabelled key, measured."""
     n = 0
+    # MODELS, not a lane's subjects, on purpose: wave 1 is a fixed
+    # historical comparison over the three original subjects and its
+    # artifacts exist only for them.
     for m in MODELS:
         p = WAVE1 / m / "fit.json"
         if not p.exists():
@@ -844,6 +1968,53 @@ def _sign_line(fits) -> str:
     )
 
 
+def _two_path_general(fits, pymc) -> str:
+    """The same audit for a lane other than the banked ones, stated as gaps.
+
+    The banked lead says the two paths agree, which their gaps of a few thousandths
+    support. It is not carried to a set it was not checked on: this version prints the
+    largest gaps with the item count each fit ran on, and leaves the reading to them.
+    """
+    gaps = []
+    rhat, div, ess = 0.0, 0, None
+    worst = {"nde": 0.0, "nie": 0.0, "te": 0.0}
+    for key, f in fits.items():
+        p = pymc.get(key)
+        if not p:
+            continue
+        g = 0.0
+        for k, prev in worst.items():
+            d = abs(f["column_b"]["effects"][k]["point"] - p[k]["mean"])
+            worst[k] = max(prev, d)
+            g = max(g, d)
+        gaps.append((g, key, f["column_b"]["n_items"]))
+        rhat = max(rhat, p["max_r_hat"])
+        div += p["divergences"]
+        ess = p["min_ess_bulk"] if ess is None else min(ess, p["min_ess_bulk"])
+    if not gaps:
+        return "**The two estimation paths.** No cell has a PyMC posterior to compare with."
+    per_model: dict = {}
+    for g, (m, s, c), n in gaps:
+        if m not in per_model or g > per_model[m][0]:
+            per_model[m] = (g, s, c, n)
+    top = "; ".join(
+        f"`{m}` {g:.4f}, on {slug(s, c)} with {n} items" for m, (g, s, c, n) in per_model.items()
+    )
+    return (
+        "**The two estimation paths, compared, which is the check the link audit of "
+        "`docs/ESTIMATOR-PRIORS-2026-09-07.md` exists to make possible.** Across the "
+        f"{len(gaps)} cells that have both, the maximum absolute gap between the "
+        "maximum-likelihood point estimate and the PyMC posterior mean is "
+        f"{worst['nde']:.5f} on the NDE, {worst['nie']:.5f} on the NIE and "
+        f"{worst['te']:.5f} on the TE. Per model, the largest gap over a cell's three "
+        f"effects, with the cell and the items its fit ran on, is: {top}. The posterior "
+        f"side has max r_hat {rhat:.3f}, {div} divergences in total and a minimum bulk "
+        f"ESS of {ess:.0f}. Before the repair that document records, the posterior path "
+        "was logistic while the maximum-likelihood path was probit, so the same "
+        "coefficients meant two different models and this comparison could not be made."
+    )
+
+
 def _two_path_line(fits, pymc) -> str:
     """The link audit of docs/ESTIMATOR-PRIORS-2026-09-07.md, run over every cell."""
     worst = {"nde": 0.0, "nie": 0.0, "te": 0.0}
@@ -872,7 +2043,51 @@ def _two_path_line(fits, pymc) -> str:
     )
 
 
-def cells_section(fits, pymc) -> list[str]:
+def _logit_rows_checked(fits) -> list[str]:
+    """The logit-level rows of this lane against the ones docs/CELLS24-LOGIT.md prints.
+
+    Empty for a lane with no printed logit-level row, which is every banked lane.
+    """
+    printed = [
+        (k, f["logit_level_row"]["column_b"]["effects"])
+        for k, f in fits.items()
+        if (f.get("logit_level_row") or {}).get("printed")
+    ]
+    if not printed:
+        return []
+    found, gap = 0, 0.0
+    for key, ef in printed:
+        p = LOGIT_RESULTS.joinpath(*key, "logit.json")
+        if not p.exists():
+            continue
+        old = (json.loads(p.read_text())["column_b_logit"].get("column_b") or {}).get("effects")
+        if not old:
+            continue
+        found += 1
+        for e_ in ("nde", "nie", "te"):
+            for q in ("point", "lo", "hi"):
+                gap = max(gap, abs(ef[e_][q] - old[e_][q]))
+    tail = (
+        f" {found} of the {len(printed)} also have a `logit.json` under "
+        f"`{LOGIT_RESULTS_REL}/`, the artifacts `docs/CELLS24-LOGIT.md` prints, and across "
+        f"them the logit-level NDE, NIE and TE points and interval ends differ from this "
+        f"lane's by at most {gap:.1e}. That document carries the rest of each logit-level "
+        "block (the bridge, the rho sweep and the letter-mass summaries), which this one "
+        "does not repeat."
+        if found
+        else " None of them has a `logit.json` under "
+        f"`{LOGIT_RESULTS_REL}/` to be compared with."
+    )
+    return [
+        (f"**{len(printed)} cells carry a logit-level row, and it is printed in each of "
+         "their blocks below the G1 table.**" + tail),
+        "",
+    ]
+
+
+def cells_section(fits, pymc, general: bool = False) -> list[str]:
+    if general:
+        return _cells_section_general(fits, pymc)
     out = [
         f"## 4. The {len(fits)} cells, one block each",
         "",
@@ -889,7 +2104,7 @@ def cells_section(fits, pymc) -> list[str]:
         "",
         _sign_line(fits),
         "",
-    ] + _verdict_field_defect(fits) + [
+    ] + _logit_rows_checked(fits) + _verdict_field_defect(fits) + [
         "| cell | items | followed | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status |",
         "|---|---:|---:|---:|---|---|---|---|---|",
     ]
@@ -917,7 +2132,225 @@ def cells_section(fits, pymc) -> list[str]:
     return out
 
 
-def model_rows_section(rows, extra, fits, lane: Lane) -> list[str]:
+def _verdict_rule(fits) -> tuple[str, float, float]:
+    """The verdict rule as the fits record it, and its threshold and bar parsed from it.
+
+    The numbers are read from the stored rule text rather than typed here. A lane whose
+    fits record more than one rule, or a rule this pattern cannot read, is refused.
+    """
+    import re
+
+    rules = {f["column_b"]["verdict"].get("rule") for f in fits.values()}
+    if len(rules) != 1 or None in rules:
+        raise ValueError(f"expected one recorded verdict rule across the fits, found {rules}")
+    rule = rules.pop()
+    hit = re.search(r"P\(NIE > ([0-9.]+)\) >= ([0-9.]+)", rule)
+    if not hit:
+        raise ValueError(f"cannot read the threshold and bar from the verdict rule: {rule!r}")
+    return rule, float(hit.group(1)), float(hit.group(2))
+
+
+def _excludes_zero(block) -> bool:
+    return block["lo"] > 0.0 or block["hi"] < 0.0
+
+
+def _verdict_rule_lines(fits) -> list[str]:
+    """Item 7: state the rule as the artifact states it, and what unresolved means."""
+    rule, thr, bar = _verdict_rule(fits)
+    n = len(fits)
+    agree = sum(
+        1
+        for f in fits.values()
+        if (f["column_b"]["rho"]["rho_star_decision"]["prob_nie_above_threshold_at_rho_zero"]
+            >= bar)
+        == bool(f["column_b"]["verdict"]["load_bearing_at_rho_zero"])
+    )
+    unres = [f for f in fits.values() if not f["column_b"]["verdict"]["load_bearing_at_rho_zero"]]
+    unres_ex = sum(1 for f in unres if _excludes_zero(f["column_b"]["effects"]["nie"]))
+    all_ex = sum(1 for f in fits.values() if _excludes_zero(f["column_b"]["effects"]["nie"]))
+    return [
+        (f"**The verdict rule, as each fit records it:** \"{rule}\". In {agree} of {n} "
+         f"cells the stored verdict agrees with the stored P(NIE > {thr:g}) at rho = 0 "
+         f"against {bar:g}. \"Unresolved\" means that probability did not reach {bar:g}; "
+         "it does not mean the NIE is zero. The NIE interval excludes zero in "
+         f"{unres_ex} of the {len(unres)} unresolved cells, and in {all_ex} of all {n}."),
+        "",
+    ]
+
+
+def _negative_zero_line(fits) -> list[str]:
+    """Item 12: an effect that prints as -0.0000, explained as section 3 does for Wilson."""
+    hit = [
+        k
+        for k, f in fits.items()
+        if any(
+            f"{f['column_b']['effects'][e][q]:+.4f}" == "-0.0000"
+            for e in ("nde", "nie", "te")
+            for q in ("point", "lo", "hi")
+        )
+    ]
+    if not hit:
+        return []
+    return [
+        (f"An effect or interval end that prints as -0.0000, in {len(hit)} "
+         f"{'cell' if len(hit) == 1 else 'cells'} here, is a value below zero that rounds "
+         "to zero at four decimal places. It is left as the fit stored it rather than "
+         "clamped, for the reason section 3 gives for Wilson bounds."),
+        "",
+    ]
+
+
+def _cells_section_general(fits, pymc) -> list[str]:
+    """Section 4 for a lane other than the banked ones.
+
+    The index names its columns' denominators, because column A's follow count and
+    column B's complete items are counted over different sets of items and the first
+    can exceed the second. It carries each cell's precision label reason beside its
+    verdict.
+    """
+    over = sum(
+        1
+        for f in fits.values()
+        if f["column_a"]["p_followed_among_clean_correct"]["k"] > f["column_b"]["n_items"]
+    )
+    out = [
+        f"## 4. The {len(fits)} cells, one block each",
+        "",
+        ("Reporting order inside each block follows section 8.1 and A5.5: the text-level "
+         "NDE, NIE and TE with intervals first, then the verdict and the two rho quantities, "
+         "then the mediator-noise band, then the G1 conditions and, where they all hold, "
+         "the logit-level row, then the anchor."),
+        "",
+        ("An index first, so a reader can find a cell without scrolling. Its column B "
+         "numbers are repeated with their intervals in each cell's own block below. The "
+         "column A count is the follow count over column A's own denominator, printed as "
+         "k/n and repeated in section 3; it is not counted over the column B items, and it "
+         f"exceeds them in {over} of {len(fits)} rows. The last column is the reason for "
+         "the cell's precision label (limit 12). No column here supports a comparison "
+         "across models (section 25)."),
+        "",
+    ] + _verdict_rule_lines(fits) + _negative_zero_line(fits) + [
+        _two_path_general(fits, pymc),
+        "",
+        _sign_line(fits),
+        "",
+    ] + _logit_rows_checked(fits) + _verdict_field_defect(fits) + [
+        "| cell | column B complete items | column A followed / denominator | NIE | verdict | rho*_decision | logit row | cell-level anchor agrees | claim status | precision label |",
+        "|---|---:|---:|---:|---|---|---|---|---|---|",
+    ]
+    for (m, s, c), f in fits.items():
+        b = f["column_b"]
+        dec = b["rho"]["rho_star_decision"]
+        fa = f["column_a"]["p_followed_among_clean_correct"]
+        out.append(
+            f"| `{m}` {slug(s, c)} | {b['n_items']} | {fa['k']}/{fa['n']} | "
+            f"{b['effects']['nie']['point']:+.4f} | {b['verdict']['verdict']} | "
+            + (
+                f"{dec['value']:+.3f} ({dec['binding_side']})"
+                if dec["value"] is not None
+                else "not applicable"
+            )
+            + " | "
+            + ("printed" if f["logit_level_gate_G1"]["eligible"] else "not printed (G1)")
+            + f" | {'yes' if f['anchor']['all_three_agree'] else 'no'} | "
+            f"{f.get('claim_status', 'PENDING')} | {_label_reason(f.get('precision'))} |"
+        )
+    out += [""]
+    for (m, s, c), f in fits.items():
+        out += cell_block(m, s, c, f, pymc.get((m, s, c)), general=True)
+    out += ["---", ""]
+    return out
+
+
+def _sampler_diagnostics_lines(rows, diag) -> list[str]:
+    """The per-model divergence counts parsed from the sampler's own stderr.
+
+    Printed only for a lane that wrote `sampler_diagnostics.json`. Each count is set
+    beside the one `model_row.json` carries, because the diagnostics file says the row
+    records none, and whether the two agree is a fact this document can check. A model
+    with no parsed count, no row, no `sampler` block or no diagnostics file is named as
+    such, never folded into a pooled range.
+    """
+    if not diag:
+        return []
+    out = [
+        ("**Divergences after tuning, from the sampler's own output.** Each model "
+         "directory carries `sampler_diagnostics.json`, whose counts were parsed from the "
+         "PyMC sampler's stderr. One row per model, in the order the cell list names the "
+         "models; no column here ranks them."),
+        "",
+        "| model | divergences after tuning | sampling seconds | `model_row.json` divergences | the two agree |",
+        "|---|---:|---:|---:|---|",
+    ]
+    agree = 0
+    with_block = 0
+    for m, d in diag.items():
+        div = d.get("divergences_after_tuning") or []
+        secs = d.get("sampling_seconds") or []
+        sm = (rows.get(m) or {}).get("sampler")
+        with_block += int(bool(sm))
+        if m not in rows:
+            row_txt = "no row"
+        elif not sm or sm.get("divergences") is None:
+            row_txt = "no sampler block"
+        else:
+            row_txt = str(sm["divergences"])
+        same = bool(sm) and len(div) == 1 and div[0] == sm.get("divergences")
+        agree += int(same)
+        out.append(
+            f"| `{m}` | {', '.join(str(x) for x in div) or 'none parsed'} | "
+            f"{', '.join(str(x) for x in secs) or 'none parsed'} | "
+            f"{row_txt} | {'yes' if same else '**no**'} |"
+        )
+    parsed = {m: (d.get("divergences_after_tuning") or []) for m, d in diag.items()}
+    none_parsed = [m for m, v in parsed.items() if not v]
+    some = [m for m, v in parsed.items() if v and min(v) > 0]
+    counts = [x for v in parsed.values() for x in v]
+    summary = (
+        f"{len(some)} of the {len(diag)} models have a parsed count above zero"
+        + (f", and the parsed counts run from {min(counts)} to {max(counts)}" if counts else "")
+        + "."
+        + (
+            " No count was parsed for " + ", ".join(f"`{m}`" for m in none_parsed) + "."
+            if none_parsed
+            else ""
+        )
+    )
+    no_file = [m for m in rows if m not in diag]
+    out += [
+        "",
+        ("Divergences after tuning can bias the tails of a hierarchical posterior, so "
+         "every model row in this section is to be read with these counts in mind. "
+         + summary
+         + (
+             " No `sampler_diagnostics.json` exists for "
+             + ", ".join(f"`{m}`" for m in no_file) + "."
+             if no_file
+             else ""
+         )),
+        "",
+    ]
+    says_none = sum(
+        1 for d in diag.values() if "model_row.json records no" in (d.get("source") or "")
+    )
+    if says_none:
+        out += [
+            (f"The `source` field of {says_none} of these {len(diag)} files states that "
+             "`model_row.json` records no sampler diagnostics. That does not hold for the "
+             f"rows read here: {with_block} of {len(diag)} carry a `sampler` block, and its "
+             f"divergence count equals the parsed one in {agree} of {len(diag)}."),
+            "",
+        ]
+    else:
+        out += [
+            (f"The parsed count equals the one `model_row.json` carries in {agree} of "
+             f"{len(diag)} models."),
+            "",
+        ]
+    return out
+
+
+def model_rows_section(rows, extra, fits, lane: Lane, diag=None) -> list[str]:
     out = [
         "## 5. The model-level row estimand (element 1 section 2.4)",
         "",
@@ -936,15 +2369,24 @@ def model_rows_section(rows, extra, fits, lane: Lane) -> list[str]:
     out += [
         ("**No ordering is stated here either, and the layout is part of that.** Each "
         "model gets its own block below rather than a row in a shared table, because "
-        "three models side by side in one numeric table is an invitation to rank them "
+        f"{_count_word(len(rows))} models side by side in one numeric table is an "
+        "invitation to rank them "
         "whatever the surrounding text says. Section 25's ranking rule is written for "
         "cross-model column-A statements and column A here is uncorrected; the same "
         "restraint is applied to column B, because nothing in this lane licenses a "
-        "cross-model claim about it either. The blocks are in the order the models were "
-        "run."),
+        "cross-model claim about it either. "
+        + (
+            "The blocks are in the order the models were run."
+            if _two_substrate(lane)
+            # Nothing in the wider lane's artifacts records the order its separate
+            # model-row jobs ran in, so "the order the models were run" is not a fact
+            # this document can state for it; the cell-list order is.
+            else "The blocks are in the order the lane's cell list names the models."
+        )),
         "",
-        _sampler_health(rows),
+        _sampler_health(rows, extra),
         "",
+    ] + _sampler_diagnostics_lines(rows, diag) + [
         "### 5.1 The cue-family variance components, printed first",
         "",
         ("Section 2.4 requires the cue-family variance component before any model-level "
@@ -1016,8 +2458,9 @@ def model_rows_section(rows, extra, fits, lane: Lane) -> list[str]:
                 f"{f.get('claim_status', 'PENDING')} |"
             )
         out.append("")
+    general = not _two_substrate(lane)
     out += [_row_cell_consistency(rows, fits), "",
-            _no_model_rho_line(rows), ""]
+            _no_model_rho_general(rows) if general else _no_model_rho_line(rows), ""]
     out += [
         "### 5.3 The model-level element 21 comparison, which is what claim status turns on",
         "",
@@ -1044,13 +2487,13 @@ def model_rows_section(rows, extra, fits, lane: Lane) -> list[str]:
             )
         out.append("")
     out += [_pairing_caveat(rows, fits), "",
-            _correspondence_note(rows), ""]
+            _correspondence_note(rows, general, fits), ""]
     out += [
         "### 5.4 Why every row is PROVISIONAL",
         "",
         next(iter(rows.values()))["choices_that_make_this_provisional"],
         "",
-    ]
+    ] + (_provisional_note(rows, extra) if general else [])
     if extra:
         out += [
             "### 5.5 The sensitivity fits",
@@ -1084,7 +2527,7 @@ def model_rows_section(rows, extra, fits, lane: Lane) -> list[str]:
             _extra_health(extra),
             "",
             (f"{len(extra)} sensitivity fits are printed, out of the "
-            f"{2 * len(MODELS)} the lane submitted (a logit-link and a "
+            f"{2 * len(lane.subjects)} the lane submitted (a logit-link and a "
             "substrate-grouped fit per model); any that are missing were still "
             "sampling on the cluster when this document was generated, and a row "
             "appears here only once its own artifact exists. "
@@ -1104,8 +2547,35 @@ def model_rows_section(rows, extra, fits, lane: Lane) -> list[str]:
             "cue-family component can be read against something."),
             "",
         ]
+    else:
+        out += _no_sensitivity_lines(rows, lane)
     out += ["---", ""]
     return out
+
+
+_SENSITIVITY_FILES = ("model_row_logit_cue_family.json", "model_row_probit_substrate.json")
+
+
+def _no_sensitivity_lines(rows, lane: Lane) -> list[str]:
+    """Section 5.5 when no sensitivity fit exists. Said in its place, not dropped."""
+    why = (
+        f" It cannot be produced now: {lane.cluster_gone}."
+        if lane.cluster_gone
+        else ""
+    )
+    return [
+        "### 5.5 The sensitivity fits",
+        "",
+        ("**Not produced for this pass.** Neither `"
+         + "` nor `".join(_SENSITIVITY_FILES)
+         + f"` exists under `{lane.results_rel}/<model>/` for any of the "
+         f"{len(rows)} models, so there is no logit-link fit and no substrate-grouped fit "
+         "to print, and the cue-family component has no substrate grouping to be read "
+         "against." + why + " The sensitivity rows printed in the 18- and 24-cell "
+         "documents are not carried over: they were fitted on those cell sets and are not "
+         "numbers of this pass."),
+        "",
+    ]
 
 
 def _row_cell_consistency(rows, fits) -> str:
@@ -1241,7 +2711,7 @@ def _extra_leg_binding(rows, fits) -> str:
     )
 
 
-def _correspondence_note(rows) -> str:
+def _correspondence_note(rows, general: bool = False, fits=None) -> str:
     """Which anchor contrast answers to which estimand is a reading, not a fixture."""
     mt = next(iter(rows.values()))["model_level_agreement_margin_test"]
     pairs = ", ".join(
@@ -1251,11 +2721,123 @@ def _correspondence_note(rows) -> str:
         "**The correspondence itself is a reading.** Section 22 says the model-level "
         "column B estimate is compared with *the corresponding* anchor contrast and does "
         "not say which of the five contrasts corresponds to which estimand. This lane "
-        f"pairs {pairs}, the same pairing the wave-1 cells were promoted on, and stores "
+        f"pairs {pairs}, "
+        + (
+            _wave1_pairing_source(fits or {})
+            if general
+            else "the same pairing the wave-1 cells were promoted on"
+        )
+        + ", and stores "
         "the label beside every comparison so a lane that pairs them differently can see "
         "exactly what it is changing. A different pairing is a different test on the same "
         "five measured contrasts, all of which are printed in section 4."
     )
+
+
+_WAVE1_PAIRING = "NDE against mu10 - mu00, NIE against mu11 - mu10, TE against\nmu11 - mu00"
+
+
+_PAIRED_DIFFS = (
+    ("cue_effect_given_clean_donor", "mu10", "mu00"),
+    ("text_source_given_cued_recipient", "mu11", "mu10"),
+    ("joint_replay_regime", "mu11", "mu00"),
+)
+
+
+def _wave1_pairing_source(fits) -> str:
+    """Cite the wave-1 document's statement of the pairing, after checking that the
+    three paired contrasts are the mu differences that statement names, cell by cell."""
+    usable = [
+        f["anchor"]
+        for f in fits.values()
+        if all(cell.get("rate") is not None for cell in f["anchor"]["cells"].values())
+    ]
+    match = sum(
+        1
+        for a in usable
+        if all(
+            abs(a["contrasts"][name]["point"] - (a["cells"][x]["rate"] - a["cells"][y]["rate"]))
+            < 1e-12
+            for name, x, y in _PAIRED_DIFFS
+        )
+    )
+    doc = ROOT / "docs" / "WAVE1-FITS.md"
+    cited = doc.exists() and _WAVE1_PAIRING in doc.read_text()
+    return (
+        f"three contrasts whose points equal mu10 - mu00, mu11 - mu10 and mu11 - mu00 of the "
+        f"cell's own anchor rates in {match} of the {len(usable)} cells with all four rates"
+        + (
+            ", which is the pairing `docs/WAVE1-FITS.md` section 5.3 states for the wave-1 "
+            "cells (\"" + _WAVE1_PAIRING.replace("\n", " ") + "\")"
+            if cited
+            else "; no earlier document that states this pairing was found to cite"
+        )
+    )
+
+
+def _no_model_rho_general(rows) -> str:
+    """Item 7 at the model level: the rule as the rows record it, and what unresolved means.
+
+    The P(NIE > threshold) values are given as a range over the rows, without naming
+    whose row holds either end, because naming one would order the models.
+    """
+    import re
+
+    rules = {r["effects"].get("verdict_rule") for r in rows.values()}
+    if len(rules) != 1 or None in rules:
+        raise ValueError(f"expected one recorded verdict rule across the rows, found {rules}")
+    rule = rules.pop()
+    hit = re.search(r"exceeds ([0-9.]+).*?at least ([0-9.]+)", rule)
+    if not hit:
+        raise ValueError(f"cannot read the threshold and bar from the row verdict rule: {rule!r}")
+    thr, bar = float(hit.group(1)), float(hit.group(2))
+    probs = []
+    for r in rows.values():
+        keys = [k for k in r["effects"] if k.startswith("prob_nie_above_")]
+        if len(keys) != 1:
+            raise ValueError(f"expected one stored P(NIE > threshold) in a row, found {keys}")
+        probs.append(r["effects"][keys[0]])
+    n = len(rows)
+    n_lb = sum(1 for r in rows.values() if r["effects"]["load_bearing_at_rho_zero"])
+    n_ex = sum(1 for r in rows.values() if _excludes_zero(r["effects"]["nie"]))
+    return (
+        "**No model-level rho sweep is printed, and section 2.5 is the reason rather "
+        "than a shortage of compute.** The verdict rule, as each model row records it: "
+        f"\"{rule}\". {n_lb} of {n} model rows are load-bearing at rho = 0, and across the "
+        f"{n} rows P(NIE > {thr:g}) runs from {min(probs):.3f} to {max(probs):.3f} against "
+        f"the {bar:g} the rule asks for. \"Unresolved\" means that probability did not reach "
+        f"{bar:g}; it does not mean the NIE is zero, and the NIE interval excludes zero in "
+        f"{n_ex} of the {n} rows. 2.5 has the dial report an unresolved verdict as "
+        "unresolved rather than show robustness, so a sweep of rho from these rows would "
+        "report how far a verdict that did not reach the bar survives, which is the number "
+        "2.5 forbids putting on the dial. rho\\*_point is likewise not printed at the model "
+        "level: it is an invariant reference with no directional meaning, and this lane "
+        "has no model-level use for it that section 8.1 permits. The per-cell sweeps in "
+        "section 4 are unaffected and are printed there."
+    )
+
+
+def _provisional_note(rows, extra) -> list[str]:
+    """5.4 prints the rows' own text verbatim. Say where that text does not hold here."""
+    texts = [r.get("choices_that_make_this_provisional") or "" for r in rows.values()]
+    out = []
+    if len(set(texts)) > 1:
+        out.append(
+            f"The {len(rows)} rows do not all carry the same text: {len(set(texts))} "
+            "versions are stored, and the first model's is printed above."
+        )
+    phrase = "is fitted beside it wherever the job reaches it, and both are printed"
+    has_logit = any("logit" in name for (_m, name) in (extra or {}))
+    if phrase in texts[0] and not has_logit:
+        out.append(
+            "The paragraph above is the rows' own `choices_that_make_this_provisional` "
+            "text, printed as stored. Its sentence that the logit graph of record \""
+            + phrase
+            + "\" does not hold for this pass: no logit-link fit was produced (section "
+            "5.5). Its other figures are the artifact's own and are not recomputed in this "
+            "document."
+        )
+    return [x for line in out for x in (line, "")]
 
 
 def _grouping_comparison(rows, extra) -> str:
@@ -1306,9 +2888,18 @@ def _grouping_comparison(rows, extra) -> str:
     )
 
 
+# The sampler bar every row and sensitivity fit is held to. Named once, so the
+# check and every sentence that prints it cannot drift apart.
+R_HAT_BAR = 1.01
+ESS_BAR = 400
+_BAR_TEXT = (
+    f"max r_hat at or below {R_HAT_BAR:g} and a minimum bulk ESS of at least {ESS_BAR}"
+)
+
+
 def _sampled_ok(r) -> bool:
     sm = r["sampler"]
-    return sm["max_r_hat"] <= 1.01 and sm["min_ess_bulk"] >= 400
+    return sm["max_r_hat"] <= R_HAT_BAR and sm["min_ess_bulk"] >= ESS_BAR
 
 
 def _extra_health(extra) -> str:
@@ -1320,8 +2911,7 @@ def _extra_health(extra) -> str:
     ]
     if not bad:
         return (
-            f"All {len(extra)} sensitivity fits above reached max r_hat at or below 1.01 "
-            "and a minimum bulk ESS of at least 400."
+            f"All {len(extra)} sensitivity fits above reached {_BAR_TEXT}."
         )
     parts = "; ".join(
         f"`{m}` {'logit link, cue family' if 'logit' in name else 'probit link, substrate'} "
@@ -1334,7 +2924,8 @@ def _extra_health(extra) -> str:
         f"**{len(bad)} of these {len(extra)} sensitivity fits did not mix, and "
         + ("its numbers are" if one else "their numbers are")
         + " printed only so that the failure is on the record.** " + parts + ". "
-        "A chain set with r_hat above 1.01 or a bulk ESS in the tens has not explored one "
+        f"A chain set with r_hat above {R_HAT_BAR:g} or a bulk ESS in the tens has not "
+        "explored one "
         "posterior, so the quantiles in those rows are not posterior quantiles and the "
         "row must not be read as a sensitivity result, in either direction: it neither "
         "supports nor undermines the primary row beside it. The substrate grouping is the "
@@ -1346,13 +2937,17 @@ def _extra_health(extra) -> str:
     )
 
 
-def _sampler_health(rows) -> str:
-    """Say plainly whether the hierarchical fits sampled cleanly. They may not have."""
+def _sampler_health(rows, extra=None) -> str:
+    """Say plainly whether the hierarchical fits sampled cleanly. They may not have.
+
+    ``extra`` is passed so the last sentence does not point a reader at sensitivity
+    fits that a lane never produced.
+    """
     n_grp = max((r["n_cells"] for r in rows.values()), default=0)
     bad = []
     for m, r in rows.items():
         sm = r["sampler"]
-        if sm["divergences"] > 0 or sm["max_r_hat"] > 1.01 or sm["min_ess_bulk"] < 400:
+        if sm["divergences"] > 0 or sm["max_r_hat"] > R_HAT_BAR or sm["min_ess_bulk"] < ESS_BAR:
             bad.append(
                 f"`{m}` with {sm['divergences']} divergences, max r_hat "
                 f"{sm['max_r_hat']:.3f} and minimum bulk ESS {sm['min_ess_bulk']:.0f}"
@@ -1360,7 +2955,7 @@ def _sampler_health(rows) -> str:
     if not bad:
         return (
             "**Sampler health.** Every model row below sampled with 0 divergences, max "
-            "r_hat at or below 1.01 and a minimum bulk ESS above 400."
+            f"r_hat at or below {R_HAT_BAR:g} and a minimum bulk ESS above {ESS_BAR}."
         )
     return (
         "**Sampler health, stated before the numbers because it bears on how to read "
@@ -1374,14 +2969,43 @@ def _sampler_health(rows) -> str:
         "more reason the row is PROVISIONAL. A later lane that wants a clean row should "
         "raise `target_accept`, reparameterise the group deviations, or fit fewer levels "
         "at once, and should re-run rather than reinterpret these. "
-        + _primary_vs_bar(rows)
+        + (_primary_vs_bar(rows) if extra or extra is None else _primary_vs_bar_alone(rows))
+    )
+
+
+def _primary_vs_bar_alone(rows) -> str:
+    """The same bar as `_primary_vs_bar`, for a lane with no sensitivity fits to share it."""
+    fail = [m for m, r in rows.items() if not _sampled_ok(r)]
+    bar = _BAR_TEXT
+    if not fail:
+        return (
+            f"Held to the bar this project sets for its sensitivity fits, {bar}, every row "
+            "above clears it, and it is the divergence count alone that makes them hard "
+            "to read."
+        )
+    detail = "; ".join(
+        f"`{m}` at max r_hat {rows[m]['sampler']['max_r_hat']:.3f} and minimum bulk ESS "
+        f"{rows[m]['sampler']['min_ess_bulk']:.0f}"
+        for m in fail
+    )
+    return (
+        f"Held to the bar this project sets for its sensitivity fits, {bar}, {len(fail)} of "
+        f"{len(rows)} rows above "
+        + ("falls short: " if len(fail) == 1 else "fall short: ")
+        + detail
+        + (". That row is not withheld" if len(fail) == 1 else ". Those rows are not withheld")
+        + ", because the row estimand is what section 2.4 "
+        "asks this lane to report and a missing row would be read as a missing "
+        "measurement rather than as a sampling failure, but "
+        + ("it is" if len(fail) == 1 else "they are")
+        + " to be read with that shortfall in mind."
     )
 
 
 def _primary_vs_bar(rows) -> str:
     """Hold the primary rows to the same bar section 5.5 holds the extras to."""
     fail = [m for m, r in rows.items() if not _sampled_ok(r)]
-    bar = "max r_hat at or below 1.01 and a minimum bulk ESS of at least 400"
+    bar = _BAR_TEXT
     if not fail:
         return (
             f"Section 5.5 holds the sensitivity fits to {bar}; every row above "
@@ -1401,9 +3025,75 @@ def _primary_vs_bar(rows) -> str:
     )
 
 
+_GEMMA = "gemma-2-9b-it"
+
+
+def _gemma_not_produced(lane: Lane, fits) -> list[str]:
+    """Section 6 when its classification record is absent or empty. Said in its place.
+
+    The classes of the banked section come from reading the raw completions, which only
+    `gemma_aqua_clean_parse.json` records. What every fit.json does record is the count
+    of unparseable clean answers, so that count is printed, and nothing else is. The
+    largest count is given per model, because naming the one cell that holds the
+    largest count across models would order them.
+    """
+    head = ["## 6. The Gemma AQuA-RAT unparseable clean outputs", ""]
+    tail = ["", "---", ""]
+    cells = [
+        (c, f["column_a"]["denominators"])
+        for (m, s, c), f in fits.items()
+        if m == _GEMMA and s == "aqua_rat"
+    ]
+    if not cells:
+        return head + [
+            (
+                f"Not applicable to this lane: it has no `{_GEMMA}` AQuA-RAT cell, so there "
+                "is nothing for this section to report."
+            )
+        ] + tail
+    record = lane.results / "gemma_aqua_clean_parse.json"
+    why = f" It cannot be produced now: {lane.cluster_gone}." if lane.cluster_gone else ""
+    if record.exists():
+        status = (
+            f"**Present but empty.** `{lane.results_rel}/gemma_aqua_clean_parse.json` exists "
+            "and holds no record, so the text of this pass's unparseable clean outputs was "
+            "not classified here."
+        )
+    else:
+        status = (
+            f"**Not produced for this pass.** `{lane.results_rel}/gemma_aqua_clean_parse.json` "
+            "does not exist, so the text of this pass's unparseable clean outputs was not "
+            "sampled and not classified."
+        )
+    per_cell = "; ".join(
+        f"{d['n_unparseable_clean']} of {d['n_entered']} on the {c} cell" for c, d in cells
+    )
+    per_model: dict = {}
+    for (m, s, c), f in fits.items():
+        d = f["column_a"]["denominators"]
+        if m not in per_model or d["n_unparseable_clean"] > per_model[m][0]:
+            per_model[m] = (d["n_unparseable_clean"], s, c, d["n_entered"])
+    per_model_txt = "; ".join(
+        f"`{m}` {n} of {e}, on {slug(s, c)}" for m, (n, s, c, e) in per_model.items()
+    )
+    return head + [
+        (status + why + " The classes reported in section 6 of `docs/CELLS24-FITS.md` were "
+         "counted on that pass's records and are not carried over here as numbers of this "
+         "pass."),
+        "",
+        ("What each `fit.json` of this pass does record is the number of items lost to an "
+         "unparseable clean answer, printed per cell in section 2. On the "
+         f"{len(cells)} `{_GEMMA}` AQuA-RAT cells it is {per_cell}. Per model, the largest "
+         f"such count is: {per_model_txt}. Those items never reach the clean-correct "
+         "population, so no rate in section 3 or 4 covers them, and whether they are a "
+         "random slice of the substrate is not measured in this pass. **Nothing is fixed "
+         "here and no parser is changed.**"),
+    ] + tail
+
+
 def gemma_section(gemma, lane: Lane, fits) -> list[str]:
     if not gemma:
-        return []
+        return [] if _two_substrate(lane) else _gemma_not_produced(lane, fits)
     cues = [c for c in gemma.get("cues", ["stated-hint", "professor"]) if c in gemma]
     if not cues:
         return []
@@ -1471,7 +3161,180 @@ def gemma_section(gemma, lane: Lane, fits) -> list[str]:
     return out
 
 
-def _rho_limit_line(fits) -> str:
+def _logit_limit_line(fits) -> str:
+    """Limit 3 as this lane's fits actually stand: some cells carry a logit-level row."""
+    n = len(fits)
+    printed = [k for k, f in fits.items() if (f.get("logit_level_row") or {}).get("printed")]
+    failing = [f for f in fits.values() if not f["logit_level_gate_G1"]["eligible"]]
+    c3s = [f["logit_level_gate_G1"]["conditions"]["3_records_carry_the_logit_scale"]
+           for f in failing]
+    zero_logit = sum(
+        1 for c3 in c3s if str(c3.get("n_records_with_intervention_level_logit")).startswith("0/")
+    )
+    not_run = sum(
+        1
+        for c3 in c3s
+        if "has not been run" in ((c3.get("sidecar") or {}).get("reason") or "")
+    )
+    if printed:
+        models_p = list(dict.fromkeys(m for m, _s, _c in printed))
+        subs_p = list(dict.fromkeys(s for _m, s, _c in printed))
+        cues_p = list(dict.fromkeys(c for _m, _s, c in printed))
+        whole = len(printed) == len(models_p) * len(subs_p) * len(cues_p)
+        lead = (
+            f"3. **The logit-level column B exists for {len(printed)} of {n} cells and "
+            f"for no other.** Those {len(printed)} clear all six A5.4 conditions"
+            + (
+                ", and they are every "
+                + " and ".join(_SUBSTRATE_NAME.get(s, s) for s in subs_p)
+                + " cell of " + _and_join([f"`{m}`" for m in models_p])
+                if whole
+                else ""
+            )
+            + "; section 4 prints their rows."
+        )
+    else:
+        lead = "3. **The logit-level column B does not exist for any cell.**"
+    if not failing:
+        return lead
+    return (
+        lead + f" The other {len(failing)} fail gate G1 ({_g1_failing_tally(fits)}). In "
+        f"{zero_logit} of them condition 3 counts `intervention_level = logit` on no arms "
+        f"record, and in {not_run} of them the record's own reason is that the logit-level "
+        "generation pass of `docs/LOGIT-PASS.md` had not been run for that cell when the "
+        "fit ran. For those cells the outcome scale that WOULD have a varying clean arm is "
+        "still unmeasured on the arms, and the anchor-cell margins printed in section 4 "
+        "are a different regime and are labelled as one."
+    )
+
+
+def _validated_limit_line(fits, lane: Lane) -> str:
+    """Limit 4, stated as of the fits, from what each fit recorded about it.
+
+    A lane in which some cell carries VALIDATED contradicts the premise of this item and
+    of the scope paragraph, so it is refused rather than printed over. Where the fits
+    do not record why VALIDATED was not reached, that is said instead of the reason.
+    """
+    n = len(fits)
+    statuses = [f.get("claim_status") for f in fits.values()]
+    n_val = sum(1 for st in statuses if st == "VALIDATED")
+    if n_val:
+        raise ValueError(
+            f"{n_val} of {n} cells carry claim status VALIDATED; limit 4 and the scope "
+            "paragraph state that VALIDATED is unreachable, so this document cannot be "
+            "rendered for them unchanged"
+        )
+    n_ev = sum(
+        1
+        for f in fits.values()
+        if "no ladder checkpoint has been trained" in (f.get("claim_status_evidence") or "")
+    )
+    above = sorted({st for st in statuses if st not in ("RAW", "ANCHORED")}, key=str)
+    if n_ev == n:
+        why = (
+            "When these fits ran it had not run: "
+            f"{n_ev} of {n} `fit.json` files record in `claim_status_evidence` that no "
+            "ladder checkpoint had been trained."
+        )
+    elif n_ev == 0:
+        why = (
+            "None of the "
+            f"{n} `fit.json` files records why it was not reached: no `claim_status_evidence` "
+            "says whether a ladder checkpoint had been trained."
+        )
+    else:
+        why = (
+            f"{n_ev} of {n} `fit.json` files record in `claim_status_evidence` that no "
+            f"ladder checkpoint had been trained; the other {n - n_ev} record nothing about it."
+        )
+    return (
+        "4. **VALIDATED is unreachable for every cell.** Element 19's top rung needs the "
+        f"element 11 mechanism-challenge coverage check. {why} 0 of {n} cells carry the "
+        "status VALIDATED. "
+        + (
+            "No cell in this table is more than ANCHORED, and ANCHORED here rests on a "
+            "PROVISIONAL model row."
+            if not above
+            else "Statuses other than RAW and ANCHORED also appear: "
+            + ", ".join(str(a) for a in above) + "."
+        )
+    )
+
+
+def _rho_limit_general(fits, rows, detail: str) -> str:
+    """Limit 7 for a lane other than the banked ones, with the banked point computed.
+
+    The banked text says the frontier's robustness number is far larger than the rho at
+    which the verdict fails. Here that is counted, cell by cell, with the two ranges,
+    and rho*_point is counted beside the robustness number because the two are stored
+    separately.
+    """
+    frs = [f["column_b"]["rho"]["frontier_at_practical_threshold"] for f in fits.values()]
+    n_unres = sum(1 for fr in frs if fr["unresolved"])
+    thr = sorted({fr.get("min_effect") for fr in frs if fr.get("min_effect") is not None})
+    thr_txt = ", ".join(f"{t:g}" for t in thr) or "not recorded"
+    both = []
+    for f in fits.values():
+        rho = f["column_b"]["rho"]
+        fr = rho["frontier_at_practical_threshold"]
+        dec = rho["rho_star_decision"]["value"]
+        if not fr["unresolved"] and fr["robustness"] is not None and dec is not None:
+            both.append((fr["robustness"], rho["rho_star_point"]["point"], dec))
+    lb_dec = [
+        f["column_b"]["rho"]["rho_star_decision"]["value"]
+        for f in fits.values()
+        if f["column_b"]["verdict"]["load_bearing_at_rho_zero"]
+        and f["column_b"]["rho"]["rho_star_decision"]["value"] is not None
+    ]
+    n_lb = sum(1 for f in fits.values() if f["column_b"]["verdict"]["load_bearing_at_rho_zero"])
+    text = (
+        "7. **rho\\*_point is not a robustness score, and the two rho quantities are "
+        "printed apart.** Section 8.1 forbids merging them and section 4's tables print "
+        "both on the symmetric grid A4.6(a) fixes, with the binding side. The breakdown "
+        f"frontier asked at the practical threshold the fits record ({thr_txt}) returns a "
+        f"robustness number in {len(rows)} of the {len(fits)} cells and none in the "
+        f"other {len(fits) - len(rows)}; {n_unres} of the {len(fits)} frontier records "
+        "are marked unresolved."
+    )
+    if both:
+        k_rob = sum(1 for rob, _pt, dec in both if rob > abs(dec))
+        k_pt = sum(1 for _rob, pt, dec in both if pt > abs(dec))
+        text += (
+            f" In the {len(both)} cells that have both a robustness number and a "
+            f"rho*_decision, the robustness number exceeds the absolute value of "
+            f"rho*_decision in {k_rob} and rho*_point does in {k_pt}: the robustness "
+            f"numbers run from {_range([b[0] for b in both], 4)}, rho*_point from "
+            f"{_range([b[1] for b in both], 4)}, and rho*_decision from "
+            f"{min(b[2] for b in both):+.3f} to {max(b[2] for b in both):+.3f}."
+        )
+    if n_lb:
+        text += (
+            f" For the {n_lb} cells whose verdict is load-bearing at rho = 0, rho*_decision "
+            + (
+                f"runs from {min(lb_dec):+.3f} to {max(lb_dec):+.3f}"
+                if lb_dec
+                else "is not recorded"
+            )
+            + (
+                f" ({n_lb - len(lb_dec)} record none)"
+                if lb_dec and len(lb_dec) < n_lb
+                else ""
+            )
+            + "."
+        )
+    text += (
+        " rho*_decision is the binding quantity: it is the rho at which the verdict "
+        "fails, and neither the robustness number nor rho*_point is."
+    )
+    if rows:
+        text += (
+            " Every cell where the frontier returns a number, with that number beside "
+            f"the same cell's rho*_decision: {detail}."
+        )
+    return text
+
+
+def _rho_limit_line(fits, general: bool = False) -> str:
     """Limit 7, with the measured gap between the two rho quantities."""
     rows = []
     for (m, s, c), f in fits.items():
@@ -1484,6 +3347,8 @@ def _rho_limit_line(fits) -> str:
         + (f"{dec:+.3f}" if dec is not None else "an unresolved verdict")
         for name, rob, dec in rows
     )
+    if general:
+        return _rho_limit_general(fits, rows, detail)
     return (
         "7. **rho\\*_point is not a robustness score, and the two rho quantities are printed "
         "apart.** Section 8.1 forbids merging them and section 4's tables print both on the "
@@ -1495,8 +3360,74 @@ def _rho_limit_line(fits) -> str:
     )
 
 
-def _answer_only_prose(fits) -> str:
+def _answer_only_general(fits) -> str:
+    """Item 9 for any substrate set: the counts per substrate, and a lead sentence only
+    where the counts support it. The largest gap is given as a range over the cells,
+    not as one named cell, because naming it would order the models; the table below
+    lists every cell."""
+    subs = _substrates_in(fits)
+    up = {s: 0 for s in subs}
+    tot = {s: 0 for s in subs}
+    gaps = []
+    skipped = 0
+    for (m, s, c), f in fits.items():
+        ctl = f["anchor"]["falsifier_controls"]["matched_answer_only_text"]
+        mu01 = f["anchor"]["cells"]["mu01"]
+        if ctl["a0"]["rate"] is None or mu01["rate"] is None:
+            skipped += 1
+            continue
+        d = ctl["a0"]["rate"] - mu01["rate"]
+        tot[s] += 1
+        up[s] += int(d > 0)
+        gaps.append(d)
+    n_up, n_tot = sum(up.values()), sum(tot.values())
+    what = (
+        " The control replaces the donor chain with a bare assertion of the same answer "
+        "and leaves the recipient clean, so `a0` against that cell's own `mu01` asks "
+        "whether the replayed reasoning matters beyond its final answer."
+    )
+    if n_tot == 0:
+        return (
+            "9. **The anchor's matched answer-only control cannot be compared in any cell.**"
+            + what
+            + f" None of the {len(fits)} cells has a rate on both sides, so nothing about "
+            "replay is read from it here."
+        )
+    if 0 < n_up < n_tot:
+        lead = (
+            "9. **The anchor's matched answer-only control does not point one way, so no "
+            "single cell's anchor is a general fact about replay.**"
+        )
+    elif n_up == n_tot:
+        lead = (
+            "9. **The anchor's matched answer-only control raises the rate in every one of "
+            f"the {n_tot} cells where it can be compared.**"
+        )
+    else:
+        lead = (
+            "9. **The anchor's matched answer-only control raises the rate in none of the "
+            f"{n_tot} cells where it can be compared.**"
+        )
+    per_sub = _and_join(
+        [f"{up[s]} of the {tot[s]} {_SUBSTRATE_NAME.get(s, s)} cells" for s in subs]
+    )
+    return (
+        lead + what + f" It raises the rate in {per_sub}."
+        + (
+            f" {skipped} cells have no rate on one side and are left out of these counts."
+            if skipped
+            else ""
+        )
+        + f" Across the {n_tot} cells, `a0` minus `mu01` runs from {min(gaps):+.4f} to "
+        f"{max(gaps):+.4f}. Each comparison below is within one cell against that cell's "
+        "own mu01 and is not a comparison across models."
+    )
+
+
+def _answer_only_prose(fits, general: bool = False) -> str:
     """The claim about the answer-only control, counted rather than asserted."""
+    if general:
+        return _answer_only_general(fits)
     up = {"arc_challenge": 0, "aqua_rat": 0}
     tot = {"arc_challenge": 0, "aqua_rat": 0}
     biggest = ("", 0.0, 0.0, 0.0)
@@ -1543,8 +3474,13 @@ def _answer_only_table(fits) -> list[str]:
     return out
 
 
-def _item_weight_line(fits, rows) -> str:
-    """How unequal the item weights inside a model row actually are, measured."""
+def _item_weight_line(fits, rows, general: bool = False) -> str:
+    """How unequal the item weights inside a model row actually are, measured.
+
+    The counts are the row's own `cells_entering[].n_items`, which are complete items,
+    not entered items; the general path says so and names the cells whose column B is
+    thin. The banked sentence is kept for the banked lanes.
+    """
     biggest, smallest, ratio = 0, 0, 0.0
     for r in rows.values():
         sizes = [c["n_items"] for c in r["cells_entering"]]
@@ -1559,6 +3495,19 @@ def _item_weight_line(fits, rows) -> str:
             "across a model's cells, so a larger cell contributes more likelihood. No "
             "model row has been written yet, so the spread is not quoted here."
         )
+    if general:
+        return (
+            "8. **The model row is item-weighted.** The hierarchical fit pools ITEMS "
+            "across a model's cells with a cell-level random effect and a zero-centred "
+            "cue-family deviation, so a cell that enters column B with "
+            f"{biggest:,} complete items contributes about {ratio:.1f} times the "
+            f"likelihood of one that enters with {smallest:,} (the counts are the model "
+            "row's own `cells_entering`, the complete items of section 2, not the entered "
+            "items). The cue-family term stops one family driving the population mean "
+            "unflagged, which is what section 8 asks of it, but it does not equalise the "
+            "cells. The per-cell rows are printed beside the model row in section 5.2 for "
+            "exactly this reason. " + _thin_sentence(fits)
+        )
     return (
         "8. **The model row is item-weighted, so the larger cells carry most of it.** "
         "The hierarchical fit pools ITEMS across a model's cells with a cell-level "
@@ -1571,7 +3520,8 @@ def _item_weight_line(fits, rows) -> str:
     )
 
 
-def limits_section(fits, rows) -> list[str]:
+def limits_section(fits, rows, lane: Lane) -> list[str]:
+    general = not _two_substrate(lane)
     n_zero = sum(
         1
         for f in fits.values()
@@ -1581,6 +3531,7 @@ def limits_section(fits, rows) -> list[str]:
     flips = sum(
         1 for f in fits.values() if f["column_b"]["mediator_noise_band"]["noise_flip"]["flips"]
     )
+    n_models = _count_word(len({m for m, _s, _c in fits}))
     return [
         f"## 7. What these {len(fits)} cells do not say",
         "",
@@ -1590,8 +3541,9 @@ def limits_section(fits, rows) -> list[str]:
         "table.** Section 25 allows cross-model column-A statements only as partial "
         "orderings at posterior probability above 0.90, off a CALIBRATED rate. Column A "
         "here is uncorrected, because ruling R9 froze no jury Q1 configuration, so there "
-        "is no calibrated scale on which any two of these three models could be ordered. "
-        "The three models appear side by side because they were run side by side."),
+        f"is no calibrated scale on which any two of these {n_models} models could be "
+        f"ordered. The {n_models} models appear side by side because they were run side "
+        "by side."),
         "",
         (f"2. **The clean arm carries zero outcome variance in {n_zero} of {len(fits)} "
         "cells, by construction.** The NDE and NIE split rests on the probit link "
@@ -1602,19 +3554,27 @@ def limits_section(fits, rows) -> list[str]:
         "identified in a real cell. Item 11 below reports what that one direct check "
         "actually returns on these cells, which is not a clean pass."),
         "",
-        (f"3. **The logit-level column B does not exist for any cell.** {n_g1} of "
-        f"{len(fits)} fail the A5.4 gate G1, all on the same condition: no arms record in "
-        "this project carries `intervention_level = logit`, because the generation pass "
-        "that would write it (part 4.5's job B of `docs/OUTCOME-SCALE-NOTE.md`) has never "
-        "been run. The outcome scale that WOULD have a varying clean arm is therefore "
-        "still unmeasured on the arms, and the anchor-cell margins printed in section 4 "
-        "are a different regime and are labelled as one."),
+        _logit_limit_line(fits)
+        if general
+        else (
+            f"3. **The logit-level column B does not exist for any cell.** {n_g1} of "
+            f"{len(fits)} fail the A5.4 gate G1, all on the same condition: no arms record "
+            "in this project carries `intervention_level = logit`, because the generation "
+            "pass that would write it (part 4.5's job B of `docs/OUTCOME-SCALE-NOTE.md`) "
+            "has never been run. The outcome scale that WOULD have a varying clean arm is "
+            "therefore still unmeasured on the arms, and the anchor-cell margins printed in "
+            "section 4 are a different regime and are labelled as one."
+        ),
         "",
-        ("4. **VALIDATED is unreachable for every cell.** Element 19's top rung needs the "
-        "element 11 mechanism-challenge coverage check. The ladder was built on "
-        "2026-09-08 and nothing has been trained: no checkpoint exists, so no coverage "
-        "check can have run. No cell in this table is more than ANCHORED, and ANCHORED "
-        "here rests on a PROVISIONAL model row."),
+        _validated_limit_line(fits, lane)
+        if general
+        else (
+            "4. **VALIDATED is unreachable for every cell.** Element 19's top rung needs "
+            "the element 11 mechanism-challenge coverage check. The ladder was built on "
+            "2026-09-08 and nothing has been trained: no checkpoint exists, so no coverage "
+            "check can have run. No cell in this table is more than ANCHORED, and ANCHORED "
+            "here rests on a PROVISIONAL model row."
+        ),
         "",
         ("5. **The model-level rows are PROVISIONAL.** Section 2.4 fixes the estimand and "
         "not the link, the anchor pooling or the way a posterior is compared with a "
@@ -1628,19 +3588,19 @@ def limits_section(fits, rows) -> list[str]:
         f"the point-estimate verdict flips inside the band in {flips} of {len(fits)} "
         "cells."),
         "",
-        _rho_limit_line(fits),
+        _rho_limit_line(fits, general),
         "",
-        _item_weight_line(fits, rows),
+        _item_weight_line(fits, rows, general),
         "",
-        _answer_only_prose(fits),
+        _answer_only_prose(fits, general),
         "",
     ] + _answer_only_table(fits) + [
         "",
-        _claim_status_limit_line(rows, fits),
+        _claim_status_limit_line(rows, fits, general),
         "",
-        _te_identity_line(fits),
+        _te_identity_line(fits, general),
         "",
-    ] + _te_identity_table(fits) + [
+    ] + _te_identity_table(fits, general) + [
         "",
         _precision_line(fits),
         "",
@@ -1684,20 +3644,143 @@ def _precision_line(fits) -> str:
             "clean-correct count AND on each enabled arm's own denominator, because a "
             "cell can clear it on accuracy and still have an arm with nothing in it."
         )
+    return _precision_labelled(fits, labelled)
+
+
+def _quoted(blocks, key: str) -> str:
+    """One stored text from the precision blocks, quoted, or every version with its count."""
+    from collections import Counter
+
+    texts = Counter(pr.get(key) for pr in blocks)
+    if None in texts:
+        raise ValueError(f"a precision block records no `{key}`")
+    if len(texts) == 1:
+        return f"\"{next(iter(texts))}\""
+    return "; ".join(f"in {k} blocks, \"{t}\"" for t, k in texts.items())
+
+
+def _precision_labelled(fits, labelled) -> str:
+    """Limit 12 when cells are labelled: the two findings the label covers, apart.
+
+    The floor and the rule are quoted from the precision blocks rather than restated,
+    and the verdicts printed on labelled cells are counted by group, so the document
+    does not both state the rule and print, unremarked, verdicts the rule would withhold.
+    """
+    n = len(fits)
+    blocks = [pr for *_k, pr in labelled]
+    below = [(m, s, c, pr) for m, s, c, pr in labelled
+             if _label_reason(pr) in ("a count below the floor", "no clean-correct count recorded")
+             and not pr.get("clean_correct_clears_floor")]
+    thin_arm = [(m, s, c, pr) for m, s, c, pr in labelled
+                if pr.get("clean_correct_clears_floor") and pr.get("arms_below_floor")]
+    only_missing = [(m, s, c, pr) for m, s, c, pr in labelled
+                    if _label_reason(pr) == "no recorded count only"]
+    measured = len(below) + len(thin_arm)
+    out = (
+        f"12. **{len(labelled)} of the {n} cells are labelled UNDERPOWERED, and the label "
+        "covers two different findings.** Each fit's precision block gives the floor and "
+        f"its source in these words: {_quoted(blocks, 'floor_source')} The floor is checked "
+        "on the clean-correct count AND on each enabled arm's own denominator."
+    )
+    out += (
+        f" **A count below the floor: {measured} cells.** {len(below)} fall below the "
+        "floor on the clean-correct count itself"
+        + (
+            ": " + "; ".join(
+                f"`{m}` {slug(s, c)} at {pr.get('n_clean_correct')}" for m, s, c, pr in below
+            )
+            if below
+            else ""
+        )
+        + f". {len(thin_arm)} more clear it on clean-correct but have an enabled arm whose "
+        "recorded count is below it"
+        + (
+            ": " + "; ".join(
+                f"`{m}` {slug(s, c)} ("
+                + ", ".join(f"{a} {pr['arms_below_floor'][a]}" for a in sorted(pr["arms_below_floor"]))
+                + ")"
+                for m, s, c, pr in thin_arm
+            )
+            if thin_arm
+            else ""
+        )
+        + "."
+    )
+    if only_missing:
+        arms = sorted(
+            {a for *_k, pr in only_missing for a in pr["enabled_arms_with_no_denominator"]}
+        )
+        out += (
+            f" **No recorded count only: {len(only_missing)} cells.** They clear the floor "
+            "on clean-correct and on every arm that recorded a count, and are labelled only "
+            f"because enabled arms recorded no count ({', '.join(arms)}); the label treats "
+            "an arm with no count as not shown to reach the floor, not as measured below it."
+        )
+    out += (
+        " Each precision block records the rule the label carries, in these words: "
+        + _quoted(blocks, "rule_source")
+    )
+    lb = [
+        (m, s, c)
+        for m, s, c, _pr in labelled
+        if ((fits[(m, s, c)].get("column_b") or {}).get("verdict") or {}).get("verdict")
+        == "load-bearing at rho=0"
+    ]
+    if lb:
+        miss_keys = {(m, s, c) for m, s, c, _pr in only_missing}
+        k_miss = sum(1 for k in lb if k in miss_keys)
+        out += (
+            " Section 4 prints every cell's verdict as its `fit.json` recorded it, and this "
+            f"generator does not suppress any. {len(lb)} labelled cells carry the verdict "
+            f"load-bearing at rho=0: {len(lb) - k_miss} in the first group and {k_miss} in "
+            "the second. The rule's words speak of a cell below the floor, and the label "
+            "extends to a cell whose arm count was never recorded; applied to every "
+            f"labelled cell, the rule would withhold all {len(lb)} of those verdicts, so a "
+            "reader should treat them as not resolved against the bar."
+        )
+    return out + _complete_items_note(fits) + (
+        " The table below gives each cell's counts and the reason for its label."
+    )
+
+
+def _complete_items_note(fits) -> str:
+    """Column B runs on complete items, which the floor does not check."""
+    floor = next((f["precision"]["floor"] for f in fits.values() if f.get("precision")), None)
+    if floor is None:
+        return ""
+    few = [
+        (m, s, c, f["precision"], f["table"]["denominators"]["n_items_complete"])
+        for (m, s, c), f in fits.items()
+        if f.get("precision")
+        and "table" in f
+        and f["table"]["denominators"]["n_items_complete"] < floor
+    ]
+    if not few:
+        return ""
+    few_clear = [t for t in few if t[3].get("clean_correct_clears_floor")]
     return (
-        f"12. **{len(labelled)} of the {n} cells are labelled UNDERPOWERED.** The floor "
-        f"is 01-SIZING I.3's {floor} clean-correct items, the n at which the NIE "
-        "posterior 95 percent half-width lands inside the 0.10 bar (0.0996 at 350 "
-        "against 0.1027 at 300), and it is checked on the clean-correct count AND on "
-        "each enabled arm's own denominator. Such a cell is REPORTED here with its "
-        "interval and is not dropped, which is what PREREGISTRATION_phase2_arms.md "
-        "requires of an underpowered quantity in P1, P3 and P4; what it may not do is "
-        "carry a verdict against the 0.10 bar, because its interval cannot resolve one. "
-        "The table below names each one and why."
+        " Column B runs on the complete items of section 2, which can be fewer than the "
+        f"clean-correct count, and the floor is not checked on them: {len(few)} cells enter "
+        f"column B with fewer than {floor} complete items, {len(few_clear)} of them with a "
+        "clean-correct count at or above the floor"
+        + (
+            " ("
+            + "; ".join(
+                f"`{m}` {slug(s, c)}, {n} complete of {pr.get('n_clean_correct')} "
+                "clean-correct"
+                for m, s, c, pr, n in few_clear
+            )
+            + ")"
+            if few_clear
+            else ""
+        )
+        + "."
     )
 
 
 def _precision_table(fits) -> list[str]:
+    if any(f.get("precision") for f in fits.values()):
+        return _precision_table_reasons(fits)
     out = [
         "| cell | clean-correct | clears floor | arms below floor | label |",
         "|---|---:|---|---|---|",
@@ -1720,7 +3803,123 @@ def _precision_table(fits) -> list[str]:
     return out
 
 
-def _te_identity_line(fits) -> str:
+def _precision_table_reasons(fits) -> list[str]:
+    """The per-cell precision table with the label's two reasons in separate columns.
+
+    Used only where some fit carries a precision block, so a lane whose fits predate
+    the block keeps the banked table.
+    """
+    out = [
+        "| cell | clean-correct | clears floor | arms below floor | arms with no recorded count | label reason |",
+        "|---|---:|---|---|---|---|",
+    ]
+    for (m, s, c), f in fits.items():
+        pr = f.get("precision")
+        if not pr:
+            out.append(f"| `{m}` {slug(s, c)} | - | no precision block | - | - | - |")
+            continue
+        thin = pr.get("arms_below_floor") or {}
+        thin_txt = ", ".join(f"{a} {thin[a]}" for a in sorted(thin)) or "none"
+        missing = ", ".join(pr.get("enabled_arms_with_no_denominator") or []) or "none"
+        out.append(
+            f"| `{m}` {slug(s, c)} | {pr.get('n_clean_correct')} | "
+            f"{'yes' if pr.get('clean_correct_clears_floor') else 'NO'} | {thin_txt} | "
+            f"{missing} | {_label_reason(pr)} |"
+        )
+    return out
+
+
+def _small(x: float) -> str:
+    """A non-negative size at four places, or in exponent form when four places would
+    print it as zero."""
+    return f"{x:.4f}" if x == 0.0 or x >= 0.00005 else f"{x:.1e}"
+
+
+def _te_direction_general(fits) -> str:
+    """The direction and relative size of the TE shortfall, as ranges over the cells.
+
+    No cell is named as the largest, because naming it would order the models; a cell
+    whose arm difference is exactly zero is named, because it is left out of the ratio.
+    """
+    ds = [f["column_b"]["model_implied_te_vs_randomized_arm_difference"] for f in fits.values()]
+    n = len(ds)
+    below = sum(1 for d in ds if d["difference"] < 0)
+    above = sum(1 for d in ds if d["difference"] > 0)
+    zero_arm = [
+        f"`{m}` {slug(s, c)}"
+        for (m, s, c), f in fits.items()
+        if f["column_b"]["model_implied_te_vs_randomized_arm_difference"][
+            "randomized_arm_difference"
+        ] == 0
+    ]
+    rel = [
+        abs(d["difference"]) / abs(d["randomized_arm_difference"])
+        for d in ds
+        if d["randomized_arm_difference"] != 0
+    ]
+    out = (
+        f"The model-implied TE is below the arm difference in {below} of {n} cells and "
+        f"above it in {above}"
+        + (f", and equal to it in {n - below - above}" if n - below - above else "")
+        + "."
+    )
+    if rel:
+        out += (
+            f" Relative to the arm difference, over the {len(rel)} cells whose arm "
+            f"difference is not zero, the gap runs from {min(rel):.1%} to {max(rel):.1%}."
+        )
+    if zero_arm:
+        out += (
+            f" {len(zero_arm)} "
+            + ("cell has" if len(zero_arm) == 1 else "cells have")
+            + " an arm difference of exactly zero and "
+            + ("is" if len(zero_arm) == 1 else "are")
+            + " left out of that ratio: "
+            + ", ".join(zero_arm)
+            + "."
+        )
+    return out
+
+
+def _split_inherits(fits) -> str:
+    """The NDE and NIE are the two parts of the model-implied TE; say so with the check."""
+    sums = [
+        abs(
+            f["column_b"]["effects"]["nde"]["point"]
+            + f["column_b"]["effects"]["nie"]["point"]
+            - f["column_b"]["model_implied_te_vs_randomized_arm_difference"]["model_implied_te"]
+        )
+        for f in fits.values()
+    ]
+    return (
+        "The NDE and the NIE are the two parts of that same model-implied TE (their sum "
+        + (
+            "equals it exactly in every cell"
+            if max(sums) == 0.0
+            else f"equals it to within {max(sums):.1e} in every cell"
+        )
+        + "), so where the TE misfits the "
+        "arm difference, the NDE and NIE split inherits the same misfit."
+    )
+
+
+def _same_sign_nonzero(fits) -> str:
+    """Same sign on both sides, counted only where the arm difference has a sign.
+
+    `_same_sign` counts an arm difference of exactly zero as negative, which is right
+    for no cell; the general text counts over the cells where a sign exists.
+    """
+    ds = [
+        f["column_b"]["model_implied_te_vs_randomized_arm_difference"] for f in fits.values()
+    ]
+    signed = [d for d in ds if d["randomized_arm_difference"] != 0]
+    same = sum(
+        1 for d in signed if (d["model_implied_te"] > 0) == (d["randomized_arm_difference"] > 0)
+    )
+    return f"{same} of the {len(signed)} cells whose arm difference is not zero"
+
+
+def _te_identity_line(fits, general: bool = False) -> str:
     """The one directly checked quantity does not always check out. Say by how much."""
     off = []
     for (m, s, c), f in fits.items():
@@ -1736,6 +3935,25 @@ def _te_identity_line(fits) -> str:
             "everywhere, which is the only direct check the design supports."
         )
     _, m, s, c, d = off[0]
+    if general:
+        return (
+            "11. **The one quantity the data pins directly does not always agree with the "
+            f"fit: the TE identity fails to cover zero in {len(off)} of {n} cells.** Limit "
+            "2 says the NDE and NIE split rests on extrapolation and that only the TE is "
+            "checked directly, against the randomized arm difference. That check is printed "
+            f"in every block of section 4, and in {len(off)} of {n} cells the bootstrap "
+            "interval on the difference excludes zero, so the probit fit does not reproduce "
+            "the arm difference within its own sampling error. Over those "
+            f"{len(off)} cells the absolute difference runs from {_small(min(o[0] for o in off))} "
+            f"to {_small(max(o[0] for o in off))}; the table below lists each in cell order. "
+            + _te_direction_general(fits)
+            + f" The two sides carry the same sign in {_same_sign_nonzero(fits)}, but "
+            "a reader who takes limit 2 to mean the TE is validated should read this "
+            "instead: the TE is checkABLE, it was checked, and in these cells the check is "
+            "not clean. " + _split_inherits(fits) + " That is a statement about the probit "
+            "fit on a design with a zero-variance clean arm, not about the arm difference, "
+            "which is a direct count."
+        )
     return (
         f"11. **The one quantity the data pins directly does not always agree with the "
         f"fit: the TE identity fails to cover zero in {len(off)} of {n} cells.** Limit 2 "
@@ -1789,7 +4007,7 @@ def _same_sign(fits) -> int:
     )
 
 
-def _te_identity_table(fits) -> list[str]:
+def _te_identity_table(fits, general: bool = False) -> list[str]:
     off = []
     for (m, s, c), f in fits.items():
         d = f["column_b"]["model_implied_te_vs_randomized_arm_difference"]
@@ -1797,7 +4015,8 @@ def _te_identity_table(fits) -> list[str]:
             off.append((abs(d["difference"]), m, s, c, d))
     if not off:
         return []
-    off.sort(reverse=True)
+    if not general:
+        off.sort(reverse=True)
     out = [
         "| cell | model-implied TE | randomized arm difference | difference |",
         "|---|---:|---:|---|",
@@ -1811,7 +4030,7 @@ def _te_identity_table(fits) -> list[str]:
     return out
 
 
-def _claim_status_limit_line(rows, fits) -> str:
+def _claim_status_limit_line(rows, fits, general: bool = False) -> str:
     """Item 10: what the claim status actually turned on."""
     if not rows:
         return (
@@ -1821,6 +4040,42 @@ def _claim_status_limit_line(rows, fits) -> str:
     n_anch = sum(1 for f in fits.values() if f.get("claim_status") == "ANCHORED")
     n_cell = sum(1 for f in fits.values() if f["anchor"]["all_three_agree"])
     n_dem = _demoted(rows, fits)
+    if general:
+        # The banked lead says the binding constraint is the model-level leg rather than
+        # any cell's own evidence. That holds only for the cells that pass their own
+        # test, so the general text counts both groups instead of naming one binding leg.
+        n = len(fits)
+        thin_keys = {(m, s, c) for m, s, c, *_x in _thin_cells(fits)}
+        thin_agree = [
+            k for k, f in fits.items() if f["anchor"]["all_three_agree"] and k in thin_keys
+        ]
+        zero_anchor = sum(
+            1
+            for k in thin_agree
+            if all(cell.get("k") == 0 for cell in fits[k]["anchor"]["cells"].values())
+        )
+        return (
+            f"10. **{n_anch} of {n} cells are ANCHORED.** {n_cell} of {n} cells clear the "
+            "element 21 margin on all three of their own estimands, and "
+            f"{n_dem} of those {n_cell} are held at RAW because their model row does not "
+            "clear the same margin, on a test whose two sides cannot be paired (section "
+            f"5.3). The other {n - n_cell} do not clear the margin on their own estimands "
+            f"either. Read the RAW label on those {n_dem} as a statement about the "
+            "promotion rule and the model-level comparison, not as evidence that they "
+            "disagree with their anchor. "
+            + (
+                f"{len(thin_agree)} of the {n_cell} "
+                + ("runs" if len(thin_agree) == 1 else "run")
+                + " column B on fewer than "
+                f"{THIN_COLUMN_B} complete items ("
+                + ", ".join(f"`{m}` {slug(s, c)}" for m, s, c in thin_agree)
+                + f"); in {zero_anchor} of those every anchor cell counts no follow at all, "
+                "so the agreement there is between quantities that are all zero. "
+                if thin_agree
+                else ""
+            )
+            + "Each cell's own agreement table is printed in section 4 and is unaffected."
+        )
     return (
         f"10. **{n_anch} of {len(fits)} cells are ANCHORED, and the binding constraint is "
         "the model-level leg rather than any cell's own evidence.** "
@@ -1869,7 +4124,7 @@ def _mass(block: dict | None) -> str:
 def load_logit(lane: Lane) -> tuple[dict, list[str]]:
     """Every cell's logit.json, keyed by cell name, plus the cells with no file."""
     rows, absent = {}, []
-    for model in MODELS:
+    for model in lane.subjects:
         for substrate, cue in lane.pairs:
             name = f"{model}/{substrate}/{cue}"
             path = LOGIT_RESULTS / model / substrate / cue / "logit.json"
@@ -1905,7 +4160,7 @@ def logit_header(rows: dict, absent: list[str], lane: Lane) -> list[str]:
         "X and M do not change. A5.4 puts six conditions in front of that row and A5.6",
         "declines to put a verdict behind it.",
         "",
-        f"This document covers {len(rows)} of {len(lane.pairs) * len(MODELS)} cells with a",
+        f"This document covers {len(rows)} of {len(lane.pairs) * len(lane.subjects)} cells with a",
         f"`logit.json` on disk, {len(merged)} whose logit sidecar merged into their records,",
         f"and {len(printed)} that cleared all six conditions and print a logit-level row.",
         "",
@@ -2324,11 +4579,26 @@ def render_logit(lane: Lane, out: Path) -> int:
     return 0
 
 
+def render_fits(lane: Lane, gate, fits, pymc, rows, extra, gemma, absent, diag) -> list[str]:
+    """Every line of the fits document, in order. Split out of main so a test can
+    render a lane without going through the command line."""
+    lines: list[str] = []
+    lines += header(gate, fits, rows, lane, absent, diag)
+    lines += gate_section(gate, lane, len(fits))
+    lines += inventory_section(fits, lane)
+    lines += column_a_section(fits)
+    lines += cells_section(fits, pymc, not _two_substrate(lane))
+    lines += model_rows_section(rows, extra, fits, lane, diag)
+    lines += gemma_section(gemma, lane, fits)
+    lines += limits_section(fits, rows, lane)
+    return lines
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--cells", choices=tuple(sorted(LANES)), default="18",
-                    help="which cell list to render: 18 or 24")
+                    help="which cell list to render: " + ", ".join(sorted(LANES, key=int)))
     ap.add_argument("--doc", choices=("fits", "logit"), default="fits",
                     help="which document to render: the cells-of-record fits document "
                          "(default) or the A5 logit-level document")
@@ -2336,19 +4606,17 @@ def main() -> int:
     lane = LANES[args.cells]
     if args.doc == "logit":
         return render_logit(lane, Path(args.out))
+    if not (lane.results / "offset_null_gate.json").exists():
+        # The 36 lane, for one, names a results root that was never written. Refuse it
+        # plainly rather than render a header with its stale branch state over nothing.
+        print(f"no artifacts under {lane.results}; nothing is rendered", file=sys.stderr)
+        return 2
     gate, fits, pymc, rows, extra, gemma, absent = load(lane)
     if not fits:
         print(f"no fit.json under {lane.results}", file=sys.stderr)
         return 2
-    lines: list[str] = []
-    lines += header(gate, fits, rows, lane, absent)
-    lines += gate_section(gate, lane, len(fits))
-    lines += inventory_section(fits)
-    lines += column_a_section(fits)
-    lines += cells_section(fits, pymc)
-    lines += model_rows_section(rows, extra, fits, lane)
-    lines += gemma_section(gemma, lane, fits)
-    lines += limits_section(fits, rows)
+    diag = load_sampler_diagnostics(lane)
+    lines = render_fits(lane, gate, fits, pymc, rows, extra, gemma, absent, diag)
     Path(args.out).write_text("\n".join(lines) + "\n")
     print(f"wrote {args.out} ({len(lines)} lines), cell set {lane.cell_set}, "
           f"{len(fits)} cells, {len(absent)} not present")

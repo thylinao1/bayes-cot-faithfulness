@@ -1,0 +1,32 @@
+{
+  "cell": "gemma-2-9b-it/logiqa2/stated-hint",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 54.36479067802429,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1950.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.32958157829523227,
+    "lo": 0.28505624554701536,
+    "hi": 0.3760449033320344
+  },
+  "nie": {
+    "mean": 0.5656624754526777,
+    "lo": 0.5276896891163064,
+    "hi": 0.601322070559892
+  },
+  "te": {
+    "mean": 0.89524405374791,
+    "lo": 0.8722777702558348,
+    "hi": 0.9167056419420215
+  },
+  "prob_nie_above_0.15": 1.0,
+  "n_items": 940,
+  "n_rows": 1880,
+  "model_slug": null
+}

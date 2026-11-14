@@ -1,0 +1,32 @@
+{
+  "cell": "phi-4-reasoning/logiqa2/stated-hint",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 66.358651638031,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1605.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.4367114887905082,
+    "lo": 0.3875575603352495,
+    "hi": 0.48712090281092957
+  },
+  "nie": {
+    "mean": 0.28759333107855856,
+    "lo": 0.25145559505374676,
+    "hi": 0.3229749137809692
+  },
+  "te": {
+    "mean": 0.7243048198690667,
+    "lo": 0.6913323454670709,
+    "hi": 0.7543678677363246
+  },
+  "prob_nie_above_0.15": 1.0,
+  "n_items": 837,
+  "n_rows": 1674,
+  "model_slug": null
+}

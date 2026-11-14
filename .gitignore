@@ -298,3 +298,25 @@ experiments/results/cells24-logit/*/*/*
 !experiments/results/cells24-logit/*/*/*/
 experiments/results/cells24-logit/*/*/*/*
 !experiments/results/cells24-logit/*/*/*/logit.json
+
+# The 72 cells of record (lane fits/expand-to-72, fitted 2026-09-09, restored
+# 2026-11-14 from bcf-fits72.tar.gz): the cells24-fits shape on six subjects and three
+# substrates. Its offset-null gate record, one fit.json + pymc.json per cell under
+# <model>/<substrate>/<cue>/, and per model the model_row.json, the claim-status record
+# and the sampler_diagnostics.json parsed from the sampler's stderr. This pass wrote no
+# sensitivity rows and no Gemma clean-parse record. Small aggregates only; no logs, no
+# transcripts.
+!experiments/results/cells72-fits/
+experiments/results/cells72-fits/*
+!experiments/results/cells72-fits/offset_null_gate.json
+!experiments/results/cells72-fits/*/
+experiments/results/cells72-fits/*/*
+!experiments/results/cells72-fits/*/model_row.json
+!experiments/results/cells72-fits/*/claim_status.json
+!experiments/results/cells72-fits/*/sampler_diagnostics.json
+!experiments/results/cells72-fits/*/*/
+experiments/results/cells72-fits/*/*/*
+!experiments/results/cells72-fits/*/*/*/
+experiments/results/cells72-fits/*/*/*/*
+!experiments/results/cells72-fits/*/*/*/fit.json
+!experiments/results/cells72-fits/*/*/*/pymc.json

@@ -1,0 +1,32 @@
+{
+  "cell": "olmo-3-7b-think/arc_challenge/metadata",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 37.80868577957153,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2090.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.06535698824941565,
+    "lo": 0.043689248165555264,
+    "hi": 0.0908610793221267
+  },
+  "nie": {
+    "mean": 0.052612670273052095,
+    "lo": 0.03548368411646217,
+    "hi": 0.0730927005694775
+  },
+  "te": {
+    "mean": 0.11796965852246774,
+    "lo": 0.08556182755847819,
+    "hi": 0.15515055092745703
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 481,
+  "n_rows": 962,
+  "model_slug": null
+}

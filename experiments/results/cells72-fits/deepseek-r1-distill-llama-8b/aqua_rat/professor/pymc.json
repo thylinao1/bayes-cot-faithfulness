@@ -1,0 +1,32 @@
+{
+  "cell": "deepseek-r1-distill-llama-8b/aqua_rat/professor",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 18.49935221672058,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2270.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.06677821223539737,
+    "lo": -0.04220688396863288,
+    "hi": 0.21332592580701884
+  },
+  "nie": {
+    "mean": 6.0666751279378204e-05,
+    "lo": -0.033957424148331604,
+    "hi": 0.032791484604605986
+  },
+  "te": {
+    "mean": 0.06683887898667674,
+    "lo": -0.043825273034963974,
+    "hi": 0.2135143656436603
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 22,
+  "n_rows": 44,
+  "model_slug": null
+}

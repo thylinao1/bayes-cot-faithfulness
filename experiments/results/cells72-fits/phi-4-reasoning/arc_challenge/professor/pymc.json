@@ -1,0 +1,32 @@
+{
+  "cell": "phi-4-reasoning/arc_challenge/professor",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 90.80006885528564,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1825.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.10371627679209454,
+    "lo": 0.0845032459880692,
+    "hi": 0.12387314682063
+  },
+  "nie": {
+    "mean": 0.2754888818350895,
+    "lo": 0.2518453099782275,
+    "hi": 0.2988136461733736
+  },
+  "te": {
+    "mean": 0.379205158627184,
+    "lo": 0.3449654321012475,
+    "hi": 0.41478166430480257
+  },
+  "prob_nie_above_0.15": 1.0,
+  "n_items": 1272,
+  "n_rows": 2544,
+  "model_slug": null
+}

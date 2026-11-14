@@ -60,7 +60,20 @@ from bayes_cot_faithfulness import gaussian_mediation as gm
 # --------------------------------------------------------------------------- #
 # The 18 cells of record.
 # --------------------------------------------------------------------------- #
-MODELS = ("qwen3-8b", "gemma-2-9b-it", "llama-3.1-8b-instruct")
+# The three subjects of the 18- and 24-cell passes, and the six for which a full
+# 12-cell block is banked (exit 0 with a non-empty arms_summary.json on every
+# substrate x cue). deepseek-r1-0528-qwen3-8b is held by R12(4) (tokenizer round-trip)
+# and gpt-oss-20b by R11 (unservable batch-invariant), so neither has any cell and
+# neither is listed: a subject appears here only if its data exists.
+MODELS_3 = ("qwen3-8b", "gemma-2-9b-it", "llama-3.1-8b-instruct")
+MODELS_6 = MODELS_3 + (
+    "phi-4-reasoning",
+    "olmo-3-7b-think",
+    "deepseek-r1-distill-llama-8b",
+)
+# Kept because cells18_fits_report.py imports the name. It is the 3-model list; code
+# that has to honour --cells calls models() instead.
+MODELS = MODELS_3
 
 # The cell list is a PARAMETER, selected by --cells, and the default is the
 # 18-cell list this file was written on. The 18-cell artifacts under
@@ -165,7 +178,30 @@ SUBSTRATE_CUES_24 = SUBSTRATE_CUES_18 + (
     ("aqua_rat", "metadata"),
     ("aqua_rat", "grader-code"),
 )
-CELL_SETS = {"18": SUBSTRATE_CUES_18, "24": SUBSTRATE_CUES_24}
+# LogiQA 2.0 completes the 3-substrate x 4-cue block, so a model's full block is 12
+# pairs. The 36-cell set is the same three subjects on that block; the 72-cell set is
+# all six subjects on it.
+SUBSTRATE_CUES_36 = SUBSTRATE_CUES_24 + (
+    ("logiqa2", "stated-hint"),
+    ("logiqa2", "professor"),
+    ("logiqa2", "metadata"),
+    ("logiqa2", "grader-code"),
+)
+CELL_SETS = {
+    "18": SUBSTRATE_CUES_18,
+    "24": SUBSTRATE_CUES_24,
+    "36": SUBSTRATE_CUES_36,
+    "72": SUBSTRATE_CUES_36,
+}
+# A cell set fixes its SUBJECTS as well as its pairs. Before this, cell sets varied only
+# the pairs and the subject list was a module constant, so a 72-cell set could not be
+# expressed at all.
+CELL_SET_MODELS = {
+    "18": MODELS_3,
+    "24": MODELS_3,
+    "36": MODELS_3,
+    "72": MODELS_6,
+}
 CELL_SET_NAMES = tuple(sorted(CELL_SETS))
 DEFAULT_CELL_SET = "18"
 
@@ -182,20 +218,30 @@ def substrate_cues(cell_set: str = DEFAULT_CELL_SET) -> tuple:
     return CELL_SETS[cell_set]
 
 
+def models(cell_set: str = DEFAULT_CELL_SET) -> tuple:
+    """The subjects of one cell set."""
+    if cell_set not in CELL_SET_MODELS:
+        raise SystemExit(f"unknown cell set {cell_set!r}, expected one of {CELL_SET_NAMES}")
+    return CELL_SET_MODELS[cell_set]
+
+
 def cell_triples(cell_set: str = DEFAULT_CELL_SET) -> tuple:
     """Every (model, substrate, cue family) triple of one cell set."""
-    return tuple((m, s, c) for m in MODELS for s, c in substrate_cues(cell_set))
+    return tuple((m, s, c) for m in models(cell_set) for s, c in substrate_cues(cell_set))
 
 
 CELLS = cell_triples(DEFAULT_CELL_SET)
 CELLS_24 = cell_triples("24")
 CUE_FAMILIES = ("stated-hint", "professor", "metadata", "grader-code")
-SUBSTRATES = ("arc_challenge", "aqua_rat")
+# APPEND ONLY. SUBSTRATES.index() is written into every fit as the substrate column,
+# so inserting a level rather than appending one would silently re-label every fit
+# already banked. arc_challenge stays 0 and aqua_rat stays 1.
+SUBSTRATES = ("arc_challenge", "aqua_rat", "logiqa2")
 
 ANCHOR_CELLS = w1.ANCHOR_CELLS
 ANCHOR_FOR = w1.ANCHOR_FOR
 
-MODEL_ROW_CHOICES = (
+_MODEL_ROW_CHOICES_TEMPLATE = (
     "Element 1 section 2.4 fixes THREE things and leaves the rest open. Fixed: one "
     "value per model; it is the model-level hyperparameter posterior from a "
     "hierarchical fit across that model's cells; it is never an average of cell point "
@@ -204,7 +250,7 @@ MODEL_ROW_CHOICES = (
     "Those are implemented here literally. What the pre-registration does not fix, and "
     "what this lane therefore CHOSE, each choice marked so a later lane can change it "
     "without rediscovering it: (1) the grouping. group = the cell (model x substrate x "
-    "cue family), 6 groups per model, with cue family as the second, zero-centred "
+    "cue family), __N_GROUPS__ groups per model, with cue family as the second, zero-centred "
     "grouping factor of section 8, which is what makes tau_alpha_h and tau_beta_h the "
     "cue-family variance components section 2.4 asks for. (2) the LINK. "
     "src/bayes_cot_faithfulness/hierarchical.py is written on a LOGIT outcome "
@@ -236,6 +282,28 @@ MODEL_ROW_CHOICES = (
     "only make the 0.10 margin harder to clear. Because of (2) to (5) the model-level "
     "row is PROVISIONAL."
 )
+
+
+def model_row_choices(cell_set: str = DEFAULT_CELL_SET) -> str:
+    """The lane's documented choices, with the group count of THIS cell set.
+
+    The count is not decoration: it is written into every model row as
+    ``choices_that_make_this_provisional``, so a stale number is a false record of how
+    the row was fitted. It was "6" while the lane fitted 18 cells, and was already
+    wrong at 24 (8 groups per model). At 36 and 72 it is 12.
+
+    Adding a third substrate does NOT change the grouping. Section 8 fixes hint-type as
+    the grouping factor and the graph takes cue family, not substrate; the substrate
+    index is recorded per cell but never enters the model. So LogiQA 2.0 adds cells and
+    a recorded level, and the only thing that moves is how many groups a model has.
+    """
+    return _MODEL_ROW_CHOICES_TEMPLATE.replace(
+        "__N_GROUPS__", str(len(substrate_cues(cell_set)))
+    )
+
+
+# Kept for the module docstring's reference and for any caller that predates --cells.
+MODEL_ROW_CHOICES = model_row_choices(DEFAULT_CELL_SET)
 
 # --------------------------------------------------------------------------- #
 # A5.4. The G1 eligibility gate for a logit-level row.
@@ -1637,7 +1705,7 @@ def run_model_row(args) -> dict:
             "model-level hyperparameter posterior from the hierarchical fit across that "
             "model's cells, never an average of cell point estimates"
         ),
-        "choices_that_make_this_provisional": MODEL_ROW_CHOICES,
+        "choices_that_make_this_provisional": model_row_choices(cell_set),
         "status": "PROVISIONAL",
         "cell_set": cell_set,
         "cells_asked_for": asked,

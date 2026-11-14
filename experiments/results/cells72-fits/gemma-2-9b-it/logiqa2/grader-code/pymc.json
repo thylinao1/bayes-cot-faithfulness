@@ -1,0 +1,32 @@
+{
+  "cell": "gemma-2-9b-it/logiqa2/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 32.029926776885986,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2092.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.06028771078057168,
+    "lo": 0.03753268524944631,
+    "hi": 0.08756260158126943
+  },
+  "nie": {
+    "mean": 0.029534649353639454,
+    "lo": 0.0168045795684699,
+    "hi": 0.04461937034310392
+  },
+  "te": {
+    "mean": 0.08982236013421113,
+    "lo": 0.060184480659001706,
+    "hi": 0.12483970512350309
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 351,
+  "n_rows": 702,
+  "model_slug": null
+}

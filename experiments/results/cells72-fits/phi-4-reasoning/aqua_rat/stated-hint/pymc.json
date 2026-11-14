@@ -1,0 +1,32 @@
+{
+  "cell": "phi-4-reasoning/aqua_rat/stated-hint",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 80.08529543876648,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1832.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.2825759160513873,
+    "lo": 0.25191045337914886,
+    "hi": 0.3131748672509549
+  },
+  "nie": {
+    "mean": -0.019630568968001298,
+    "lo": -0.03480576937341403,
+    "hi": -0.005663260551010378
+  },
+  "te": {
+    "mean": 0.262945347083386,
+    "lo": 0.23664391500110205,
+    "hi": 0.28974015725591784
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 1003,
+  "n_rows": 2006,
+  "model_slug": null
+}

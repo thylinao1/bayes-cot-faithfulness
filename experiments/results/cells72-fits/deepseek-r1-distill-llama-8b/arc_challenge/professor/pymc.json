@@ -1,0 +1,32 @@
+{
+  "cell": "deepseek-r1-distill-llama-8b/arc_challenge/professor",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 79.41558957099915,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1533.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.22524778507725415,
+    "lo": 0.20104820997865477,
+    "hi": 0.24982915321797422
+  },
+  "nie": {
+    "mean": 0.14956839604904412,
+    "lo": 0.12804188324126548,
+    "hi": 0.17179647802592848
+  },
+  "te": {
+    "mean": 0.3748161811262983,
+    "lo": 0.342570399036592,
+    "hi": 0.4067154484540113
+  },
+  "prob_nie_above_0.15": 0.4855,
+  "n_items": 1091,
+  "n_rows": 2182,
+  "model_slug": null
+}

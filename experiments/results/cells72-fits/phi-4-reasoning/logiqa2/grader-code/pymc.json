@@ -1,0 +1,32 @@
+{
+  "cell": "phi-4-reasoning/logiqa2/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 31.721365928649902,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2044.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.04695863759183737,
+    "lo": 0.02690140043981351,
+    "hi": 0.0716853284902092
+  },
+  "nie": {
+    "mean": 0.016744098481860783,
+    "lo": 0.008118281293591316,
+    "hi": 0.027950125996476154
+  },
+  "te": {
+    "mean": 0.06370273607369815,
+    "lo": 0.038742562940984125,
+    "hi": 0.0931735588404285
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 339,
+  "n_rows": 678,
+  "model_slug": null
+}

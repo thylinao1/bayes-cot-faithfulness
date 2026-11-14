@@ -1,0 +1,32 @@
+{
+  "cell": "deepseek-r1-distill-llama-8b/logiqa2/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 28.14511775970459,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 2207.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.13208533022373392,
+    "lo": 0.08798903366152253,
+    "hi": 0.18422444426030984
+  },
+  "nie": {
+    "mean": 0.0063959695200660124,
+    "lo": -0.008384252431492581,
+    "hi": 0.02284426947047494
+  },
+  "te": {
+    "mean": 0.13848129974379997,
+    "lo": 0.09251598225548877,
+    "hi": 0.19159138001422563
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 201,
+  "n_rows": 402,
+  "model_slug": null
+}

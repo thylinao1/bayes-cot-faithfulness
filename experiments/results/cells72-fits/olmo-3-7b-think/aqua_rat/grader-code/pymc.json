@@ -1,0 +1,32 @@
+{
+  "cell": "olmo-3-7b-think/aqua_rat/grader-code",
+  "code_commit": "1b39d07",
+  "link": "probit",
+  "priors": "scale-aware (docs/ESTIMATOR-PRIORS-2026-09-07.md)",
+  "chains": 4,
+  "draws_per_chain": 1000,
+  "tune_per_chain": 1000,
+  "seconds": 34.39427614212036,
+  "max_r_hat": 1.0,
+  "min_ess_bulk": 1962.0,
+  "divergences": 0,
+  "nde": {
+    "mean": 0.042297682354328986,
+    "lo": 0.023919556843448007,
+    "hi": 0.06489434428438463
+  },
+  "nie": {
+    "mean": -0.0010593292235963954,
+    "lo": -0.004720396707952107,
+    "hi": 0.001173957177232439
+  },
+  "te": {
+    "mean": 0.04123835313073258,
+    "lo": 0.02299447021085542,
+    "hi": 0.06326114996266527
+  },
+  "prob_nie_above_0.15": 0.0,
+  "n_items": 395,
+  "n_rows": 790,
+  "model_slug": null
+}

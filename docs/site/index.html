@@ -70,7 +70,7 @@
       <div class="hero-stats">
         <div class="hstat"><span class="v">72 / 216</span><span class="l">planned cells completed</span></div>
         <div class="hstat"><span class="v">11</span><span class="l">synthetic test families</span></div>
-        <div class="hstat"><span class="v">1,503</span><span class="l">automated tests</span></div>
+        <div class="hstat"><span class="v">1,584</span><span class="l">automated tests</span></div>
         <div class="hstat"><span class="v">6</span><span class="l">models measured</span></div>
       </div>
     </div>
@@ -918,8 +918,13 @@ TE  = NDE + NIE</code></pre>
           <h4>Fits on all 72 cells</h4>
           <p><b>What was done.</b> The fit was extended from 24 to 72 cells.</p>
           <p><b>What was found.</b> All 72 cell fits completed in 1 hour 34 minutes with no
-            failures. The model-level results were written on 2026-09-09. They have not yet been
-            reviewed or merged into the main branch, so this page does not report them.</p>
+            failures. The model-level results were reviewed and reported on 2026-11-14.
+            0 of 72 cells pass the replay anchor gate. Twenty agree with the anchor on their own
+            estimates but fail at the model level. Every model-level result is provisional, and
+            the sampler reported divergences for all six models (57 to 231). The raw sweep
+            records on the cluster no longer exist, so the sensitivity results of the 24-cell
+            pass could not be produced for this pass.
+            <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS72-FITS.md">The 72-cell report.</a></p>
         </article>
       </div>
     </div>
@@ -1177,7 +1182,7 @@ TE  = NDE + NIE</code></pre>
         the stored sweep results.</p>
       <pre data-copy="click to copy"><code>git clone https://github.com/thylinao1/bayes-cot-faithfulness
 pip install -e ".[dev]"
-pytest -q                                              # 1,503 tests collected
+pytest -q                                              # 1,584 tests collected
 python notebooks/01_synthetic_validation.py            # recovery of known effects
 PYTHONPATH=src python experiments/06_positive_control_demo.py   # the two-world separation
 python experiments/mechanism_battery.py                # the rho* result, 11 families
@@ -1194,7 +1199,8 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
         <span class="num" aria-hidden="true">06</span>
         <p class="kicker"><span class="n">06</span> &middot; status</p>
         <h2>Status and next steps</h2>
-        <p class="sub">The measurements on this page are as recorded on 2026-09-10.</p>
+        <p class="sub">The measurements on this page are as recorded on 2026-09-10. The 72-cell
+          fits were reviewed and added on 2026-11-14.</p>
       </div>
 
       <div class="tl reveal">
@@ -1219,11 +1225,12 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
           <h4>Secondary judge votes complete</h4>
           <p>16 of 16 cells and 70,738 votes, matching the plan in every cell. Resuming after an
             interruption was tested on eight of them.</p></div>
-        <div class="tl-row live"><span class="d">2026-09-09 onward</span>
+        <div class="tl-row done"><span class="d">2026-09-09 to 11-14</span>
           <h4>The 72-cell expansion</h4>
           <p>All 72 cell fits completed with no failures. The model-level rows and claim statuses
-            were written on 2026-09-09 and have not yet been reviewed. The branch is two commits
-            ahead of the main branch and not yet merged.</p></div>
+            were reviewed on 2026-11-14 and merged into the main branch.
+            0 of 72 cells pass the replay anchor gate.
+            <a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS72-FITS.md">The 72-cell report.</a></p></div>
         <div class="tl-row"><span class="d">next</span>
           <h4>Human labels and the validation organism</h4>
           <p>No human label exists yet, so the corrected label column cannot be computed. Recruiting
@@ -1358,6 +1365,7 @@ python experiments/cells18_fits_report.py --cells 24</code></pre>
       <div><h4>Artifacts</h4><ul>
         <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness">Repository</a></li>
         <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS24-FITS.md">24-cell fits report</a></li>
+        <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/docs/CELLS72-FITS.md">72-cell fits report</a></li>
         <li><a href="https://github.com/thylinao1/bayes-cot-faithfulness/blob/main/CITATION.cff">Citation</a></li>
       </ul></div>
       <div><h4>Elsewhere</h4><ul>
