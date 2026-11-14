@@ -521,6 +521,43 @@ complete items: DeepSeek-R1-Distill-Llama-8B on AQuA-RAT, with 22, 22, 13 and 11
 
 Full tables, every cell's own block and the limits: `docs/CELLS72-FITS.md`.
 
+### Why the replay anchor and the fit disagree: a diagnosis (exploratory, 2026-11-14)
+
+No new model run, nothing pre-registered, and no claim status moves. Full account:
+`docs/ANCHOR-VS-FIT-DIAGNOSIS.md`. Code: `experiments/anchor_vs_fit_{world,real,sim}.py`.
+Output: `experiments/results/anchor_vs_fit_sim/results.json` (20 seeds, 4,000 items per world,
+1,700 maximum-likelihood fits).
+
+**The two instruments use different mediators.** The anchor swaps the whole chain text,
+including its `Answer:` line. The fit's mediator is `curve_area`, one score per chain, measured
+against that arm's own final answer, so its reference changes with the outcome. Amendment A4.6(b)
+already says the split rests on the link extrapolating and that only the total effect is checked
+directly.
+
+**The fit's split does not identify the share that passes through the chain.** On synthetic
+worlds with a known truth, run through `summarize_curve` and `fit_probit_mediation_map` as the
+real cells run them: when both kinds of follower write chains with the same timing, the observed
+columns are identical for every true share, and the fit returns an NIE of 0.155 for a truth
+anywhere from 0.000 to 0.250. With everything passing through the text (truth 0.250) the fit's
+NIE runs from 0.073 to 0.175 on the timing of the turn alone, among the 17 of 22 settings whose
+total effect stays within 0.06 of the arm difference, as it does on the real cells. Worlds matched
+to the real mediator moments give nearly the same NIE with full mediation and with none
+(ARC-Challenge 0.141 to 0.157 against 0.139 to 0.167; LogiQA 2.0 0.274 to 0.291 against 0.266 to
+0.291; no world matches AQuA-RAT).
+
+**The study does not validate the anchor.** Its simulated truth is defined by the anchor's own
+cell rule. The stored controls of the 72 cells show answer copying that they cannot bound: a bare
+answer line with filler and no cue yields the hinted option at pooled rates of 0.279
+(ARC-Challenge), 0.781 (AQuA-RAT) and 0.490 (LogiQA 2.0). `mu10` near zero on ARC-Challenge
+(0.015) has two readings, no direct effect of the cue or a copied answer line, and no stored cell
+removes the answer line from the clean chain.
+
+**What it means for the claim statuses.** 0 ANCHORED has three separate causes: the direct and
+indirect comparisons pair effects through different mediators, the total comparison pairs a
+native quantity with a replay quantity (it fails in 21 of 72 cells and for all six model rows),
+and the model-level test compares independent draws. None of the three is a finding about the
+models.
+
 ## Engineering record, 2026-09-08
 
 **A dropped manifest field, caught before it changed a result of record.** `bcf/wave.sh`'s

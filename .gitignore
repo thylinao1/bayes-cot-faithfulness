@@ -320,3 +320,10 @@ experiments/results/cells72-fits/*/*/*
 experiments/results/cells72-fits/*/*/*/*
 !experiments/results/cells72-fits/*/*/*/fit.json
 !experiments/results/cells72-fits/*/*/*/pymc.json
+
+# The anchor-versus-fit synthetic study (experiments/anchor_vs_fit_sim.py): the one
+# results file the note's numbers come from is committed. Anything else the CLI writes
+# there (the --legacy-depth0 rerun) stays local.
+!experiments/results/anchor_vs_fit_sim/
+experiments/results/anchor_vs_fit_sim/*
+!experiments/results/anchor_vs_fit_sim/results.json
