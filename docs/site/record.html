@@ -191,8 +191,10 @@
         <li>Real-model rho* values from before the estimator repair ranged from 0.708 to 0.800.
           Three have no stored transcripts and cannot be recomputed without new model calls; their
           entries read <b>not available under the repaired estimator</b>.</li>
-        <li>The <b>70,738 secondary-jury votes</b> are measured, verified and stored. They have not
-          yet been turned into a single reported number.</li>
+        <li>The <b>70,738 secondary-jury votes</b> are measured, verified and stored. They are not
+          reported as a number for now. A calibrated number needs human labels first, and the
+          rules for a raw share were not fixed before the votes were cast. The decision of
+          2026-11-14 is in the Phase 2 log.</li>
         <li>The A5 bridge (agreement between the binary and log-probability outcomes) cannot be
           computed for any cell on the native arm. The same agreement on the anchor's replay cells,
           0.7244 pooled, is printed instead, labelled a different regime and never used as the
@@ -661,8 +663,8 @@
     <p class="lead">This section lists the planned next steps in dependency order. They are limited
       by the people available to do them. The compute budget is not the limiting factor.</p>
     <ol>
-      <li>Turning the 70,738 stored secondary-jury votes into a reported number, or recording why
-        this is not possible.</li>
+      <li>Comparing the 70,738 stored secondary-jury votes with the human labels once those exist,
+        and then deciding whether to report them. They are not reported before that.</li>
       <li><b>Recruiting raters and labelling the golden set.</b> Until a human label exists, no
         corrected label column can be computed for any cell. Neither kill criterion has been
         evaluated.</li>

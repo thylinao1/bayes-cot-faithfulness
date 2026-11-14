@@ -558,6 +558,26 @@ native quantity with a replay quantity (it fails in 21 of 72 cells and for all s
 and the model-level test compares independent draws. None of the three is a finding about the
 models.
 
+### The secondary jury votes are not reported for now (decision, 2026-11-14)
+
+The 70,738 votes of the secondary single-judge configuration, on 16 cells of Gemma-2-9B-it and
+Llama-3.1-8B-Instruct, stay stored and are not turned into a reported number at this point. No
+tally and no rate was computed from them in taking this decision. The reasons:
+
+1. **No judge-calibrated share can exist before human labels do.** The calibration labels stay
+   sealed, and the 103-row golden set is not yet labelled.
+2. **The record does not fix the numerator, the denominator or the interval of a raw share.**
+   Fixing them after the votes were cast would be a choice made with the data in hand.
+3. **A raw share would change nothing on the record.** Ruling R15 part 2 reports the secondary
+   reading beside column A of record, moves no claim status on it and forbids selecting on it.
+4. **The gate result is narrow.** Of four judges, one single-judge configuration cleared the ten
+   thresholds, and no panel did.
+
+The votes are kept in two places, the working copy and an archive with a recorded sha256
+(`437273be10b07fefaf7db8f18e5f1c345271a99d57cce49226a9e1fd6fc4179b`). They are revisited once two
+human raters have labelled the 103 transcripts, when the judge can be compared with the human
+labels. Column A of record stays the uncorrected regex share.
+
 ## Engineering record, 2026-09-08
 
 **A dropped manifest field, caught before it changed a result of record.** `bcf/wave.sh`'s
