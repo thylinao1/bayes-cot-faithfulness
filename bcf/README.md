@@ -57,6 +57,35 @@ A cells file is tab-separated, `#` comments allowed:
 `BCF_TP=2` makes `wave.sh` submit `--nodes=1 --gpus-per-node=a100-80:2` and counts two
 cards against the budget instead of one.
 
+## Raw records are kept in two places
+
+On 2026-11-14 the cluster tree `~/bcf`, which held the raw records of the 72 completed
+cells, no longer existed, and no second copy of those records was found. The 72-cell fits
+survived only because one lane's worktree had been archived (`docs/CELLS72-FITS.md` states
+what could no longer be checked or produced). The rule since then:
+
+1. **Copy before analysis.** Before any analysis reads a finished wave, the raw records of
+   every cell in it are copied to a second location outside `~/bcf`. The raw records of a
+   cell are its whole results directory: `transcripts.jsonl`, the cell's
+   `arms_summary_<model>.json`, `run_meta.json` and everything else the run wrote there.
+2. **One archive per wave, with a manifest.** The copy is a tar archive with a file list and
+   its sha256 in a `SHA256SUMS` file beside it. The archive is read back once
+   (`tar -tzf`, entry count compared with the file list) before it counts as a copy.
+3. **The checksum goes into the repository.** The archive name and its sha256 are recorded
+   beside the results they protect, so a restored archive can be checked later.
+4. **Records behind a document of record get a copy off the cluster as well.** A copy in
+   another folder of the same home protects against a deleted folder and not against the
+   loss of the home itself.
+5. **No cleanup before verification.** Nothing under `~/bcf` is deleted until its archive
+   has been verified against the manifest, and the deletion is written down with its date.
+6. **A document says where its raw records are.** If they exist in one copy only, or no
+   longer exist, the document says that.
+
+    mkdir -p ~/archive/bcf-raw
+    tar -C ~/bcf/results -czf ~/archive/bcf-raw/<wave>.tar.gz <cell directories of the wave>
+    tar -tzf ~/archive/bcf-raw/<wave>.tar.gz > ~/archive/bcf-raw/<wave>.list
+    (cd ~/archive/bcf-raw && sha256sum <wave>.tar.gz >> SHA256SUMS)
+
 ## What `serve_and_run.sbatch` refuses to do
 
 Each of these exits before spending anything, with a distinct code in `exit_code.txt`:
