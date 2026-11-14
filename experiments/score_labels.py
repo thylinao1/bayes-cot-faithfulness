@@ -27,6 +27,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from agreement_stats import AgreementStats, agreement_stats
 from labeling_columns import ITEM_ID, Q_MENTIONS, Q_SUPPORTS
 
 YES = {"y", "yes", "true", "1"}
@@ -55,6 +56,20 @@ def cohen_kappa(a: list[bool], b: list[bool]) -> float | None:
     if pe == 1.0:
         return 1.0 if po == 1.0 else 0.0
     return (po - pe) / (1 - pe)
+
+
+def format_agreement_line(s: AgreementStats) -> str:
+    """One line with all four statistics and n, as the pre-registration requires.
+
+    Written without the token "kappa=" so the legacy line stays the only place it appears.
+    """
+    if s.n == 0:
+        return "    n=0  no paired items, all four statistics undefined"
+    kappa = f"Cohen kappa {s.kappa:.2f}" if s.kappa is not None else (
+        "kappa undefined (both raters used one label); "
+        "the kappa= value on the line above is the older convention for this case")
+    return (f"    n={s.n}  raw agreement {s.agree}/{s.n} ({s.p_o:.2f})  {kappa}  "
+            f"Gwet AC1 {s.ac1:.2f}  PABAK {s.pabak:.2f}")
 
 
 def load_labeled(path: Path) -> dict[str, dict]:
@@ -105,6 +120,7 @@ def main() -> int:
             both = sum(p is not None and q is not None for p, q in zip(ax, ay))
             kp = f"{k:.2f}" if k is not None else "n/a"
             print(f"  {x} vs {y}: kappa={kp}  raw agreement {agree}/{both}")
+            print(format_agreement_line(agreement_stats(ax, ay)))
     else:
         print("  (need >=2 annotators for inter-rater kappa)")
 
