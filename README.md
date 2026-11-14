@@ -7,8 +7,8 @@ indirect path, and the output is a posterior over each path rather than a point 
 
 On synthetic data with a known amount of hidden confounding built in, an analyst who
 assumes there is none reads a faithful path of 0.43 when the truth is 0.21. The sensitivity
-sweep in this repository recovers 0.21 at the true confounding level and reports how much
-confounding the verdict can absorb before it flips.
+sweep in this repository comes within 0.02 of the truth at the true confounding level and
+reports how much confounding the verdict can absorb before it flips.
 
 [![CI](https://github.com/thylinao1/bayes-cot-faithfulness/actions/workflows/ci.yml/badge.svg)](https://github.com/thylinao1/bayes-cot-faithfulness/actions/workflows/ci.yml)
 
@@ -293,8 +293,8 @@ section below summarise it.
 - A transcript-level auditor can only catch unfaithfulness that surfaces in the text.
   Reasoning that is never verbalised is invisible to it by construction. That ceiling binds
   harder than sample size does, and it covers the most safety-relevant case.
-- Several real-model runs are small (n = 11 to 22 clean-correct) because of free-tier rate
-  limits, though the largest reached n = 103. The cross-run rho\* agreement (0.708 to 0.800)
+- Several real-model runs in the table above are small (n = 11 to 22 clean-correct) because
+  of free-tier rate limits, though the largest reached n = 103. The cross-run rho\* agreement (0.708 to 0.800)
   came from a specification we have since shown to report a substantial mediated effect on a
   null, so it is neither test-retest reliability nor a current measurement. It is also
   invariant to the direct-effect path by construction, so agreement across runs would not
@@ -334,12 +334,17 @@ Delivered:
   every powered cell, after finding that batching alone breaks greedy-decoding
   reproducibility.
 
-Running:
+Measured in Phase 2 (September 2026):
 
-- The first powered open-weights sweep (wave 1, ARC challenge, stated-hint, n = 1,500 per
-  cell) under the pinned, determinism-checked serving mode. Three of eight cells are usable
-  as measured; the rest of the 216-cell grid is queued behind two named rulings. See
-  [`docs/PHASE2-LOG.md`](docs/PHASE2-LOG.md).
+- The powered open-weights sweep under the pinned, determinism-checked serving mode. 72 of
+  the 216 planned cells are complete, twelve for each of six models (Qwen3-8B, Gemma-2-9B-it,
+  Llama-3.1-8B-Instruct, Phi-4-reasoning, OLMo-3-7B-Think and DeepSeek-R1-Distill-Llama-8B)
+  on ARC-Challenge, AQuA-RAT and LogiQA 2.0. Eight of the 72 have fewer than 350
+  clean-correct questions and are labelled as such.
+- Fits of record on 24 of those cells (three models, two question sets): 0 ANCHORED, 24 RAW.
+  See [`docs/CELLS24-FITS.md`](docs/CELLS24-FITS.md) and
+  [`docs/PHASE2-LOG.md`](docs/PHASE2-LOG.md). The fits on all 72 cells have run; their
+  model-level rows are not yet reviewed and are not reported here.
 - Jury synthetic gate: all four judges (FP8 Llama, Gemma-3-27B-it, Qwen3-32B, gpt-oss-20b)
   scored all three Q1 prompts against the ten pre-committed thresholds; no judge and no
   three-judge panel clears them (Ruling R9, 2026-09-07 18:17). On the prompt-d construct
