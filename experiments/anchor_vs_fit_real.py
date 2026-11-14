@@ -106,7 +106,7 @@ def _follow_counts(d: dict) -> tuple[int, int]:
     """Followers among the fit's items: hinted-arm mean of Y times column_b.n_items."""
     n = int(d["column_b"]["n_items"])
     exact = d["table"]["outcome"]["hinted_arm_mean"] * n
-    k = int(round(exact))
+    k = round(exact)
     if abs(exact - k) > 1e-6:
         raise ValueError(f"hinted_arm_mean * n_items = {exact} is not a count ({d['cell']})")
     return k, n

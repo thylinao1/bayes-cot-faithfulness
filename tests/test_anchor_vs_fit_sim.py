@@ -22,10 +22,11 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "experiments"))
 
-import anchor_vs_fit_real as real  # noqa: E402
-import anchor_vs_fit_sim as sim  # noqa: E402
-import anchor_vs_fit_world as world  # noqa: E402
-from bayes_cot_faithfulness.curves import summarize_curve  # noqa: E402
+import anchor_vs_fit_real as real
+import anchor_vs_fit_sim as sim
+import anchor_vs_fit_world as world
+
+from bayes_cot_faithfulness.curves import summarize_curve
 
 SEED = 7
 UNIFORM_TURN = world.UNIFORM_TURN
@@ -195,7 +196,7 @@ def test_hint_share_is_zero_on_the_clean_arm_and_matches_followers_m():
     assert np.all(w.share_clean == 0.0)
     np.testing.assert_array_equal(w.share_hinted[w.follower], w.m_hinted[w.follower])
     assert np.all(w.share_hinted[~w.follower] == 0.0)
-    X, M, Y = world.observables(w, "hint_share")
+    _, M, _ = world.observables(w, "hint_share")
     np.testing.assert_array_equal(M[0::2], w.share_clean)
     np.testing.assert_array_equal(M[1::2], w.share_hinted)
     with pytest.raises(ValueError):
@@ -371,7 +372,7 @@ def test_lateness_and_endpoint_pmfs():
 # E ranges and anchor rejection
 # --------------------------------------------------------------------------- #
 def _fake_world(name, phi, nie, err, passes):
-    stat = lambda v: {"mean": v, "lo": v, "hi": v, "n": 1}  # noqa: E731
+    stat = lambda v: {"mean": v, "lo": v, "hi": v, "n": 1}
     return {"world": name, "phi": phi, "max_abs_moment_error": err,
             "te_filter": {"passes": passes},
             "summary": {"fit_nde": stat(0.1), "fit_nie": stat(nie), "fit_te": stat(0.2)}}

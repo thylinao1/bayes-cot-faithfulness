@@ -29,7 +29,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import numpy as np
-
 from anchor_vs_fit_real import (
     FITS_ROOT,
     REAL_SUBSTRATES,
@@ -59,6 +58,7 @@ from anchor_vs_fit_world import (
     turn_pmf,
     with_changes,
 )
+
 from bayes_cot_faithfulness.closed_form import probit_natural_effects_closed_form
 from bayes_cot_faithfulness.curves import depths_for, summarize_curve
 from bayes_cot_faithfulness.sensitivity import fit_probit_mediation_map
